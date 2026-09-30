@@ -1,2 +1,1 @@
-# imcp
-Information Management Course Project
+## Information Management Course Project
