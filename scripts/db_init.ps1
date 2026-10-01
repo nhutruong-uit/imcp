@@ -1,4 +1,4 @@
-# Khởi tạo CSDL QLTTTA (Windows): chạy lần lượt database\00..07 bằng sqlcmd.
+﻿# Khởi tạo CSDL QLTTTA (Windows): chạy lần lượt database\00..07 bằng sqlcmd.
 #
 # Cách dùng (PowerShell):
 #   .\scripts\db_init.ps1                                   # Windows Authentication, server "localhost"

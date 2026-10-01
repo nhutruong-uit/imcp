@@ -5,6 +5,7 @@
 #include "presentation/main/MainWindow.h"
 
 #include <QApplication>
+#include <QTextStream>
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
@@ -16,6 +17,24 @@ int main(int argc, char* argv[]) {
     Theme::apply(app);
 
     AppContainer container;
+
+    // Chế độ chẩn đoán (không mở giao diện): QLTTTA_USER, QLTTTA_PASSWORD, tùy chọn QLTTTA_SERVER
+    //   ./QLTTTA --check-connection
+    if (QApplication::arguments().contains(QStringLiteral("--check-connection"))) {
+        if (qEnvironmentVariableIsSet("QLTTTA_SERVER")) {
+            CauHinhMayChu cauHinh = container.auth().cauHinh();
+            cauHinh.mayChu = qEnvironmentVariable("QLTTTA_SERVER");
+            container.auth().luuCauHinh(cauHinh);
+        }
+        const auto kq = container.auth().dangNhap(qEnvironmentVariable("QLTTTA_USER"),
+                                                  qEnvironmentVariable("QLTTTA_PASSWORD"));
+        QTextStream out(stdout);
+        if (kq.ok())
+            out << "OK: " << kq.value().hoTen << " (" << tenVaiTro(kq.value().vaiTro) << ")" << Qt::endl;
+        else
+            out << "LOI: " << kq.error() << Qt::endl;
+        return kq.ok() ? 0 : 1;
+    }
 
     // Vòng lặp: Đăng nhập -> Cửa sổ chính -> (Đăng xuất) -> Đăng nhập lại
     for (;;) {
