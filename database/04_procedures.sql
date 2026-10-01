@@ -837,7 +837,9 @@ GO
    G. BÁO CÁO - THỐNG KÊ
    ===================================================================== */
 
-/* G1. usp_ThongKe_TongQuan: số liệu cho màn hình Dashboard */
+/* G1. usp_ThongKe_TongQuan: số liệu cho màn hình Dashboard.
+       Giáo vụ cũng gọi được thủ tục này nhưng KHÔNG được xem doanh thu:
+       cột DoanhThuThangNay trả NULL nếu người gọi không phải quản lý/kế toán. */
 IF OBJECT_ID(N'dbo.usp_ThongKe_TongQuan', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_ThongKe_TongQuan;
 GO
 CREATE PROCEDURE dbo.usp_ThongKe_TongQuan
@@ -846,15 +848,17 @@ AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @HomNay DATE = CAST(GETDATE() AS DATE);
+    DECLARE @XemDoanhThu BIT = CASE WHEN dbo.fn_VaiTroHienTai() IN ('QUANLY', 'KETOAN') THEN 1 ELSE 0 END;
 
     SELECT
         (SELECT COUNT(*) FROM dbo.HOCVIEN WHERE TrangThai = N'Đang học' AND (@MaCN IS NULL OR MaCN = @MaCN)) AS HocVienDangHoc,
         (SELECT COUNT(*) FROM dbo.LOPHOC WHERE TrangThai = N'Đang học' AND (@MaCN IS NULL OR MaCN = @MaCN)) AS LopDangHoc,
         (SELECT COUNT(*) FROM dbo.LOPHOC WHERE TrangThai = N'Đang tuyển sinh' AND (@MaCN IS NULL OR MaCN = @MaCN)) AS LopTuyenSinh,
+        CASE WHEN @XemDoanhThu = 0 THEN NULL ELSE
         (SELECT ISNULL(SUM(pt.SoTien), 0) FROM dbo.PHIEUTHU pt
             JOIN dbo.GHIDANH gd ON gd.MaGD = pt.MaGD JOIN dbo.LOPHOC l ON l.MaLop = gd.MaLop
             WHERE pt.TrangThai = N'Hợp lệ' AND YEAR(pt.NgayThu) = YEAR(@HomNay) AND MONTH(pt.NgayThu) = MONTH(@HomNay)
-              AND (@MaCN IS NULL OR l.MaCN = @MaCN)) AS DoanhThuThangNay,
+              AND (@MaCN IS NULL OR l.MaCN = @MaCN)) END AS DoanhThuThangNay,
         (SELECT ISNULL(SUM(ConNo), 0) FROM dbo.vw_CongNo WHERE (@MaCN IS NULL OR MaCN = @MaCN)) AS TongCongNo,
         (SELECT COUNT(*) FROM dbo.BUOIHOC b JOIN dbo.LOPHOC l ON l.MaLop = b.MaLop
             WHERE b.NgayHoc = @HomNay AND b.TrangThai <> N'Hủy' AND (@MaCN IS NULL OR l.MaCN = @MaCN)) AS BuoiHocHomNay;
@@ -1142,7 +1146,17 @@ BEGIN
     SET @Sql = N'ALTER USER ' + QUOTENAME(USER_NAME())
              + N' WITH PASSWORD = N''' + REPLACE(@MatKhauMoi, N'''', N'''''')
              + N''' OLD_PASSWORD = N''' + REPLACE(@MatKhauCu, N'''', N'''''') + N''';';
-    EXEC sys.sp_executesql @Sql;
+    BEGIN TRY
+        EXEC sys.sp_executesql @Sql;
+    END TRY
+    BEGIN CATCH
+        -- Chuyển lỗi hệ thống (tiếng Anh) thành thông báo nghiệp vụ tiếng Việt
+        IF ERROR_NUMBER() = 15151   -- sai OLD_PASSWORD
+            THROW 50066, N'Mật khẩu hiện tại không đúng.', 1;
+        IF ERROR_NUMBER() IN (15114, 15115, 15116, 15118)   -- vi phạm chính sách mật khẩu
+            THROW 50067, N'Mật khẩu mới chưa đủ mạnh: cần chữ hoa, chữ thường, chữ số hoặc ký tự đặc biệt.', 1;
+        THROW;
+    END CATCH;
 END;
 GO
 
@@ -1165,7 +1179,10 @@ CREATE PROCEDURE dbo.usp_TaiKhoan_DanhSach
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT tk.TenDangNhap, tk.VaiTro, COALESCE(nv.HoTen, gv.HoTen) AS HoTen,
+    SELECT tk.TenDangNhap,
+           CASE tk.VaiTro WHEN 'QUANLY' THEN N'Quản lý' WHEN 'GIAOVU' THEN N'Giáo vụ'
+                          WHEN 'KETOAN' THEN N'Kế toán' WHEN 'GIAOVIEN' THEN N'Giáo viên' END AS VaiTro,
+           COALESCE(nv.HoTen, gv.HoTen) AS HoTen,
            tk.TrangThai, tk.NgayTao, tk.LanDangNhapCuoi
     FROM dbo.TAIKHOAN tk
     LEFT JOIN dbo.NHANVIEN nv ON nv.MaNV = tk.MaNV

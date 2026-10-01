@@ -28,10 +28,10 @@ HocVienPage::HocVienPage(AppServices services, QWidget* parent) : QWidget(parent
     auto* thanh = new QHBoxLayout;
     m_tuKhoa = new QLineEdit(this);
     m_tuKhoa->setObjectName(QStringLiteral("tuKhoa"));
-    m_tuKhoa->setPlaceholderText(QStringLiteral("Tìm theo mã, họ tên, số điện thoại..."));
+    m_tuKhoa->setPlaceholderText(QStringLiteral("Tìm mã, họ tên, SĐT..."));
     m_tuKhoa->addAction(Icons::get(QStringLiteral("search"), QStringLiteral("#94A3B8"), 16), QLineEdit::LeadingPosition);
     m_tuKhoa->setClearButtonEnabled(true);
-    m_tuKhoa->setMinimumWidth(280);
+    m_tuKhoa->setMinimumWidth(220);
     m_locChiNhanh = new QComboBox(this);
     m_locChiNhanh->addItem(QStringLiteral("Tất cả chi nhánh"), QString());
     m_locTrangThai = new QComboBox(this);

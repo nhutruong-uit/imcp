@@ -377,6 +377,37 @@ BEGIN CATCH
 END CATCH;
 GO
 
+-- P11: giáo vụ được xem Dashboard nhưng không được xem doanh thu (thủ tục trả NULL)
+BEGIN TRY
+    IF OBJECT_ID('tempdb..#TongQuan') IS NOT NULL DROP TABLE #TongQuan;
+    CREATE TABLE #TongQuan (HocVien INT, LopDangHoc INT, LopTuyenSinh INT, DoanhThu BIGINT, CongNo BIGINT, BuoiHoc INT);
+    EXECUTE AS USER = N'gvu_lan';
+    INSERT #TongQuan EXEC dbo.usp_ThongKe_TongQuan;
+    REVERT;
+    INSERT #KetQua SELECT 'P11', N'Giáo vụ xem doanh thu tháng trên Dashboard', N'Từ chối',
+                          CASE WHEN DoanhThu IS NULL THEN N'Từ chối' ELSE N'Thành công' END,
+                          N'usp_ThongKe_TongQuan trả DoanhThuThangNay = NULL cho vai trò GIAOVU'
+                   FROM #TongQuan;
+END TRY
+BEGIN CATCH
+    REVERT;
+    INSERT #KetQua VALUES ('P11', N'Giáo vụ xem doanh thu tháng trên Dashboard', N'Từ chối', N'Lỗi', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P12: tự đổi mật khẩu nhưng nhập sai mật khẩu hiện tại (ALTER USER ... OLD_PASSWORD)
+BEGIN TRY
+    EXECUTE AS USER = N'gvu_lan';
+    EXEC dbo.usp_TaiKhoan_DoiMatKhau N'sai-mat-khau', N'MatKhauMoi@1';
+    REVERT;
+    INSERT #KetQua VALUES ('P12', N'Đổi mật khẩu với mật khẩu hiện tại sai', N'Từ chối', N'Thành công', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    INSERT #KetQua VALUES ('P12', N'Đổi mật khẩu với mật khẩu hiện tại sai', N'Từ chối', N'Từ chối', ERROR_MESSAGE());
+END CATCH;
+GO
+
 /* ---------------- TỔNG HỢP ---------------- */
 SELECT MaTest, NoiDung, KyVong, ThucTe,
        CASE WHEN KyVong = ThucTe THEN N'ĐẠT' ELSE N'KHÔNG ĐẠT' END AS DanhGia,

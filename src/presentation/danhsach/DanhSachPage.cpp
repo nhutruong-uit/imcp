@@ -98,7 +98,10 @@ void DanhSachPage::capNhatTong() {
         double tong = 0;
         for (int r = 0; r < m_proxy->rowCount(); ++r)
             tong += m_proxy->index(r, c).data(Qt::UserRole).toDouble();
-        phan << QStringLiteral("Tổng %1: %2").arg(cot.at(c).toLower(), Format::tien(static_cast<qint64>(tong)));
+        // Cột tên "Tổng lương" thì không thêm chữ "Tổng" lần nữa
+        const QString ten = cot.at(c).startsWith(QStringLiteral("Tổng")) ? cot.at(c)
+                                                                         : QStringLiteral("Tổng ") + cot.at(c).toLower();
+        phan << QStringLiteral("%1: %2").arg(ten, Format::tien(static_cast<qint64>(tong)));
     }
     m_tong->setText(phan.join(QStringLiteral("   •   ")));
 }

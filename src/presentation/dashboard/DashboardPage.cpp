@@ -40,6 +40,7 @@ DashboardPage::DashboardPage(AppServices services, QWidget* parent) : QWidget(pa
     luoi->addWidget(taoThe(QStringLiteral("Doanh thu tháng này"), QStringLiteral("chart"), &m_doanhThu), 1, 0);
     luoi->addWidget(taoThe(QStringLiteral("Tổng công nợ học phí"), QStringLiteral("wallet"), &m_congNo), 1, 1);
     luoi->addWidget(taoThe(QStringLiteral("Buổi học hôm nay"), QStringLiteral("calendar"), &m_buoiHoc), 1, 2);
+    m_doanhThu->setProperty("vaiTro", QStringLiteral("kpiDoanhThu"));
     v->addLayout(luoi);
 
     auto* theBieuDo = UiHelpers::theCard(this);
@@ -91,7 +92,8 @@ void DashboardPage::taiLai() {
         m_hocVien->setText(QString::number(s.hocVienDangHoc));
         m_lopDangHoc->setText(QString::number(s.lopDangHoc));
         m_lopTuyenSinh->setText(QString::number(s.lopTuyenSinh));
-        m_doanhThu->setText(Format::tien(s.doanhThuThangNay));
+        m_doanhThu->setText(s.doanhThuThangNay ? Format::tien(*s.doanhThuThangNay)
+                                               : QStringLiteral("Không có quyền"));
         m_congNo->setText(Format::tien(s.tongCongNo));
         m_buoiHoc->setText(QString::number(s.buoiHocHomNay));
         m_loi->hide();

@@ -13,6 +13,17 @@ private slots:
         QCOMPARE(SqlErrorMapper::lamSachThongDiep(goc), QStringLiteral("Học viên đã ghi danh lớp này."));
     }
 
+    void boDuoiSqlState() {
+        QCOMPARE(SqlErrorMapper::lamSachThongDiep(QStringLiteral("Mật khẩu hiện tại không đúng., 37000")),
+                 QStringLiteral("Mật khẩu hiện tại không đúng."));
+        QCOMPARE(SqlErrorMapper::lamSachThongDiep(
+                     QStringLiteral("[FreeTDS][SQL Server]Lớp đã đủ sĩ số., 42000;01000")),
+                 QStringLiteral("Lớp đã đủ sĩ số."));
+        // Dấu phẩy bình thường trong câu không bị cắt
+        QCOMPARE(SqlErrorMapper::lamSachThongDiep(QStringLiteral("Lớp LH0001, phòng 101 đã kín lịch.")),
+                 QStringLiteral("Lớp LH0001, phòng 101 đã kín lịch."));
+    }
+
     void loiDangNhap() {
         const QSqlError e(QStringLiteral("QODBC: Unable to connect"),
                           QStringLiteral("[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Login failed for user 'x'."),

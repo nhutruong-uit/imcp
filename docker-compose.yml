@@ -13,6 +13,9 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
       MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Đặt MSSQL_SA_PASSWORD trong file .env}"
+      # Giờ Việt Nam: GETDATE() trong CSDL phải trùng ngày với máy người dùng
+      # (container mặc định UTC => sau 17h "hôm nay" của CSDL lệch 1 ngày so với giao diện)
+      TZ: "Asia/Ho_Chi_Minh"
     ports:
       - "1433:1433"
     volumes:

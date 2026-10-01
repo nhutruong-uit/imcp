@@ -47,8 +47,13 @@ void UiHelpers::baoLoi(QWidget* parent, const QString& thongBao) {
 }
 
 bool UiHelpers::xacNhan(QWidget* parent, const QString& cauHoi) {
-    return QMessageBox::question(parent, QStringLiteral("Xác nhận"), cauHoi,
-                                 QMessageBox::Yes | QMessageBox::No, QMessageBox::No) == QMessageBox::Yes;
+    // Qt không kèm bản dịch tiếng Việt cho nút chuẩn (Yes/No) nên tự đặt chữ trên nút
+    QMessageBox hop(QMessageBox::Question, QStringLiteral("Xác nhận"), cauHoi,
+                    QMessageBox::Yes | QMessageBox::No, parent);
+    hop.setDefaultButton(QMessageBox::No);
+    hop.button(QMessageBox::Yes)->setText(QStringLiteral("Đồng ý"));
+    hop.button(QMessageBox::No)->setText(QStringLiteral("Không"));
+    return hop.exec() == QMessageBox::Yes;
 }
 
 void UiHelpers::xuatCsv(QWidget* parent, const QAbstractItemModel& model, const QString& tenGoiY) {

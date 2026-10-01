@@ -15,7 +15,8 @@ Result<ThongKeTongQuan> SqlThongKeRepository::tongQuan() {
         tk.hocVienDangHoc = q.value(0).toInt();
         tk.lopDangHoc = q.value(1).toInt();
         tk.lopTuyenSinh = q.value(2).toInt();
-        tk.doanhThuThangNay = q.value(3).toLongLong();
+        if (!q.value(3).isNull())   // NULL: vai trò hiện tại không được xem doanh thu
+            tk.doanhThuThangNay = q.value(3).toLongLong();
         tk.tongCongNo = q.value(4).toLongLong();
         tk.buoiHocHomNay = q.value(5).toInt();
     }
