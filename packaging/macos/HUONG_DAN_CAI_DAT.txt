@@ -1,0 +1,18 @@
+QLTTTA - QUẢN LÝ TRUNG TÂM TIẾNG ANH (bản macOS, Apple Silicon)
+================================================================
+
+1. Kéo QLTTTA.app vào thư mục Applications.
+
+2. Mở lần đầu (ứng dụng sinh viên tự ký, chưa đăng ký Apple Developer):
+   - Mở QLTTTA một lần, macOS báo không mở được -> bấm "Done"/"OK".
+   - Vào System Settings > Privacy & Security, kéo xuống mục Security,
+     bấm "Open Anyway" bên cạnh dòng QLTTTA, xác nhận bằng mật khẩu máy.
+   - Hoặc mở Terminal và chạy:  xattr -dr com.apple.quarantine /Applications/QLTTTA.app
+
+3. Màn hình đăng nhập > "Cấu hình máy chủ":
+   - Máy chủ: địa chỉ SQL Server có CSDL QLTTTA (vd. localhost,1433 hoặc 192.168.1.10,1433)
+   - CSDL: QLTTTA
+   Tài khoản demo và cách khởi tạo CSDL: xem docs/SETUP.md trong mã nguồn
+   (hoặc file README đính kèm bản phát hành).
+
+Ứng dụng đã kèm sẵn driver kết nối SQL Server (FreeTDS), không cần cài thêm.
