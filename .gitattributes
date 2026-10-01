@@ -1,0 +1,18 @@
+# Chuẩn hóa xuống dòng LF trong repo, checkout theo hệ điều hành
+* text=auto eol=lf
+
+# Script Windows giữ CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.iss text eol=crlf
+
+# File nhị phân
+*.png binary
+*.jpg binary
+*.ico binary
+*.icns binary
+*.docx binary
+*.pdf binary
+# CSV mẫu cho BULK INSERT được lưu UTF-16 LE
+database/samples/*.csv binary
