@@ -51,7 +51,7 @@ docs/              Tài liệu + báo cáo đồ án (docs/report)
 - [docs/DATABASE.md](docs/DATABASE.md) - thiết kế CSDL, danh mục đối tượng, ánh xạ với nội dung môn học
 - [docs/PLAN.md](docs/PLAN.md) - kế hoạch đến ngày nộp, phân công thành viên, chuẩn bị vấn đáp
 - [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) - quy trình Git/GitHub, quy ước code, dùng Claude Code
-- [docs/report/](docs/report/) - báo cáo đồ án (.docx) và script sinh báo cáo
+- [docs/report/](docs/report/) - báo cáo đồ án (.docx, .pdf) và script sinh báo cáo
 
 ## Thành viên
 

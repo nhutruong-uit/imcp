@@ -27,6 +27,7 @@ HocVienPage::HocVienPage(AppServices services, QWidget* parent) : QWidget(parent
     // --- Thanh công cụ: lọc bên trái, thao tác bên phải
     auto* thanh = new QHBoxLayout;
     m_tuKhoa = new QLineEdit(this);
+    m_tuKhoa->setObjectName(QStringLiteral("tuKhoa"));
     m_tuKhoa->setPlaceholderText(QStringLiteral("Tìm theo mã, họ tên, số điện thoại..."));
     m_tuKhoa->addAction(Icons::get(QStringLiteral("search"), QStringLiteral("#94A3B8"), 16), QLineEdit::LeadingPosition);
     m_tuKhoa->setClearButtonEnabled(true);
@@ -43,8 +44,11 @@ HocVienPage::HocVienPage(AppServices services, QWidget* parent) : QWidget(parent
     thanh->addSpacing(12);
 
     auto* nutThem = UiHelpers::nutChinh(QStringLiteral("Thêm"), QStringLiteral("plus"), this);
+    nutThem->setObjectName(QStringLiteral("nutThem"));
     m_nutSua = UiHelpers::nutPhu(QStringLiteral("Sửa"), QStringLiteral("edit"), this);
+    m_nutSua->setObjectName(QStringLiteral("nutSua"));
     m_nutXoa = UiHelpers::nutPhu(QStringLiteral("Xóa"), QStringLiteral("trash"), this);
+    m_nutXoa->setObjectName(QStringLiteral("nutXoa"));
     auto* nutCsv = UiHelpers::nutPhu(QStringLiteral("Excel"), QStringLiteral("download"), this);
     auto* nutPdf = UiHelpers::nutPhu(QStringLiteral("PDF"), QStringLiteral("file"), this);
     nutThem->setVisible(m_duocSua);
@@ -64,6 +68,7 @@ HocVienPage::HocVienPage(AppServices services, QWidget* parent) : QWidget(parent
     m_proxy->setSortRole(Qt::UserRole);
     m_proxy->setSortLocaleAware(true);
     m_bang = new QTableView(this);
+    m_bang->setObjectName(QStringLiteral("bangHocVien"));
     m_bang->setModel(m_proxy);
     m_bang->setSortingEnabled(true);
     m_bang->horizontalHeader()->setSortIndicator(-1, Qt::AscendingOrder);   // giữ thứ tự ORDER BY của CSDL
@@ -77,6 +82,7 @@ HocVienPage::HocVienPage(AppServices services, QWidget* parent) : QWidget(parent
     v->addWidget(m_bang, 1);
 
     m_dem = new QLabel(this);
+    m_dem->setProperty("vaiTro", QStringLiteral("demHocVien"));
     m_dem->setObjectName(QStringLiteral("Muted"));
     v->addWidget(m_dem);
 

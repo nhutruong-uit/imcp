@@ -77,9 +77,11 @@ QWidget* LoginDialog::taoPanelForm() {
     v->addSpacing(12);
 
     m_tenDangNhap = new QLineEdit(panel);
+    m_tenDangNhap->setObjectName(QStringLiteral("tenDangNhap"));
     m_tenDangNhap->setPlaceholderText(QStringLiteral("Tên đăng nhập"));
     m_tenDangNhap->addAction(Icons::get(QStringLiteral("user"), QStringLiteral("#94A3B8"), 16), QLineEdit::LeadingPosition);
     m_matKhau = new QLineEdit(panel);
+    m_matKhau->setObjectName(QStringLiteral("matKhau"));
     m_matKhau->setPlaceholderText(QStringLiteral("Mật khẩu"));
     m_matKhau->setEchoMode(QLineEdit::Password);
     m_matKhau->addAction(Icons::get(QStringLiteral("key"), QStringLiteral("#94A3B8"), 16), QLineEdit::LeadingPosition);
@@ -88,11 +90,13 @@ QWidget* LoginDialog::taoPanelForm() {
 
     m_loi = new QLabel(panel);
     m_loi->setObjectName(QStringLiteral("ErrorText"));
+    m_loi->setProperty("vaiTro", QStringLiteral("loiDangNhap"));
     m_loi->setWordWrap(true);
     m_loi->hide();
     v->addWidget(m_loi);
 
     m_nutDangNhap = UiHelpers::nutChinh(QStringLiteral("Đăng nhập"), QString(), panel);
+    m_nutDangNhap->setObjectName(QStringLiteral("nutDangNhap"));
     m_nutDangNhap->setDefault(true);
     m_nutDangNhap->setMinimumHeight(38);
     v->addWidget(m_nutDangNhap);
@@ -106,6 +110,7 @@ QWidget* LoginDialog::taoPanelForm() {
     m_nhomCauHinh = new QGroupBox(QStringLiteral("Máy chủ SQL Server"), panel);
     auto* form = new QFormLayout(m_nhomCauHinh);
     m_mayChu = new QLineEdit(m_nhomCauHinh);
+    m_mayChu->setObjectName(QStringLiteral("mayChu"));
     m_mayChu->setPlaceholderText(QStringLiteral("localhost,1433 hoặc TEN-MAY\\SQLEXPRESS"));
     m_csdl = new QLineEdit(m_nhomCauHinh);
     m_tinCay = new QCheckBox(QStringLiteral("Tin cậy chứng chỉ máy chủ (TrustServerCertificate)"), m_nhomCauHinh);

@@ -77,7 +77,12 @@ def chuong6(r):
     r.bullets([
         "**Unit test** (Qt Test): kiểm tra quy tắc HocVien, ánh xạ vai trò, use case thêm học viên (dùng repository giả), "
         "đăng nhập/đổi mật khẩu, ma trận phân quyền, ánh xạ lỗi SQL và chuỗi kết nối ODBC - 3 bộ test, chạy tự động trên CI.",
-        "**Kiểm thử giao diện với dữ liệu thật**: công cụ `tools/qlttta_screenshots` tự đăng nhập bằng 4 tài khoản demo, mở "
+        "**Kiểm thử end-to-end qua giao diện** (`tests/tst_e2e_gui.cpp`): chương trình gõ phím, bấm nút trên chính các "
+        "màn hình với CSDL thật - đăng nhập sai bị từ chối; giáo vụ tìm kiếm, thêm học viên 10 tuổi (lần đầu thiếu phụ "
+        "huynh bị báo lỗi, bổ sung thì lưu được) rồi xóa; giáo viên chỉ thấy 2 lớp của mình; kế toán không có nút thêm học "
+        "viên, xem công nợ và xuất PDF/CSV; đổi mật khẩu nhập lại sai bị chặn. Kết quả: 5/5 kịch bản đạt, dữ liệu trở về "
+        "nguyên trạng. Trên CI (không có SQL Server) bài kiểm thử tự bỏ qua.",
+        "**Kiểm thử hiển thị**: công cụ `tools/qlttta_screenshots` tự đăng nhập bằng 4 tài khoản demo, mở "
         "từng chức năng và chụp màn hình (hình trong chương này được tạo bằng công cụ đó).",
         "**Kiểm thử CSDL**: 25 ca trong `12_kiem_thu.sql` (Chương 4 và 5), tất cả đạt.",
     ])
@@ -199,7 +204,7 @@ def chuong8(r):
         ["Cài đặt CSDL", "21 bảng, 182 ràng buộc khai báo, 8 sequence, 1 XML Schema, 13 hàm, 13 view, 38 thủ tục, 13 trigger, 4 role"],
         ["Xử lý thông tin", "Truy vấn SQL (chia, đệ quy, cửa sổ, PIVOT), XPath/XQuery đủ 5 phương thức, cursor, giao dịch"],
         ["An ninh", "Contained user, phân quyền mức đối tượng và mức cột, view bảo mật, nhật ký XML, backup Full/Diff/Log"],
-        ["Kiểm thử", f"{dat}/{len(kiem_thu())} ca kiểm thử CSDL đạt; 3 bộ unit test ứng dụng"],
+        ["Kiểm thử", f"{dat}/{len(kiem_thu())} ca kiểm thử CSDL đạt; 3 bộ unit test; 5/5 kịch bản end-to-end qua giao diện"],
         ["Ứng dụng", "Qt 6 đa nền tảng, Clean Architecture, đăng nhập theo vai trò, Tổng quan, Học viên, 10 màn hình tra cứu, xuất PDF/Excel"],
         ["Triển khai", "CI build/test macOS + Windows, tự đóng gói setup.exe/zip/dmg, tài liệu cài đặt"],
         ["Mô hình tiên tiến", "Chuyển đổi sang OODB, thiết kế + demo phân mảnh phân tán, thiết kế NoSQL, bảng so sánh"],
@@ -281,10 +286,16 @@ def phu_luc(r):
         ["gv_john, gv_hoanganh, gv_hoa, gv_bao", "Giáo viên", "Chỉ dữ liệu lớp mình dạy"],
     ], widths_cm=[5.2, 2.8, 8.0], caption="Tài khoản demo (mật khẩu chung ghi trong docs/SETUP.md)", size=10)
     r.h2("D. Cấu trúc mã nguồn")
-    r.code("Thư mục chính của kho mã nguồn", """database/        00..07 cài đặt CSDL; 08 truy vấn minh họa; 09 backup/restore; 10 import/export;
-                 11 CSDL phân tán; 12 kiểm thử
-src/domain/      thực thể, quy tắc nghiệp vụ          src/application/  use case, port, phân quyền
-src/infrastructure/ ODBC, repository gọi thủ tục      src/presentation/ giao diện Qt Widgets
-src/app/         composition root                     tests/            unit test (Qt Test)
-scripts/         khởi tạo CSDL, đóng gói              packaging/        icon, Inno Setup, Info.plist
-.github/workflows/ CI + Release                       docs/             tài liệu, báo cáo (docs/report)""", lang="text")
+    r.table(["Thư mục", "Nội dung"], [
+        ["database/", "00-07 cài đặt CSDL; 08 truy vấn minh họa; 09 backup/restore; 10 import/export; 11 CSDL phân tán; 12 kiểm thử"],
+        ["src/domain/", "Thực thể, quy tắc nghiệp vụ"],
+        ["src/application/", "Use case, port (interface), ma trận phân quyền"],
+        ["src/infrastructure/", "Kết nối ODBC, repository gọi thủ tục, ánh xạ lỗi"],
+        ["src/presentation/", "Giao diện Qt Widgets (menu, form, báo cáo)"],
+        ["src/app/", "Composition root: main.cpp, AppContainer"],
+        ["tests/", "Unit test và kiểm thử end-to-end qua giao diện (Qt Test)"],
+        ["tools/", "Công cụ chụp màn hình tự động"],
+        ["scripts/, packaging/", "Khởi tạo CSDL, đóng gói; icon, Inno Setup, Info.plist"],
+        [".github/workflows/", "CI (build + test) và Release (tạo file cài)"],
+        ["docs/", "Tài liệu dự án và báo cáo (docs/report)"],
+    ], widths_cm=[4.2, 11.8], caption="Cấu trúc kho mã nguồn", size=10)

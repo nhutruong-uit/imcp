@@ -10,3 +10,14 @@ endfunction()
 qlttta_add_test(tst_domain qlttta_domain)
 qlttta_add_test(tst_application qlttta_application)
 qlttta_add_test(tst_sqlerrormapper qlttta_infrastructure)
+
+# Kiểm thử end-to-end qua giao diện (cần CSDL thật, tự SKIP nếu thiếu QLTTTA_E2E_PASSWORD)
+qt_add_executable(tst_e2e_gui
+    tst_e2e_gui.cpp
+    ${PROJECT_SOURCE_DIR}/src/app/AppContainer.cpp
+    ${PROJECT_SOURCE_DIR}/resources/resources.qrc
+)
+target_link_libraries(tst_e2e_gui PRIVATE Qt6::Test qlttta_presentation qlttta_infrastructure)
+set_target_properties(tst_e2e_gui PROPERTIES MACOSX_BUNDLE OFF WIN32_EXECUTABLE OFF)
+add_test(NAME tst_e2e_gui COMMAND tst_e2e_gui)
+set_tests_properties(tst_e2e_gui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

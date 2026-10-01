@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 from docx import Document
+from docx.enum.section import WD_ORIENT, WD_SECTION
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
@@ -435,6 +436,25 @@ class Report:
         p.add_run().add_picture(str(path), width=Cm(width_cm))
         self.fig += 1
         self.doc.add_paragraph(f"Hình {self.chapter}.{self.fig}. {caption}", style="FigureCaption")
+
+    def figures_landscape(self, items, width_cm: float = 24.5):
+        """Các hình lớn (ERD, DFD...) đặt trên trang khổ ngang (mỗi hình một trang) rồi quay lại khổ dọc."""
+        # Lưu kích thước khổ dọc TRƯỚC khi thêm section (đối tượng section cuối sẽ đổi sau add_section)
+        rong, cao = self.doc.sections[-1].page_width, self.doc.sections[-1].page_height
+        ngang = self.doc.add_section(WD_SECTION.NEW_PAGE)
+        ngang.orientation = WD_ORIENT.LANDSCAPE
+        ngang.page_width, ngang.page_height = cao, rong
+        for i, (path, caption) in enumerate(items):
+            self.figure(path, caption, width_cm=width_cm)
+            if i > 0:   # đoạn chứa ảnh của hình thứ 2 trở đi sang trang mới
+                anh = self.doc.paragraphs[-2]
+                anh.paragraph_format.page_break_before = True
+        doc_lai = self.doc.add_section(WD_SECTION.NEW_PAGE)
+        doc_lai.orientation = WD_ORIENT.PORTRAIT
+        doc_lai.page_width, doc_lai.page_height = rong, cao
+
+    def figure_landscape(self, path: Path, caption: str, width_cm: float = 24.5):
+        self.figures_landscape([(path, caption)], width_cm)
 
     # ----- mục lục
     def toc(self, title: str, instr: str, placeholder: str, page_break=True):

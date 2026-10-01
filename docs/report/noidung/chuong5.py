@@ -37,7 +37,7 @@ def chuong5(r):
         "`SELECT` view cần thiết. Cơ chế **ownership chaining** của SQL Server làm cho điều này khả thi: khi view/thủ tục "
         "và bảng cùng chủ sở hữu (dbo), SQL Server chỉ kiểm tra quyền trên view/thủ tục mà bỏ qua kiểm tra quyền trên bảng "
         "bên dưới - kể cả khi bảng bị `DENY`.")
-    r.figure(IMG / "diagrams" / "phan_quyen.png", "Mô hình phân quyền: user → role → view/thủ tục → bảng", width_cm=16)
+    r.figure_landscape(IMG / "diagrams" / "phan_quyen.png", "Mô hình phân quyền: user → role → view/thủ tục → bảng")
     r.table(["Đối tượng", "Quản lý", "Giáo vụ", "Kế toán", "Giáo viên"], [
         ["Bảng gốc (SELECT)", "✔ (db_datareader)", "—", "PHIEUTHU, BANGLUONG", "DENY HOCVIEN, PHIEUTHU, BANGLUONG"],
         ["GIAOVIEN (mức cột)", "✔ tất cả", "Không có DonGiaGio", "MaGV, HoTen, DonGiaGio...", "—"],
