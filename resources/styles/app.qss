@@ -1,0 +1,86 @@
+/* ===== Giao diện chung - QLTTTA =====
+   Màu chủ đạo: #1F3864 (navy), nhấn: #2E75B6, nền: #F4F6FA */
+
+QWidget { font-size: 13px; color: #1E293B; }
+QMainWindow, QDialog { background: #F4F6FA; }
+QToolTip { background: #1F3864; color: white; border: none; padding: 6px; }
+
+/* ---- Nhãn ---- */
+QLabel#PageTitle { font-size: 20px; font-weight: 600; color: #0F172A; }
+QLabel#CardTitle { font-size: 15px; font-weight: 600; color: #0F172A; }
+QLabel#Muted { color: #64748B; }
+QLabel#ErrorText { color: #DC2626; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 6px; padding: 8px 10px; }
+QLabel#KpiValue { font-size: 22px; font-weight: 700; color: #0F172A; }
+QLabel#KpiIcon { background: #EFF6FF; border-radius: 22px; }
+
+/* ---- Thẻ (card) ---- */
+QFrame[card="true"] { background: white; border: 1px solid #E2E8F0; border-radius: 10px; }
+QFrame[card="true"] QLabel { border: none; background: transparent; }
+
+/* ---- Ô nhập liệu ---- */
+QLineEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QPlainTextEdit, QTextEdit {
+    background: white; border: 1px solid #CBD5E1; border-radius: 6px; padding: 6px 8px;
+    selection-background-color: #BFDBFE; selection-color: #0F172A;
+}
+QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QPlainTextEdit:focus { border: 1px solid #2E75B6; }
+QLineEdit:read-only { background: #F1F5F9; color: #475569; }
+QComboBox::drop-down, QDateEdit::drop-down { border: none; width: 22px; }
+QComboBox QAbstractItemView { background: white; border: 1px solid #CBD5E1; selection-background-color: #DBEAFE; }
+
+/* ---- Nút ---- */
+QPushButton {
+    background: white; border: 1px solid #CBD5E1; border-radius: 6px; padding: 7px 14px; color: #1E293B;
+}
+QPushButton:hover { background: #F1F5F9; border-color: #94A3B8; }
+QPushButton:pressed { background: #E2E8F0; }
+QPushButton:disabled { color: #94A3B8; background: #F8FAFC; }
+QPushButton[variant="primary"] { background: #2E75B6; border: 1px solid #2E75B6; color: white; font-weight: 600; }
+QPushButton[variant="primary"]:hover { background: #255F94; border-color: #255F94; }
+QPushButton[variant="primary"]:pressed { background: #1F3864; }
+QPushButton#LinkButton { border: none; background: transparent; color: #2E75B6; padding: 4px 0; text-align: left; }
+QPushButton#LinkButton:hover { text-decoration: underline; }
+
+/* ---- Nhóm ---- */
+QGroupBox { background: white; border: 1px solid #E2E8F0; border-radius: 8px; margin-top: 14px; padding: 14px 10px 8px 10px; font-weight: 600; }
+QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 4px; color: #1F3864; }
+QCheckBox { spacing: 6px; }
+
+/* ---- Bảng ---- */
+QTableView {
+    background: white; border: 1px solid #E2E8F0; border-radius: 8px; gridline-color: #EEF2F7;
+    alternate-background-color: #F8FAFC; selection-background-color: #DBEAFE; selection-color: #0F172A;
+}
+QTableView::item { padding: 4px 8px; }
+QHeaderView::section {
+    background: #F1F5F9; color: #334155; font-weight: 600; padding: 8px; border: none;
+    border-bottom: 1px solid #E2E8F0; border-right: 1px solid #E2E8F0;
+}
+QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
+QScrollBar::handle:vertical { background: #CBD5E1; border-radius: 4px; min-height: 30px; }
+QScrollBar:horizontal { background: transparent; height: 10px; margin: 2px; }
+QScrollBar::handle:horizontal { background: #CBD5E1; border-radius: 4px; min-width: 30px; }
+QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
+
+/* ---- Sidebar ---- */
+QFrame#Sidebar { background: #1F3864; }
+QLabel#SidebarBrand { color: white; font-size: 16px; font-weight: 700; }
+QLabel#SidebarUser { color: #CBD5E1; padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.12); }
+QListWidget#NavList { background: transparent; border: none; outline: none; color: #E2E8F0; padding: 0 10px; }
+QListWidget#NavList::item { padding: 6px 10px; border-radius: 6px; margin: 1px 0; }
+QListWidget#NavList::item:disabled { color: #94A3B8; padding-top: 10px; }
+QListWidget#NavList::item:hover:enabled { background: rgba(255,255,255,0.08); }
+QListWidget#NavList::item:selected { background: #2E75B6; color: white; }
+
+/* ---- Header ---- */
+QFrame#Header { background: white; border-bottom: 1px solid #E2E8F0; }
+QLabel#HeaderTitle { font-size: 17px; font-weight: 600; color: #0F172A; }
+QLabel#RoleBadge { background: #EFF6FF; color: #1F3864; border: 1px solid #BFDBFE; border-radius: 10px; padding: 3px 10px; font-weight: 600; }
+
+/* ---- Đăng nhập ---- */
+QFrame#BrandPanel { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1F3864, stop:1 #2E75B6); }
+QLabel#BrandTitle { color: white; font-size: 28px; font-weight: 700; }
+QLabel#BrandText { color: #DBEAFE; font-size: 14px; }
+QLabel#BrandFooter { color: #BFDBFE; font-size: 12px; }
+QLabel#LoginTitle { font-size: 24px; font-weight: 700; color: #0F172A; }
+QDialog#LoginDialog { background: white; }
+QDialog#LoginDialog QLineEdit { padding: 9px 10px; font-size: 14px; }

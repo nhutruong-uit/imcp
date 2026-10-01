@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>HocVienFormDialog</class>
+ <widget class="QDialog" name="HocVienFormDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>620</width>
+    <height>640</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Thông tin học viên</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>12</number>
+   </property>
+   <item>
+    <widget class="QLabel" name="tieuDeLabel">
+     <property name="text">
+      <string>Thêm học viên</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="thongTinGroup">
+     <property name="title">
+      <string>Thông tin cá nhân</string>
+     </property>
+     <layout class="QFormLayout" name="formThongTin">
+      <property name="labelAlignment">
+       <set>Qt::AlignRight|Qt::AlignVCenter</set>
+      </property>
+      <item row="0" column="0">
+       <widget class="QLabel" name="maLabel">
+        <property name="text">
+         <string>Mã học viên</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="maEdit">
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+        <property name="placeholderText">
+         <string>Tự động sinh khi lưu</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="hoTenLabel">
+        <property name="text">
+         <string>Họ tên *</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="hoTenEdit">
+        <property name="maxLength">
+         <number>100</number>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="ngaySinhLabel">
+        <property name="text">
+         <string>Ngày sinh *</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QDateEdit" name="ngaySinhEdit">
+        <property name="displayFormat">
+         <string>dd/MM/yyyy</string>
+        </property>
+        <property name="calendarPopup">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="gioiTinhLabel">
+        <property name="text">
+         <string>Giới tính</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QComboBox" name="gioiTinhCombo"/>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="sdtLabel">
+        <property name="text">
+         <string>Điện thoại</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QLineEdit" name="sdtEdit">
+        <property name="maxLength">
+         <number>11</number>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="emailLabel">
+        <property name="text">
+         <string>Email</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QLineEdit" name="emailEdit"/>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="diaChiLabel">
+        <property name="text">
+         <string>Địa chỉ</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1">
+       <widget class="QLineEdit" name="diaChiEdit"/>
+      </item>
+      <item row="7" column="0">
+       <widget class="QLabel" name="ngheNghiepLabel">
+        <property name="text">
+         <string>Nghề nghiệp</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="1">
+       <widget class="QLineEdit" name="ngheNghiepEdit"/>
+      </item>
+      <item row="8" column="0">
+       <widget class="QLabel" name="chiNhanhLabel">
+        <property name="text">
+         <string>Chi nhánh *</string>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="1">
+       <widget class="QComboBox" name="chiNhanhCombo"/>
+      </item>
+      <item row="9" column="0">
+       <widget class="QLabel" name="trangThaiLabel">
+        <property name="text">
+         <string>Trạng thái</string>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="1">
+       <widget class="QComboBox" name="trangThaiCombo"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="phuHuynhGroup">
+     <property name="title">
+      <string>Thông tin phụ huynh (bắt buộc nếu học viên dưới 18 tuổi)</string>
+     </property>
+     <layout class="QFormLayout" name="formPhuHuynh">
+      <property name="labelAlignment">
+       <set>Qt::AlignRight|Qt::AlignVCenter</set>
+      </property>
+      <item row="0" column="0">
+       <widget class="QLabel" name="tenPhuHuynhLabel">
+        <property name="text">
+         <string>Họ tên phụ huynh</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="tenPhuHuynhEdit"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="sdtPhuHuynhLabel">
+        <property name="text">
+         <string>SĐT phụ huynh</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="sdtPhuHuynhEdit">
+        <property name="maxLength">
+         <number>11</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="ghiChuLabel">
+     <property name="text">
+      <string>Ghi chú</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPlainTextEdit" name="ghiChuEdit">
+     <property name="maximumHeight">
+      <number>70</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="loiLabel">
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
