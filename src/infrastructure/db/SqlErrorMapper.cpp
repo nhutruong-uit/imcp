@@ -8,11 +8,14 @@ QString SqlErrorMapper::lamSachThongDiep(const QString& thongDiepGoc) {
     // Một lỗi có thể gồm nhiều bản ghi chẩn đoán; chỉ lấy bản ghi đầu tiên có nội dung
     static const QRegularExpression tienTo(QStringLiteral("^(\\s*\\[[^\\]]*\\])+\\s*"));
     static const QRegularExpression maQodbc(QStringLiteral("\\s*QODBC[^:]*:.*$"));
+    // QODBC (Qt 6) nối SQLSTATE vào cuối thông điệp: "Mật khẩu ... không đúng., 37000"
+    static const QRegularExpression duoiSqlState(QStringLiteral("\\s*,\\s*[0-9A-Z]{5}(;[0-9A-Z]{5})*\\s*$"));
     const QStringList dong = thongDiepGoc.split(QRegularExpression(QStringLiteral("[\\r\\n]+")),
                                                 Qt::SkipEmptyParts);
     for (QString d : dong) {
         d.remove(tienTo);
         d.remove(maQodbc);
+        d.remove(duoiSqlState);
         d = d.trimmed();
         if (!d.isEmpty() && !d.startsWith(QLatin1String("The statement has been terminated")))
             return d;

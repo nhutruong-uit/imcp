@@ -128,4 +128,5 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' ./build/macos-debug/t
 | Ứng dụng báo "Không kết nối được máy chủ" | Kiểm tra container/dịch vụ SQL Server, cổng 1433, tường lửa; Windows Express dùng `localhost\SQLEXPRESS` và bật TCP/IP trong SQL Server Configuration Manager |
 | "Sai tên đăng nhập..." khi đăng nhập bằng SSMS với user demo | Phải chọn database `QLTTTA` trong Connection Properties (user nằm trong CSDL, không phải login cấp server) |
 | `EXECUTE permission was denied on fn_...` trên SQL Server 2019+ | Chạy lại `00_create_database.sql` (đã tắt Scalar UDF Inlining) hoặc `ALTER DATABASE SCOPED CONFIGURATION SET TSQL_SCALAR_UDF_INLINING = OFF` |
+| Dashboard "Buổi học hôm nay", ngày tạo tài khoản... lệch 1 ngày / 7 giờ (SQL Server trong Docker) | Container chạy giờ UTC. `docker-compose.yml` đã đặt `TZ=Asia/Ho_Chi_Minh`; container tạo bằng `docker run` thì thêm `-e TZ=Asia/Ho_Chi_Minh` (phải tạo lại container), rồi chạy lại `db_init` |
 | Font tiếng Việt lỗi trong script khi chạy sqlcmd | Thêm `-f 65001` (UTF-8) và `-I` (QUOTED_IDENTIFIER) như trong `scripts/db_init` |

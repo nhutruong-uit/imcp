@@ -13,7 +13,7 @@ SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/db_in
 # Build + test (macOS). Nếu CMake báo compiler broken: thêm -DCMAKE_OSX_SYSROOT=<SDK của Xcode>
 cmake --preset macos-debug && cmake --build --preset macos-debug && ctest --preset macos-debug
 
-# Kiểm thử end-to-end qua giao diện với CSDL thật (5 kịch bản; tự SKIP nếu thiếu biến môi trường)
+# Kiểm thử end-to-end qua giao diện với CSDL thật (6 kịch bản; tự SKIP nếu thiếu biến môi trường)
 QLTTTA_E2E_PASSWORD='Demo@2026' ctest --preset macos-debug -R e2e --output-on-failure
 
 # Kiểm tra kết nối/đăng nhập không cần giao diện

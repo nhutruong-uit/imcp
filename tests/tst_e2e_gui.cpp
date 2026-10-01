@@ -57,6 +57,15 @@ QStringList menuMongDoi(VaiTro vt) {
     return ten;
 }
 
+// Vừa mở cửa sổ chính: phải chọn sẵn chức năng đầu tiên (không phải dòng tiêu đề nhóm) và có tiêu đề trang
+bool moSanTrangDau(MainWindow& w, VaiTro vt) {
+    auto* nav = w.findChild<QListWidget*>(QStringLiteral("NavList"));
+    auto* tieuDe = w.findChild<QLabel*>(QStringLiteral("HeaderTitle"));
+    const ChucNang dau = PhanQuyen::chucNangDuocPhep(vt).first();
+    return nav && nav->currentItem() && nav->currentItem()->data(Qt::UserRole).toInt() == static_cast<int>(dau)
+           && tieuDe && tieuDe->text() == PhanQuyen::thongTin(dau).ten;
+}
+
 // Bảng (QTableView) đang hiển thị trên trang hiện tại của cửa sổ chính
 QTableView* bangDangHien(MainWindow& w, const QString& ten) {
     for (QTableView* t : w.findChildren<QTableView*>(ten))
@@ -125,6 +134,11 @@ private slots:
         MainWindow w(m_app->services());
         w.show();
         QCOMPARE(menuHienThi(w), menuMongDoi(VaiTro::GiaoVu));
+        QVERIFY(moSanTrangDau(w, VaiTro::GiaoVu));
+        // Giáo vụ không được xem doanh thu: CSDL trả NULL, thẻ KPI ghi "Không có quyền"
+        auto* kpiDoanhThu = timTheoVaiTro<QLabel>(&w, QStringLiteral("kpiDoanhThu"));
+        QVERIFY(kpiDoanhThu);
+        QCOMPARE(kpiDoanhThu->text(), QStringLiteral("Không có quyền"));
 
         w.moChucNang(ChucNang::HocVien);
         QTableView* bang = nullptr;
@@ -184,6 +198,7 @@ private slots:
         MainWindow w(m_app->services());
         w.show();
         QCOMPARE(menuHienThi(w), menuMongDoi(VaiTro::GiaoVien));
+        QVERIFY(moSanTrangDau(w, VaiTro::GiaoVien));
 
         w.moChucNang(ChucNang::LopCuaToi);
         QTableView* bang = nullptr;
@@ -204,6 +219,10 @@ private slots:
         MainWindow w(m_app->services());
         w.show();
         QCOMPARE(menuHienThi(w), menuMongDoi(VaiTro::KeToan));
+        QVERIFY(moSanTrangDau(w, VaiTro::KeToan));
+        auto* kpiDoanhThu = timTheoVaiTro<QLabel>(&w, QStringLiteral("kpiDoanhThu"));
+        QVERIFY(kpiDoanhThu);
+        QVERIFY2(kpiDoanhThu->text().at(0).isDigit(), qPrintable(kpiDoanhThu->text()));   // vd "5.000.000 ₫"
 
         // Kế toán chỉ xem học viên: nút Thêm/Sửa/Xóa bị ẩn
         w.moChucNang(ChucNang::HocVien);
@@ -245,6 +264,25 @@ private slots:
         for (QLabel* l : dlg.findChildren<QLabel*>(QStringLiteral("ErrorText")))
             coLoi = coLoi || (!l->isHidden() && l->text().contains(QStringLiteral("không khớp")));
         QVERIFY(coLoi);
+    }
+
+    // Sai mật khẩu hiện tại: SQL Server từ chối ALTER USER ... OLD_PASSWORD, thủ tục báo lỗi tiếng Việt
+    void doiMatKhau_saiMatKhauHienTai_baoLoi() {
+        QVERIFY(dangNhap(QStringLiteral("gvu_ha"), m_matKhau));
+        ChangePasswordDialog dlg(m_app->auth());
+        dlg.show();
+        const auto o = dlg.findChildren<QLineEdit*>();
+        QCOMPARE(o.size(), 3);
+        QTest::keyClicks(o[0], QStringLiteral("SaiMatKhau@1"));
+        QTest::keyClicks(o[1], QStringLiteral("MatKhauMoi@1"));
+        QTest::keyClicks(o[2], QStringLiteral("MatKhauMoi@1"));
+        dlg.findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Save)->click();
+        QVERIFY(dlg.isVisible());
+        QString loi;
+        for (QLabel* l : dlg.findChildren<QLabel*>(QStringLiteral("ErrorText")))
+            if (!l->isHidden())
+                loi = l->text();
+        QCOMPARE(loi, QStringLiteral("Mật khẩu hiện tại không đúng."));
     }
 };
 

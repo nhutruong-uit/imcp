@@ -40,8 +40,9 @@ MainWindow::MainWindow(AppServices services, QWidget* parent) : QMainWindow(pare
     setCentralWidget(trungTam);
 
     connect(m_menu, &QListWidget::currentRowChanged, this, &MainWindow::chonChucNang);
+    // Dòng 0 của menu là tiêu đề nhóm ("CHUNG"), nên mở chức năng đầu tiên thay vì chọn dòng 0
     if (!m_chucNang.isEmpty())
-        m_menu->setCurrentRow(0);
+        moChucNang(m_chucNang.first());
 }
 
 QWidget* MainWindow::taoSidebar() {
