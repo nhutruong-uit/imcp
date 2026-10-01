@@ -1,0 +1,44 @@
+// ERD (ký hiệu Chen) - Phân hệ tổ chức, nhân sự, đào tạo, lớp học
+graph ERD1 {
+  graph [layout=neato, overlap=prism, overlap_scaling=-2, splines=true, sep="+8", esep="+4", fontname="Arial", pad=0.2, dpi=220, start=7];
+  node  [fontname="Arial", fontsize=13];
+  edge  [fontname="Arial", fontsize=12, color="#334155", labelfontcolor="#B91C1C", labelfontsize=12, len=1.1];
+
+  node [shape=box, style="filled,rounded", fillcolor="#DBEAFE", color="#1F3864", penwidth=1.4];
+  CHINHANH [label=<<B>CHINHANH</B><BR/><U>MaCN</U>, TenCN, DiaChi>];
+  PHONGHOC [label=<<B>PHONGHOC</B><BR/><U>MaPhong</U>, TenPhong, SucChua>];
+  NHANVIEN [label=<<B>NHANVIEN</B><BR/><U>MaNV</U>, HoTen, ChucVu>];
+  GIAOVIEN [label=<<B>GIAOVIEN</B><BR/><U>MaGV</U>, HoTen, LoaiGV,<BR/>DonGiaGio, HoSoXML>];
+  TAIKHOAN [label=<<B>TAIKHOAN</B><BR/><U>TenDangNhap</U>, VaiTro>];
+  CHUONGTRINH [label=<<B>CHUONGTRINH</B><BR/><U>MaCT</U>, TenCT>];
+  KHOAHOC [label=<<B>KHOAHOC</B><BR/><U>MaKH</U>, TenKH, CapDo,<BR/>SoBuoi, HocPhi, NoiDungXML>];
+  THANHPHANDIEM [label=<<B>THANHPHANDIEM</B><BR/><U>MaTP</U>, TenTP, TrongSo>];
+  LOPHOC [label=<<B>LOPHOC</B><BR/><U>MaLop</U>, TenLop, NgayKhaiGiang,<BR/>SiSoToiDa, HocPhi, TrangThai>];
+  LICHHOC [label=<<B>LICHHOC</B> (yếu)<BR/><U>Thu</U>, GioBatDau, GioKetThuc>, peripheries=2];
+  BUOIHOC [label=<<B>BUOIHOC</B><BR/><U>MaBuoi</U>, STT, NgayHoc, TrangThai>];
+  BANGLUONG [label=<<B>BANGLUONG</B><BR/><U>MaBL</U>, Thang, Nam, SoGio, TongLuong>];
+
+  node [shape=diamond, style=filled, fillcolor="#FEF3C7", color="#B45309", penwidth=1.2, fontsize=10, width=1.2, height=0.7];
+  r_co [label="có"]; r_tuyen [label="làm việc\ntại"]; r_ql [label="trực\nthuộc"];
+  r_tkNV [label="đăng nhập\n(NV)"]; r_tkGV [label="đăng nhập\n(GV)"];
+  r_gom [label="gồm"]; r_tq [label="tiên\nquyết"]; r_dg [label="đánh giá\ntheo"];
+  r_mo [label="mở\nthành"]; r_cn [label="thuộc"]; r_pt [label="phụ\ntrách"]; r_ph [label="học tại"];
+  r_lich [label="học\ntheo"]; r_gom2 [label="gồm\nbuổi"]; r_day [label="dạy"]; r_luong [label="nhận"];
+
+  CHINHANH -- r_co [taillabel="(1,n)"]; r_co -- PHONGHOC [headlabel="(1,1)"];
+  NHANVIEN -- r_tuyen [taillabel="(1,1)"]; r_tuyen -- CHINHANH [headlabel="(1,n)"];
+  GIAOVIEN -- r_ql [taillabel="(1,1)"]; r_ql -- CHINHANH [headlabel="(0,n)"];
+  TAIKHOAN -- r_tkNV [taillabel="(0,1)"]; r_tkNV -- NHANVIEN [headlabel="(0,1)"];
+  TAIKHOAN -- r_tkGV [taillabel="(0,1)"]; r_tkGV -- GIAOVIEN [headlabel="(0,1)"];
+  CHUONGTRINH -- r_gom [taillabel="(1,n)"]; r_gom -- KHOAHOC [headlabel="(1,1)"];
+  KHOAHOC -- r_tq [taillabel="(0,1) cần", labelangle=-60, labeldistance=3.2]; r_tq -- KHOAHOC [headlabel="(0,n) là", labelangle=60, labeldistance=3.2];
+  KHOAHOC -- r_dg [taillabel="(1,n)"]; r_dg -- THANHPHANDIEM [headlabel="(1,1)"];
+  KHOAHOC -- r_mo [taillabel="(0,n)"]; r_mo -- LOPHOC [headlabel="(1,1)"];
+  LOPHOC -- r_cn [taillabel="(1,1)"]; r_cn -- CHINHANH [headlabel="(0,n)"];
+  GIAOVIEN -- r_pt [taillabel="(0,n)"]; r_pt -- LOPHOC [headlabel="(1,1)"];
+  LOPHOC -- r_ph [taillabel="(1,1)"]; r_ph -- PHONGHOC [headlabel="(0,n)"];
+  LOPHOC -- r_lich [taillabel="(1,n)"]; r_lich -- LICHHOC [headlabel="(1,1)"];
+  LOPHOC -- r_gom2 [taillabel="(0,n)"]; r_gom2 -- BUOIHOC [headlabel="(1,1)"];
+  GIAOVIEN -- r_day [taillabel="(0,n)"]; r_day -- BUOIHOC [headlabel="(1,1)"];
+  GIAOVIEN -- r_luong [taillabel="(0,n)"]; r_luong -- BANGLUONG [headlabel="(1,1)"];
+}

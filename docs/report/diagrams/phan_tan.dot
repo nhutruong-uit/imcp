@@ -1,0 +1,15 @@
+// Thiết kế CSDL phân tán theo chi nhánh
+digraph DDB {
+  graph [rankdir=TB, fontname="Arial", dpi=220, pad=0.2, nodesep=0.5, ranksep=0.6];
+  node  [fontname="Arial", fontsize=11, shape=box, style="rounded,filled"];
+  edge  [color="#334155", fontname="Arial", fontsize=9];
+  C [label="Trạm trung tâm (Ban quản lý)\nView phân tán: HOCVIEN = HOCVIEN_CN01 ∪ HOCVIEN_CN02\nBáo cáo toàn hệ thống, TAIKHOAN, BANGLUONG", fillcolor="#C7D2FE"];
+  subgraph cluster_q1 { label="Trạm CN01 - Quận 1"; style=rounded; color="#2E75B6";
+    q1 [label="HOCVIEN_CN01 = σ MaCN='CN01' (HOCVIEN)\nLOPHOC_CN01 = σ MaCN='CN01' (LOPHOC)\nGHIDANH_CN01 = GHIDANH ⋉ LOPHOC_CN01\nPHIEUTHU_CN01 = PHIEUTHU ⋉ GHIDANH_CN01", fillcolor="#DBEAFE"]; }
+  subgraph cluster_td { label="Trạm CN02 - Thủ Đức"; style=rounded; color="#2E75B6";
+    td [label="HOCVIEN_CN02 = σ MaCN='CN02' (HOCVIEN)\nLOPHOC_CN02 = σ MaCN='CN02' (LOPHOC)\nGHIDANH_CN02 = GHIDANH ⋉ LOPHOC_CN02\nPHIEUTHU_CN02 = PHIEUTHU ⋉ GHIDANH_CN02", fillcolor="#DBEAFE"]; }
+  R [label="Nhân bản tại mọi trạm (ít thay đổi):\nCHUONGTRINH, KHOAHOC, THANHPHANDIEM, KHUYENMAI", fillcolor="#FEF3C7"];
+  V [label="Phân mảnh dọc GIAOVIEN:\nGV_CONGKHAI(MaGV, HoTen, LoaiGV, HoSoXML) tại các trạm\nGV_LUONG(MaGV, DonGiaGio) chỉ ở trạm trung tâm", fillcolor="#FCE7F3"];
+  C -> q1 [label="Linked Server / UNION ALL"]; C -> td [label="Linked Server / UNION ALL"];
+  R -> q1 [style=dashed, arrowhead=none]; R -> td [style=dashed, arrowhead=none]; V -> C [style=dashed, arrowhead=none];
+}

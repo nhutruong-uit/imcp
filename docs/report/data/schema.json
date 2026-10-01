@@ -1,0 +1,2198 @@
+[
+ {
+  "bang": "BANGLUONG",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaBL",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": true,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "MaGV",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "GIAOVIEN"
+   },
+   {
+    "stt": 3,
+    "cot": "Thang",
+    "kieu": "tinyint",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "Nam",
+    "kieu": "smallint",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "SoBuoi",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "SoGio",
+    "kieu": "decimal(6,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "DonGiaGio",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "Thuong",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "((0))"
+   },
+   {
+    "stt": 9,
+    "cot": "KhauTru",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "((0))"
+   },
+   {
+    "stt": 10,
+    "cot": "TongLuong",
+    "kieu": "decimal(16,0)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": true,
+    "khoa_chinh": false,
+    "cong_thuc": "((CONVERT([decimal](14,0),[SoGio]*[DonGiaGio])+[Thuong])-[KhauTru])"
+   },
+   {
+    "stt": 11,
+    "cot": "NgayChot",
+    "kieu": "datetime",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(getdate())"
+   },
+   {
+    "stt": 12,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Đã chốt')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_BANGLUONG_Nam",
+    "dinh_nghia": "([Nam]>=(2020))"
+   },
+   {
+    "ten": "CK_BANGLUONG_SoLieu",
+    "dinh_nghia": "([SoBuoi]>=(0) AND [SoGio]>=(0) AND [Thuong]>=(0) AND [KhauTru]>=(0))"
+   },
+   {
+    "ten": "CK_BANGLUONG_Thang",
+    "dinh_nghia": "([Thang]>=(1) AND [Thang]<=(12))"
+   },
+   {
+    "ten": "CK_BANGLUONG_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Đã chi trả' OR [TrangThai]=N'Đã chốt')"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_BANGLUONG_MaGV_Thang_Nam"
+   }
+  ],
+  "so_dong": 9
+ },
+ {
+  "bang": "BUOIHOC",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaBuoi",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": true,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "MaLop",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "LOPHOC"
+   },
+   {
+    "stt": 3,
+    "cot": "STT",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "NgayHoc",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "GioBatDau",
+    "kieu": "time(0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "GioKetThuc",
+    "kieu": "time(0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "MaPhong",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "PHONGHOC"
+   },
+   {
+    "stt": 8,
+    "cot": "MaGV",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "GIAOVIEN"
+   },
+   {
+    "stt": 9,
+    "cot": "NoiDung",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 10,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Chưa dạy')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_BUOIHOC_Gio",
+    "dinh_nghia": "([GioKetThuc]>[GioBatDau])"
+   },
+   {
+    "ten": "CK_BUOIHOC_STT",
+    "dinh_nghia": "([STT]>=(1))"
+   },
+   {
+    "ten": "CK_BUOIHOC_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Hủy' OR [TrangThai]=N'Đã dạy' OR [TrangThai]=N'Chưa dạy')"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_BUOIHOC_MaLop_STT"
+   }
+  ],
+  "so_dong": 248
+ },
+ {
+  "bang": "CHINHANH",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaCN",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "TenCN",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 3,
+    "cot": "DiaChi",
+    "kieu": "nvarchar(200)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "SoDienThoai",
+    "kieu": "varchar(15)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "Email",
+    "kieu": "varchar(100)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "NgayThanhLap",
+    "kieu": "date",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Hoạt động')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_CHINHANH_Email",
+    "dinh_nghia": "([Email] like '%_@_%._%')"
+   },
+   {
+    "ten": "CK_CHINHANH_SoDienThoai",
+    "dinh_nghia": "(NOT [SoDienThoai] like '%[^0-9]%' AND (len([SoDienThoai])>=(9) AND len([SoDienThoai])<=(11)))"
+   },
+   {
+    "ten": "CK_CHINHANH_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Tạm ngưng' OR [TrangThai]=N'Hoạt động')"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_CHINHANH_TenCN"
+   }
+  ],
+  "so_dong": 2
+ },
+ {
+  "bang": "CHUNGCHI",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaCC",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('CC'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_CHUNGCHI]),(5)))"
+   },
+   {
+    "stt": 2,
+    "cot": "MaGD",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "GHIDANH"
+   },
+   {
+    "stt": 3,
+    "cot": "SoHieu",
+    "kieu": "varchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "NgayCap",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(CONVERT([date],getdate()))"
+   },
+   {
+    "stt": 5,
+    "cot": "DiemTongKet",
+    "kieu": "decimal(4,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "XepLoai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_CHUNGCHI_DiemTongKet",
+    "dinh_nghia": "([DiemTongKet]>=(5) AND [DiemTongKet]<=(10))"
+   },
+   {
+    "ten": "CK_CHUNGCHI_XepLoai",
+    "dinh_nghia": "([XepLoai]=N'Trung bình' OR [XepLoai]=N'Khá' OR [XepLoai]=N'Giỏi' OR [XepLoai]=N'Xuất sắc')"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_CHUNGCHI_SoHieu"
+   },
+   {
+    "ten": "UQ_CHUNGCHI_MaGD"
+   }
+  ],
+  "so_dong": 19
+ },
+ {
+  "bang": "CHUONGTRINH",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaCT",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "TenCT",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 3,
+    "cot": "DoiTuong",
+    "kieu": "nvarchar(100)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "MoTa",
+    "kieu": "nvarchar(500)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_CHUONGTRINH_TenCT"
+   }
+  ],
+  "so_dong": 4
+ },
+ {
+  "bang": "DIEM",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaGD",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "tham_chieu": "GHIDANH"
+   },
+   {
+    "stt": 2,
+    "cot": "MaTP",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "tham_chieu": "THANHPHANDIEM"
+   },
+   {
+    "stt": 3,
+    "cot": "Diem",
+    "kieu": "decimal(4,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "NgayNhap",
+    "kieu": "datetime",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(getdate())"
+   },
+   {
+    "stt": 5,
+    "cot": "NguoiNhap",
+    "kieu": "nvarchar(128)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(original_login())"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_DIEM_Diem",
+    "dinh_nghia": "([Diem]>=(0) AND [Diem]<=(10))"
+   }
+  ],
+  "so_dong": 138
+ },
+ {
+  "bang": "DIEMDANH",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaBuoi",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "tham_chieu": "BUOIHOC"
+   },
+   {
+    "stt": 2,
+    "cot": "MaGD",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "tham_chieu": "GHIDANH"
+   },
+   {
+    "stt": 3,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Có mặt')"
+   },
+   {
+    "stt": 4,
+    "cot": "GhiChu",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_DIEMDANH_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Vắng không phép' OR [TrangThai]=N'Vắng có phép' OR [TrangThai]=N'Đi trễ' OR [TrangThai]=N'Có mặt')"
+   }
+  ],
+  "so_dong": 1380
+ },
+ {
+  "bang": "GHIDANH",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaGD",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('GD'+right('000000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_GHIDANH]),(6)))"
+   },
+   {
+    "stt": 2,
+    "cot": "MaHV",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "HOCVIEN"
+   },
+   {
+    "stt": 3,
+    "cot": "MaLop",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "LOPHOC"
+   },
+   {
+    "stt": 4,
+    "cot": "NgayGhiDanh",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(CONVERT([date],getdate()))"
+   },
+   {
+    "stt": 5,
+    "cot": "HocPhiGoc",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "MaKM",
+    "kieu": "varchar(10)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "KHUYENMAI"
+   },
+   {
+    "stt": 7,
+    "cot": "SoTienGiam",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "((0))"
+   },
+   {
+    "stt": 8,
+    "cot": "HocPhiPhaiDong",
+    "kieu": "decimal(13,0)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": true,
+    "khoa_chinh": false,
+    "cong_thuc": "([HocPhiGoc]-[SoTienGiam])"
+   },
+   {
+    "stt": 9,
+    "cot": "DaDong",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "((0))"
+   },
+   {
+    "stt": 10,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Đang học')"
+   },
+   {
+    "stt": 11,
+    "cot": "DiemTongKet",
+    "kieu": "decimal(4,2)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 12,
+    "cot": "KetQua",
+    "kieu": "nvarchar(20)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 13,
+    "cot": "MaNVGhiDanh",
+    "kieu": "varchar(10)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "NHANVIEN"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_GHIDANH_DaDong",
+    "dinh_nghia": "([DaDong]>=(0) AND [DaDong]<=([HocPhiGoc]-[SoTienGiam]))"
+   },
+   {
+    "ten": "CK_GHIDANH_DiemTongKet",
+    "dinh_nghia": "([DiemTongKet]>=(0) AND [DiemTongKet]<=(10))"
+   },
+   {
+    "ten": "CK_GHIDANH_HocPhiGoc",
+    "dinh_nghia": "([HocPhiGoc]>=(0))"
+   },
+   {
+    "ten": "CK_GHIDANH_KetQua",
+    "dinh_nghia": "([KetQua]=N'Không đạt' OR [KetQua]=N'Đạt')"
+   },
+   {
+    "ten": "CK_GHIDANH_SoTienGiam",
+    "dinh_nghia": "([SoTienGiam]>=(0) AND [SoTienGiam]<=[HocPhiGoc])"
+   },
+   {
+    "ten": "CK_GHIDANH_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Hoàn thành' OR [TrangThai]=N'Đã nghỉ' OR [TrangThai]=N'Bảo lưu' OR [TrangThai]=N'Đang học')"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_GHIDANH_MaHV_MaLop"
+   }
+  ],
+  "so_dong": 84
+ },
+ {
+  "bang": "GIAOVIEN",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaGV",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('GV'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_GIAOVIEN]),(4)))"
+   },
+   {
+    "stt": 2,
+    "cot": "HoTen",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 3,
+    "cot": "NgaySinh",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "GioiTinh",
+    "kieu": "nvarchar(5)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "QuocTich",
+    "kieu": "nvarchar(50)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Việt Nam')"
+   },
+   {
+    "stt": 6,
+    "cot": "SoDienThoai",
+    "kieu": "varchar(15)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "Email",
+    "kieu": "varchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "TrinhDo",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 9,
+    "cot": "LoaiGV",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 10,
+    "cot": "DonGiaGio",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 11,
+    "cot": "HoSoXML",
+    "kieu": "xml",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 12,
+    "cot": "MaCN",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "CHINHANH"
+   },
+   {
+    "stt": 13,
+    "cot": "NgayVaoLam",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(CONVERT([date],getdate()))"
+   },
+   {
+    "stt": 14,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Đang dạy')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_GIAOVIEN_BanNgu",
+    "dinh_nghia": "([LoaiGV]=N'Việt Nam' OR [QuocTich]<>N'Việt Nam')"
+   },
+   {
+    "ten": "CK_GIAOVIEN_DonGiaGio",
+    "dinh_nghia": "([DonGiaGio]>(0))"
+   },
+   {
+    "ten": "CK_GIAOVIEN_Email",
+    "dinh_nghia": "([Email] like '%_@_%._%')"
+   },
+   {
+    "ten": "CK_GIAOVIEN_GioiTinh",
+    "dinh_nghia": "([GioiTinh]=N'Khác' OR [GioiTinh]=N'Nữ' OR [GioiTinh]=N'Nam')"
+   },
+   {
+    "ten": "CK_GIAOVIEN_LoaiGV",
+    "dinh_nghia": "([LoaiGV]=N'Bản ngữ' OR [LoaiGV]=N'Việt Nam')"
+   },
+   {
+    "ten": "CK_GIAOVIEN_SoDienThoai",
+    "dinh_nghia": "(NOT [SoDienThoai] like '%[^0-9]%' AND (len([SoDienThoai])>=(9) AND len([SoDienThoai])<=(11)))"
+   },
+   {
+    "ten": "CK_GIAOVIEN_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Đã nghỉ' OR [TrangThai]=N'Tạm nghỉ' OR [TrangThai]=N'Đang dạy')"
+   },
+   {
+    "ten": "CK_GIAOVIEN_TrinhDo",
+    "dinh_nghia": "([TrinhDo]=N'Tiến sĩ' OR [TrinhDo]=N'Thạc sĩ' OR [TrinhDo]=N'Cử nhân')"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_GIAOVIEN_Email"
+   },
+   {
+    "ten": "UQ_GIAOVIEN_SoDienThoai"
+   }
+  ],
+  "so_dong": 8
+ },
+ {
+  "bang": "HOCVIEN",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaHV",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('HV'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_HOCVIEN]),(5)))"
+   },
+   {
+    "stt": 2,
+    "cot": "HoTen",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 3,
+    "cot": "NgaySinh",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "GioiTinh",
+    "kieu": "nvarchar(5)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "SoDienThoai",
+    "kieu": "varchar(15)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "Email",
+    "kieu": "varchar(100)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "DiaChi",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "NgheNghiep",
+    "kieu": "nvarchar(50)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 9,
+    "cot": "TenPhuHuynh",
+    "kieu": "nvarchar(100)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 10,
+    "cot": "SDTPhuHuynh",
+    "kieu": "varchar(15)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 11,
+    "cot": "MaCN",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "CHINHANH"
+   },
+   {
+    "stt": 12,
+    "cot": "NgayDangKy",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(CONVERT([date],getdate()))"
+   },
+   {
+    "stt": 13,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Tiềm năng')"
+   },
+   {
+    "stt": 14,
+    "cot": "GhiChu",
+    "kieu": "nvarchar(500)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_HOCVIEN_Email",
+    "dinh_nghia": "([Email] like '%_@_%._%')"
+   },
+   {
+    "ten": "CK_HOCVIEN_GioiTinh",
+    "dinh_nghia": "([GioiTinh]=N'Khác' OR [GioiTinh]=N'Nữ' OR [GioiTinh]=N'Nam')"
+   },
+   {
+    "ten": "CK_HOCVIEN_LienLac",
+    "dinh_nghia": "([SoDienThoai] IS NOT NULL OR [SDTPhuHuynh] IS NOT NULL)"
+   },
+   {
+    "ten": "CK_HOCVIEN_NgaySinh",
+    "dinh_nghia": "([NgaySinh]>'19300101' AND dateadd(year,(4),[NgaySinh])<=[NgayDangKy])"
+   },
+   {
+    "ten": "CK_HOCVIEN_PhuHuynh",
+    "dinh_nghia": "(dateadd(year,(18),[NgaySinh])<=[NgayDangKy] OR [TenPhuHuynh] IS NOT NULL AND [SDTPhuHuynh] IS NOT NULL)"
+   },
+   {
+    "ten": "CK_HOCVIEN_SDTPhuHuynh",
+    "dinh_nghia": "(NOT [SDTPhuHuynh] like '%[^0-9]%' AND (len([SDTPhuHuynh])>=(9) AND len([SDTPhuHuynh])<=(11)))"
+   },
+   {
+    "ten": "CK_HOCVIEN_SoDienThoai",
+    "dinh_nghia": "(NOT [SoDienThoai] like '%[^0-9]%' AND (len([SoDienThoai])>=(9) AND len([SoDienThoai])<=(11)))"
+   },
+   {
+    "ten": "CK_HOCVIEN_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Ngừng học' OR [TrangThai]=N'Bảo lưu' OR [TrangThai]=N'Đang học' OR [TrangThai]=N'Tiềm năng')"
+   }
+  ],
+  "so_dong": 72
+ },
+ {
+  "bang": "KHOAHOC",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaKH",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "MaCT",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "CHUONGTRINH"
+   },
+   {
+    "stt": 3,
+    "cot": "TenKH",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "CapDo",
+    "kieu": "varchar(2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "SoBuoi",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "ThoiLuongBuoi",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "((90))"
+   },
+   {
+    "stt": 7,
+    "cot": "HocPhi",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "DiemDauVaoToiThieu",
+    "kieu": "decimal(4,2)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 9,
+    "cot": "MaKHTienQuyet",
+    "kieu": "varchar(10)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "KHOAHOC"
+   },
+   {
+    "stt": 10,
+    "cot": "NoiDungXML",
+    "kieu": "xml",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 11,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Đang mở')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_KHOAHOC_CapDo",
+    "dinh_nghia": "([CapDo]='C2' OR [CapDo]='C1' OR [CapDo]='B2' OR [CapDo]='B1' OR [CapDo]='A2' OR [CapDo]='A1')"
+   },
+   {
+    "ten": "CK_KHOAHOC_DiemDauVao",
+    "dinh_nghia": "([DiemDauVaoToiThieu]>=(0) AND [DiemDauVaoToiThieu]<=(10))"
+   },
+   {
+    "ten": "CK_KHOAHOC_HocPhi",
+    "dinh_nghia": "([HocPhi]>=(0))"
+   },
+   {
+    "ten": "CK_KHOAHOC_SoBuoi",
+    "dinh_nghia": "([SoBuoi]>=(1) AND [SoBuoi]<=(200))"
+   },
+   {
+    "ten": "CK_KHOAHOC_ThoiLuongBuoi",
+    "dinh_nghia": "([ThoiLuongBuoi]>=(30) AND [ThoiLuongBuoi]<=(240))"
+   },
+   {
+    "ten": "CK_KHOAHOC_TienQuyet",
+    "dinh_nghia": "([MaKHTienQuyet]<>[MaKH])"
+   },
+   {
+    "ten": "CK_KHOAHOC_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Ngừng mở' OR [TrangThai]=N'Đang mở')"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_KHOAHOC_TenKH"
+   }
+  ],
+  "so_dong": 9
+ },
+ {
+  "bang": "KHUYENMAI",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaKM",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "TenKM",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 3,
+    "cot": "LoaiGiam",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "GiaTri",
+    "kieu": "decimal(12,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "NgayBatDau",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "NgayKetThuc",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_KHUYENMAI_GiaTri",
+    "dinh_nghia": "([GiaTri]>(0) AND ([LoaiGiam]<>'PHANTRAM' OR [GiaTri]<=(50)))"
+   },
+   {
+    "ten": "CK_KHUYENMAI_LoaiGiam",
+    "dinh_nghia": "([LoaiGiam]='SOTIEN' OR [LoaiGiam]='PHANTRAM')"
+   },
+   {
+    "ten": "CK_KHUYENMAI_Ngay",
+    "dinh_nghia": "([NgayKetThuc]>=[NgayBatDau])"
+   }
+  ],
+  "so_dong": 3
+ },
+ {
+  "bang": "KIEMTRADAUVAO",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaKT",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('KT'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_KIEMTRA]),(5)))"
+   },
+   {
+    "stt": 2,
+    "cot": "MaHV",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "HOCVIEN"
+   },
+   {
+    "stt": 3,
+    "cot": "NgayKiemTra",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(CONVERT([date],getdate()))"
+   },
+   {
+    "stt": 4,
+    "cot": "DiemNghe",
+    "kieu": "decimal(4,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "DiemNoi",
+    "kieu": "decimal(4,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "DiemDoc",
+    "kieu": "decimal(4,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "DiemViet",
+    "kieu": "decimal(4,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "DiemTong",
+    "kieu": "decimal(4,2)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": true,
+    "khoa_chinh": false,
+    "cong_thuc": "(CONVERT([decimal](4,2),((([DiemNghe]+[DiemNoi])+[DiemDoc])+[DiemViet])/(4)))"
+   },
+   {
+    "stt": 9,
+    "cot": "MaKHDeXuat",
+    "kieu": "varchar(10)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "KHOAHOC"
+   },
+   {
+    "stt": 10,
+    "cot": "MaGVCham",
+    "kieu": "varchar(10)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "GIAOVIEN"
+   },
+   {
+    "stt": 11,
+    "cot": "GhiChu",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_KIEMTRADAUVAO_Diem",
+    "dinh_nghia": "([DiemNghe]>=(0) AND [DiemNghe]<=(10) AND ([DiemNoi]>=(0) AND [DiemNoi]<=(10)) AND ([DiemDoc]>=(0) AND [DiemDoc]<=(10)) AND ([DiemViet]>=(0) AND [DiemViet]<=(10)))"
+   }
+  ],
+  "so_dong": 44
+ },
+ {
+  "bang": "LICHHOC",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaLop",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "tham_chieu": "LOPHOC"
+   },
+   {
+    "stt": 2,
+    "cot": "Thu",
+    "kieu": "tinyint",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 3,
+    "cot": "GioBatDau",
+    "kieu": "time(0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "GioKetThuc",
+    "kieu": "time(0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_LICHHOC_Gio",
+    "dinh_nghia": "([GioKetThuc]>[GioBatDau] AND [GioBatDau]>='07:00' AND [GioKetThuc]<='22:00')"
+   },
+   {
+    "ten": "CK_LICHHOC_Thu",
+    "dinh_nghia": "([Thu]>=(2) AND [Thu]<=(8))"
+   }
+  ],
+  "so_dong": 24
+ },
+ {
+  "bang": "LOPHOC",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaLop",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('LH'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_LOPHOC]),(4)))"
+   },
+   {
+    "stt": 2,
+    "cot": "TenLop",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 3,
+    "cot": "MaKH",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "KHOAHOC"
+   },
+   {
+    "stt": 4,
+    "cot": "MaCN",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "CHINHANH"
+   },
+   {
+    "stt": 5,
+    "cot": "MaGV",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "GIAOVIEN"
+   },
+   {
+    "stt": 6,
+    "cot": "MaPhong",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "PHONGHOC"
+   },
+   {
+    "stt": 7,
+    "cot": "NgayKhaiGiang",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "NgayKetThuc",
+    "kieu": "date",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 9,
+    "cot": "SiSoToiDa",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "((20))"
+   },
+   {
+    "stt": 10,
+    "cot": "HocPhi",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 11,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Đang tuyển sinh')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_LOPHOC_HocPhi",
+    "dinh_nghia": "([HocPhi]>=(0))"
+   },
+   {
+    "ten": "CK_LOPHOC_Ngay",
+    "dinh_nghia": "([NgayKetThuc] IS NULL OR [NgayKetThuc]>=[NgayKhaiGiang])"
+   },
+   {
+    "ten": "CK_LOPHOC_SiSoToiDa",
+    "dinh_nghia": "([SiSoToiDa]>=(1) AND [SiSoToiDa]<=(50))"
+   },
+   {
+    "ten": "CK_LOPHOC_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Đã hủy' OR [TrangThai]=N'Đã kết thúc' OR [TrangThai]=N'Đang học' OR [TrangThai]=N'Đang tuyển sinh')"
+   }
+  ],
+  "so_dong": 10
+ },
+ {
+  "bang": "NHANVIEN",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaNV",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('NV'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_NHANVIEN]),(4)))"
+   },
+   {
+    "stt": 2,
+    "cot": "HoTen",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 3,
+    "cot": "NgaySinh",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "GioiTinh",
+    "kieu": "nvarchar(5)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "SoDienThoai",
+    "kieu": "varchar(15)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "Email",
+    "kieu": "varchar(100)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "DiaChi",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "ChucVu",
+    "kieu": "nvarchar(30)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 9,
+    "cot": "MaCN",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "CHINHANH"
+   },
+   {
+    "stt": 10,
+    "cot": "NgayVaoLam",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(CONVERT([date],getdate()))"
+   },
+   {
+    "stt": 11,
+    "cot": "LuongCoBan",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "((0))"
+   },
+   {
+    "stt": 12,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Đang làm')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_NHANVIEN_ChucVu",
+    "dinh_nghia": "([ChucVu]=N'Tư vấn' OR [ChucVu]=N'Kế toán' OR [ChucVu]=N'Giáo vụ' OR [ChucVu]=N'Quản lý')"
+   },
+   {
+    "ten": "CK_NHANVIEN_Email",
+    "dinh_nghia": "([Email] like '%_@_%._%')"
+   },
+   {
+    "ten": "CK_NHANVIEN_GioiTinh",
+    "dinh_nghia": "([GioiTinh]=N'Khác' OR [GioiTinh]=N'Nữ' OR [GioiTinh]=N'Nam')"
+   },
+   {
+    "ten": "CK_NHANVIEN_LuongCoBan",
+    "dinh_nghia": "([LuongCoBan]>=(0))"
+   },
+   {
+    "ten": "CK_NHANVIEN_SoDienThoai",
+    "dinh_nghia": "(NOT [SoDienThoai] like '%[^0-9]%' AND (len([SoDienThoai])>=(9) AND len([SoDienThoai])<=(11)))"
+   },
+   {
+    "ten": "CK_NHANVIEN_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Đã nghỉ' OR [TrangThai]=N'Đang làm')"
+   },
+   {
+    "ten": "CK_NHANVIEN_Tuoi",
+    "dinh_nghia": "(dateadd(year,(18),[NgaySinh])<=[NgayVaoLam])"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_NHANVIEN_SoDienThoai"
+   }
+  ],
+  "so_dong": 6
+ },
+ {
+  "bang": "NHATKYHETHONG",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaNK",
+    "kieu": "bigint",
+    "cho_null": false,
+    "identity_": true,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "ThoiGian",
+    "kieu": "datetime",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(getdate())"
+   },
+   {
+    "stt": 3,
+    "cot": "NguoiThucHien",
+    "kieu": "nvarchar(128)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(original_login())"
+   },
+   {
+    "stt": 4,
+    "cot": "BangDuLieu",
+    "kieu": "nvarchar(50)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "HanhDong",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "KhoaChinh",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "DuLieuCu",
+    "kieu": "xml",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "DuLieuMoi",
+    "kieu": "xml",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_NHATKYHETHONG_HanhDong",
+    "dinh_nghia": "([HanhDong]='DELETE' OR [HanhDong]='UPDATE' OR [HanhDong]='INSERT')"
+   }
+  ],
+  "so_dong": 234
+ },
+ {
+  "bang": "PHIEUTHU",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaPT",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('PT'+right('000000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_PHIEUTHU]),(6)))"
+   },
+   {
+    "stt": 2,
+    "cot": "MaGD",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "GHIDANH"
+   },
+   {
+    "stt": 3,
+    "cot": "NgayThu",
+    "kieu": "datetime",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(getdate())"
+   },
+   {
+    "stt": 4,
+    "cot": "SoTien",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "HinhThuc",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Tiền mặt')"
+   },
+   {
+    "stt": 6,
+    "cot": "MaNVThu",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "NHANVIEN"
+   },
+   {
+    "stt": 7,
+    "cot": "NoiDung",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Hợp lệ')"
+   },
+   {
+    "stt": 9,
+    "cot": "LyDoHuy",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_PHIEUTHU_HinhThuc",
+    "dinh_nghia": "([HinhThuc]=N'Thẻ' OR [HinhThuc]=N'Chuyển khoản' OR [HinhThuc]=N'Tiền mặt')"
+   },
+   {
+    "ten": "CK_PHIEUTHU_LyDoHuy",
+    "dinh_nghia": "([TrangThai]=N'Hợp lệ' OR [LyDoHuy] IS NOT NULL)"
+   },
+   {
+    "ten": "CK_PHIEUTHU_SoTien",
+    "dinh_nghia": "([SoTien]>(0))"
+   },
+   {
+    "ten": "CK_PHIEUTHU_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Đã hủy' OR [TrangThai]=N'Hợp lệ')"
+   }
+  ],
+  "so_dong": 96
+ },
+ {
+  "bang": "PHONGHOC",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaPhong",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "MaCN",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "CHINHANH"
+   },
+   {
+    "stt": 3,
+    "cot": "TenPhong",
+    "kieu": "nvarchar(50)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "SucChua",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "LoaiPhong",
+    "kieu": "nvarchar(30)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Lý thuyết')"
+   },
+   {
+    "stt": 6,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Sẵn sàng')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_PHONGHOC_LoaiPhong",
+    "dinh_nghia": "([LoaiPhong]=N'Đa năng' OR [LoaiPhong]=N'Phòng Lab' OR [LoaiPhong]=N'Lý thuyết')"
+   },
+   {
+    "ten": "CK_PHONGHOC_SucChua",
+    "dinh_nghia": "([SucChua]>=(1) AND [SucChua]<=(100))"
+   },
+   {
+    "ten": "CK_PHONGHOC_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Bảo trì' OR [TrangThai]=N'Sẵn sàng')"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_PHONGHOC_MaCN_TenPhong"
+   }
+  ],
+  "so_dong": 8
+ },
+ {
+  "bang": "TAIKHOAN",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "TenDangNhap",
+    "kieu": "nvarchar(50)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "VaiTro",
+    "kieu": "varchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 3,
+    "cot": "MaNV",
+    "kieu": "varchar(10)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "NHANVIEN"
+   },
+   {
+    "stt": 4,
+    "cot": "MaGV",
+    "kieu": "varchar(10)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "GIAOVIEN"
+   },
+   {
+    "stt": 5,
+    "cot": "TrangThai",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Hoạt động')"
+   },
+   {
+    "stt": 6,
+    "cot": "NgayTao",
+    "kieu": "datetime",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(getdate())"
+   },
+   {
+    "stt": 7,
+    "cot": "LanDangNhapCuoi",
+    "kieu": "datetime",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_TAIKHOAN_DoiTuong",
+    "dinh_nghia": "([VaiTro]='GIAOVIEN' AND [MaGV] IS NOT NULL AND [MaNV] IS NULL OR [VaiTro]<>'GIAOVIEN' AND [MaNV] IS NOT NULL AND [MaGV] IS NULL)"
+   },
+   {
+    "ten": "CK_TAIKHOAN_TrangThai",
+    "dinh_nghia": "([TrangThai]=N'Đã khóa' OR [TrangThai]=N'Hoạt động')"
+   },
+   {
+    "ten": "CK_TAIKHOAN_VaiTro",
+    "dinh_nghia": "([VaiTro]='GIAOVIEN' OR [VaiTro]='KETOAN' OR [VaiTro]='GIAOVU' OR [VaiTro]='QUANLY')"
+   }
+  ],
+  "so_dong": 9
+ },
+ {
+  "bang": "THANHPHANDIEM",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "MaTP",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": true,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "MaKH",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "KHOAHOC"
+   },
+   {
+    "stt": 3,
+    "cot": "TenTP",
+    "kieu": "nvarchar(50)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "TrongSo",
+    "kieu": "decimal(5,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_THANHPHANDIEM_TrongSo",
+    "dinh_nghia": "([TrongSo]>(0) AND [TrongSo]<=(100))"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_THANHPHANDIEM_MaKH_TenTP"
+   }
+  ],
+  "so_dong": 27
+ }
+]

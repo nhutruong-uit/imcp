@@ -1,0 +1,40 @@
+// ERD (ký hiệu Chen) - Phân hệ học viên, ghi danh, tài chính, kết quả học tập
+graph ERD2 {
+  graph [layout=neato, overlap=prism, overlap_scaling=-2, splines=true, sep="+8", esep="+4", fontname="Arial", pad=0.2, dpi=220, start=7];
+  node  [fontname="Arial", fontsize=13];
+  edge  [fontname="Arial", fontsize=12, color="#334155", labelfontcolor="#B91C1C", labelfontsize=12, len=1.1];
+
+  node [shape=box, style="filled,rounded", fillcolor="#DBEAFE", color="#1F3864", penwidth=1.4];
+  HOCVIEN [label=<<B>HOCVIEN</B><BR/><U>MaHV</U>, HoTen, NgaySinh, SoDienThoai,<BR/>TenPhuHuynh, SDTPhuHuynh, TrangThai>];
+  KIEMTRADAUVAO [label=<<B>KIEMTRADAUVAO</B><BR/><U>MaKT</U>, DiemNghe, DiemNoi,<BR/>DiemDoc, DiemViet, /DiemTong>];
+  GHIDANH [label=<<B>GHIDANH</B> (thực thể kết hợp)<BR/><U>MaGD</U>, NgayGhiDanh, HocPhiGoc, SoTienGiam,<BR/>/HocPhiPhaiDong, /DaDong, KetQua>, fillcolor="#E0E7FF"];
+  LOPHOC [label=<<B>LOPHOC</B><BR/><U>MaLop</U>, ...>, fillcolor="#F1F5F9"];
+  KHOAHOC [label=<<B>KHOAHOC</B><BR/><U>MaKH</U>, ...>, fillcolor="#F1F5F9"];
+  BUOIHOC [label=<<B>BUOIHOC</B><BR/><U>MaBuoi</U>, ...>, fillcolor="#F1F5F9"];
+  THANHPHANDIEM [label=<<B>THANHPHANDIEM</B><BR/><U>MaTP</U>, ...>, fillcolor="#F1F5F9"];
+  NHANVIEN [label=<<B>NHANVIEN</B><BR/><U>MaNV</U>, ...>, fillcolor="#F1F5F9"];
+  CHINHANH [label=<<B>CHINHANH</B><BR/><U>MaCN</U>, ...>, fillcolor="#F1F5F9"];
+  KHUYENMAI [label=<<B>KHUYENMAI</B><BR/><U>MaKM</U>, LoaiGiam, GiaTri,<BR/>NgayBatDau, NgayKetThuc>];
+  PHIEUTHU [label=<<B>PHIEUTHU</B><BR/><U>MaPT</U>, NgayThu, SoTien,<BR/>HinhThuc, TrangThai>];
+  CHUNGCHI [label=<<B>CHUNGCHI</B><BR/><U>MaCC</U>, SoHieu, NgayCap, XepLoai>];
+  NHATKY [label=<<B>NHATKYHETHONG</B><BR/><U>MaNK</U>, BangDuLieu, HanhDong,<BR/>DuLieuCu (XML), DuLieuMoi (XML)>, fillcolor="#FCE7F3"];
+
+  node [shape=diamond, style=filled, fillcolor="#FEF3C7", color="#B45309", penwidth=1.2, fontsize=10, width=1.2, height=0.7];
+  r_dk [label="đăng\nký"]; r_co [label="có học\nviên"]; r_lam [label="làm\nbài"]; r_dx [label="đề\nxuất"];
+  r_km [label="áp\ndụng"]; r_dong [label="đóng\ntiền"]; r_lap [label="lập\nphiếu"]; r_nv [label="ghi\ndanh bởi"];
+  r_cap [label="được\ncấp"]; r_tn [label="tiếp\nnhận"];
+  DIEMDANH [label="DIEMDANH\n(TrangThai)"]; DIEM [label="DIEM\n(Diem)"];
+
+  HOCVIEN -- r_dk [taillabel="(0,n)"]; r_dk -- GHIDANH [headlabel="(1,1)"];
+  LOPHOC -- r_co [taillabel="(0,n)"]; r_co -- GHIDANH [headlabel="(1,1)"];
+  HOCVIEN -- r_tn [taillabel="(1,1)"]; r_tn -- CHINHANH [headlabel="(0,n)"];
+  HOCVIEN -- r_lam [taillabel="(0,n)"]; r_lam -- KIEMTRADAUVAO [headlabel="(1,1)"];
+  KIEMTRADAUVAO -- r_dx [taillabel="(0,1)"]; r_dx -- KHOAHOC [headlabel="(0,n)"];
+  GHIDANH -- r_km [taillabel="(0,1)"]; r_km -- KHUYENMAI [headlabel="(0,n)"];
+  GHIDANH -- r_nv [taillabel="(0,1)"]; r_nv -- NHANVIEN [headlabel="(0,n)"];
+  GHIDANH -- r_dong [taillabel="(0,n)"]; r_dong -- PHIEUTHU [headlabel="(1,1)"];
+  PHIEUTHU -- r_lap [taillabel="(1,1)"]; r_lap -- NHANVIEN [headlabel="(0,n)"];
+  GHIDANH -- DIEMDANH [taillabel="(0,n)"]; DIEMDANH -- BUOIHOC [headlabel="(0,n)"];
+  GHIDANH -- DIEM [taillabel="(0,n)"]; DIEM -- THANHPHANDIEM [headlabel="(0,n)"];
+  GHIDANH -- r_cap [taillabel="(0,1)"]; r_cap -- CHUNGCHI [headlabel="(1,1)"];
+}

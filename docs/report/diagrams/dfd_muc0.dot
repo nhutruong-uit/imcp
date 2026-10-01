@@ -1,0 +1,17 @@
+// DFD mức 0 (sơ đồ ngữ cảnh)
+digraph DFD0 {
+  graph [rankdir=LR, fontname="Arial", dpi=220, pad=0.2, nodesep=0.6, ranksep=1.4];
+  node  [fontname="Arial", fontsize=12];
+  edge  [fontname="Arial", fontsize=10, color="#334155"];
+  node [shape=box, style=filled, fillcolor="#F1F5F9", color="#334155", width=1.6];
+  HV [label="Học viên /\nPhụ huynh"]; GV [label="Giáo viên"]; NV [label="Giáo vụ /\nKế toán"]; QL [label="Ban quản lý"];
+  P0 [label="0\nHỆ THỐNG QUẢN LÝ\nTRUNG TÂM TIẾNG ANH", shape=circle, style=filled, fillcolor="#DBEAFE", color="#1F3864", penwidth=2, width=2.4, fontsize=12];
+  HV -> P0 [label="thông tin đăng ký,\nkết quả kiểm tra, học phí"];
+  P0 -> HV [label="lịch học, biên lai,\nkết quả, chứng nhận"];
+  GV -> P0 [label="điểm danh,\nđiểm thành phần"];
+  P0 -> GV [label="lịch dạy, danh sách lớp,\nbảng lương"];
+  NV -> P0 [label="hồ sơ, lớp, ghi danh,\nphiếu thu"];
+  P0 -> NV [label="công nợ, danh sách,\nbáo cáo"];
+  QL -> P0 [label="danh mục khóa học,\ntài khoản, chính sách"];
+  P0 -> QL [label="thống kê doanh thu,\nsĩ số, kết quả"];
+}
