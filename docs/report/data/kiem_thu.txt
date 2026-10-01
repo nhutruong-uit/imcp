@@ -8,6 +8,8 @@ P07|Giáo vụ SELECT bảng BANGLUONG|Từ chối|Từ chối|ĐẠT|The SELECT
 P08|Quản lý DELETE bảng PHIEUTHU|Từ chối|Từ chối|ĐẠT|The DELETE permission was denied on the object 'PHIEUTHU', database 'QLTTTA', schema 'dbo'.
 P09|Giáo vụ tạo tài khoản đăng nhập|Từ chối|Từ chối|ĐẠT|The EXECUTE permission was denied on the object 'usp_TaiKhoan_Tao', database 'QLTTTA', schema 'dbo'.
 P10|Quản lý tạo tài khoản (user + role)|Thành công|Thành công|ĐẠT|Đã tạo contained user tuvan_mai thuộc rl_GiaoVu (đã hoàn tác)
+P11|Giáo vụ xem doanh thu tháng trên Dashboard|Từ chối|Từ chối|ĐẠT|usp_ThongKe_TongQuan trả DoanhThuThangNay = NULL cho vai trò GIAOVU
+P12|Đổi mật khẩu với mật khẩu hiện tại sai|Từ chối|Từ chối|ĐẠT|Mật khẩu hiện tại không đúng.
 T01|Học viên dưới 18 tuổi thiếu thông tin phụ huynh|Từ chối|Từ chối|ĐẠT|The INSERT statement conflicted with the CHECK constraint "CK_HOCVIEN_PhuHuynh". The conflict occurred in database "QLTTTA", table "dbo.HOCVIEN".
 T02|Số điện thoại sai định dạng (CHECK miền giá trị)|Từ chối|Từ chối|ĐẠT|The INSERT statement conflicted with the CHECK constraint "CK_HOCVIEN_SoDienThoai". The conflict occurred in database "QLTTTA", table "dbo.HOCVIEN", column 'SoDienThoai'.
 T03|Ghi danh lặp lại cùng một lớp|Từ chối|Từ chối|ĐẠT|Học viên đã ghi danh lớp này.
@@ -22,4 +24,4 @@ T11|Sửa nội dung nhật ký kiểm toán|Từ chối|Từ chối|ĐẠT|Nh�
 T12|Cấp chứng nhận cho học viên Không đạt|Từ chối|Từ chối|ĐẠT|Chỉ cấp chứng nhận cho học viên có kết quả Đạt.
 T13|Sửa thời gian buổi học đã dạy|Từ chối|Từ chối|ĐẠT|Không được thay đổi thời gian, phòng, giáo viên của buổi đã dạy.
 T14|Chuyển lớp sang khóa học khác|Từ chối|Từ chối|ĐẠT|Chỉ được chuyển sang lớp đang mở của cùng khóa học.
-T15|Ghi danh hợp lệ có khuyến mãi|Thành công|Thành công|ĐẠT|Mã GD000086, phải đóng 3,300,000 đ
+T15|Ghi danh hợp lệ có khuyến mãi|Thành công|Thành công|ĐẠT|Mã GD000085, phải đóng 3,300,000 đ

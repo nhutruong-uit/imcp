@@ -117,6 +117,8 @@ def chuong5(r):
     r.h2("5.7. Kiểm thử phân quyền")
     r.p("Các ca kiểm thử phân quyền trong `12_kiem_thu.sql` giả lập từng người dùng bằng `EXECUTE AS USER ... REVERT`. "
         "Thông báo là kết quả thực tế của SQL Server:")
-    rows = [[k[0], k[1], k[2], k[3], k[5]] for k in kiem_thu() if k[0].startswith("P")]
+    ca = [k for k in kiem_thu() if k[0].startswith("P")]
+    dat = len([k for k in ca if k[2] == k[3]])
+    rows = [[k[0], k[1], k[2], k[3], k[5]] for k in ca]
     r.table(["Mã", "Ca kiểm thử", "Kỳ vọng", "Thực tế", "Thông báo / kết quả"], rows,
-            widths_cm=[1.1, 4.4, 1.8, 1.8, 6.9], caption="Kết quả kiểm thử phân quyền (10/10 đạt)", size=8.5)
+            widths_cm=[1.1, 4.4, 1.8, 1.8, 6.9], caption=f"Kết quả kiểm thử phân quyền ({dat}/{len(ca)} đạt)", size=8.5)
