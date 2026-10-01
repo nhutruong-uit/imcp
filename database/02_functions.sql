@@ -26,8 +26,8 @@ END;
 GO
 
 /* 2. fn_MaGVHienTai / fn_MaNVHienTai / fn_VaiTroHienTai:
-      Ánh xạ USER đang đăng nhập SQL Server sang hồ sơ trong TAIKHOAN.
-      Dùng ORIGINAL_LOGIN() để vẫn đúng khi thủ tục chạy EXECUTE AS OWNER. */
+      Ánh xạ USER đang làm việc trong CSDL (USER_NAME()) sang hồ sơ trong TAIKHOAN.
+      USER_NAME() cũng đổi theo khi giảng viên/nhóm demo bằng EXECUTE AS USER = N'gv_john'. */
 IF OBJECT_ID(N'dbo.fn_VaiTroHienTai', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_VaiTroHienTai;
 IF OBJECT_ID(N'dbo.fn_MaGVHienTai', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_MaGVHienTai;
 IF OBJECT_ID(N'dbo.fn_MaNVHienTai', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_MaNVHienTai;
@@ -37,7 +37,7 @@ RETURNS VARCHAR(20)
 AS
 BEGIN
     DECLARE @VaiTro VARCHAR(20);
-    SELECT @VaiTro = VaiTro FROM dbo.TAIKHOAN WHERE TenDangNhap = ORIGINAL_LOGIN();
+    SELECT @VaiTro = VaiTro FROM dbo.TAIKHOAN WHERE TenDangNhap = USER_NAME() COLLATE DATABASE_DEFAULT;
     -- dbo / sysadmin (người cài đặt) được coi như quản lý
     IF @VaiTro IS NULL AND (IS_MEMBER('db_owner') = 1 OR IS_SRVROLEMEMBER('sysadmin') = 1)
         SET @VaiTro = 'QUANLY';
@@ -48,14 +48,14 @@ CREATE FUNCTION dbo.fn_MaGVHienTai ()
 RETURNS VARCHAR(10)
 AS
 BEGIN
-    RETURN (SELECT MaGV FROM dbo.TAIKHOAN WHERE TenDangNhap = ORIGINAL_LOGIN());
+    RETURN (SELECT MaGV FROM dbo.TAIKHOAN WHERE TenDangNhap = USER_NAME() COLLATE DATABASE_DEFAULT);
 END;
 GO
 CREATE FUNCTION dbo.fn_MaNVHienTai ()
 RETURNS VARCHAR(10)
 AS
 BEGIN
-    RETURN (SELECT MaNV FROM dbo.TAIKHOAN WHERE TenDangNhap = ORIGINAL_LOGIN());
+    RETURN (SELECT MaNV FROM dbo.TAIKHOAN WHERE TenDangNhap = USER_NAME() COLLATE DATABASE_DEFAULT);
 END;
 GO
 

@@ -1153,7 +1153,7 @@ CREATE PROCEDURE dbo.usp_TaiKhoan_GhiNhanDangNhap
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE dbo.TAIKHOAN SET LanDangNhapCuoi = GETDATE() WHERE TenDangNhap = ORIGINAL_LOGIN();
+    UPDATE dbo.TAIKHOAN SET LanDangNhapCuoi = GETDATE() WHERE TenDangNhap = USER_NAME() COLLATE DATABASE_DEFAULT;
     SELECT TenDangNhap, VaiTro, MaNV, MaGV, TrangThai, HoTen, MaCN FROM dbo.vw_TaiKhoanHienTai;
 END;
 GO
