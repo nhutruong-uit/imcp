@@ -47,8 +47,8 @@ docs(report): bổ sung mục 3.7 ràng buộc toàn vẹn
 - Mỗi use case mới cần ít nhất một unit test trong `tests/` (dùng repository giả).
 
 ## Checklist Pull Request
-- [ ] Build và unit test chạy được trên máy (`cmake --build`, `ctest`)
-- [ ] Nếu sửa CSDL: `db_init` chạy lại từ đầu không lỗi, đã cập nhật `06_security.sql`
+- [ ] `scripts/test_all.sh` báo **TẤT CẢ KIỂM THỬ ĐẠT** (CSDL + unit test + end-to-end) - dán dòng kết quả vào PR
+- [ ] Nếu sửa CSDL: đã cập nhật `06_security.sql`; nghiệp vụ mới có ca kiểm thử trong `12_kiem_thu.sql` (+ `#MongDoi`)
 - [ ] Đã thử bằng tài khoản demo của vai trò liên quan
 - [ ] Cập nhật tài liệu/báo cáo nếu thay đổi thiết kế
 

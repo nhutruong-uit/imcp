@@ -13,7 +13,10 @@ SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/db_in
 # Build + test (macOS). Nếu CMake báo compiler broken: thêm -DCMAKE_OSX_SYSROOT=<SDK của Xcode>
 cmake --preset macos-debug && cmake --build --preset macos-debug && ctest --preset macos-debug
 
-# Kiểm thử end-to-end qua giao diện với CSDL thật (6 kịch bản; tự SKIP nếu thiếu biến môi trường)
+# CHẠY TOÀN BỘ KIỂM THỬ (bắt buộc trước khi tạo PR): db_init -> 12_kiem_thu.sql -> build -> unit + e2e
+SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker sql2022
+
+# Chỉ kiểm thử end-to-end qua giao diện với CSDL thật (9 kịch bản; tự SKIP nếu thiếu biến môi trường)
 QLTTTA_E2E_PASSWORD='Demo@2026' ctest --preset macos-debug -R e2e --output-on-failure
 
 # Kiểm tra kết nối/đăng nhập không cần giao diện
@@ -36,7 +39,10 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
 - Trigger phải xử lý **tập hợp** (inserted/deleted nhiều dòng).
 - Đối tượng mới → GRANT cho role trong `06_security.sql`; role nghiệp vụ không có quyền trên bảng gốc.
 - Ứng dụng không INSERT/UPDATE bảng trực tiếp: mọi thao tác ghi đi qua thủ tục.
-- Sau khi sửa: chạy lại `db_init` từ đầu, thử bằng tài khoản demo của vai trò liên quan.
+- Sau khi sửa: chạy `scripts/test_all.sh` (gồm `db_init` từ đầu + `12_kiem_thu.sql`), thử bằng tài khoản demo.
+- Nghiệp vụ/ràng buộc/quyền mới → thêm ca kiểm thử vào `12_kiem_thu.sql` **và** đăng ký mã ca + mẫu thông báo
+  trong bảng `#MongDoi` (ca "Từ chối" phải bị từ chối đúng lý do). Không sửa kỳ vọng của ca cũ để test "xanh"
+  trừ khi đặc tả thay đổi thật - khi đó nói rõ trong PR.
 
 ### C++ / Qt (`src/`)
 - Clean Architecture, chiều phụ thuộc: `presentation → application → domain ← infrastructure`; `app` nối dây.
@@ -46,7 +52,8 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
 - Tên nghiệp vụ tiếng Việt không dấu (`HocVienService::themMoi`), chuỗi giao diện tiếng Việt có dấu trong `QStringLiteral`.
 - Gọi thủ tục có OUTPUT: lô lệnh `SET NOCOUNT ON; DECLARE @x ...; EXEC ... @Out = @x OUTPUT; SELECT @x;`.
   NULL truyền bằng `SqlHelpers::chuoiHoacNull`.
-- Use case mới phải có unit test trong `tests/` với repository giả.
+- Use case mới phải có unit test trong `tests/` với repository giả; màn hình mới phải được mở trong
+  e2e (`moiVaiTro_moMoiChucNang_coDuLieu` tự phủ mọi chức năng trong `PhanQuyen`).
 - C++17, Qt ≥ 6.5 (CI Windows dùng Qt 6.8 LTS + MinGW, macOS dùng Qt Homebrew).
 
 ### Git

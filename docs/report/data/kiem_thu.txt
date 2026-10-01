@@ -25,3 +25,15 @@ T12|Cấp chứng nhận cho học viên Không đạt|Từ chối|Từ chối|�
 T13|Sửa thời gian buổi học đã dạy|Từ chối|Từ chối|ĐẠT|Không được thay đổi thời gian, phòng, giáo viên của buổi đã dạy.
 T14|Chuyển lớp sang khóa học khác|Từ chối|Từ chối|ĐẠT|Chỉ được chuyển sang lớp đang mở của cùng khóa học.
 T15|Ghi danh hợp lệ có khuyến mãi|Thành công|Thành công|ĐẠT|Mã GD000085, phải đóng 3,300,000 đ
+T16|fn_XepLoai: xếp loại tại các mốc 9 / 8 / 6.5 / 5 điểm|Thành công|Thành công|ĐẠT|11/11 mốc điểm (kể cả NULL) cho kết quả đúng
+T17|fn_TinhDiemTongKet: điểm theo trọng số, thiếu cột điểm thì NULL|Thành công|Thành công|ĐẠT|Khớp 22/22 lượt ghi danh; bỏ 1 cột điểm của GD000001 => NULL
+T18|fn_TyLeChuyenCan: đi trễ tính có mặt, vắng có phép không tính|Thành công|Thành công|ĐẠT|Có mặt 2 + đi trễ 1 trên 24 buổi đã dạy => 12.50% (kỳ vọng 12.50%)
+T19|fn_TinhSoTienGiam: làm tròn nghìn, không vượt học phí, hết hạn = 0|Thành công|Thành công|ĐẠT|15% x 4.250.000 = 638000; giảm 5 triệu trên học phí 3 triệu = 3000000; hết hạn = 0
+T20|Thu tiền rồi hủy phiếu: DaDong tự cập nhật, có nhật ký XML|Thành công|Thành công|ĐẠT|GD000018: đã đóng 1900000 -> 2000000 (thu 100.000) -> 1900000 (hủy); nhật ký: 1 dòng
+T21|Ghi danh vào lớp đã đủ sĩ số tối đa|Từ chối|Từ chối|ĐẠT|Lớp LH0008 đã đủ sĩ số tối đa.
+T22|usp_LopHoc_TaoBuoiHoc: sinh buổi học theo lịch tuần|Thành công|Thành công|ĐẠT|LH0008: sinh 30/30 buổi, 0 buổi sai thứ/giờ, ngày kết thúc đúng
+T23|usp_LopHoc_XetKetQua: xét Đạt theo điểm và chuyên cần, cấp chứng nhận|Thành công|Thành công|ĐẠT|LH0001: 10 Đạt, 2 Không đạt (trong đó 1 HV đủ điểm nhưng chuyên cần < 80%); 0 sai lệch chứng nhận
+T24|usp_BangLuong_Chot: số buổi, số giờ, thưởng, tổng lương|Thành công|Thành công|ĐẠT|Tháng 9/2026: 5 giáo viên, 0 dòng lệch so với BUOIHOC
+T25|Chốt lương cho tháng trong tương lai|Từ chối|Từ chối|ĐẠT|Không thể chốt lương cho tháng trong tương lai.
+T26|Xuất/nhập học viên bằng XML, bỏ qua bản ghi trùng|Thành công|Thành công|ĐẠT|Xuất 72/72 học viên; nhập 1 dòng, bỏ qua 1 dòng trùng SĐT
+T27|Đề cương khóa học sai cấu trúc XML Schema|Từ chối|Từ chối|ĐẠT|XML Validation: Invalid content. Expected element(s): 'GiaoTrinh'. Found: element 'PhanTuKhongCoTrongSchema' instead. Location: /*:DeCuong[1]/*:PhanTuKhongCoTrongSchema[1].
