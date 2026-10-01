@@ -19,7 +19,10 @@ set_target_properties(QLTTTA PROPERTIES
 )
 
 if(WIN32)
-    target_sources(QLTTTA PRIVATE ${PROJECT_SOURCE_DIR}/packaging/windows/app.rc)
+    set(QLTTTA_RC ${PROJECT_SOURCE_DIR}/packaging/windows/app.rc)
+    target_sources(QLTTTA PRIVATE ${QLTTTA_RC})
+    # windres/rc tìm app.ico theo thư mục include
+    set_property(SOURCE ${QLTTTA_RC} APPEND PROPERTY INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/packaging/windows)
 endif()
 if(APPLE)
     set(QLTTTA_ICNS ${PROJECT_SOURCE_DIR}/packaging/macos/AppIcon.icns)

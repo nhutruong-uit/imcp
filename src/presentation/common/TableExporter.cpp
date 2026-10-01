@@ -10,6 +10,8 @@
 #include <QPdfWriter>
 #include <QTextDocument>
 
+#include <algorithm>
+
 namespace {
 QString csvField(QString s) {
     if (s.contains(QLatin1Char(',')) || s.contains(QLatin1Char('"')) || s.contains(QLatin1Char('\n'))) {
