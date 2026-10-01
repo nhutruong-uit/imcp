@@ -97,6 +97,13 @@ Mở bằng **Qt Creator** (*File > Open File or Project > CMakeLists.txt*) ho�
    cmake --preset windows-debug; cmake --build --preset windows-debug; ctest --preset windows-debug
    ```
 
+### Kiểm thử end-to-end qua giao diện (cần CSDL đã nạp dữ liệu mẫu)
+Bài test `tests/tst_e2e_gui.cpp` gõ phím, bấm nút trên các màn hình thật (đăng nhập, học viên, giáo viên,
+kế toán, đổi mật khẩu) với CSDL thật; dữ liệu thêm trong lúc test được xóa lại. Không đặt mật khẩu thì test tự SKIP (CI).
+```bash
+QLTTTA_E2E_PASSWORD='Demo@2026' ctest --preset macos-debug -R e2e --output-on-failure
+```
+
 ### Đóng gói file cài trên máy cá nhân
 - macOS: `./scripts/package-macos.sh` → `dist/QLTTTA-x.y.z-macos-arm64.dmg`
 - Windows: cài thêm Inno Setup 6, chạy `.\scripts\package-windows.ps1` → `dist\...-setup.exe` và `...-portable.zip`

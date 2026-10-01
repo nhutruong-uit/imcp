@@ -23,6 +23,7 @@ DanhSachPage::DanhSachPage(AppServices services, ChucNang chucNang, QWidget* par
 
     auto* thanh = new QHBoxLayout;
     m_loc = new QLineEdit(this);
+    m_loc->setObjectName(QStringLiteral("locNhanh"));
     m_loc->setPlaceholderText(QStringLiteral("Lọc nhanh trong danh sách..."));
     m_loc->addAction(Icons::get(QStringLiteral("search"), QStringLiteral("#94A3B8"), 16), QLineEdit::LeadingPosition);
     m_loc->setClearButtonEnabled(true);
@@ -44,6 +45,7 @@ DanhSachPage::DanhSachPage(AppServices services, ChucNang chucNang, QWidget* par
     m_proxy->setSortLocaleAware(true);
 
     m_bang = new QTableView(this);
+    m_bang->setObjectName(QStringLiteral("bangDanhSach"));
     m_bang->setModel(m_proxy);
     m_bang->setSortingEnabled(true);
     m_bang->horizontalHeader()->setSortIndicator(-1, Qt::AscendingOrder);   // giữ thứ tự ORDER BY của CSDL
@@ -56,6 +58,7 @@ DanhSachPage::DanhSachPage(AppServices services, ChucNang chucNang, QWidget* par
     v->addWidget(m_bang, 1);
 
     m_tong = new QLabel(this);
+    m_tong->setProperty("vaiTro", QStringLiteral("dongTong"));
     m_tong->setObjectName(QStringLiteral("Muted"));
     v->addWidget(m_tong);
 

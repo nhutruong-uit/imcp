@@ -1,6 +1,6 @@
 // Quy trình CI/CD
 digraph CICD {
-  graph [rankdir=LR, fontname="Arial", dpi=220, pad=0.2, nodesep=0.35, ranksep=0.5];
+  graph [rankdir=TB, fontname="Arial", dpi=220, pad=0.2, nodesep=0.5, ranksep=0.45];
   node  [fontname="Arial", fontsize=11, shape=box, style="rounded,filled", fillcolor="#F1F5F9"];
   edge  [color="#334155", fontname="Arial", fontsize=9];
   dev [label="Nhánh feature/*\n(Claude Code + leader)"]; pr [label="Pull Request\n→ develop"];
@@ -10,5 +10,9 @@ digraph CICD {
   mac [label="macOS: macdeployqt\n+ FreeTDS, ký ad-hoc\n→ .dmg", fillcolor="#DBEAFE"];
   win [label="Windows: windeployqt\n+ Inno Setup\n→ setup.exe, .zip", fillcolor="#DBEAFE"];
   gh [label="GitHub Release\nvX.Y.Z-build.N\n(giảng viên tải về)", fillcolor="#DCFCE7"];
-  dev -> pr -> ci -> develop -> prm -> rel; rel -> mac; rel -> win; mac -> gh; win -> gh;
+  {rank=same; dev; pr; ci;}
+  {rank=same; develop; prm; rel;}
+  {rank=same; mac; win;}
+  dev -> pr -> ci; ci -> develop [constraint=false]; ci -> develop [style=invis]; develop -> prm -> rel;
+  rel -> mac; rel -> win; mac -> gh; win -> gh;
 }

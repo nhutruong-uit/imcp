@@ -75,7 +75,21 @@ THU_TU_BANG = ["CHINHANH", "PHONGHOC", "NHANVIEN", "GIAOVIEN", "TAIKHOAN", "HOCV
 
 
 def _dep_check(defn: str) -> str:
-    """Rút gọn định nghĩa CHECK cho dễ đọc."""
+    """Rút gọn định nghĩa CHECK / DEFAULT cho dễ đọc."""
+    d = defn.strip()
+    m = re.fullmatch(r"\(NOT \[(\w+)\] like '%\[\^0-9\]%' AND \(len\(\[\1\]\)>=\((\d+)\) AND len\(\[\1\]\)<=\((\d+)\)\)\)", d)
+    if m:
+        return f"{m.group(1)}: chỉ gồm chữ số, dài {m.group(2)}-{m.group(3)} ký tự"
+    m = re.fullmatch(r"\(\[(\w+)\] like '%_@_%\._%'\)", d)
+    if m:
+        return f"{m.group(1)}: đúng dạng email"
+    m = re.fullmatch(r"\(\[(\w+)\]>=\(?([\d.]+)\)? AND \[\1\]<=\(?([\d.]+)\)?\)", d)
+    if m:
+        return f"{m.group(2)} ≤ {m.group(1)} ≤ {m.group(3)}"
+    thay = {"(CONVERT([date],getdate()))": "ngày hiện tại", "(getdate())": "thời điểm hiện tại",
+            "(original_login())": "người đăng nhập (ORIGINAL_LOGIN)"}
+    if d in thay:
+        return thay[d]
     vals = re.findall(r"\[(\w+)\]=N?'([^']*)'", defn)
     rest = re.sub(r"\[(\w+)\]=N?'([^']*)'", "", defn)
     if vals and re.fullmatch(r"[\s()OR]*", rest):
@@ -84,9 +98,11 @@ def _dep_check(defn: str) -> str:
     s = defn.strip()
     while s.startswith("(") and s.endswith(")"):
         s = s[1:-1]
-    s = re.sub(r"\[(\w+)\]", r"\1", s).replace("N'", "'")
+    s = re.sub(r"(?<![A-Za-z0-9_])N'", "'", re.sub(r"\[(\w+)\]", r"\1", s))   # bỏ tiền tố N của chuỗi Unicode
     s = re.sub(r"\((\d+)\)", r"\1", s)
-    return s
+    for a, b in ((">=", " ≥ "), ("<=", " ≤ "), ("<>", " ≠ "), (">", " > "), ("<", " < ")):
+        s = s.replace(a, b) if a in (">=", "<=", "<>") else re.sub(rf"(?<![≥≤≠ ]){re.escape(a)}(?!=)", b, s)
+    return re.sub(r"\s{2,}", " ", s)
 
 
 def _cot_cua_check(defn: str):
@@ -137,8 +153,10 @@ def chuong3(r):
     r.p("Mô hình quan niệm được vẽ theo ký hiệu Chen như bài giảng: **hình chữ nhật** là thực thể (thuộc tính khóa "
         "gạch dưới), **hình thoi** là mối kết hợp, bản số **(min,max)** ghi cạnh thực thể tham gia. Do có 21 thực thể, "
         "sơ đồ được tách thành 2 phân hệ dùng chung một số thực thể (tô xám ở sơ đồ thứ hai).")
-    r.figure(IMG / "diagrams" / "erd_1_to_chuc_dao_tao.png", "ERD phân hệ tổ chức - nhân sự - đào tạo - lớp học", width_cm=16.5)
-    r.figure(IMG / "diagrams" / "erd_2_hoc_vien_tai_chinh.png", "ERD phân hệ học viên - ghi danh - tài chính - kết quả", width_cm=16.5)
+    r.figures_landscape([
+        (IMG / "diagrams" / "erd_1_to_chuc_dao_tao.png", "ERD phân hệ tổ chức - nhân sự - đào tạo - lớp học"),
+        (IMG / "diagrams" / "erd_2_hoc_vien_tai_chinh.png", "ERD phân hệ học viên - ghi danh - tài chính - kết quả"),
+    ])
     r.p("Một số điểm thiết kế đáng chú ý:")
     r.bullets([
         "**GHIDANH là thực thể kết hợp** giữa HOCVIEN và LOPHOC (quan hệ n-n), được nâng thành thực thể vì bản thân nó "

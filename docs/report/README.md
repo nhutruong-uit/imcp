@@ -1,5 +1,6 @@
 # Báo cáo đồ án
 
+- **`BaoCao_DoAn_IE103_Nhom1.pdf`** - bản PDF xuất từ Word (mục lục, số trang đã cập nhật) để nộp/gửi giảng viên.
 - **`BaoCao_DoAn_IE103_Nhom1.docx`** - báo cáo (định dạng theo mẫu báo cáo UIT của nhóm).
   Mở bằng Word → chọn **Yes** khi được hỏi cập nhật field (hoặc `Ctrl+A` rồi `F9`) để Word đánh lại
   mục lục, danh mục hình, danh mục bảng và số trang. Xuất PDF: *File > Save As > PDF*.

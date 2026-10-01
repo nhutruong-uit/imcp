@@ -143,7 +143,7 @@ def chuong2(r):
     r.p("DFD mức 0 (sơ đồ ngữ cảnh) thể hiện hệ thống như một xử lý duy nhất trao đổi thông tin với các tác nhân "
         "bên ngoài; DFD mức 1 phân rã thành 6 xử lý chính và các kho dữ liệu tương ứng với nhóm bảng trong CSDL.")
     r.figure(IMG / "diagrams" / "dfd_muc0.png", "DFD mức 0 - sơ đồ ngữ cảnh", width_cm=15.5)
-    r.figure(IMG / "diagrams" / "dfd_muc1.png", "DFD mức 1 - các xử lý chính và kho dữ liệu", width_cm=16)
+    r.figure_landscape(IMG / "diagrams" / "dfd_muc1.png", "DFD mức 1 - các xử lý chính và kho dữ liệu")
 
     r.h2("2.6. Yêu cầu chức năng")
     r.table(["Nhóm", "Chức năng", "Hiện thực ở CSDL"], [
