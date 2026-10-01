@@ -1,5 +1,5 @@
 """Trang bìa, checklist, phân công, mục lục."""
-from noidung.chung import THANH_VIEN
+from noidung.chung import THANH_VIEN, kiem_thu
 
 
 def trang_bia(r):
@@ -24,7 +24,7 @@ def checklist(r):
         ["Stored procedure, function, trigger, cursor, giao dịch", "", "", "", X],
         ["Truy vấn SQL, mô hình XML, XPath/XQuery", "", "", "", X],
         ["An ninh: xác thực, phân quyền, view, nhật ký, backup/restore, import/export", "", "", "", X],
-        ["Kiểm thử CSDL (25 ca) và unit test ứng dụng", "", "", "", X],
+        [f"Kiểm thử CSDL ({len(kiem_thu())} ca) và unit test ứng dụng", "", "", "", X],
         ["Ứng dụng Qt đa nền tảng: menu theo vai trò, form, báo cáo", "", X, "", ""],
         ["CI/CD và đóng gói file cài Windows/macOS", "", "", X, ""],
         ["Mô hình CSDL tiên tiến: hướng đối tượng, phân tán, NoSQL", "", "", "", X],

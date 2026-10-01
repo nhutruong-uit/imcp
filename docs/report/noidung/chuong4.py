@@ -193,8 +193,10 @@ def chuong4(r):
 
     # ------------------------------------------------------------------ 4.9
     r.h2("4.9. Kiểm thử ràng buộc và nghiệp vụ")
-    r.p("Script `12_kiem_thu.sql` chạy 15 ca kiểm thử ràng buộc/nghiệp vụ, mỗi ca thực hiện trong giao dịch rồi ROLLBACK "
+    ca = [k for k in kiem_thu() if k[0].startswith("T")]
+    dat = len([k for k in ca if k[2] == k[3]])
+    r.p(f"Script `12_kiem_thu.sql` chạy {len(ca)} ca kiểm thử ràng buộc/nghiệp vụ, mỗi ca thực hiện trong giao dịch rồi ROLLBACK "
         "nên không làm thay đổi dữ liệu. Thông báo trong cột cuối là **kết quả thực tế** do SQL Server trả về:")
-    rows = [[k[0], k[1], k[2], k[3], k[5]] for k in kiem_thu() if k[0].startswith("T")]
+    rows = [[k[0], k[1], k[2], k[3], k[5]] for k in ca]
     r.table(["Mã", "Ca kiểm thử", "Kỳ vọng", "Thực tế", "Thông báo của SQL Server"], rows,
-            widths_cm=[1.1, 4.4, 1.8, 1.8, 6.9], caption="Kết quả kiểm thử ràng buộc và nghiệp vụ (15/15 đạt)", size=8.5)
+            widths_cm=[1.1, 4.4, 1.8, 1.8, 6.9], caption=f"Kết quả kiểm thử ràng buộc và nghiệp vụ ({dat}/{len(ca)} đạt)", size=8.5)

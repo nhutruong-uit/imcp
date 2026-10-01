@@ -38,6 +38,11 @@ def chuong6(r):
         ["Giáo viên", "Lớp của tôi, Lịch dạy, Lương của tôi"],
     ], widths_cm=[3.0, 13.0], caption="Menu theo vai trò", size=10)
     r.figure(SCR / "gv_john_02_lich_day.png", "Giáo viên chỉ thấy lịch dạy của chính mình (dữ liệu từ view vw_GV_LichDayCuaToi)", width_cm=16)
+    r.p("Ẩn menu chỉ là lớp giao diện; quyền thật sự được kiểm tra trong CSDL. Ví dụ giáo vụ vẫn mở được Tổng quan "
+        "(gọi `usp_ThongKe_TongQuan`) nhưng thủ tục dùng `fn_VaiTroHienTai()` để trả **NULL** cho cột doanh thu, còn "
+        "`fn_DoanhThuTheoThang` không được GRANT cho `rl_GiaoVu` nên biểu đồ bị SQL Server từ chối. Ứng dụng chỉ hiển thị "
+        "kết quả đó: thẻ doanh thu ghi “Không có quyền” (ca kiểm thử P11).")
+    r.figure(SCR / "gvu_lan_01_tong_quan.png", "Tổng quan của Giáo vụ: doanh thu bị CSDL ẩn theo vai trò", width_cm=14)
 
     r.h2("6.3. Form nhập liệu")
     r.p("Form học viên được thiết kế bằng **Qt Designer** (file `HocVienFormDialog.ui`): ô điện thoại chỉ nhận chữ số, "
@@ -80,11 +85,13 @@ def chuong6(r):
         "**Kiểm thử end-to-end qua giao diện** (`tests/tst_e2e_gui.cpp`): chương trình gõ phím, bấm nút trên chính các "
         "màn hình với CSDL thật - đăng nhập sai bị từ chối; giáo vụ tìm kiếm, thêm học viên 10 tuổi (lần đầu thiếu phụ "
         "huynh bị báo lỗi, bổ sung thì lưu được) rồi xóa; giáo viên chỉ thấy 2 lớp của mình; kế toán không có nút thêm học "
-        "viên, xem công nợ và xuất PDF/CSV; đổi mật khẩu nhập lại sai bị chặn. Kết quả: 5/5 kịch bản đạt, dữ liệu trở về "
+        "viên, xem công nợ và xuất PDF/CSV; đổi mật khẩu nhập lại sai hoặc sai mật khẩu hiện tại bị chặn với thông báo "
+        "tiếng Việt; vừa đăng nhập phải mở sẵn trang đầu tiên, thẻ doanh thu của giáo vụ ghi \"Không có quyền\". "
+        "Kết quả: 6/6 kịch bản đạt, dữ liệu trở về "
         "nguyên trạng. Trên CI (không có SQL Server) bài kiểm thử tự bỏ qua.",
         "**Kiểm thử hiển thị**: công cụ `tools/qlttta_screenshots` tự đăng nhập bằng 4 tài khoản demo, mở "
         "từng chức năng và chụp màn hình (hình trong chương này được tạo bằng công cụ đó).",
-        "**Kiểm thử CSDL**: 25 ca trong `12_kiem_thu.sql` (Chương 4 và 5), tất cả đạt.",
+        f"**Kiểm thử CSDL**: {len(kiem_thu())} ca trong `12_kiem_thu.sql` (Chương 4 và 5), tất cả đạt.",
     ])
 
 
@@ -204,7 +211,7 @@ def chuong8(r):
         ["Cài đặt CSDL", "21 bảng, 182 ràng buộc khai báo, 8 sequence, 1 XML Schema, 13 hàm, 13 view, 38 thủ tục, 13 trigger, 4 role"],
         ["Xử lý thông tin", "Truy vấn SQL (chia, đệ quy, cửa sổ, PIVOT), XPath/XQuery đủ 5 phương thức, cursor, giao dịch"],
         ["An ninh", "Contained user, phân quyền mức đối tượng và mức cột, view bảo mật, nhật ký XML, backup Full/Diff/Log"],
-        ["Kiểm thử", f"{dat}/{len(kiem_thu())} ca kiểm thử CSDL đạt; 3 bộ unit test; 5/5 kịch bản end-to-end qua giao diện"],
+        ["Kiểm thử", f"{dat}/{len(kiem_thu())} ca kiểm thử CSDL đạt; 3 bộ unit test; 6/6 kịch bản end-to-end qua giao diện"],
         ["Ứng dụng", "Qt 6 đa nền tảng, Clean Architecture, đăng nhập theo vai trò, Tổng quan, Học viên, 10 màn hình tra cứu, xuất PDF/Excel"],
         ["Triển khai", "CI build/test macOS + Windows, tự đóng gói setup.exe/zip/dmg, tài liệu cài đặt"],
         ["Mô hình tiên tiến", "Chuyển đổi sang OODB, thiết kế + demo phân mảnh phân tán, thiết kế NoSQL, bảng so sánh"],
@@ -268,7 +275,7 @@ def phu_luc(r):
         "**Windows** (SQL Server Express/Developer + SSMS): mở PowerShell tại thư mục mã nguồn, chạy "
         "`.\\scripts\\db_init.ps1` (hoặc `-Server \"localhost\\SQLEXPRESS\"`); hoặc mở lần lượt `database/00` → `07` trong SSMS.",
         "**macOS/Linux** (Docker): `docker compose up -d`, sau đó `SQL_PASSWORD='<mật khẩu sa>' ./scripts/db_init.sh --docker imcp-mssql`.",
-        "Kiểm thử: chạy `database/12_kiem_thu.sql` - bảng kết quả cuối file phải có 25/25 ca ĐẠT.",
+        f"Kiểm thử: chạy `database/12_kiem_thu.sql` - bảng kết quả cuối file phải có {len(kiem_thu())}/{len(kiem_thu())} ca ĐẠT.",
     ])
     r.h2("B. Cài ứng dụng")
     r.bullets([
