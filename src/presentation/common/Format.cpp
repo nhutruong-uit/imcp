@@ -5,6 +5,7 @@
 #include <QStringList>
 
 #include <cmath>
+#include <cstdlib>
 
 namespace {
 const QLocale& viVN() {
