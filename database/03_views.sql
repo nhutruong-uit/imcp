@@ -22,7 +22,7 @@ SELECT tk.TenDangNhap, tk.VaiTro, tk.MaNV, tk.MaGV, tk.TrangThai,
 FROM dbo.TAIKHOAN tk
 LEFT JOIN dbo.NHANVIEN nv ON nv.MaNV = tk.MaNV
 LEFT JOIN dbo.GIAOVIEN gv ON gv.MaGV = tk.MaGV
-WHERE tk.TenDangNhap = ORIGINAL_LOGIN();
+WHERE tk.TenDangNhap = USER_NAME() COLLATE DATABASE_DEFAULT;
 GO
 
 /* 2. vw_HocVien_TongQuan: học viên + số lớp đang học + tổng công nợ */
