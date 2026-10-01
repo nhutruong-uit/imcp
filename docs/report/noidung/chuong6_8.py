@@ -86,12 +86,15 @@ def chuong6(r):
         "màn hình với CSDL thật - đăng nhập sai bị từ chối; giáo vụ tìm kiếm, thêm học viên 10 tuổi (lần đầu thiếu phụ "
         "huynh bị báo lỗi, bổ sung thì lưu được) rồi xóa; giáo viên chỉ thấy 2 lớp của mình; kế toán không có nút thêm học "
         "viên, xem công nợ và xuất PDF/CSV; đổi mật khẩu nhập lại sai hoặc sai mật khẩu hiện tại bị chặn với thông báo "
-        "tiếng Việt; vừa đăng nhập phải mở sẵn trang đầu tiên, thẻ doanh thu của giáo vụ ghi \"Không có quyền\". "
-        "Kết quả: 6/6 kịch bản đạt, dữ liệu trở về "
-        "nguyên trạng. Trên CI (không có SQL Server) bài kiểm thử tự bỏ qua.",
+        "tiếng Việt; vừa đăng nhập phải mở sẵn trang đầu tiên, thẻ doanh thu của giáo vụ ghi \"Không có quyền\"; "
+        "**mỗi vai trò mở lần lượt mọi chức năng được phép** và trang phải có dữ liệu (thiếu một lệnh GRANT là bị phát "
+        "hiện); sửa học viên qua form và đọc lại từ CSDL; lọc nhanh thì dòng tổng tính lại đúng. Kết quả: 9/9 kịch bản "
+        "đạt, dữ liệu trở về nguyên trạng. Trên CI (không có SQL Server) bài kiểm thử được ghi nhận là bỏ qua (Skipped).",
         "**Kiểm thử hiển thị**: công cụ `tools/qlttta_screenshots` tự đăng nhập bằng 4 tài khoản demo, mở "
         "từng chức năng và chụp màn hình (hình trong chương này được tạo bằng công cụ đó).",
         f"**Kiểm thử CSDL**: {len(kiem_thu())} ca trong `12_kiem_thu.sql` (Chương 4 và 5), tất cả đạt.",
+        "**Chạy toàn bộ bằng một lệnh** `scripts/test_all.sh`: khởi tạo lại CSDL → kiểm thử CSDL → build → unit test → "
+        "end-to-end; bước nào hỏng thì dừng và trả mã lỗi. Đây là điều kiện bắt buộc trước khi tạo Pull Request.",
     ])
 
 
@@ -205,13 +208,13 @@ def chuong8(r):
     r.h1("CHƯƠNG 8: TỔNG KẾT")
 
     r.h2("8.1. Kết quả đạt được")
-    dat = len([k for k in kiem_thu() if k[2] == k[3]])
+    dat = len([k for k in kiem_thu() if k[4] == "ĐẠT"])
     r.table(["Hạng mục", "Kết quả"], [
         ["Phân tích, thiết kế", "Use case, DFD mức 0-1, ERD (Chen) 21 thực thể, CD có kế thừa, lược đồ quan hệ đạt BCNF, từ điển dữ liệu"],
         ["Cài đặt CSDL", "21 bảng, 182 ràng buộc khai báo, 8 sequence, 1 XML Schema, 13 hàm, 13 view, 38 thủ tục, 13 trigger, 4 role"],
         ["Xử lý thông tin", "Truy vấn SQL (chia, đệ quy, cửa sổ, PIVOT), XPath/XQuery đủ 5 phương thức, cursor, giao dịch"],
         ["An ninh", "Contained user, phân quyền mức đối tượng và mức cột, view bảo mật, nhật ký XML, backup Full/Diff/Log"],
-        ["Kiểm thử", f"{dat}/{len(kiem_thu())} ca kiểm thử CSDL đạt; 3 bộ unit test; 6/6 kịch bản end-to-end qua giao diện"],
+        ["Kiểm thử", f"{dat}/{len(kiem_thu())} ca kiểm thử CSDL đạt; 3 bộ unit test; 9/9 kịch bản end-to-end qua giao diện"],
         ["Ứng dụng", "Qt 6 đa nền tảng, Clean Architecture, đăng nhập theo vai trò, Tổng quan, Học viên, 10 màn hình tra cứu, xuất PDF/Excel"],
         ["Triển khai", "CI build/test macOS + Windows, tự đóng gói setup.exe/zip/dmg, tài liệu cài đặt"],
         ["Mô hình tiên tiến", "Chuyển đổi sang OODB, thiết kế + demo phân mảnh phân tán, thiết kế NoSQL, bảng so sánh"],

@@ -5,6 +5,7 @@
 // Chạy: QLTTTA_E2E_PASSWORD='...' ctest --preset macos-debug -R e2e --output-on-failure
 #include "app/AppContainer.h"
 #include "application/services/PhanQuyen.h"
+#include "presentation/common/Format.h"
 #include "presentation/common/TableExporter.h"
 #include "presentation/login/LoginDialog.h"
 #include "presentation/main/ChangePasswordDialog.h"
@@ -19,6 +20,7 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QStackedWidget>
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -64,6 +66,35 @@ bool moSanTrangDau(MainWindow& w, VaiTro vt) {
     const ChucNang dau = PhanQuyen::chucNangDuocPhep(vt).first();
     return nav && nav->currentItem() && nav->currentItem()->data(Qt::UserRole).toInt() == static_cast<int>(dau)
            && tieuDe && tieuDe->text() == PhanQuyen::thongTin(dau).ten;
+}
+
+// Bắt mọi hộp thoại thông báo (QMessageBox) bật lên trong lúc kiểm thử: ghi lại nội dung rồi đóng,
+// để bài test không bị treo và biết màn hình nào đã báo lỗi
+class BatHopThoai {
+public:
+    BatHopThoai() {
+        m_dongHo.setInterval(100);
+        QObject::connect(&m_dongHo, &QTimer::timeout, [this] {
+            if (auto* hop = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) {
+                m_noiDung << hop->text();
+                hop->done(0);
+            }
+        });
+        m_dongHo.start();
+    }
+    const QStringList& noiDung() const { return m_noiDung; }
+
+private:
+    QTimer m_dongHo;
+    QStringList m_noiDung;
+};
+
+// Cột có tiêu đề cho trước trong bảng (-1 nếu không có)
+int cotTheoTieuDe(const QAbstractItemModel* model, const QString& tieuDe) {
+    for (int c = 0; c < model->columnCount(); ++c)
+        if (model->headerData(c, Qt::Horizontal).toString() == tieuDe)
+            return c;
+    return -1;
 }
 
 // Bảng (QTableView) đang hiển thị trên trang hiện tại của cửa sổ chính
@@ -283,6 +314,138 @@ private slots:
             if (!l->isHidden())
                 loi = l->text();
         QCOMPARE(loi, QStringLiteral("Mật khẩu hiện tại không đúng."));
+    }
+
+    // Mỗi vai trò mở lần lượt MỌI chức năng được phép: đúng tiêu đề, có dữ liệu, không báo lỗi.
+    // Bắt được cả lỗi phân quyền ở CSDL (thiếu GRANT trong 06_security.sql thì trang sẽ rỗng/báo lỗi).
+    void moiVaiTro_moMoiChucNang_coDuLieu_data() {
+        QTest::addColumn<QString>("taiKhoan");
+        QTest::addColumn<int>("vaiTro");
+        QTest::newRow("quan_ly") << QStringLiteral("ql_quan") << static_cast<int>(VaiTro::QuanLy);
+        QTest::newRow("giao_vu") << QStringLiteral("gvu_lan") << static_cast<int>(VaiTro::GiaoVu);
+        QTest::newRow("ke_toan") << QStringLiteral("kt_minh") << static_cast<int>(VaiTro::KeToan);
+        QTest::newRow("giao_vien") << QStringLiteral("gv_john") << static_cast<int>(VaiTro::GiaoVien);
+    }
+
+    void moiVaiTro_moMoiChucNang_coDuLieu() {
+        QFETCH(QString, taiKhoan);
+        QFETCH(int, vaiTro);
+        const auto vt = static_cast<VaiTro>(vaiTro);
+        QVERIFY(dangNhap(taiKhoan, m_matKhau));
+        QCOMPARE(m_app->auth().vaiTro(), vt);
+
+        BatHopThoai hopThoai;
+        MainWindow w(m_app->services());
+        w.show();
+        QCOMPARE(menuHienThi(w), menuMongDoi(vt));
+        auto* tieuDe = w.findChild<QLabel*>(QStringLiteral("HeaderTitle"));
+        auto* noiDung = w.findChild<QStackedWidget*>(QStringLiteral("Content"));
+        QVERIFY(tieuDe && noiDung);
+
+        for (ChucNang cn : PhanQuyen::chucNangDuocPhep(vt)) {
+            const QString ten = PhanQuyen::thongTin(cn).ten;
+            w.moChucNang(cn);
+            QCOMPARE(tieuDe->text(), ten);
+            QWidget* trang = noiDung->currentWidget();
+            QVERIFY(trang);
+            if (cn == ChucNang::TongQuan) {
+                for (QLabel* l : trang->findChildren<QLabel*>(QStringLiteral("ErrorText")))
+                    QVERIFY2(l->isHidden(), qPrintable(ten + QStringLiteral(": ") + l->text()));
+                continue;
+            }
+            QTableView* bang = nullptr;
+            for (QTableView* t : trang->findChildren<QTableView*>())
+                if (t->isVisible())
+                    bang = t;
+            QVERIFY2(bang, qPrintable(ten));
+            QTRY_VERIFY2(bang->model()->rowCount() > 0,
+                         qPrintable(QStringLiteral("%1 / %2: không có dữ liệu").arg(taiKhoan, ten)));
+        }
+        QVERIFY2(hopThoai.noiDung().isEmpty(), qPrintable(hopThoai.noiDung().join(QStringLiteral(" | "))));
+    }
+
+    // Giáo vụ sửa địa chỉ học viên qua form, kiểm tra đã lưu xuống CSDL rồi trả lại như cũ
+    void giaoVu_suaHocVien_luuXuongCsdl() {
+        QVERIFY(dangNhap(QStringLiteral("gvu_lan"), m_matKhau));
+        MainWindow w(m_app->services());
+        w.show();
+        w.moChucNang(ChucNang::HocVien);
+        QTableView* bang = nullptr;
+        QTRY_VERIFY((bang = bangDangHien(w, QStringLiteral("bangHocVien"))) != nullptr);
+        auto* tuKhoa = w.findChild<QLineEdit*>(QStringLiteral("tuKhoa"));
+        goChu(tuKhoa, QStringLiteral("HV00010"));
+        QTRY_COMPARE_WITH_TIMEOUT(bang->model()->rowCount(), 1, 3000);
+
+        // Mở form Sửa, đổi ô Địa chỉ rồi bấm Lưu; trả về false nếu form không mở hoặc không đóng được
+        auto suaDiaChi = [&](const QString& diaChiMoi, QString* diaChiCu) {
+            bool daLuu = false;
+            QTimer::singleShot(300, this, [&] {
+                auto* dlg = qobject_cast<QDialog*>(QApplication::activeModalWidget());
+                if (!dlg)
+                    return;
+                auto* o = dlg->findChild<QLineEdit*>(QStringLiteral("diaChiEdit"));
+                if (diaChiCu)
+                    *diaChiCu = o->text();
+                o->setText(diaChiMoi);
+                dlg->findChild<QDialogButtonBox*>(QStringLiteral("buttonBox"))->button(QDialogButtonBox::Save)->click();
+                daLuu = !dlg->isVisible();
+                if (dlg->isVisible())
+                    dlg->reject();   // tránh treo nếu lưu thất bại
+            });
+            bang->selectRow(0);
+            QTest::mouseClick(w.findChild<QPushButton*>(QStringLiteral("nutSua")), Qt::LeftButton);
+            return daLuu;
+        };
+
+        const QString diaChiMoi = QStringLiteral("Số 1 đường Kiểm Thử E2E, TP. Thủ Đức");
+        QString diaChiCu;
+        QVERIFY(suaDiaChi(diaChiMoi, &diaChiCu));
+        auto ct = m_app->services().hocVien.layChiTiet(QStringLiteral("HV00010"));
+        QVERIFY2(ct.ok(), qPrintable(ct.error()));
+        QCOMPARE(ct.value().diaChi, diaChiMoi);
+
+        QVERIFY(suaDiaChi(diaChiCu, nullptr));   // trả dữ liệu mẫu về như cũ
+        ct = m_app->services().hocVien.layChiTiet(QStringLiteral("HV00010"));
+        QVERIFY(ct.ok());
+        QCOMPARE(ct.value().diaChi, diaChiCu);
+    }
+
+    // Lọc nhanh danh sách công nợ: chỉ còn dòng khớp, dòng tổng tính lại theo các dòng đang hiển thị
+    void keToan_locNhanh_dongTongTinhLai() {
+        QVERIFY(dangNhap(QStringLiteral("kt_minh"), m_matKhau));
+        MainWindow w(m_app->services());
+        w.show();
+        w.moChucNang(ChucNang::CongNo);
+        QTableView* bang = nullptr;
+        QTRY_VERIFY((bang = bangDangHien(w, QStringLiteral("bangDanhSach"))) != nullptr);
+        const int tatCa = bang->model()->rowCount();
+        QVERIFY(tatCa > 2);
+
+        QLineEdit* loc = nullptr;
+        for (QLineEdit* o : w.findChildren<QLineEdit*>(QStringLiteral("locNhanh")))
+            if (o->isVisible())
+                loc = o;
+        QVERIFY(loc);
+        goChu(loc, QStringLiteral("LH0008"));
+        QTRY_VERIFY(bang->model()->rowCount() > 0 && bang->model()->rowCount() < tatCa);
+
+        const auto* m = bang->model();
+        const int cotLop = cotTheoTieuDe(m, QStringLiteral("Mã lớp"));
+        const int cotNo = cotTheoTieuDe(m, QStringLiteral("Còn nợ"));
+        QVERIFY(cotLop >= 0 && cotNo >= 0);
+        qint64 tongNo = 0;
+        for (int r = 0; r < m->rowCount(); ++r) {
+            QCOMPARE(m->index(r, cotLop).data().toString(), QStringLiteral("LH0008"));
+            tongNo += m->index(r, cotNo).data(Qt::UserRole).toLongLong();
+        }
+        QLabel* dongTong = nullptr;
+        for (QLabel* l : w.findChildren<QLabel*>())
+            if (l->isVisible() && l->property("vaiTro").toString() == QStringLiteral("dongTong"))
+                dongTong = l;
+        QVERIFY(dongTong);
+        QVERIFY2(dongTong->text().startsWith(QStringLiteral("%1 dòng").arg(m->rowCount())), qPrintable(dongTong->text()));
+        QVERIFY2(dongTong->text().contains(QStringLiteral("Tổng còn nợ: ") + Format::tien(tongNo)),
+                 qPrintable(dongTong->text()));
     }
 };
 

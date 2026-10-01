@@ -192,11 +192,18 @@ def chuong4(r):
     ])
 
     # ------------------------------------------------------------------ 4.9
-    r.h2("4.9. Kiểm thử ràng buộc và nghiệp vụ")
+    r.h2("4.9. Kiểm thử ràng buộc, nghiệp vụ và xử lý")
     ca = [k for k in kiem_thu() if k[0].startswith("T")]
-    dat = len([k for k in ca if k[2] == k[3]])
-    r.p(f"Script `12_kiem_thu.sql` chạy {len(ca)} ca kiểm thử ràng buộc/nghiệp vụ, mỗi ca thực hiện trong giao dịch rồi ROLLBACK "
-        "nên không làm thay đổi dữ liệu. Thông báo trong cột cuối là **kết quả thực tế** do SQL Server trả về:")
+    dat = len([k for k in ca if k[4] == "ĐẠT"])
+    r.p(f"Script `12_kiem_thu.sql` chạy {len(ca)} ca kiểm thử (cùng {len(kiem_thu()) - len(ca)} ca phân quyền ở mục 5.7), "
+        "mỗi ca thực hiện trong giao dịch rồi ROLLBACK nên không làm thay đổi dữ liệu. T01-T15 kiểm tra ràng buộc và "
+        "quy tắc nghiệp vụ; T16-T27 kiểm tra **kết quả xử lý** của hàm, trigger, cursor và XML bằng cách so với giá trị "
+        "tính độc lập hoặc kịch bản dựng sẵn (ví dụ dựng 2 buổi có mặt + 1 đi trễ + các buổi vắng rồi so tỷ lệ chuyên cần).")
+    r.p("Cách chấm được thiết kế để dùng làm **kiểm thử hồi quy**: bảng `#MongDoi` liệt kê mọi ca phải chạy và mẫu "
+        "thông báo của ca “Từ chối” - ca chỉ đạt khi bị từ chối **đúng lý do** (một thủ tục hỏng vì lỗi khác không thể "
+        "“đạt” nhầm); có ca không đạt hoặc không chạy thì file kết thúc bằng `THROW 50099`, lệnh `scripts/test_all.sh` "
+        "dừng lại. Nhóm đã thử cố ý làm sai ngưỡng xếp loại và xóa trigger sĩ số: T16, T21 lập tức báo KHÔNG ĐẠT. "
+        "Thông báo trong cột cuối là **kết quả thực tế** do SQL Server trả về:")
     rows = [[k[0], k[1], k[2], k[3], k[5]] for k in ca]
-    r.table(["Mã", "Ca kiểm thử", "Kỳ vọng", "Thực tế", "Thông báo của SQL Server"], rows,
-            widths_cm=[1.1, 4.4, 1.8, 1.8, 6.9], caption=f"Kết quả kiểm thử ràng buộc và nghiệp vụ ({dat}/{len(ca)} đạt)", size=8.5)
+    r.table(["Mã", "Ca kiểm thử", "Kỳ vọng", "Thực tế", "Thông báo / kết quả"], rows,
+            widths_cm=[1.1, 4.4, 1.8, 1.8, 6.9], caption=f"Kết quả kiểm thử ràng buộc, nghiệp vụ và xử lý ({dat}/{len(ca)} đạt)", size=8.5)

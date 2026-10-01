@@ -20,4 +20,6 @@ qt_add_executable(tst_e2e_gui
 target_link_libraries(tst_e2e_gui PRIVATE Qt6::Test qlttta_presentation qlttta_infrastructure)
 set_target_properties(tst_e2e_gui PROPERTIES MACOSX_BUNDLE OFF WIN32_EXECUTABLE OFF)
 add_test(NAME tst_e2e_gui COMMAND tst_e2e_gui)
-set_tests_properties(tst_e2e_gui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+# QSKIP (thiếu QLTTTA_E2E_PASSWORD, vd trên CI) => ctest ghi "Skipped" thay vì "Passed"
+set_tests_properties(tst_e2e_gui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+                                            SKIP_REGULAR_EXPRESSION "SKIP   : ")

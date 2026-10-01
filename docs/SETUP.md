@@ -97,9 +97,20 @@ Mở bằng **Qt Creator** (*File > Open File or Project > CMakeLists.txt*) ho�
    cmake --preset windows-debug; cmake --build --preset windows-debug; ctest --preset windows-debug
    ```
 
+### Chạy toàn bộ kiểm thử bằng một lệnh (trước mỗi PR)
+```bash
+SQL_PASSWORD='<mật khẩu sa>' ./scripts/test_all.sh --docker sql2022   # hoặc bỏ --docker nếu có sqlcmd trên máy
+```
+Lần lượt: khởi tạo lại CSDL → `database/12_kiem_thu.sql` (39 ca: ràng buộc, nghiệp vụ, hàm/trigger/cursor, XML,
+phân quyền) → build → unit test → end-to-end qua giao diện. Bước nào hỏng thì dừng ngay, mã thoát khác 0;
+chi tiết ở `build/test-results/`. Thêm `--no-init` để bỏ qua bước khởi tạo lại CSDL.
+Windows: chạy `.\scripts\db_init.ps1`, mở `database/12_kiem_thu.sql` trong SSMS (cuối file phải không có lỗi
+`50099`), rồi `ctest --preset windows-debug` với biến `QLTTTA_E2E_PASSWORD`.
+
 ### Kiểm thử end-to-end qua giao diện (cần CSDL đã nạp dữ liệu mẫu)
-Bài test `tests/tst_e2e_gui.cpp` gõ phím, bấm nút trên các màn hình thật (đăng nhập, học viên, giáo viên,
-kế toán, đổi mật khẩu) với CSDL thật; dữ liệu thêm trong lúc test được xóa lại. Không đặt mật khẩu thì test tự SKIP (CI).
+Bài test `tests/tst_e2e_gui.cpp` gõ phím, bấm nút trên các màn hình thật với CSDL thật: đăng nhập, mỗi vai trò mở
+mọi chức năng được phép, thêm/sửa/xóa học viên, lọc nhanh và dòng tổng, xuất PDF/CSV, đổi mật khẩu;
+dữ liệu thay đổi trong lúc test được trả lại như cũ. Không đặt mật khẩu thì test tự SKIP (CI).
 ```bash
 QLTTTA_E2E_PASSWORD='Demo@2026' ctest --preset macos-debug -R e2e --output-on-failure
 ```
