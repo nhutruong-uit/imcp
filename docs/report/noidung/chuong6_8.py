@@ -1,0 +1,290 @@
+"""Chương 6 - Trình bày thông tin (ứng dụng); Chương 7 - CSDL tiên tiến; Chương 8 - Tổng kết; tài liệu, phụ lục."""
+from noidung.chung import IMG, SQL, kiem_thu
+from report_lib import sql_block
+
+SCR = IMG / "screens"
+
+
+def chuong6(r):
+    r.h1("CHƯƠNG 6: TRÌNH BÀY THÔNG TIN - ỨNG DỤNG QLTTTA")
+
+    r.h2("6.1. Kiến trúc ứng dụng")
+    r.p("Ứng dụng desktop viết bằng **C++17 và Qt 6** (thống nhất ngôn ngữ C++ cả nhóm đã học), chạy trên Windows và "
+        "macOS từ cùng một mã nguồn. Mã nguồn tổ chức theo **Clean Architecture**: các tầng bên trong (nghiệp vụ) không "
+        "phụ thuộc tầng bên ngoài (giao diện, CSDL); chiều phụ thuộc được ép bằng cấu hình liên kết thư viện của CMake.")
+    r.figure(IMG / "diagrams" / "kien_truc.png", "Clean Architecture của ứng dụng QLTTTA", width_cm=12.5)
+    r.table(["Tầng", "Nội dung", "Ví dụ"], [
+        ["domain", "Thực thể và quy tắc nghiệp vụ thuần, chỉ dùng Qt Core", "HocVien::kiemTra() - dưới 18 tuổi phải có phụ huynh; Result<T>"],
+        ["application", "Use case + port (interface) mà tầng ngoài phải hiện thực; ma trận phân quyền menu", "HocVienService, AuthService, PhanQuyen, IHocVienRepository"],
+        ["infrastructure", "Kết nối ODBC, gọi thủ tục, ánh xạ lỗi SQL sang tiếng Việt, lưu cấu hình", "DatabaseManager, SqlHocVienRepository, SqlErrorMapper"],
+        ["presentation", "Giao diện Qt Widgets; không chứa câu lệnh SQL", "LoginDialog, MainWindow, HocVienPage, form .ui"],
+        ["app", "Composition root: khởi tạo đối tượng, nối các tầng", "main.cpp, AppContainer"],
+    ], widths_cm=[2.6, 6.6, 6.8], caption="Các tầng của ứng dụng", size=9.5)
+    r.p("Lợi ích cụ thể: toàn bộ SQL nằm ở tầng infrastructure nên dễ đối chiếu với thủ tục trong CSDL; use case được "
+        "**kiểm thử đơn vị bằng repository giả** (không cần SQL Server); nếu đổi hệ quản trị CSDL chỉ cần viết lại các lớp "
+        "`Sql*Repository`. Quy tắc nghiệp vụ được kiểm tra **hai lớp**: tại ứng dụng để phản hồi nhanh, và tại CSDL "
+        "(CHECK/trigger/thủ tục) là nguồn sự thật cuối cùng.")
+
+    r.h2("6.2. Đăng nhập và menu theo vai trò")
+    r.p("Màn hình đăng nhập mở kết nối ODBC bằng chính tài khoản SQL Server của người dùng; ứng dụng tự thử lần lượt "
+        "ODBC Driver 18 → 17 → driver “SQL Server” có sẵn của Windows (bản macOS kèm sẵn driver FreeTDS), nên chạy được "
+        "trên máy chưa cài driver mới. Sau khi đăng nhập, menu bên trái được sinh theo vai trò (Chương 4 môn học - Menu).")
+    r.figure(SCR / "00_dang_nhap.png", "Màn hình đăng nhập (cấu hình máy chủ thu gọn)", width_cm=12)
+    r.figure(SCR / "ql_quan_01_tong_quan.png", "Trang Tổng quan của Quản lý: chỉ số chính và biểu đồ doanh thu theo tháng", width_cm=16)
+    r.table(["Vai trò", "Menu hiển thị"], [
+        ["Quản lý", "Tổng quan, Học viên, Lớp học, Lịch học tuần này, Kết quả học tập, Công nợ, Doanh thu, Lương giáo viên, Tài khoản"],
+        ["Giáo vụ", "Tổng quan, Học viên, Lớp học, Lịch học tuần này, Kết quả học tập, Công nợ"],
+        ["Kế toán", "Tổng quan, Học viên (chỉ xem), Công nợ, Doanh thu, Lương giáo viên"],
+        ["Giáo viên", "Lớp của tôi, Lịch dạy, Lương của tôi"],
+    ], widths_cm=[3.0, 13.0], caption="Menu theo vai trò", size=10)
+    r.figure(SCR / "gv_john_02_lich_day.png", "Giáo viên chỉ thấy lịch dạy của chính mình (dữ liệu từ view vw_GV_LichDayCuaToi)", width_cm=16)
+
+    r.h2("6.3. Form nhập liệu")
+    r.p("Form học viên được thiết kế bằng **Qt Designer** (file `HocVienFormDialog.ui`): ô điện thoại chỉ nhận chữ số, "
+        "ngày sinh chọn bằng lịch, nhóm thông tin phụ huynh tự đổi thành bắt buộc khi học viên dưới 18 tuổi, lỗi hiển thị "
+        "ngay trên form. Khi lưu, ứng dụng gọi `usp_HocVien_Them`/`usp_HocVien_CapNhat`; lỗi từ CSDL (trùng SĐT, vi phạm "
+        "CHECK) được dịch sang tiếng Việt.")
+    r.figure(SCR / "gvu_lan_form_hoc_vien.png", "Form sửa thông tin học viên (thiết kế bằng Qt Designer)", width_cm=10)
+    r.figure(SCR / "ql_quan_02_hoc_vien.png", "Màn hình quản lý học viên: tìm kiếm, lọc, thêm/sửa/xóa, xuất Excel/PDF", width_cm=16)
+
+    r.h2("6.4. Báo cáo")
+    r.p("Bài giảng giới thiệu Crystal Report với các phần Report Header, Page Header, Details, Group, Page/Report Footer. "
+        "Crystal Report chỉ chạy trên .NET/Windows nên không dùng được cho ứng dụng Qt đa nền tảng; nhóm hiện thực bộ "
+        "xuất báo cáo PDF tương đương bằng `QTextDocument` + `QPdfWriter`:")
+    r.table(["Thành phần Crystal Report", "Trong báo cáo PDF của QLTTTA"], [
+        ["Report Header", "Tên trung tâm, tiêu đề báo cáo, ngày lập, người lập"],
+        ["Page Header", "Dòng tiêu đề cột lặp lại đầu mỗi trang"],
+        ["Details", "Dữ liệu đã lọc/sắp xếp trên màn hình, định dạng tiền tệ và ngày theo kiểu Việt Nam"],
+        ["Report Footer", "Dòng TỔNG CỘNG cho các cột tiền (đã đóng, còn nợ, doanh thu, lương), tổng số dòng"],
+        ["Page Footer", "Số trang tự động"],
+        ["Nguồn dữ liệu / tham số", "View và thủ tục báo cáo (usp_BaoCao_DoanhThu, usp_BaoCao_KetQuaLop...)"],
+    ], widths_cm=[5.0, 11.0], caption="Đối chiếu cấu trúc báo cáo", size=10)
+    r.figure(SCR / "kt_minh_03_cong_no_hoc_phi.png", "Màn hình công nợ học phí của Kế toán, có dòng tổng và nút xuất báo cáo PDF", width_cm=16)
+    r.figure(SCR / "gvu_lan_05_ket_qua_hoc_tap.png", "Báo cáo kết quả học tập (điểm tổng kết, xếp loại, chuyên cần)", width_cm=16)
+
+    r.h2("6.5. Đa nền tảng, CI/CD và đóng gói")
+    r.p("Nhóm dùng GitHub với hai nhánh chính `develop` và `main`. GitHub Actions tự động build và chạy unit test trên "
+        "**macOS và Windows** cho mỗi Pull Request; khi merge vào `main`, quy trình Release tự đóng gói:")
+    r.figure(IMG / "diagrams" / "cicd.png", "Quy trình CI/CD từ nhánh tính năng tới file cài", width_cm=16)
+    r.table(["Hệ điều hành", "File cài", "Cách đóng gói"], [
+        ["Windows 10/11 x64", "QLTTTA-x.y.z-windows-x64-setup.exe, ...-portable.zip", "windeployqt (Qt + runtime MinGW + plugin ODBC), Inno Setup, cài không cần quyền admin"],
+        ["macOS 12+ (Apple Silicon)", "QLTTTA-x.y.z-macos-arm64.dmg", "macdeployqt, kèm FreeTDS + unixODBC + OpenSSL (đổi đường dẫn sang @loader_path), ký ad-hoc"],
+    ], widths_cm=[3.4, 5.6, 7.0], caption="File cài đặt", size=9.5)
+    r.p("Cùng các script `scripts/package-macos.sh` và `scripts/package-windows.ps1`, thành viên có thể tự tạo file "
+        "cài trên máy cá nhân giống hệt CI. Chế độ `--check-connection` giúp kiểm tra kết nối/đăng nhập không cần giao diện.")
+
+    r.h2("6.6. Kiểm thử ứng dụng")
+    r.bullets([
+        "**Unit test** (Qt Test): kiểm tra quy tắc HocVien, ánh xạ vai trò, use case thêm học viên (dùng repository giả), "
+        "đăng nhập/đổi mật khẩu, ma trận phân quyền, ánh xạ lỗi SQL và chuỗi kết nối ODBC - 3 bộ test, chạy tự động trên CI.",
+        "**Kiểm thử giao diện với dữ liệu thật**: công cụ `tools/qlttta_screenshots` tự đăng nhập bằng 4 tài khoản demo, mở "
+        "từng chức năng và chụp màn hình (hình trong chương này được tạo bằng công cụ đó).",
+        "**Kiểm thử CSDL**: 25 ca trong `12_kiem_thu.sql` (Chương 4 và 5), tất cả đạt.",
+    ])
+
+
+def chuong7(r):
+    r.h1("CHƯƠNG 7: MÔ HÌNH CSDL TIÊN TIẾN - ÁP DỤNG CHO BÀI TOÁN")
+
+    r.h2("7.1. CSDL hướng đối tượng")
+    r.p("CSDL hướng đối tượng lưu trực tiếp đối tượng (định danh OID, thuộc tính phức hợp, tập hợp, kế thừa, phương "
+        "thức). Chuyển mô hình quan hệ của QLTTTA sang mô hình hướng đối tượng theo các bước: (1) mỗi quan hệ thực thể "
+        "thành một lớp; (2) khóa ngoại thành **tham chiếu** tới đối tượng; (3) quan hệ n-n và thực thể yếu thành thuộc "
+        "tính kiểu **set**; (4) các lớp có thuộc tính chung gom thành **lớp cha**; (5) thủ tục/hàm thành **phương thức**.")
+    r.code("Định nghĩa lớp theo cú pháp ODL (rút gọn)", """class Nguoi { attribute string hoTen; attribute date ngaySinh; attribute string soDienThoai;
+              int tuoi(in date ngay); };
+class HocVien extends Nguoi (extent HocViens key maHV) {
+    attribute string maHV;
+    attribute tuple(string ten, string sdt) phuHuynh;          -- thuộc tính phức hợp
+    relationship set<GhiDanh> cacLuotGhiDanh inverse GhiDanh::hocVien;
+    money congNo(); };
+class LopHoc (extent LopHocs key maLop) {
+    attribute string maLop; attribute date ngayKhaiGiang;
+    attribute set<tuple(short thu, time batDau, time ketThuc)> lichHoc;   -- thay bảng LICHHOC
+    relationship KhoaHoc khoaHoc inverse KhoaHoc::cacLop;
+    relationship GiaoVien giaoVien inverse GiaoVien::cacLop;
+    relationship set<GhiDanh> cacHocVien inverse GhiDanh::lop;
+    void taoBuoiHoc(); void xetKetQua(); };
+class GhiDanh (extent GhiDanhs key maGD) {
+    attribute money hocPhiPhaiDong;
+    attribute set<tuple(date ngay, money soTien, string hinhThuc)> phieuThu;  -- nhúng phiếu thu
+    relationship HocVien hocVien inverse HocVien::cacLuotGhiDanh;
+    relationship LopHoc lop inverse LopHoc::cacHocVien;
+    money daDong(); void thuHocPhi(in money soTien); };""", lang="text")
+    r.p("**Đánh giá**: mô hình hướng đối tượng biểu diễn tự nhiên kế thừa NGUOI và các tập hợp (lịch học, phiếu thu), "
+        "phương thức gắn với dữ liệu, truy cập theo tham chiếu nhanh khi duyệt đồ thị đối tượng. Tuy nhiên hệ quản trị "
+        "OODB ít phổ biến, thiếu công cụ báo cáo, khó truy vấn tổng hợp tùy ý (doanh thu theo tháng/chi nhánh) và khó đảm "
+        "bảo ràng buộc liên đối tượng. Trong thực tế, nhóm áp dụng tư tưởng hướng đối tượng ở **tầng ứng dụng** (lớp "
+        "domain C++) và giữ CSDL quan hệ - đúng mô hình ORM phổ biến hiện nay.")
+
+    r.h2("7.2. CSDL phân tán")
+    r.p("Trung tâm có nhiều chi nhánh, mỗi chi nhánh chủ yếu thao tác dữ liệu của mình (học viên, lớp, thu tiền), còn ban "
+        "quản lý cần số liệu toàn hệ thống. Đây là tình huống điển hình cho CSDL phân tán theo địa lý. Thiết kế đề xuất:")
+    r.figure(IMG / "diagrams" / "phan_tan.png", "Thiết kế phân mảnh và cấp phát dữ liệu theo chi nhánh", width_cm=15)
+    r.table(["Kỹ thuật", "Áp dụng", "Lý do"], [
+        ["Phân mảnh ngang chính", "HOCVIEN_CNi = σ MaCN = 'CNi' (HOCVIEN); LOPHOC_CNi tương tự", "Mỗi chi nhánh truy cập cục bộ học viên, lớp của mình"],
+        ["Phân mảnh ngang dẫn xuất", "GHIDANH_CNi = GHIDANH ⋉ LOPHOC_CNi; PHIEUTHU, DIEMDANH, DIEM theo GHIDANH", "Giữ dữ liệu phụ thuộc cùng trạm với lớp để phép kết thực hiện cục bộ"],
+        ["Phân mảnh dọc", "GIAOVIEN → GV_CONGKHAI (hồ sơ) và GV_LUONG (đơn giá)", "Thông tin lương chỉ đặt ở trạm trung tâm (bảo mật)"],
+        ["Nhân bản", "CHUONGTRINH, KHOAHOC, THANHPHANDIEM, KHUYENMAI ở mọi trạm", "Ít thay đổi, đọc nhiều"],
+        ["Trong suốt phân tán", "View UNION ALL (distributed partitioned view) tại trạm trung tâm", "Ứng dụng báo cáo không cần biết dữ liệu nằm ở đâu"],
+    ], widths_cm=[3.4, 7.2, 5.4], caption="Thiết kế CSDL phân tán cho QLTTTA", size=9.5)
+    r.p("Tính đúng đắn của phân mảnh ngang HOCVIEN được kiểm chứng bằng script `11_distributed_demo.sql` (2 CSDL trên "
+        "cùng máy chủ mô phỏng 2 trạm; triển khai thật dùng Linked Server):")
+    r.table(["BangGoc", "ManhCN01", "ManhCN02", "TaiThiet", "TrungLap"], [["72", "47", "25", "72", "0"]],
+            widths_cm=[3.2] * 5, caption="Kiểm tra tính đầy đủ, tái thiết và tách biệt của phân mảnh", size=10,
+            align=["center"] * 5)
+    r.bullets([
+        "**Đầy đủ (completeness)**: 47 + 25 = 72 dòng - mọi học viên thuộc một mảnh.",
+        "**Tái thiết (reconstruction)**: HOCVIEN = HOCVIEN_CN01 ∪ HOCVIEN_CN02 (view UNION ALL trả về 72 dòng).",
+        "**Tách biệt (disjointness)**: không MaHV nào thuộc cả hai mảnh (0 dòng trùng); ràng buộc CHECK (MaCN = 'CNi') ở "
+        "mỗi mảnh còn giúp bộ tối ưu chỉ quét đúng mảnh khi truy vấn có điều kiện MaCN.",
+    ])
+    r.code("View phân tán tại trạm trung tâm (11_distributed_demo.sql)",
+           sql_block(SQL, "11_distributed_demo.sql", "CREATE VIEW dbo.vw_HocVien_ToanHeThong", "GO"))
+    r.p("Yêu cầu khi triển khai thật: giao dịch ghi danh/chuyển lớp giữa hai chi nhánh cần giao thức hai pha (2PC, "
+        "MSDTC); danh mục nhân bản cần cơ chế đồng bộ (replication) một chiều từ trạm trung tâm; nếu mất kết nối, chi "
+        "nhánh vẫn hoạt động với dữ liệu cục bộ.")
+
+    r.h2("7.3. CSDL phi quan hệ (NoSQL)")
+    r.p("Mô hình quan hệ gặp hạn chế khi dữ liệu có cấu trúc thay đổi (hồ sơ giáo viên), khi cần đọc trọn một “tài liệu” "
+        "gồm nhiều bảng (hồ sơ học tập của học viên phải kết 6 bảng) hoặc khi khối lượng ghi rất lớn (điểm danh hằng ngày "
+        "của nhiều chi nhánh). Bảng sau đề xuất mô hình NoSQL phù hợp cho từng phần dữ liệu:")
+    r.table(["Mô hình", "Hệ quản trị", "Dữ liệu QLTTTA phù hợp", "Thiết kế"], [
+        ["Document", "MongoDB", "Hồ sơ học viên + lịch sử học tập; đề cương khóa học", "Collection hocvien, nhúng (embed) các lượt ghi danh, phiếu thu, điểm"],
+        ["Key-value", "Redis", "Phiên đăng nhập, bộ đếm chỗ trống của lớp, cache dashboard", "khóa \"lop:LH0003:chotrong\" → 6"],
+        ["Column-family", "Cassandra", "Điểm danh, nhật ký truy cập khối lượng lớn theo thời gian", "Partition key (MaLop, Thang), clustering key NgayHoc"],
+        ["Graph", "Neo4j", "Lộ trình khóa học tiên quyết, quan hệ giới thiệu bạn bè (khuyến mãi)", "(:KhoaHoc)-[:TIEN_QUYET]->(:KhoaHoc), (:HocVien)-[:GIOI_THIEU]->(:HocVien)"],
+    ], widths_cm=[2.4, 2.4, 5.4, 5.8], caption="Áp dụng các mô hình NoSQL", size=9.5)
+    r.code("Chuyển đổi quan hệ → document (MongoDB): một học viên kèm lịch sử học tập", """{
+  "_id": "HV00001",
+  "hoTen": "Nguyễn Văn An", "ngaySinh": "2004-03-12", "chiNhanh": { "ma": "CN01", "ten": "Quận 1" },
+  "kiemTraDauVao": [ { "ngay": "2026-04-10", "nghe": 4.5, "noi": 4.0, "doc": 4.5, "viet": 4.0, "deXuat": "IE-FND" } ],
+  "ghiDanh": [
+    { "maGD": "GD000001", "lop": { "ma": "LH0001", "ten": "IELTS Foundation K01", "khoaHoc": "IE-FND" },
+      "hocPhiPhaiDong": 6500000,
+      "phieuThu": [ { "ma": "PT000001", "ngay": "2026-04-24", "soTien": 6500000, "hinhThuc": "Chuyển khoản" } ],
+      "diem": { "Bài tập": 7.5, "Giữa khóa": 8.0, "Cuối khóa": 7.6 },
+      "ketQua": "Đạt", "chungNhan": "EC2026-GD000001" },
+    { "maGD": "GD000013", "lop": { "ma": "LH0003", "ten": "IELTS 5.5 Intensive K01" }, "ketQua": null }
+  ]
+}""", lang="text")
+    r.p("Nguyên tắc chọn **nhúng hay tham chiếu**: phiếu thu, điểm luôn được đọc cùng lượt ghi danh và không tồn tại độc "
+        "lập → nhúng; lớp học và khóa học được nhiều học viên dùng chung, thay đổi độc lập → lưu tham chiếu (mã) kèm vài "
+        "trường hay hiển thị (tên) để tránh phải kết. Đổi lại, khi đổi tên lớp phải cập nhật nhiều tài liệu, và ràng buộc "
+        "như “không thu vượt học phí” hay “sĩ số tối đa” phải tự kiểm tra ở ứng dụng.")
+
+    r.h2("7.4. So sánh và đánh giá các mô hình cho bài toán")
+    r.table(["Tiêu chí", "Quan hệ (SQL Server)", "Hướng đối tượng", "Phân tán", "NoSQL (document)"], [
+        ["Ràng buộc toàn vẹn", "Mạnh nhất (PK, FK, CHECK, trigger)", "Trung bình (qua phương thức)", "Mạnh trong trạm, khó liên trạm", "Yếu, kiểm tra ở ứng dụng"],
+        ["Giao dịch ACID", "Đầy đủ", "Có (tùy hệ quản trị)", "Cần 2PC, chi phí cao", "Hạn chế (một tài liệu / tùy chọn)"],
+        ["Truy vấn tổng hợp, báo cáo", "Rất tốt (SQL)", "Hạn chế", "Tốt qua view phân tán", "Trung bình (aggregation pipeline)"],
+        ["Cấu trúc linh hoạt", "Kém (dùng XML/JSON bổ trợ)", "Tốt (kế thừa, tập hợp)", "Như quan hệ", "Rất tốt"],
+        ["Mở rộng quy mô", "Theo chiều dọc", "Theo chiều dọc", "Theo chi nhánh/địa lý", "Theo chiều ngang (sharding)"],
+        ["Bảo mật, phân quyền", "Chi tiết tới cột, contained user", "Theo hệ quản trị", "Phân quyền theo trạm", "Thường ở mức collection"],
+        ["Phù hợp với QLTTTA", "**Phù hợp nhất** cho nghiệp vụ lõi", "Dùng ở tầng ứng dụng", "Khi có ≥ 3-5 chi nhánh xa nhau", "Bổ trợ: cache, nhật ký, hồ sơ"],
+    ], widths_cm=[3.0, 3.4, 3.0, 3.2, 3.4], caption="So sánh các mô hình CSDL đối với bài toán quản lý trung tâm tiếng Anh", size=9)
+    r.p("**Kết luận**: nghiệp vụ lõi của trung tâm (ghi danh, học phí, điểm) đòi hỏi ràng buộc chặt và giao dịch ACID nên "
+        "mô hình quan hệ là lựa chọn chính; dữ liệu bán cấu trúc được xử lý bằng kiểu XML ngay trong SQL Server. Khi trung "
+        "tâm mở rộng nhiều chi nhánh, thiết kế phân mảnh theo chi nhánh ở mục 7.2 cho phép chuyển sang CSDL phân tán mà "
+        "không đổi mô hình logic; các mô hình NoSQL phù hợp vai trò bổ trợ (cache, nhật ký khối lượng lớn, lộ trình học).")
+
+
+def chuong8(r):
+    r.h1("CHƯƠNG 8: TỔNG KẾT")
+
+    r.h2("8.1. Kết quả đạt được")
+    dat = len([k for k in kiem_thu() if k[2] == k[3]])
+    r.table(["Hạng mục", "Kết quả"], [
+        ["Phân tích, thiết kế", "Use case, DFD mức 0-1, ERD (Chen) 21 thực thể, CD có kế thừa, lược đồ quan hệ đạt BCNF, từ điển dữ liệu"],
+        ["Cài đặt CSDL", "21 bảng, 182 ràng buộc khai báo, 8 sequence, 1 XML Schema, 13 hàm, 13 view, 38 thủ tục, 13 trigger, 4 role"],
+        ["Xử lý thông tin", "Truy vấn SQL (chia, đệ quy, cửa sổ, PIVOT), XPath/XQuery đủ 5 phương thức, cursor, giao dịch"],
+        ["An ninh", "Contained user, phân quyền mức đối tượng và mức cột, view bảo mật, nhật ký XML, backup Full/Diff/Log"],
+        ["Kiểm thử", f"{dat}/{len(kiem_thu())} ca kiểm thử CSDL đạt; 3 bộ unit test ứng dụng"],
+        ["Ứng dụng", "Qt 6 đa nền tảng, Clean Architecture, đăng nhập theo vai trò, Tổng quan, Học viên, 10 màn hình tra cứu, xuất PDF/Excel"],
+        ["Triển khai", "CI build/test macOS + Windows, tự đóng gói setup.exe/zip/dmg, tài liệu cài đặt"],
+        ["Mô hình tiên tiến", "Chuyển đổi sang OODB, thiết kế + demo phân mảnh phân tán, thiết kế NoSQL, bảng so sánh"],
+    ], widths_cm=[3.6, 12.4], caption="Tổng hợp kết quả", size=10)
+
+    r.h2("8.2. Khó khăn và cách khắc phục")
+    r.table(["Khó khăn", "Nguyên nhân", "Cách khắc phục"], [
+        ["Giáo vụ bị báo “EXECUTE permission denied on fn_TinhDiemTongKet” khi đọc view kết quả học tập",
+         "SQL Server 2019+ tự inline hàm vô hướng; khi hàm được inline bọc lời gọi hàm khác, ownership chaining bị đứt",
+         "Tắt TSQL_SCALAR_UDF_INLINING ở mức CSDL (có kiểm tra phiên bản để vẫn chạy trên 2012-2017)"],
+        ["Lỗi 468 collation conflict khi so sánh với USER_NAME()", "Contained DB dùng collation catalog khác collation tiếng Việt của cột",
+         "COLLATE DATABASE_DEFAULT trong phép so sánh"],
+        ["BULK INSERT lỗi font tiếng Việt trên Docker", "Linux không hỗ trợ CODEPAGE = '65001'", "File UTF-16 LE + DATAFILETYPE = 'widechar'"],
+        ["Script chạy được trong SSMS nhưng lỗi khi chạy bằng sqlcmd", "sqlcmd mặc định QUOTED_IDENTIFIER OFF (cần cho filtered index, phương thức XML)",
+         "SET QUOTED_IDENTIFIER ON đầu mỗi file, sqlcmd -I -f 65001"],
+        ["Driver ODBC 18 trên macOS không nạp được OpenSSL; không đóng gói hợp lệ được", "Driver tìm OpenSSL theo đường dẫn Homebrew cố định; giấy phép không cho sửa driver",
+         "Bản .dmg kèm driver mã nguồn mở FreeTDS (LGPL), ứng dụng tự thử nhiều driver"],
+        ["Thành viên dùng hệ điều hành khác nhau, nhiều ngành", "Windows/macOS, kinh nghiệm lập trình khác nhau",
+         "CMake + Qt đa nền tảng, CI kiểm tra cả hai hệ điều hành; phân công theo mảng nội dung"],
+    ], widths_cm=[4.6, 5.4, 6.0], caption="Khó khăn và cách khắc phục", size=9)
+
+    r.h2("8.3. Hạn chế và hướng phát triển")
+    r.bullets([
+        "Ứng dụng mới hoàn thiện module mẫu Học viên và các màn hình tra cứu; các form Ghi danh, Thu học phí - in biên lai, "
+        "Điểm danh, Nhập điểm, Quản trị tài khoản đang được phát triển theo cùng kiến trúc (thủ tục CSDL đã sẵn sàng).",
+        "Bản cài macOS chưa ký bằng Apple Developer ID nên lần đầu mở cần xác nhận trong System Settings.",
+        "Chưa triển khai CSDL phân tán thật trên nhiều máy chủ (mới mô phỏng trên một máy chủ).",
+        "Hướng phát triển: cổng thông tin cho học viên/phụ huynh (web), nhắc nợ học phí qua email/SMS, đồng bộ dữ liệu "
+        "giữa các chi nhánh, báo cáo có tham số và biểu đồ nâng cao.",
+    ])
+
+    r.h2("8.4. Bài học kinh nghiệm")
+    r.bullets([
+        "Đặt quy tắc nghiệp vụ tại CSDL giúp dữ liệu luôn đúng bất kể truy cập từ ứng dụng hay SSMS; ứng dụng chỉ cần "
+        "hiển thị thông báo của CSDL.",
+        "Phân quyền qua role + view/thủ tục + ownership chaining gọn và an toàn hơn nhiều so với cấp quyền trên từng bảng.",
+        "Kiểm thử bằng kịch bản tự động (ROLLBACK sau mỗi ca) giúp sửa CSDL mạnh tay mà không sợ hỏng dữ liệu mẫu.",
+        "Công cụ AI hỗ trợ viết mã nhanh, nhưng mỗi thành viên vẫn phải tự chạy, đọc hiểu và giải thích được phần mình phụ trách.",
+    ])
+
+
+def tai_lieu(r):
+    r.h1_unnumbered("TÀI LIỆU THAM KHẢO")
+    r.numbered([
+        "Kenneth C. Laudon, Jane P. Laudon (2011). *Management Information Systems* (12th Edition). Prentice Hall.",
+        "Ramez Elmasri, Shamkant B. Navathe (2010). *Fundamentals of Database Systems* (6th Edition). Addison-Wesley.",
+        "Itzik Ben-Gan (2012). *Microsoft SQL Server 2012 T-SQL Fundamentals*. Microsoft Press.",
+        "Nguyễn Gia Tuấn Anh và cộng sự. *Bài giảng Quản lý thông tin (IE103)*, Trường ĐH Công nghệ Thông tin - ĐHQG TP.HCM.",
+        "Microsoft. *SQL Server technical documentation* - Contained databases, Ownership chains, XML data (SQL Server), "
+        "Scalar UDF inlining, BACKUP/RESTORE (learn.microsoft.com/sql).",
+        "The Qt Company. *Qt 6 Documentation* - Qt SQL (QODBC), Qt Widgets, deployment (doc.qt.io).",
+        "Robert C. Martin (2017). *Clean Architecture: A Craftsman's Guide to Software Structure and Design*. Prentice Hall.",
+        "M. Tamer Özsu, Patrick Valduriez (2020). *Principles of Distributed Database Systems* (4th Edition). Springer.",
+    ])
+
+
+def phu_luc(r):
+    r.h1_unnumbered("PHỤ LỤC: HƯỚNG DẪN CÀI ĐẶT VÀ CHẠY THỬ")
+    r.h2("A. Khởi tạo CSDL")
+    r.bullets([
+        "**Windows** (SQL Server Express/Developer + SSMS): mở PowerShell tại thư mục mã nguồn, chạy "
+        "`.\\scripts\\db_init.ps1` (hoặc `-Server \"localhost\\SQLEXPRESS\"`); hoặc mở lần lượt `database/00` → `07` trong SSMS.",
+        "**macOS/Linux** (Docker): `docker compose up -d`, sau đó `SQL_PASSWORD='<mật khẩu sa>' ./scripts/db_init.sh --docker imcp-mssql`.",
+        "Kiểm thử: chạy `database/12_kiem_thu.sql` - bảng kết quả cuối file phải có 25/25 ca ĐẠT.",
+    ])
+    r.h2("B. Cài ứng dụng")
+    r.bullets([
+        "Tải file cài trong mục **Releases** của kho GitHub `nhutruong-uit/imcp` (giảng viên được mời làm collaborator).",
+        "Windows: chạy `...-setup.exe` (không cần quyền admin) hoặc giải nén bản portable; nếu SmartScreen cảnh báo chọn "
+        "*More info → Run anyway*.",
+        "macOS: mở `.dmg`, kéo QLTTTA vào Applications; lần đầu mở chọn *System Settings → Privacy & Security → Open Anyway*.",
+        "Màn hình đăng nhập → *Cấu hình máy chủ*: máy chủ `localhost` (hoặc `localhost,1433`), CSDL `QLTTTA`.",
+    ])
+    r.h2("C. Tài khoản demo")
+    r.table(["Tên đăng nhập", "Vai trò", "Ghi chú"], [
+        ["ql_quan", "Quản lý", "Xem toàn bộ, quản trị tài khoản, sao lưu"],
+        ["gvu_lan / gvu_ha", "Giáo vụ", "Chi nhánh Quận 1 / Thủ Đức"],
+        ["kt_minh / kt_tung", "Kế toán", "Thu học phí, công nợ, doanh thu, lương"],
+        ["gv_john, gv_hoanganh, gv_hoa, gv_bao", "Giáo viên", "Chỉ dữ liệu lớp mình dạy"],
+    ], widths_cm=[5.2, 2.8, 8.0], caption="Tài khoản demo (mật khẩu chung ghi trong docs/SETUP.md)", size=10)
+    r.h2("D. Cấu trúc mã nguồn")
+    r.code("Thư mục chính của kho mã nguồn", """database/        00..07 cài đặt CSDL; 08 truy vấn minh họa; 09 backup/restore; 10 import/export;
+                 11 CSDL phân tán; 12 kiểm thử
+src/domain/      thực thể, quy tắc nghiệp vụ          src/application/  use case, port, phân quyền
+src/infrastructure/ ODBC, repository gọi thủ tục      src/presentation/ giao diện Qt Widgets
+src/app/         composition root                     tests/            unit test (Qt Test)
+scripts/         khởi tạo CSDL, đóng gói              packaging/        icon, Inno Setup, Info.plist
+.github/workflows/ CI + Release                       docs/             tài liệu, báo cáo (docs/report)""", lang="text")

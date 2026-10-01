@@ -1,0 +1,32 @@
+// Sơ đồ use case tổng quát
+digraph UC {
+  graph [rankdir=LR, fontname="Arial", dpi=220, pad=0.2, nodesep=0.25, ranksep=1.2];
+  node  [fontname="Arial", fontsize=12];
+  edge  [color="#475569", arrowhead=none];
+
+  node [shape=box, style="rounded,filled", fillcolor="#1F3864", fontcolor="white", width=1.4];
+  QL [label="👤 Quản lý"]; GVU [label="👤 Giáo vụ"]; KT [label="👤 Kế toán"]; GV [label="👤 Giáo viên"];
+
+  subgraph cluster_sys {
+    label="Hệ thống QLTTTA"; fontsize=14; fontname="Arial Bold"; style="rounded"; color="#2E75B6"; penwidth=1.5;
+    node [shape=ellipse, style=filled, fillcolor="#DBEAFE", color="#2E75B6", fontcolor="#0F172A", width=2.6];
+    uc0 [label="Đăng nhập / đổi mật khẩu"];
+    uc1 [label="Quản lý học viên"];
+    uc2 [label="Kiểm tra đầu vào"];
+    uc3 [label="Mở lớp, xếp lịch, sinh buổi học"];
+    uc4 [label="Ghi danh / chuyển lớp / bảo lưu"];
+    uc5 [label="Thu học phí, in biên lai"];
+    uc6 [label="Theo dõi công nợ, doanh thu"];
+    uc7 [label="Điểm danh, ghi nội dung buổi"];
+    uc8 [label="Nhập điểm thành phần"];
+    uc9 [label="Xét kết quả, cấp chứng nhận"];
+    uc10 [label="Chốt lương giáo viên"];
+    uc11 [label="Báo cáo thống kê (PDF/Excel)"];
+    uc12 [label="Quản trị tài khoản, sao lưu"];
+  }
+  QL -> {uc0 uc6 uc11 uc12 uc10};
+  GVU -> {uc0 uc1 uc2 uc3 uc4 uc9 uc11};
+  KT -> {uc0 uc5 uc6 uc10 uc11};
+  GV -> {uc0 uc7 uc8};
+  uc4 -> uc2 [constraint=false, style=dashed, arrowhead=vee, label="«include»", fontsize=9, fontname="Arial"];
+}
