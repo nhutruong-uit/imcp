@@ -32,3 +32,11 @@ GO
 -- 4. Mô hình phục hồi FULL để sao lưu được cả transaction log
 ALTER DATABASE QLTTTA SET RECOVERY FULL;
 GO
+
+-- 5. SQL Server 2019+ tự "inline" hàm vô hướng (Scalar UDF Inlining). Khi một hàm được inline
+--    bọc lời gọi hàm khác (vd. fn_XepLoai(fn_TinhDiemTongKet(...)) trong vw_KetQuaHocTap),
+--    chuỗi sở hữu (ownership chaining) bị đứt => user chỉ có quyền SELECT trên view vẫn bị báo
+--    "EXECUTE permission was denied". Tắt tính năng này ở mức CSDL (bản 2012-2017 không có).
+IF CAST(SERVERPROPERTY('ProductMajorVersion') AS INT) >= 15
+    EXEC (N'USE QLTTTA; ALTER DATABASE SCOPED CONFIGURATION SET TSQL_SCALAR_UDF_INLINING = OFF;');
+GO
