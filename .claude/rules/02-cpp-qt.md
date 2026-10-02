@@ -6,7 +6,16 @@ paths:
 ---
 # C++ / Qt rules (src/, tools/)
 
-Complements the "C++ / Qt" section of `CLAUDE.md` and the cookbook in `docs/ARCHITECTURE.md` section 4.
+Details of the cookbook in `docs/ARCHITECTURE.md` section 4 (reference module: Students). Rules marked ✔ are checked
+automatically: `tst_conventions` (layers, SQL location, `execPrepared`), `scripts/check_changes` (format of the changed
+lines) and the `.claude/settings.json` hook (formats every C++ file Claude edits).
+
+## Architecture
+- ✔ Clean Architecture, dependency direction `presentation → application → domain ← infrastructure`; `app` wires
+  them. ✔ `domain`/`application` use Qt Core only (no Qt SQL, no widgets); ✔ `presentation` never includes
+  `infrastructure/`; ✔ SQL text lives only in `src/infrastructure` (repositories).
+- A new use case needs a unit test in `tests/` with a fake repository; a new screen is opened by the e2e test
+  through `Permissions` (see `03-tests.md`).
 
 ## Layout of a module (reference: Students) - all 7 parts, in the right folders
 | Layer | File | Notes |
@@ -36,7 +45,7 @@ in `docs/ARCHITECTURE.md`.
 ## Code patterns
 - Errors go through `Result<T>`/`VoidResult`, never exceptions across layers:
   `if (!execPrepared(q, m_db, sql, {a, b})) return Result<QString>::failure(errorOf(q));`
-- Statements with values: `?` markers + `SqlHelpers::execPrepared(q, m_db, sql, {values})` - never
+- ✔ Statements with values: `?` markers + `SqlHelpers::execPrepared(q, m_db, sql, {values})` - never
   `q.prepare`/`addBindValue`/`exec` directly: with FreeTDS (the driver of the macOS .dmg) Qt sends text parameters as
   `VARCHAR`, and `execPrepared` keeps them Unicode (`withUnicodeText`). NULL via `SqlHelpers::stringOrNull`.
   Never concatenate values into SQL.
@@ -64,7 +73,9 @@ in `docs/ARCHITECTURE.md`.
   `retranslateUi` code.
 
 ## Format and includes
-- Format with `.clang-format` (LLVM, 4 spaces, 110 columns). Format only what you changed: `git clang-format`
-  (or `git clang-format --staged`); `clang-format -i` only for new files.
+- ✔ Format with `.clang-format` (LLVM, 4 spaces, 110 columns), clang-format version `.clang-format-version`
+  (`brew install clang-format` or `pip install clang-format==<version>`). Format only what you changed:
+  `git clang-format` (or `git clang-format --staged`); `clang-format -i` only for new files. Claude Code does this
+  by itself through the hook `.claude/hooks/format-cpp.sh`; `check_changes` fails on unformatted changed lines.
 - Include order: the file's own header → project headers (`"domain/..."`, `"application/..."`) → Qt (`<QString>`) → STL.
 - C++17, Qt ≥ 6.7; include everything GCC/MinGW needs (Windows CI) - do not rely on Clang's indirect includes.

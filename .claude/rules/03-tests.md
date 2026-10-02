@@ -8,9 +8,13 @@ paths:
 
 ## Names and structure of C++ tests (Qt Test)
 - Test function names: `subject_condition_expectedResult` - e.g. `addStudent_invalid_doesNotCallRepository`.
-- Unit tests (`tst_domain`, `tst_application`, `tst_sqlerrormapper`, `tst_sqlhelpers`, `tst_i18n`): no database
-  needed; use cases are tested with **fake repositories** written in the test file (reference:
-  `FakeStudentRepository` in `tst_application.cpp`).
+- Unit tests (`tst_domain`, `tst_application`, `tst_sqlerrormapper`, `tst_sqlhelpers`, `tst_i18n`,
+  `tst_conventions`): no database needed; use cases are tested with **fake repositories** written in the test file
+  (reference: `FakeStudentRepository` in `tst_application.cpp`).
+- `tst_conventions` reads the repository files (like `tst_i18n`) and checks the conventions of the rules: SQL Server
+  2012 syntax and script headers, include directions between layers, SQL text and `execPrepared` only in the
+  infrastructure, `.sh`/`.ps1` format and pairs, the database numbers quoted in `docs/DATABASE.md` / `docs/SETUP.md`.
+  A new convention that can be read from the files gets a slot there (failure message = `file:line: what to do`).
 - New test for an existing suite: add a private slot to the right file. New suite:
   `qlttta_add_test(tst_xxx <libraries>)` in `tests/CMakeLists.txt`.
 - No translator is installed in unit tests, so messages are in English (the source language); Vietnamese texts are
@@ -30,12 +34,15 @@ paths:
 ## Database tests (`database/12_tests.sql`)
 - Case codes: `Txx` (constraints, business rules, processing results) or `Pxx` (permissions, via
   `EXECUTE AS USER ... REVERT`); use the next unused number.
+- Section D (T28-T30) checks the **schema conventions** from the catalog views: naming, the permission matrix of the
+  business roles (T29 - the spec of `06_security.sql`; a new table right is added there on purpose) and
+  `SET NOCOUNT ON` / no `SELECT *`. They read metadata only, so they need no transaction.
 - Each case runs in `BEGIN TRAN ... ROLLBACK` (leaves no data), writes into `#Results`, and is **registered in
   `#Expected`**: a "Rejected" case with its message pattern (`N'%is full%'`; for system errors use the
   object/constraint name, e.g. `N'%CK_STUDENT_Email%'`), a "Succeeded" case with `NULL`.
 - A success case must **compare the result with an independently computed value or a prepared scenario** (see
   T17-T24), not only "runs without error".
-- The script follows the database conventions (English, see `sql.md`); the summary column `Verdict` is
+- The script follows the database conventions (English, see `01-sql.md`); the summary column `Verdict` is
   `PASSED`/`FAILED` (parsed by `scripts/test_all`):
 ```sql
 -- T28: <description>

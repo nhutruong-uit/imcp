@@ -16,11 +16,12 @@ kind of report**, so the team lead can merge it without rework and everyone can 
    reference exists.
 3. **Smallest scope**: change only what was asked. Do not rename/move files, reformat whole files or fix unrelated
    things "while you are there" - list them under "Suggestions" in the report instead.
-4. **Format what you changed**: for C++ run `git clang-format` (formats changed lines only; do not run
-   `clang-format -i` on whole existing files).
-5. **Test**: add/update tests for the change (see `tests.md`) and run the related tests; before a PR run
-   `scripts/test_all.sh` (Windows: `scripts\test_all.ps1`). Never change the expectation of an existing test to make
-   it green.
+4. **Format what you changed**: for C++ the hook of `.claude/settings.json` runs `git clang-format` after every edit
+   (changed lines only; never `clang-format -i` on whole existing files); `scripts/check_changes` verifies it.
+5. **Test**: add/update tests for the change (see `03-tests.md`) and run the related tests; before a PR run
+   `scripts/test_all.sh` (Windows: `scripts\test_all.ps1`): change checks, database, server-level, unit (incl.
+   `tst_conventions`) and end-to-end tests. Never change the expectation of an existing test to make it green.
+   Do not start a manual CI run (`gh workflow run`) unless the user asks for it.
 6. **Report the result with the template in section 3.**
 
 ## 2. Shared conventions
@@ -29,7 +30,7 @@ kind of report**, so the team lead can merge it without rework and everyone can 
   **English**; comments are short and explain *why*. Only the report (`docs/report/`) is Vietnamese.
 - UI strings: English in `tr("...")`, translated to Vietnamese in `resources/translations/qlttta_vi.ts`; stored
   database values and database messages are translated there too (`DbValues`, `DbMessages`).
-- Database naming (`STUDENT`, `usp_Enrollment_Create`, `StudentId`): see `sql.md`.
+- Database naming (`STUDENT`, `usp_Enrollment_Create`, `StudentId`): see `01-sql.md`.
 - Commit messages in English `type(scope): description` (feat, fix, test, docs, ci, refactor, chore), without AI
   attribution lines (`Co-Authored-By: Claude ...`);
   PRs in English through `/imcp-create-pr`.
@@ -62,10 +63,11 @@ tested, and why>
 Never write "tested" when nothing ran; paste the real numbers.
 
 ## 4. Definition of Done
-- [ ] Follows the layer rules + the reference; no SQL outside `infrastructure/repositories`
-- [ ] New database objects are GRANTed in `06_security.sql` and have a test case in `12_tests.sql` (+ `#Expected`)
+- [ ] Follows the layer rules + the reference (`tst_conventions` green: layers, SQL location, SQL syntax, scripts)
+- [ ] New database objects are GRANTed in `06_security.sql` (T29 matrix updated for a new table right) and have a
+      test case in `12_tests.sql` / `13_server_tests.sql` (+ `#Expected`); naming passes T28-T30
 - [ ] New use cases have unit tests; new screens are opened by the e2e test through `Permissions`
 - [ ] New UI strings are in `tr()` and translated in `qlttta_vi.ts` (`tst_i18n` green)
-- [ ] `git clang-format` clean; the build adds no warnings
-- [ ] Tests were run and their real result reported; docs/report updated when the design changed
-      (`/imcp-update-report`)
+- [ ] `scripts/check_changes` clean (format of the changed lines, commit messages); the build adds no warnings
+- [ ] Tests were run and their real result reported; docs (and the numbers they quote) / report updated when the
+      design changed (`06-docs.md`, `/imcp-update-report`)

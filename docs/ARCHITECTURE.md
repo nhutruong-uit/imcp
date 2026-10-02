@@ -2,7 +2,7 @@
 
 ## Naming conventions
 
-Everything is written in English: the C++ code and the database (see `.claude/rules/sql.md`), so the C++ names follow
+Everything is written in English: the C++ code and the database (see `.claude/rules/01-sql.md`), so the C++ names follow
 the database names directly - table `STUDENT` ↔ entity `Student`, column `StudentId` ↔ field `Student::id`,
 `BranchId` ↔ `branchId`, procedures `usp_Student_Add/Update/Delete/Search/Details` ↔ `SqlStudentRepository::add/...`.
 Role codes stored in `ACCOUNT.Role`: `MANAGER`, `ACADEMIC_STAFF`, `ACCOUNTANT`, `TEACHER` (`roleFromCode`).

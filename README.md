@@ -48,8 +48,8 @@ tests/               Unit tests (Qt Test, fake repositories), translation checks
 tools/               Screenshot generator used for the report
 resources/           Icons, the QSS style sheet and translations/qlttta_vi.ts (Vietnamese UI)
 packaging/           Icons, Info.plist, Inno Setup installer, end-user install notes
-scripts/             Database init, full test run, macOS/Windows packaging
-.github/workflows/   CI (build + unit tests) and Release (installers)
+scripts/             Database init, change checks, full test run, macOS/Windows packaging
+.github/workflows/   Checks (PRs into develop), CI (build, unit + full tests) and Release (installers)
 docs/                Documentation + the project report (docs/report)
 ```
 
