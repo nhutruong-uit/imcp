@@ -1,16 +1,20 @@
-# CI: mỗi lần push lên develop/feature và mỗi Pull Request -> build + unit test trên macOS và Windows.
-# PR chỉ được merge khi cả 2 job xanh (bật branch protection cho develop/main).
+# CI: build + unit test trên macOS và Windows. Chỉ chạy khi:
+#   - merge vào develop (GitHub tạo sự kiện push lên develop; push thẳng develop cũng chạy);
+#   - mở/cập nhật PR vào main: BẮT BUỘC, branch protection của main đòi 2 job này xanh mới cho merge;
+#   - chạy tay cho nhánh bất kỳ: gh workflow run CI --ref <nhánh>  (hoặc tab Actions > CI > Run workflow).
+# Push lên feature/fix và PR vào develop KHÔNG tự chạy CI: chạy scripts/test_all.sh trên máy trước khi merge.
+# Merge vào main chạy release.yml (đóng gói), không chạy lại CI vì PR vào main đã chạy.
 name: CI
 
 on:
   push:
-    branches: [develop, "feature/**", "fix/**"]
+    branches: [develop]
   pull_request:
-    branches: [develop, main]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:

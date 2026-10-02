@@ -68,8 +68,11 @@ def chuong6(r):
     r.figure(SCR / "gvu_lan_05_ket_qua_hoc_tap.png", "Báo cáo kết quả học tập (điểm tổng kết, xếp loại, chuyên cần)", width_cm=16)
 
     r.h2("6.5. Đa nền tảng, CI/CD và đóng gói")
-    r.p("Nhóm dùng GitHub với hai nhánh chính `develop` và `main`. GitHub Actions tự động build và chạy unit test trên "
-        "**macOS và Windows** cho mỗi Pull Request; khi merge vào `main`, quy trình Release tự đóng gói:")
+    r.p("Nhóm dùng GitHub với hai nhánh chính `develop` (nhánh mặc định) và `main`. Trước khi tạo Pull Request, "
+        "`scripts/test_all` chạy toàn bộ kiểm thử trên máy (CI không có SQL Server). GitHub Actions tự động build và "
+        "chạy unit test trên **macOS và Windows** khi merge vào `develop` và cho mỗi Pull Request vào `main` - nhánh "
+        "`main` bật branch protection nên chỉ merge được khi hai job này xanh; khi merge vào `main`, quy trình Release "
+        "tự đóng gói:")
     r.figure(IMG / "diagrams" / "cicd.png", "Quy trình CI/CD từ nhánh tính năng tới file cài", width_cm=16)
     r.table(["Hệ điều hành", "File cài", "Cách đóng gói"], [
         ["Windows 10/11 x64", "QLTTTA-x.y.z-windows-x64-setup.exe, ...-portable.zip", "windeployqt (Qt + runtime MinGW + plugin ODBC), Inno Setup, cài không cần quyền admin"],
