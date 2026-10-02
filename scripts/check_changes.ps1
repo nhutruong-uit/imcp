@@ -15,7 +15,7 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $root
-$types = "feat|fix|test|docs|ci|build|refactor|chore|perf|revert"
+$types = "feat|fix|test|docs|ci|build|refactor|style|chore|perf|revert"
 $script:failed = $false
 function Fail([string]$message) { Write-Host "FAILED: $message"; $script:failed = $true }
 

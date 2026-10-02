@@ -14,7 +14,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 BASE="${1:-origin/develop}"
-TYPES='feat|fix|test|docs|ci|build|refactor|chore|perf|revert'
+TYPES='feat|fix|test|docs|ci|build|refactor|style|chore|perf|revert'
 FAILED=0
 fail() { echo "FAILED: $1" >&2; FAILED=1; }
 
