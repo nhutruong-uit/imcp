@@ -12,15 +12,16 @@ docs/<short-name>               CI runs after the merge)
   Request into `develop`; **never push directly** to `main`.
 - **CI** (`ci.yml`: build + unit tests on macOS and Windows, plus the full `test_all` suite - database, server-level,
   unit and end-to-end tests - on Linux against SQL Server in Docker) runs when something is merged into `develop`, on
-  every PR into `main`, and when started by hand (`gh workflow run CI --ref <branch>` or *Actions > CI > Run
-  workflow*). Pushes to work branches and PRs into `develop` do **not** run CI: run `scripts/test_all` locally before
-  merging (see the checklist below and [SETUP.md](SETUP.md)).
+  every PR into `main`, and when started by hand: `gh workflow run CI --ref <branch> -f reason="<what to check>"` or
+  *Actions > CI > Run workflow* (the run is listed as "Manual CI on <branch>: <reason>"). Pushes to work branches and
+  PRs into `develop` do **not** run CI: run `scripts/test_all` locally before merging (see the checklist below and
+  [SETUP.md](SETUP.md)).
 - PR `develop → main` = release: `release.yml` packages `.exe` / `.zip` / `.dmg` and creates a Release tagged
   `vX.Y.Z-build.N`. Before releasing, bump `project(VERSION ...)` in `CMakeLists.txt` if there are new features.
 - *Branch protection* is enabled for `main` only: a PR is required, the three CI jobs (`macOS (Apple Silicon)`,
-  `Windows (Qt + MinGW)`, `Full tests (Linux + SQL Server)`) must be green and the branch must be up to date with `main` before merging. It also applies
-  to admins; force pushes and branch deletion are blocked. No reviewer is required (the team lead can merge once CI is
-  green). `develop` is not locked, but the team still works through PRs.
+  `Windows (Qt + MinGW)`, `Full tests (Linux + SQL Server)`) must be green and the branch must be up to date with
+  `main` before merging. It also applies to admins; force pushes and branch deletion are blocked. No reviewer is
+  required (the team lead can merge once CI is green). `develop` is not locked, but the team still works through PRs.
 - PR title, description and commit messages are written **in English**. With Claude Code: type
   `/imcp-create-pr`. (A private repo needs GitHub Pro; students can get it for free via the GitHub Student Developer
   Pack.)
@@ -87,6 +88,11 @@ docs(report): add section 3.7 on integrity constraints
   displayed (translated) text - use codes, column keys and stored values.
 - Format with `clang-format` (the `.clang-format` file in the repo root; in Qt Creator: *Beautifier*); format only
   the lines you changed (`git clang-format`).
+- Cursor and VS Code: install the recommended `clangd` extension (`.vscode/extensions.json`) and do not install
+  Microsoft C/C++ (`cpptools`) next to it - the two IntelliSense engines conflict. Configuring
+  (`cmake --preset <name>`) symlinks `compile_commands.json` to the repository root (gitignored), which is where
+  clangd looks, so Qt and project headers resolve on macOS, Windows and Linux. Reconfigure after switching presets.
+  Shared editor settings live in `.vscode/settings.json`.
 - Every new use case needs at least one unit test in `tests/` (with a fake repository), and every new screen must be
   opened by the end-to-end test (it covers every feature listed in `Permissions` automatically).
 

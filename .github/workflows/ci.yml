@@ -3,11 +3,17 @@
 # tests, unit tests and end-to-end GUI tests). Runs only:
 #   - when something is merged into develop (GitHub raises a push to develop; a direct push to develop also runs);
 #   - when a PR into main is opened/updated: REQUIRED, main's branch protection needs the three jobs green to merge;
-#   - manually for any branch: gh workflow run CI --ref <branch>  (or Actions tab > CI > Run workflow).
+#   - manually for any branch: gh workflow run CI --ref <branch> -f reason="<what to check>"
+#     (or Actions tab > CI > Run workflow); the run is listed as "Manual CI on <branch>: <reason>".
 # Pushes to feature/fix branches and PRs into develop do NOT run CI: run scripts/test_all.sh locally before merging.
 # A merge into main runs release.yml (packaging); CI does not run again because the PR into main already ran it.
 # Keep the job names: they are the required status checks of main.
 name: CI
+# Manual runs get a descriptive title; push / PR runs keep GitHub's default (commit message / PR title)
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+  && format('Manual CI on {0}{1}', github.ref_name, inputs.reason && format(': {0}', inputs.reason) || '')
+  || '' }}
 
 on:
   push:
@@ -15,6 +21,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      reason:
+        description: What this run checks (shown in the run title)
+        required: false
+        type: string
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
@@ -142,7 +153,7 @@ jobs:
 
       - name: Upload the test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: full-test-results
           path: build/test-results/
