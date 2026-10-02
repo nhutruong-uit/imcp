@@ -148,11 +148,14 @@ private slots:
     // CLAUDE.md: SQL Server 2012+ only - none of the newer statements and functions
     void sqlScripts_sqlServer2012_useNoNewerSyntax() {
         const QList<QPair<QString, QString>> banned = {
-            {QStringLiteral("\\bCREATE\\s+OR\\s+ALTER\\b"), QStringLiteral("CREATE OR ALTER is SQL Server 2016+")},
-            {QStringLiteral("\\bDROP\\s+\\w+\\s+IF\\s+EXISTS\\b"), QStringLiteral("DROP ... IF EXISTS is 2016+")},
+            {QStringLiteral("\\bCREATE\\s+OR\\s+ALTER\\b"),
+             QStringLiteral("CREATE OR ALTER is SQL Server 2016+")},
+            {QStringLiteral("\\bDROP\\s+\\w+\\s+IF\\s+EXISTS\\b"),
+             QStringLiteral("DROP ... IF EXISTS is 2016+")},
             {QStringLiteral("\\b(STRING_AGG|STRING_SPLIT|CONCAT_WS|TRANSLATE|DATEDIFF_BIG)\\s*\\("),
              QStringLiteral("function of SQL Server 2016+")},
-            {QStringLiteral("(?<![\\w.])TRIM\\s*\\("), QStringLiteral("TRIM is 2017+ (use LTRIM(RTRIM(...)))")},
+            {QStringLiteral("(?<![\\w.])TRIM\\s*\\("),
+             QStringLiteral("TRIM is 2017+ (use LTRIM(RTRIM(...)))")},
             {QStringLiteral("\\b(OPENJSON|JSON_VALUE|JSON_QUERY|JSON_MODIFY|ISJSON)\\b|\\bFOR\\s+JSON\\b"),
              QStringLiteral("JSON is 2016+")},
             {QStringLiteral("\\b(GREATEST|LEAST|GENERATE_SERIES|DATE_BUCKET|DATETRUNC)\\s*\\("),
@@ -186,9 +189,10 @@ private slots:
             if (header.value(0) != QStringLiteral("USE QLTTTA;") || header.value(1) != QStringLiteral("GO") ||
                 !header.contains(QStringLiteral("SET ANSI_NULLS ON;")) ||
                 !header.contains(QStringLiteral("SET QUOTED_IDENTIFIER ON;")))
-                problems << file + QStringLiteral(": must start with USE QLTTTA; GO; SET ANSI_NULLS ON; "
-                                                  "SET QUOTED_IDENTIFIER ON; (or USE master; for a server-level "
-                                                  "script)");
+                problems << file +
+                                QStringLiteral(": must start with USE QLTTTA; GO; SET ANSI_NULLS ON; "
+                                               "SET QUOTED_IDENTIFIER ON; (or USE master; for a server-level "
+                                               "script)");
         }
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
@@ -226,9 +230,10 @@ private slots:
     // domain and application only know Qt Core (no database driver, no widgets)
     void innerLayers_qtModules_onlyQtCore() {
         const QRegularExpression forbidden(
-            QStringLiteral("^\\s*#\\s*include\\s+<(Qt(Sql|Widgets|Gui|Network)\\b[^>]*|QSql\\w*|QWidget|"
-                           "QApplication|QGuiApplication|QMainWindow|QDialog\\w*|QLabel|QPushButton|QLineEdit|"
-                           "QMessageBox|QTableView|QComboBox|QPainter|QPixmap|QIcon|QColor|QFont|QImage)>"),
+            QStringLiteral(
+                "^\\s*#\\s*include\\s+<(Qt(Sql|Widgets|Gui|Network)\\b[^>]*|QSql\\w*|QWidget|"
+                "QApplication|QGuiApplication|QMainWindow|QDialog\\w*|QLabel|QPushButton|QLineEdit|"
+                "QMessageBox|QTableView|QComboBox|QPainter|QPixmap|QIcon|QColor|QFont|QImage)>"),
             QRegularExpression::MultilineOption);
         QStringList problems;
         for (const QString& layer : {QStringLiteral("domain"), QStringLiteral("application")})
@@ -254,13 +259,15 @@ private slots:
 
     // Statements with values go through SqlHelpers::execPrepared (keeps text Unicode with FreeTDS)
     void queries_parameters_goThroughExecPrepared() {
-        const QRegularExpression direct(QStringLiteral("\\.prepare\\s*\\(|\\b(addBindValue|bindValue)\\s*\\("));
+        const QRegularExpression direct(
+            QStringLiteral("\\.prepare\\s*\\(|\\b(addBindValue|bindValue)\\s*\\("));
         QStringList problems;
         for (const QString& dir : {QStringLiteral("src"), QStringLiteral("tools")})
             for (const QString& file : filesIn(dir, {QStringLiteral("*.h"), QStringLiteral("*.cpp")}))
                 if (file != QStringLiteral("src/infrastructure/db/SqlHelpers.cpp"))
-                    problems << findAll(file, withoutComments(readText(file), false), direct,
-                                        QStringLiteral("use SqlHelpers::execPrepared(q, m_db, sql, {values})"));
+                    problems << findAll(
+                        file, withoutComments(readText(file), false), direct,
+                        QStringLiteral("use SqlHelpers::execPrepared(q, m_db, sql, {values})"));
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 
@@ -296,9 +303,9 @@ private slots:
             const QFileInfo info(file);
             if (platformSpecific.contains(info.fileName()))
                 continue;
-            const QString twin = info.completeBaseName() +
-                                 (info.suffix() == QStringLiteral("sh") ? QStringLiteral(".ps1")
-                                                                        : QStringLiteral(".sh"));
+            const QString twin =
+                info.completeBaseName() +
+                (info.suffix() == QStringLiteral("sh") ? QStringLiteral(".ps1") : QStringLiteral(".sh"));
             if (!QFile::exists(kRoot + QStringLiteral("/scripts/") + twin))
                 problems << file + QStringLiteral(": scripts/") + twin + QStringLiteral(" is missing");
         }
@@ -313,9 +320,9 @@ private slots:
         const int serverTests = expectedCases(QStringLiteral("13_server_tests.sql"));
         const QString database = QStringLiteral("docs/DATABASE.md");
         const QString setup = QStringLiteral("docs/SETUP.md");
-        const QString constraints = QStringLiteral(
-            "(\\d+) PK, (\\d+) FK, (\\d+) CHECK, (\\d+) UNIQUE \\+ (\\d+) filtered unique indexes, (\\d+) DEFAULT, "
-            "(\\d+) SEQUENCE");
+        const QString constraints = QStringLiteral("(\\d+) PK, (\\d+) FK, (\\d+) CHECK, (\\d+) UNIQUE \\+ "
+                                                   "(\\d+) filtered unique indexes, (\\d+) DEFAULT, "
+                                                   "(\\d+) SEQUENCE");
         const QString functionKinds =
             QStringLiteral("(\\d+) scalar, (\\d+) inline table-valued, (\\d+) multi-statement table-valued");
         struct Check {
@@ -326,16 +333,19 @@ private slots:
         };
         const QList<Check> checks = {
             {database, QStringLiteral("(\\d+) procedures"), 1,
-             countOf(sqlCode(QStringLiteral("04_procedures.sql")), QStringLiteral("^\\s*CREATE\\s+PROC(EDURE)?\\s"))},
+             countOf(sqlCode(QStringLiteral("04_procedures.sql")),
+                     QStringLiteral("^\\s*CREATE\\s+PROC(EDURE)?\\s"))},
             {database, QStringLiteral("(\\d+) triggers"), 1,
-             countOf(sqlCode(QStringLiteral("05_triggers.sql")), QStringLiteral("^\\s*CREATE\\s+TRIGGER\\s"))},
+             countOf(sqlCode(QStringLiteral("05_triggers.sql")),
+                     QStringLiteral("^\\s*CREATE\\s+TRIGGER\\s"))},
             {database, QStringLiteral("(\\d+) views"), 1,
              countOf(sqlCode(QStringLiteral("03_views.sql")), QStringLiteral("^\\s*CREATE\\s+VIEW\\s"))},
             {database, functionKinds, 1,
              countOf(functions, QStringLiteral("^\\s*CREATE\\s+FUNCTION\\s")) -
                  countOf(functions, QStringLiteral("\\bRETURNS\\s+(@\\w+\\s+)?TABLE\\b"))},
             {database, functionKinds, 2, countOf(functions, QStringLiteral("\\bRETURNS\\s+TABLE\\b"))},
-            {database, functionKinds, 3, countOf(functions, QStringLiteral("\\bRETURNS\\s+@\\w+\\s+TABLE\\b"))},
+            {database, functionKinds, 3,
+             countOf(functions, QStringLiteral("\\bRETURNS\\s+@\\w+\\s+TABLE\\b"))},
             {database, constraints, 1, countOf(tables, QStringLiteral("\\bCONSTRAINT\\s+PK_"))},
             {database, constraints, 2, countOf(tables, QStringLiteral("\\bCONSTRAINT\\s+FK_"))},
             {database, constraints, 3, countOf(tables, QStringLiteral("\\bCONSTRAINT\\s+CK_"))},
@@ -348,8 +358,10 @@ private slots:
             {database, QStringLiteral("\\| Automated server-level tests \\| (\\d+) cases"), 1, serverTests},
             {setup, QStringLiteral("`database/12_tests.sql` \\((\\d+) cases"), 1, dbTests},
             {setup, QStringLiteral("\\((\\d+) server-level cases"), 1, serverTests},
-            {setup, QStringLiteral("ALL TESTS PASSED: database (\\d+)/(\\d+) cases"), 1, dbTests + serverTests},
-            {setup, QStringLiteral("ALL TESTS PASSED: database (\\d+)/(\\d+) cases"), 2, dbTests + serverTests},
+            {setup, QStringLiteral("ALL TESTS PASSED: database (\\d+)/(\\d+) cases"), 1,
+             dbTests + serverTests},
+            {setup, QStringLiteral("ALL TESTS PASSED: database (\\d+)/(\\d+) cases"), 2,
+             dbTests + serverTests},
         };
         QStringList problems;
         for (const Check& c : checks) {
