@@ -101,7 +101,9 @@ gh pr create --base <base> --head "$(git branch --show-current)" --title "<title
 After creating:
 - When CI runs (`.github/workflows/ci.yml`): PRs into `develop` do **not** trigger CI - it runs after the merge
   into `develop` - so the local `test_all` result in step 2 is the check for those PRs. PRs into `main` always run
-  CI (required by branch protection). To check a branch on CI anyway: `gh workflow run CI --ref <branch>`.
+  CI (required by branch protection). To check a branch on CI anyway:
+  `gh workflow run CI --ref <branch> -f reason="<what the change is>"` (listed as "Manual CI on <branch>: <reason>"
+  instead of a bare "CI").
 - In the Claude desktop app: call the `ccd_pr` tools (`get_status`; `bind_pr` if it is not bound), read the CI
   result once and offer Auto-fix. Elsewhere: `gh pr checks <url>` once. Do not poll CI in a loop and never
   enable auto-merge unless the user asks.
