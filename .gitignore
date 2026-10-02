@@ -1,44 +1,45 @@
-# ---- Build output ----
+# ---- Build output: every CMake preset builds into build/<preset>, installers go to dist/ ----
 build/
-build-*/
-out/
-cmake-build-*/
 dist/
 CMakeUserPresets.json
+# Symlink to build/<preset>/compile_commands.json (CMakeLists.txt) and the clangd background index
 compile_commands.json
-# clangd background index (.vscode/settings.json: --background-index)
 .cache/
 
 # ---- IDE ----
-.vs/
+# VS Code / Cursor: only the shared settings and the recommended extensions are committed
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
-# Claude Code: .claude/settings.json is shared, settings.local.json is personal
-.claude/settings.local.json
-.idea/
+# Qt Creator
 *.user
 *.user.*
 *.autosave
 .qtcreator/
-*.suo
+# Visual Studio, CLion
+.vs/
+.idea/
+cmake-build-*/
+
+# ---- Claude Code: .claude/settings.json is shared ----
+.claude/settings.local.json
+.claude/worktrees/
+# Personal instructions; while this file exists Claude Code reads it instead of AGENTS.md
+CLAUDE.local.md
 
 # ---- OS ----
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# ---- Packaging artefacts ----
-*.dmg
-*.zip
-packaging/windows/redist/
-
-# ---- Secrets / local config ----
+# ---- Secrets ----
 .env
-*.local.ini
 
-# ---- Docs tooling ----
-docs/report/~$*
-docs/report/.build/
+# ---- Python (report tooling, clang-format from pip) ----
+.venv/
 __pycache__/
-*.pyc
+
+# ---- Report ----
+# Word lock files (~$name.docx) while a document is open
+~$*
+docs/report/.build/
