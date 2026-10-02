@@ -114,6 +114,13 @@ jobs:
           sudo apt-get update -qq
           sudo ACCEPT_EULA=Y apt-get install -y -qq msodbcsql18 tdsodbc ninja-build
 
+      - name: Install clang-format (team version)
+        # Step 1 of test_all (check_changes) needs git clang-format, same install as checks.yml
+        run: |
+          python3 -m venv "$RUNNER_TEMP/clang-format"
+          "$RUNNER_TEMP/clang-format/bin/pip" install -q "clang-format==$(tr -d '[:space:]' < .clang-format-version)"
+          echo "$RUNNER_TEMP/clang-format/bin" >> "$GITHUB_PATH"
+
       - name: Install Qt 6.8 LTS
         uses: jurplel/install-qt-action@v4
         with:
