@@ -63,7 +63,7 @@ foreach ($c in $commits) {
     }
     $message = (git log -1 --format=%B $c) -join "`n"
     if ($message -match 'Co-Authored-By:.*(Claude|anthropic)|Generated with .*Claude') {
-        Fail "${short}: remove the AI attribution line (team rule, see CLAUDE.md)"
+        Fail "${short}: remove the AI attribution line (team rule, see AGENTS.md)"
     }
 }
 Write-Host "  commits: $($commits.Count) checked"

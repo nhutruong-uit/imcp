@@ -145,7 +145,7 @@ private slots:
         QVERIFY2(QFile::exists(kRoot + QStringLiteral("/database/01_tables.sql")), qPrintable(kRoot));
     }
 
-    // CLAUDE.md: SQL Server 2012+ only - none of the newer statements and functions
+    // AGENTS.md: SQL Server 2012+ only - none of the newer statements and functions
     void sqlScripts_sqlServer2012_useNoNewerSyntax() {
         const QList<QPair<QString, QString>> banned = {
             {QStringLiteral("\\bCREATE\\s+OR\\s+ALTER\\b"),
@@ -174,7 +174,7 @@ private slots:
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 
-    // CLAUDE.md: a script starts with USE QLTTTA; GO; SET ANSI_NULLS ON; SET QUOTED_IDENTIFIER ON;
+    // AGENTS.md: a script starts with USE QLTTTA; GO; SET ANSI_NULLS ON; SET QUOTED_IDENTIFIER ON;
     // (server-level scripts - create database, backup, distributed demo - start with USE master;)
     void sqlScripts_header_startsWithUseAndSetOptions() {
         QStringList problems;
