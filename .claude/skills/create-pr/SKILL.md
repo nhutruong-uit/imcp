@@ -19,7 +19,8 @@ Talk to the user in Vietnamese.
 1. `gh auth status` must show a logged-in account. If not, ask the user to run
    `gh auth login --web --git-protocol https` themselves (never handle tokens or passwords).
 2. Current branch must be a work branch (`feature/...`, `fix/...`, `docs/...`). If it is `develop` or `main`,
-   stop: create a `feature/...` branch from the current state first (direct pushes are blocked by branch protection).
+   stop and create a `feature/...` branch from the current state first (`main` is protected and rejects direct
+   pushes; `develop` is not protected, but the team still works through PRs).
 3. Uncommitted changes: show `git status --short` and ask whether to commit them (Vietnamese message,
    `type(scope): ...`) or leave them out. Never commit `.env`, `build/`, `dist/` or real passwords.
 4. Base branch: `develop` unless the user passed another one. `main` is only for release PRs from `develop`
@@ -100,8 +101,8 @@ After creating:
 - In the Claude desktop app: call the `ccd_pr` tools (`get_status`; `bind_pr` if it is not bound), read the CI
   result once and offer Auto-fix. Elsewhere: `gh pr checks <url>` once. Do not poll CI in a loop and never
   enable auto-merge unless the user asks.
-- Branch protection on `develop`/`main` requires a PR plus green CI on `macOS (Apple Silicon)` and
-  `Windows (Qt + MinGW)`, with the branch up to date with its base. 0 approvals are required, so the author
-  can merge once CI is green.
+- Only `main` is protected: a PR plus green CI on `macOS (Apple Silicon)` and `Windows (Qt + MinGW)`, with the
+  branch up to date with `main`; 0 approvals are required, so the author can merge once CI is green.
+  `develop` is the default branch on GitHub and is not protected, so `gh pr create` targets it by default.
 - Reply to the user in Vietnamese with the PR link (`[owner/repo#N](url)`), the test result and anything
   that still needs their decision.
