@@ -27,7 +27,7 @@ jobs:
         run: brew install qt qt-unixodbc unixodbc freetds ninja
       - name: Build the .dmg
         run: ./scripts/package-macos.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: qlttta-macos
           path: dist/*.dmg
@@ -57,7 +57,7 @@ jobs:
       - name: Build setup.exe + zip
         shell: pwsh
         run: ./scripts/package-windows.ps1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: qlttta-windows
           path: |
@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: dist
           merge-multiple: true
