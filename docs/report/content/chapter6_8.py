@@ -1,4 +1,5 @@
-"""Chương 6 - Trình bày thông tin (ứng dụng); Chương 7 - CSDL tiên tiến; Chương 8 - Tổng kết; tài liệu, phụ lục."""
+"""Chapter 6 - Presenting information (application); Chapter 7 - Advanced databases; Chapter 8 - Conclusion;
+references, appendix."""
 from content.common import IMG, SQL, object_counts, database_tests
 from report_lib import sql_block
 
@@ -216,14 +217,14 @@ def chapter8(r):
     r.h1("CHƯƠNG 8: TỔNG KẾT")
 
     r.h2("8.1. Kết quả đạt được")
-    dat = len([k for k in database_tests() if k[4] == "PASSED"])
+    passed = len([k for k in database_tests() if k[4] == "PASSED"])
     r.table(["Hạng mục", "Kết quả"], [
-        ["Phân tích, thiết kế", f"Use case, DFD mức 0-1, ERD (Chen) {object_counts()['SoBang']} thực thể, CD có kế thừa, lược đồ quan hệ đạt BCNF, từ điển dữ liệu"],
-        ["Cài đặt CSDL", "{SoBang} bảng, {SoRangBuoc} ràng buộc khai báo, {SoSequence} sequence, {SoXmlSchema} XML Schema, "
-                         "{SoHam} hàm, {SoView} view, {SoThuTuc} thủ tục, {SoTrigger} trigger, {SoRole} role".format(**object_counts())],
+        ["Phân tích, thiết kế", f"Use case, DFD mức 0-1, ERD (Chen) {object_counts()['TableCount']} thực thể, CD có kế thừa, lược đồ quan hệ đạt BCNF, từ điển dữ liệu"],
+        ["Cài đặt CSDL", "{TableCount} bảng, {ConstraintCount} ràng buộc khai báo, {SequenceCount} sequence, {XmlSchemaCount} XML Schema, "
+                         "{FunctionCount} hàm, {ViewCount} view, {ProcedureCount} thủ tục, {TriggerCount} trigger, {RoleCount} role".format(**object_counts())],
         ["Xử lý thông tin", "Truy vấn SQL (chia, đệ quy, cửa sổ, PIVOT), XPath/XQuery đủ 5 phương thức, cursor, giao dịch"],
         ["An ninh", "Contained user, phân quyền mức đối tượng và mức cột, view bảo mật, nhật ký XML, backup Full/Diff/Log"],
-        ["Kiểm thử", f"{dat}/{len(database_tests())} ca kiểm thử CSDL đạt; 4 bộ unit test; 10/10 kịch bản end-to-end qua giao diện"],
+        ["Kiểm thử", f"{passed}/{len(database_tests())} ca kiểm thử CSDL đạt; 4 bộ unit test; 10/10 kịch bản end-to-end qua giao diện"],
         ["Ứng dụng", "Qt 6 đa nền tảng, Clean Architecture, giao diện song ngữ Việt/Anh, đăng nhập theo vai trò, Tổng quan, Học viên, 10 màn hình tra cứu, xuất PDF/Excel"],
         ["Triển khai", "CI build/test macOS + Windows, tự đóng gói setup.exe/zip/dmg, tài liệu cài đặt"],
         ["Mô hình tiên tiến", "Chuyển đổi sang OODB, thiết kế + demo phân mảnh phân tán, thiết kế NoSQL, bảng so sánh"],

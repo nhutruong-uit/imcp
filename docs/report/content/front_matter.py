@@ -1,9 +1,9 @@
-"""Trang bìa, checklist, phân công, mục lục."""
+"""Cover page, checklist, assignments, table of contents."""
 from content.common import MEMBERS, database_tests
 
 
 def cover_page(r):
-    # Chỉ số đoạn văn theo mẫu (template/uit_report_template.docx)
+    # Paragraph indexes of the template (template/uit_report_template.docx)
     r.set_paragraph_text(4, "BÁO CÁO ĐỒ ÁN MÔN HỌC")
     r.set_paragraph_text(5, "QUẢN LÝ THÔNG TIN")
     r.set_paragraph_text(6, "MÃ LỚP: IE103.Q21.VB2")
@@ -11,8 +11,8 @@ def cover_page(r):
     r.set_paragraph_text(8, "Giảng viên hướng dẫn: TS. Võ Phương Bình")
     r.set_paragraph_text(9, "Nhóm sinh viên thực hiện: Nhóm 1")
     r.set_paragraph_text(11, "TP. Hồ Chí Minh, tháng 11 năm 2026")
-    r.fill_table(0, [[str(i + 1), tv["ten"] + (" (Nhóm trưởng)" if i == 0 else ""), tv["mssv"]]
-                     for i, tv in enumerate(MEMBERS)])
+    r.fill_table(0, [[str(i + 1), m["name"] + (" (Nhóm trưởng)" if i == 0 else ""), m["student_id"]]
+                     for i, m in enumerate(MEMBERS)])
 
 
 def checklist(r):
@@ -38,8 +38,8 @@ def assignments(r):
         "Pull Request nên lịch sử commit thể hiện đóng góp của từng thành viên. Mỗi thành viên **sở hữu** "
         "một mảng nội dung: hiểu sâu phần CSDL tương ứng, kiểm thử, viết phần báo cáo, trình bày và trả lời "
         "vấn đáp phần đó.", indent=True)
-    rows = [[tv["ten"] + "\n" + tv["mssv"], tv["mang"], tv["file"], tv["bao_cao"], tv["han"]]
-            for tv in MEMBERS]
+    rows = [[m["name"] + "\n" + m["student_id"], m["area"], m["files"], m["report_sections"], m["deadline"]]
+            for m in MEMBERS]
     r.table(["Thành viên", "Mảng phụ trách", "Sản phẩm / file", "Phần báo cáo", "Hạn hoàn thành"],
             rows, widths_cm=[3.2, 4.6, 3.6, 2.6, 2.0], size=10, bold_first_col=True,
             align=["left", "left", "left", "left", "center"])

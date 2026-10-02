@@ -1,6 +1,6 @@
 {
- "tong_quan": {
-  "cot": [
+ "dashboard": {
+  "columns": [
    "ActiveStudents",
    "ActiveClasses",
    "EnrollingClasses",
@@ -8,7 +8,7 @@
    "TotalOutstanding",
    "SessionsToday"
   ],
-  "dong": [
+  "rows": [
    [
     "69",
     "5",
@@ -19,13 +19,13 @@
    ]
   ]
  },
- "doanh_thu_ct": {
-  "cot": [
+ "revenue_by_program": {
+  "columns": [
    "ProgramName",
    "StudentCount",
    "Revenue"
   ],
-  "dong": [
+  "rows": [
    [
     "IELTS Preparation",
     "25",
@@ -48,14 +48,14 @@
    ]
   ]
  },
- "top3": {
-  "cot": [
+ "top3_per_class": {
+  "columns": [
    "ClassId",
    "Rank",
    "FullName",
    "FinalGrade"
   ],
-  "dong": [
+  "rows": [
    [
     "CL0001",
     "1",
@@ -94,13 +94,13 @@
    ]
   ]
  },
- "lo_trinh": {
-  "cot": [
+ "prerequisite_path": {
+  "columns": [
    "Depth",
    "CourseId",
    "CourseName"
   ],
-  "dong": [
+  "rows": [
    [
     "2",
     "IE-FND",
@@ -118,13 +118,13 @@
    ]
   ]
  },
- "pivot": {
-  "cot": [
+ "enrollments_pivot": {
+  "columns": [
    "ProgramName",
    "District1",
    "ThuDuc"
   ],
-  "dong": [
+  "rows": [
    [
     "English for Communication",
     "4",
@@ -147,13 +147,13 @@
    ]
   ]
  },
- "ielts8": {
-  "cot": [
+ "ielts_teachers": {
+  "columns": [
    "TeacherId",
    "FullName",
    "IELTS"
   ],
-  "dong": [
+  "rows": [
    [
     "TE0002",
     "Nguyễn Hoàng Anh",
@@ -171,15 +171,15 @@
    ]
   ]
  },
- "nodes": {
-  "cot": [
+ "teacher_certificates": {
+  "columns": [
    "TeacherId",
    "FullName",
    "Certificate",
    "Score",
    "Year"
   ],
-  "dong": [
+  "rows": [
    [
     "TE0001",
     "John Smith",
@@ -238,13 +238,13 @@
    ]
   ]
  },
- "nhat_quan": {
-  "cot": [
+ "syllabus_consistency": {
+  "columns": [
    "CourseId",
    "SessionCount",
    "SyllabusSessions"
   ],
-  "dong": [
+  "rows": [
    [
     "CM-A1",
     "20",
@@ -272,14 +272,14 @@
    ]
   ]
  },
- "de_cuong": {
-  "cot": [
+ "course_syllabus": {
+  "columns": [
    "Unit",
    "Title",
    "Sessions",
    "Skills"
   ],
-  "dong": [
+  "rows": [
    [
     "1",
     "Listening Section 1-4",
@@ -312,15 +312,15 @@
    ]
   ]
  },
- "ky_nang": {
-  "cot": [
+ "courses_by_skill": {
+  "columns": [
    "CourseId",
    "CourseName",
    "Level",
    "Textbook",
    "UnitCount"
   ],
-  "dong": [
+  "rows": [
    [
     "CM-A1",
     "Communication Elementary",
@@ -351,8 +351,8 @@
    ]
   ]
  },
- "ket_qua_lop1": {
-  "cot": [
+ "class1_results": {
+  "columns": [
    "StudentId",
    "StudentName",
    "FinalGrade",
@@ -360,7 +360,7 @@
    "AttendanceRate",
    "Result"
   ],
-  "dong": [
+  "rows": [
    [
     "ST00006",
     "Vũ Thảo Nguyên",
@@ -459,8 +459,8 @@
    ]
   ]
  },
- "luong": {
-  "cot": [
+ "payroll": {
+  "columns": [
    "Year",
    "Month",
    "FullName",
@@ -470,7 +470,7 @@
    "Bonus",
    "TotalPay"
   ],
-  "dong": [
+  "rows": [
    [
     "2026",
     "9",
@@ -533,8 +533,8 @@
    ]
   ]
  },
- "cong_no_hv": {
-  "cot": [
+ "student_balance": {
+  "columns": [
    "EnrollmentId",
    "ClassId",
    "ClassName",
@@ -542,7 +542,7 @@
    "AmountPaid",
    "Balance"
   ],
-  "dong": [
+  "rows": [
    [
     "EN000024",
     "CL0004",
@@ -553,13 +553,13 @@
    ]
   ]
  },
- "doanh_thu_thang": {
-  "cot": [
+ "monthly_revenue": {
+  "columns": [
    "Month",
    "ReceiptCount",
    "Revenue"
   ],
-  "dong": [
+  "rows": [
    [
     "3",
     "0",
@@ -602,8 +602,8 @@
    ]
   ]
  },
- "nhat_ky": {
-  "cot": [
+ "audit_log": {
+  "columns": [
    "LoggedAt",
    "PerformedBy",
    "TableName",
@@ -611,7 +611,7 @@
    "RecordKey",
    "NewData"
   ],
-  "dong": [
+  "rows": [
    [
     "2026-10-02 02:49",
     "sa",
@@ -638,12 +638,12 @@
    ]
   ]
  },
- "so_dong": {
-  "cot": [
+ "row_counts": {
+  "columns": [
    "TableName",
    "RecordCount"
   ],
-  "dong": [
+  "rows": [
    [
     "ACCOUNT",
     "9"
@@ -730,23 +730,23 @@
    ]
   ]
  },
- "doi_tuong": {
-  "cot": [
-   "SoBang",
-   "SoSequence",
-   "SoXmlSchema",
-   "SoHam",
-   "SoView",
-   "SoThuTuc",
-   "SoTrigger",
-   "SoRole",
-   "SoCheck",
-   "SoDefault",
-   "SoFK",
-   "SoPK",
-   "SoUnique"
+ "object_counts": {
+  "columns": [
+   "TableCount",
+   "SequenceCount",
+   "XmlSchemaCount",
+   "FunctionCount",
+   "ViewCount",
+   "ProcedureCount",
+   "TriggerCount",
+   "RoleCount",
+   "CheckCount",
+   "DefaultCount",
+   "ForeignKeyCount",
+   "PrimaryKeyCount",
+   "UniqueCount"
   ],
-  "dong": [
+  "rows": [
    [
     "21",
     "8",

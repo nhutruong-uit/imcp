@@ -31,7 +31,7 @@ QLTTTA_USER=ql_quan QLTTTA_PASSWORD='Demo@2026' build/macos-debug/src/app/QLTTTA
 # Update the report (or type /imcp-update-report): real data -> docx -> PDF (macOS + Word) -> check
 SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" python3 docs/report/tools/export_data.py --docker sql2022
 python3 docs/report/build_report.py && ./docs/report/tools/export_pdf.sh
-swift docs/report/tools/check_pdf.swift kiemtra docs/report/IE103_Group1_Report.pdf
+swift docs/report/tools/check_pdf.swift check docs/report/IE103_Group1_Report.pdf
 
 # Screenshots (visual check with real data; QLTTTA_SHOT_LANG=en for the English UI)
 cmake --preset macos-debug -DQLTTTA_BUILD_TOOLS=ON && cmake --build --preset macos-debug

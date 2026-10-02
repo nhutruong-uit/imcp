@@ -40,7 +40,7 @@ step fails** and tell the user - the report must never show wrong test results. 
 ```bash
 SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" python3 docs/report/tools/export_data.py --docker sql2022
 ```
-Writes `data/schema.json`, `data/query_results.json` (including the `doi_tuong` entry read by `object_counts()`:
+Writes `data/schema.json`, `data/query_results.json` (including the `object_counts` entry read by `object_counts()`:
 number of tables, procedures, triggers, constraints...) and `data/database_tests.txt` (only written when every case passes). Look at
 `git diff --stat docs/report/data` and explain the changes (numbers that move with the date are normal; a changed
 structure/column means checking the chapters that use it). New demo query: add it to `QUERIES` in
@@ -79,11 +79,11 @@ validate as well.
 
 ## 7. Check the result
 ```bash
-swift docs/report/tools/check_pdf.swift kiemtra docs/report/IE103_Group1_Report.pdf "<new text to find>"
-swift docs/report/tools/check_pdf.swift anh docs/report/IE103_Group1_Report.pdf <temp folder> <changed pages>
+swift docs/report/tools/check_pdf.swift check docs/report/IE103_Group1_Report.pdf "<new text to find>"
+swift docs/report/tools/check_pdf.swift pages docs/report/IE103_Group1_Report.pdf <temp folder> <changed pages>
 ```
 - Exit code 1 = Word field errors remain (table of contents/cross references) → export the PDF again.
-- Look at (Read) `tong_hop.png` of the changed pages: tables inside the margins, images not broken, no extra blank page.
+- Look at (Read) `overview.png` of the changed pages: tables inside the margins, images not broken, no extra blank page.
 - Compare the page count with the previous version (`git show HEAD:docs/report/IE103_Group1_Report.pdf` → check
   again) and explain any change.
 

@@ -1,2198 +1,2198 @@
 [
  {
-  "bang": "ACCOUNT",
-  "cot": [
+  "table_name": "ACCOUNT",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "Username",
-    "kieu": "nvarchar(50)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true
+    "position": 1,
+    "name": "Username",
+    "data_type": "nvarchar(50)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true
    },
    {
-    "stt": 2,
-    "cot": "Role",
-    "kieu": "varchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 2,
+    "name": "Role",
+    "data_type": "varchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 3,
-    "cot": "EmployeeId",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "EMPLOYEE"
+    "position": 3,
+    "name": "EmployeeId",
+    "data_type": "varchar(10)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "EMPLOYEE"
    },
    {
-    "stt": 4,
-    "cot": "TeacherId",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "TEACHER"
+    "position": 4,
+    "name": "TeacherId",
+    "data_type": "varchar(10)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "TEACHER"
    },
    {
-    "stt": 5,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Active')"
+    "position": 5,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Active')"
    },
    {
-    "stt": 6,
-    "cot": "CreatedAt",
-    "kieu": "datetime",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(getdate())"
+    "position": 6,
+    "name": "CreatedAt",
+    "data_type": "datetime",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(getdate())"
    },
    {
-    "stt": 7,
-    "cot": "LastLoginAt",
-    "kieu": "datetime",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 7,
+    "name": "LastLoginAt",
+    "data_type": "datetime",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_ACCOUNT_Owner",
-    "dinh_nghia": "([Role]='TEACHER' AND [TeacherId] IS NOT NULL AND [EmployeeId] IS NULL OR [Role]<>'TEACHER' AND [EmployeeId] IS NOT NULL AND [TeacherId] IS NULL)"
+    "name": "CK_ACCOUNT_Owner",
+    "definition": "([Role]='TEACHER' AND [TeacherId] IS NOT NULL AND [EmployeeId] IS NULL OR [Role]<>'TEACHER' AND [EmployeeId] IS NOT NULL AND [TeacherId] IS NULL)"
    },
    {
-    "ten": "CK_ACCOUNT_Role",
-    "dinh_nghia": "([Role]='TEACHER' OR [Role]='ACCOUNTANT' OR [Role]='ACADEMIC_STAFF' OR [Role]='MANAGER')"
+    "name": "CK_ACCOUNT_Role",
+    "definition": "([Role]='TEACHER' OR [Role]='ACCOUNTANT' OR [Role]='ACADEMIC_STAFF' OR [Role]='MANAGER')"
    },
    {
-    "ten": "CK_ACCOUNT_Status",
-    "dinh_nghia": "([Status]=N'Locked' OR [Status]=N'Active')"
+    "name": "CK_ACCOUNT_Status",
+    "definition": "([Status]=N'Locked' OR [Status]=N'Active')"
    }
   ],
-  "so_dong": 9
+  "row_count": 9
  },
  {
-  "bang": "ATTENDANCE",
-  "cot": [
+  "table_name": "ATTENDANCE",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "SessionId",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "tham_chieu": "CLASS_SESSION"
+    "position": 1,
+    "name": "SessionId",
+    "data_type": "int",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "referenced_table": "CLASS_SESSION"
    },
    {
-    "stt": 2,
-    "cot": "EnrollmentId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "tham_chieu": "ENROLLMENT"
+    "position": 2,
+    "name": "EnrollmentId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "referenced_table": "ENROLLMENT"
    },
    {
-    "stt": 3,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Present')"
+    "position": 3,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Present')"
    },
    {
-    "stt": 4,
-    "cot": "Notes",
-    "kieu": "nvarchar(200)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "Notes",
+    "data_type": "nvarchar(200)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_ATTENDANCE_Status",
-    "dinh_nghia": "([Status]=N'Unexcused absence' OR [Status]=N'Excused absence' OR [Status]=N'Late' OR [Status]=N'Present')"
+    "name": "CK_ATTENDANCE_Status",
+    "definition": "([Status]=N'Unexcused absence' OR [Status]=N'Excused absence' OR [Status]=N'Late' OR [Status]=N'Present')"
    }
   ],
-  "so_dong": 1392
+  "row_count": 1392
  },
  {
-  "bang": "AUDIT_LOG",
-  "cot": [
+  "table_name": "AUDIT_LOG",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "LogId",
-    "kieu": "bigint",
-    "cho_null": false,
-    "identity_": true,
-    "tinh_toan": false,
-    "khoa_chinh": true
+    "position": 1,
+    "name": "LogId",
+    "data_type": "bigint",
+    "is_nullable": false,
+    "is_identity": true,
+    "is_computed": false,
+    "is_primary_key": true
    },
    {
-    "stt": 2,
-    "cot": "LoggedAt",
-    "kieu": "datetime",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(getdate())"
+    "position": 2,
+    "name": "LoggedAt",
+    "data_type": "datetime",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(getdate())"
    },
    {
-    "stt": 3,
-    "cot": "PerformedBy",
-    "kieu": "nvarchar(128)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(original_login())"
+    "position": 3,
+    "name": "PerformedBy",
+    "data_type": "nvarchar(128)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(original_login())"
    },
    {
-    "stt": 4,
-    "cot": "TableName",
-    "kieu": "nvarchar(50)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "TableName",
+    "data_type": "nvarchar(50)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 5,
-    "cot": "Action",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 5,
+    "name": "Action",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 6,
-    "cot": "RecordKey",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 6,
+    "name": "RecordKey",
+    "data_type": "nvarchar(100)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 7,
-    "cot": "OldData",
-    "kieu": "xml",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 7,
+    "name": "OldData",
+    "data_type": "xml",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 8,
-    "cot": "NewData",
-    "kieu": "xml",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 8,
+    "name": "NewData",
+    "data_type": "xml",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_AUDIT_LOG_Action",
-    "dinh_nghia": "([Action]='DELETE' OR [Action]='UPDATE' OR [Action]='INSERT')"
+    "name": "CK_AUDIT_LOG_Action",
+    "definition": "([Action]='DELETE' OR [Action]='UPDATE' OR [Action]='INSERT')"
    }
   ],
-  "so_dong": 235
+  "row_count": 235
  },
  {
-  "bang": "BRANCH",
-  "cot": [
+  "table_name": "BRANCH",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "BranchId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true
+    "position": 1,
+    "name": "BranchId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true
    },
    {
-    "stt": 2,
-    "cot": "BranchName",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 2,
+    "name": "BranchName",
+    "data_type": "nvarchar(100)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 3,
-    "cot": "Address",
-    "kieu": "nvarchar(200)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "Address",
+    "data_type": "nvarchar(200)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "Phone",
-    "kieu": "varchar(15)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "Phone",
+    "data_type": "varchar(15)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 5,
-    "cot": "Email",
-    "kieu": "varchar(100)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 5,
+    "name": "Email",
+    "data_type": "varchar(100)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 6,
-    "cot": "FoundedOn",
-    "kieu": "date",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 6,
+    "name": "FoundedOn",
+    "data_type": "date",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 7,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Active')"
+    "position": 7,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Active')"
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_BRANCH_Email",
-    "dinh_nghia": "([Email] like '%_@_%._%')"
+    "name": "CK_BRANCH_Email",
+    "definition": "([Email] like '%_@_%._%')"
    },
    {
-    "ten": "CK_BRANCH_Phone",
-    "dinh_nghia": "(NOT [Phone] like '%[^0-9]%' AND (len([Phone])>=(9) AND len([Phone])<=(11)))"
+    "name": "CK_BRANCH_Phone",
+    "definition": "(NOT [Phone] like '%[^0-9]%' AND (len([Phone])>=(9) AND len([Phone])<=(11)))"
    },
    {
-    "ten": "CK_BRANCH_Status",
-    "dinh_nghia": "([Status]=N'Suspended' OR [Status]=N'Active')"
+    "name": "CK_BRANCH_Status",
+    "definition": "([Status]=N'Suspended' OR [Status]=N'Active')"
    }
   ],
-  "unique_": [
+  "uniques": [
    {
-    "ten": "UQ_BRANCH_BranchName"
+    "name": "UQ_BRANCH_BranchName"
    }
   ],
-  "so_dong": 2
+  "row_count": 2
  },
  {
-  "bang": "CERTIFICATE",
-  "cot": [
+  "table_name": "CERTIFICATE",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "CertificateId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('CE'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_CERTIFICATE]),(5)))"
+    "position": 1,
+    "name": "CertificateId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "default_value": "('CE'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_CERTIFICATE]),(5)))"
    },
    {
-    "stt": 2,
-    "cot": "EnrollmentId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "ENROLLMENT"
+    "position": 2,
+    "name": "EnrollmentId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "ENROLLMENT"
    },
    {
-    "stt": 3,
-    "cot": "SerialNumber",
-    "kieu": "varchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "SerialNumber",
+    "data_type": "varchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "IssuedOn",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(CONVERT([date],getdate()))"
+    "position": 4,
+    "name": "IssuedOn",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(CONVERT([date],getdate()))"
    },
    {
-    "stt": 5,
-    "cot": "FinalGrade",
-    "kieu": "decimal(4,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 5,
+    "name": "FinalGrade",
+    "data_type": "decimal(4,2)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 6,
-    "cot": "Classification",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 6,
+    "name": "Classification",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_CERTIFICATE_Classification",
-    "dinh_nghia": "([Classification]=N'Average' OR [Classification]=N'Good' OR [Classification]=N'Very good' OR [Classification]=N'Excellent')"
+    "name": "CK_CERTIFICATE_Classification",
+    "definition": "([Classification]=N'Average' OR [Classification]=N'Good' OR [Classification]=N'Very good' OR [Classification]=N'Excellent')"
    },
    {
-    "ten": "CK_CERTIFICATE_FinalGrade",
-    "dinh_nghia": "([FinalGrade]>=(5) AND [FinalGrade]<=(10))"
+    "name": "CK_CERTIFICATE_FinalGrade",
+    "definition": "([FinalGrade]>=(5) AND [FinalGrade]<=(10))"
    }
   ],
-  "unique_": [
+  "uniques": [
    {
-    "ten": "UQ_CERTIFICATE_SerialNumber"
+    "name": "UQ_CERTIFICATE_SerialNumber"
    },
    {
-    "ten": "UQ_CERTIFICATE_EnrollmentId"
+    "name": "UQ_CERTIFICATE_EnrollmentId"
    }
   ],
-  "so_dong": 19
+  "row_count": 19
  },
  {
-  "bang": "CLASS",
-  "cot": [
+  "table_name": "CLASS",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "ClassId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('CL'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_CLASS]),(4)))"
+    "position": 1,
+    "name": "ClassId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "default_value": "('CL'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_CLASS]),(4)))"
    },
    {
-    "stt": 2,
-    "cot": "ClassName",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 2,
+    "name": "ClassName",
+    "data_type": "nvarchar(100)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 3,
-    "cot": "CourseId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "COURSE"
+    "position": 3,
+    "name": "CourseId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "COURSE"
    },
    {
-    "stt": 4,
-    "cot": "BranchId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "BRANCH"
+    "position": 4,
+    "name": "BranchId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "BRANCH"
    },
    {
-    "stt": 5,
-    "cot": "TeacherId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "TEACHER"
+    "position": 5,
+    "name": "TeacherId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "TEACHER"
    },
    {
-    "stt": 6,
-    "cot": "RoomId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "ROOM"
+    "position": 6,
+    "name": "RoomId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "ROOM"
    },
    {
-    "stt": 7,
-    "cot": "StartDate",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 7,
+    "name": "StartDate",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 8,
-    "cot": "EndDate",
-    "kieu": "date",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 8,
+    "name": "EndDate",
+    "data_type": "date",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 9,
-    "cot": "MaxStudents",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "((20))"
+    "position": 9,
+    "name": "MaxStudents",
+    "data_type": "int",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "((20))"
    },
    {
-    "stt": 10,
-    "cot": "Tuition",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 10,
+    "name": "Tuition",
+    "data_type": "decimal(12,0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 11,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Enrolling')"
+    "position": 11,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Enrolling')"
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_CLASS_Dates",
-    "dinh_nghia": "([EndDate] IS NULL OR [EndDate]>=[StartDate])"
+    "name": "CK_CLASS_Dates",
+    "definition": "([EndDate] IS NULL OR [EndDate]>=[StartDate])"
    },
    {
-    "ten": "CK_CLASS_MaxStudents",
-    "dinh_nghia": "([MaxStudents]>=(1) AND [MaxStudents]<=(50))"
+    "name": "CK_CLASS_MaxStudents",
+    "definition": "([MaxStudents]>=(1) AND [MaxStudents]<=(50))"
    },
    {
-    "ten": "CK_CLASS_Status",
-    "dinh_nghia": "([Status]=N'Cancelled' OR [Status]=N'Finished' OR [Status]=N'In progress' OR [Status]=N'Enrolling')"
+    "name": "CK_CLASS_Status",
+    "definition": "([Status]=N'Cancelled' OR [Status]=N'Finished' OR [Status]=N'In progress' OR [Status]=N'Enrolling')"
    },
    {
-    "ten": "CK_CLASS_Tuition",
-    "dinh_nghia": "([Tuition]>=(0))"
+    "name": "CK_CLASS_Tuition",
+    "definition": "([Tuition]>=(0))"
    }
   ],
-  "so_dong": 10
+  "row_count": 10
  },
  {
-  "bang": "CLASS_SCHEDULE",
-  "cot": [
+  "table_name": "CLASS_SCHEDULE",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "ClassId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "tham_chieu": "CLASS"
+    "position": 1,
+    "name": "ClassId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "referenced_table": "CLASS"
    },
    {
-    "stt": 2,
-    "cot": "Weekday",
-    "kieu": "tinyint",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true
+    "position": 2,
+    "name": "Weekday",
+    "data_type": "tinyint",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true
    },
    {
-    "stt": 3,
-    "cot": "StartTime",
-    "kieu": "time(0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "StartTime",
+    "data_type": "time(0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "EndTime",
-    "kieu": "time(0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "EndTime",
+    "data_type": "time(0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_CLASS_SCHEDULE_Time",
-    "dinh_nghia": "([EndTime]>[StartTime] AND [StartTime]>='07:00' AND [EndTime]<='22:00')"
+    "name": "CK_CLASS_SCHEDULE_Time",
+    "definition": "([EndTime]>[StartTime] AND [StartTime]>='07:00' AND [EndTime]<='22:00')"
    },
    {
-    "ten": "CK_CLASS_SCHEDULE_Weekday",
-    "dinh_nghia": "([Weekday]>=(1) AND [Weekday]<=(7))"
+    "name": "CK_CLASS_SCHEDULE_Weekday",
+    "definition": "([Weekday]>=(1) AND [Weekday]<=(7))"
    }
   ],
-  "so_dong": 24
+  "row_count": 24
  },
  {
-  "bang": "CLASS_SESSION",
-  "cot": [
+  "table_name": "CLASS_SESSION",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "SessionId",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": true,
-    "tinh_toan": false,
-    "khoa_chinh": true
+    "position": 1,
+    "name": "SessionId",
+    "data_type": "int",
+    "is_nullable": false,
+    "is_identity": true,
+    "is_computed": false,
+    "is_primary_key": true
    },
    {
-    "stt": 2,
-    "cot": "ClassId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "CLASS"
+    "position": 2,
+    "name": "ClassId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "CLASS"
    },
    {
-    "stt": 3,
-    "cot": "SessionNo",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "SessionNo",
+    "data_type": "int",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "SessionDate",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "SessionDate",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 5,
-    "cot": "StartTime",
-    "kieu": "time(0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 5,
+    "name": "StartTime",
+    "data_type": "time(0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 6,
-    "cot": "EndTime",
-    "kieu": "time(0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 6,
+    "name": "EndTime",
+    "data_type": "time(0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 7,
-    "cot": "RoomId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "ROOM"
+    "position": 7,
+    "name": "RoomId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "ROOM"
    },
    {
-    "stt": 8,
-    "cot": "TeacherId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "TEACHER"
+    "position": 8,
+    "name": "TeacherId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "TEACHER"
    },
    {
-    "stt": 9,
-    "cot": "Description",
-    "kieu": "nvarchar(200)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 9,
+    "name": "Description",
+    "data_type": "nvarchar(200)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 10,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Scheduled')"
+    "position": 10,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Scheduled')"
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_CLASS_SESSION_SessionNo",
-    "dinh_nghia": "([SessionNo]>=(1))"
+    "name": "CK_CLASS_SESSION_SessionNo",
+    "definition": "([SessionNo]>=(1))"
    },
    {
-    "ten": "CK_CLASS_SESSION_Status",
-    "dinh_nghia": "([Status]=N'Cancelled' OR [Status]=N'Taught' OR [Status]=N'Scheduled')"
+    "name": "CK_CLASS_SESSION_Status",
+    "definition": "([Status]=N'Cancelled' OR [Status]=N'Taught' OR [Status]=N'Scheduled')"
    },
    {
-    "ten": "CK_CLASS_SESSION_Time",
-    "dinh_nghia": "([EndTime]>[StartTime])"
+    "name": "CK_CLASS_SESSION_Time",
+    "definition": "([EndTime]>[StartTime])"
    }
   ],
-  "unique_": [
+  "uniques": [
    {
-    "ten": "UQ_CLASS_SESSION_ClassId_SessionNo"
+    "name": "UQ_CLASS_SESSION_ClassId_SessionNo"
    }
   ],
-  "so_dong": 248
+  "row_count": 248
  },
  {
-  "bang": "COURSE",
-  "cot": [
+  "table_name": "COURSE",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "CourseId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true
+    "position": 1,
+    "name": "CourseId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true
    },
    {
-    "stt": 2,
-    "cot": "ProgramId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "PROGRAM"
+    "position": 2,
+    "name": "ProgramId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "PROGRAM"
    },
    {
-    "stt": 3,
-    "cot": "CourseName",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "CourseName",
+    "data_type": "nvarchar(100)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "Level",
-    "kieu": "varchar(2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "Level",
+    "data_type": "varchar(2)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 5,
-    "cot": "SessionCount",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 5,
+    "name": "SessionCount",
+    "data_type": "int",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 6,
-    "cot": "SessionMinutes",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "((90))"
+    "position": 6,
+    "name": "SessionMinutes",
+    "data_type": "int",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "((90))"
    },
    {
-    "stt": 7,
-    "cot": "Tuition",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 7,
+    "name": "Tuition",
+    "data_type": "decimal(12,0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 8,
-    "cot": "MinPlacementScore",
-    "kieu": "decimal(4,2)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 8,
+    "name": "MinPlacementScore",
+    "data_type": "decimal(4,2)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 9,
-    "cot": "PrerequisiteCourseId",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "COURSE"
+    "position": 9,
+    "name": "PrerequisiteCourseId",
+    "data_type": "varchar(10)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "COURSE"
    },
    {
-    "stt": 10,
-    "cot": "SyllabusXml",
-    "kieu": "xml",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 10,
+    "name": "SyllabusXml",
+    "data_type": "xml",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 11,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Open')"
+    "position": 11,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Open')"
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_COURSE_Level",
-    "dinh_nghia": "([Level]='C2' OR [Level]='C1' OR [Level]='B2' OR [Level]='B1' OR [Level]='A2' OR [Level]='A1')"
+    "name": "CK_COURSE_Level",
+    "definition": "([Level]='C2' OR [Level]='C1' OR [Level]='B2' OR [Level]='B1' OR [Level]='A2' OR [Level]='A1')"
    },
    {
-    "ten": "CK_COURSE_MinPlacementScore",
-    "dinh_nghia": "([MinPlacementScore]>=(0) AND [MinPlacementScore]<=(10))"
+    "name": "CK_COURSE_MinPlacementScore",
+    "definition": "([MinPlacementScore]>=(0) AND [MinPlacementScore]<=(10))"
    },
    {
-    "ten": "CK_COURSE_Prerequisite",
-    "dinh_nghia": "([PrerequisiteCourseId]<>[CourseId])"
+    "name": "CK_COURSE_Prerequisite",
+    "definition": "([PrerequisiteCourseId]<>[CourseId])"
    },
    {
-    "ten": "CK_COURSE_SessionCount",
-    "dinh_nghia": "([SessionCount]>=(1) AND [SessionCount]<=(200))"
+    "name": "CK_COURSE_SessionCount",
+    "definition": "([SessionCount]>=(1) AND [SessionCount]<=(200))"
    },
    {
-    "ten": "CK_COURSE_SessionMinutes",
-    "dinh_nghia": "([SessionMinutes]>=(30) AND [SessionMinutes]<=(240))"
+    "name": "CK_COURSE_SessionMinutes",
+    "definition": "([SessionMinutes]>=(30) AND [SessionMinutes]<=(240))"
    },
    {
-    "ten": "CK_COURSE_Status",
-    "dinh_nghia": "([Status]=N'Discontinued' OR [Status]=N'Open')"
+    "name": "CK_COURSE_Status",
+    "definition": "([Status]=N'Discontinued' OR [Status]=N'Open')"
    },
    {
-    "ten": "CK_COURSE_Tuition",
-    "dinh_nghia": "([Tuition]>=(0))"
+    "name": "CK_COURSE_Tuition",
+    "definition": "([Tuition]>=(0))"
    }
   ],
-  "unique_": [
+  "uniques": [
    {
-    "ten": "UQ_COURSE_CourseName"
+    "name": "UQ_COURSE_CourseName"
    }
   ],
-  "so_dong": 9
+  "row_count": 9
  },
  {
-  "bang": "EMPLOYEE",
-  "cot": [
+  "table_name": "EMPLOYEE",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "EmployeeId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('EM'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_EMPLOYEE]),(4)))"
+    "position": 1,
+    "name": "EmployeeId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "default_value": "('EM'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_EMPLOYEE]),(4)))"
    },
    {
-    "stt": 2,
-    "cot": "FullName",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 2,
+    "name": "FullName",
+    "data_type": "nvarchar(100)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 3,
-    "cot": "DateOfBirth",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "DateOfBirth",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "Gender",
-    "kieu": "nvarchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "Gender",
+    "data_type": "nvarchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 5,
-    "cot": "Phone",
-    "kieu": "varchar(15)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 5,
+    "name": "Phone",
+    "data_type": "varchar(15)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 6,
-    "cot": "Email",
-    "kieu": "varchar(100)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 6,
+    "name": "Email",
+    "data_type": "varchar(100)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 7,
-    "cot": "Address",
-    "kieu": "nvarchar(200)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 7,
+    "name": "Address",
+    "data_type": "nvarchar(200)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 8,
-    "cot": "Position",
-    "kieu": "nvarchar(30)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 8,
+    "name": "Position",
+    "data_type": "nvarchar(30)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 9,
-    "cot": "BranchId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "BRANCH"
+    "position": 9,
+    "name": "BranchId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "BRANCH"
    },
    {
-    "stt": 10,
-    "cot": "HireDate",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(CONVERT([date],getdate()))"
+    "position": 10,
+    "name": "HireDate",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(CONVERT([date],getdate()))"
    },
    {
-    "stt": 11,
-    "cot": "BaseSalary",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "((0))"
+    "position": 11,
+    "name": "BaseSalary",
+    "data_type": "decimal(12,0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "((0))"
    },
    {
-    "stt": 12,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Working')"
+    "position": 12,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Working')"
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_EMPLOYEE_Age",
-    "dinh_nghia": "(dateadd(year,(18),[DateOfBirth])<=[HireDate])"
+    "name": "CK_EMPLOYEE_Age",
+    "definition": "(dateadd(year,(18),[DateOfBirth])<=[HireDate])"
    },
    {
-    "ten": "CK_EMPLOYEE_BaseSalary",
-    "dinh_nghia": "([BaseSalary]>=(0))"
+    "name": "CK_EMPLOYEE_BaseSalary",
+    "definition": "([BaseSalary]>=(0))"
    },
    {
-    "ten": "CK_EMPLOYEE_Email",
-    "dinh_nghia": "([Email] like '%_@_%._%')"
+    "name": "CK_EMPLOYEE_Email",
+    "definition": "([Email] like '%_@_%._%')"
    },
    {
-    "ten": "CK_EMPLOYEE_Gender",
-    "dinh_nghia": "([Gender]=N'Other' OR [Gender]=N'Female' OR [Gender]=N'Male')"
+    "name": "CK_EMPLOYEE_Gender",
+    "definition": "([Gender]=N'Other' OR [Gender]=N'Female' OR [Gender]=N'Male')"
    },
    {
-    "ten": "CK_EMPLOYEE_Phone",
-    "dinh_nghia": "(NOT [Phone] like '%[^0-9]%' AND (len([Phone])>=(9) AND len([Phone])<=(11)))"
+    "name": "CK_EMPLOYEE_Phone",
+    "definition": "(NOT [Phone] like '%[^0-9]%' AND (len([Phone])>=(9) AND len([Phone])<=(11)))"
    },
    {
-    "ten": "CK_EMPLOYEE_Position",
-    "dinh_nghia": "([Position]=N'Consultant' OR [Position]=N'Accountant' OR [Position]=N'Academic staff' OR [Position]=N'Manager')"
+    "name": "CK_EMPLOYEE_Position",
+    "definition": "([Position]=N'Consultant' OR [Position]=N'Accountant' OR [Position]=N'Academic staff' OR [Position]=N'Manager')"
    },
    {
-    "ten": "CK_EMPLOYEE_Status",
-    "dinh_nghia": "([Status]=N'Left' OR [Status]=N'Working')"
+    "name": "CK_EMPLOYEE_Status",
+    "definition": "([Status]=N'Left' OR [Status]=N'Working')"
    }
   ],
-  "unique_": [
+  "uniques": [
    {
-    "ten": "UQ_EMPLOYEE_Phone"
+    "name": "UQ_EMPLOYEE_Phone"
    }
   ],
-  "so_dong": 6
+  "row_count": 6
  },
  {
-  "bang": "ENROLLMENT",
-  "cot": [
+  "table_name": "ENROLLMENT",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "EnrollmentId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('EN'+right('000000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_ENROLLMENT]),(6)))"
+    "position": 1,
+    "name": "EnrollmentId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "default_value": "('EN'+right('000000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_ENROLLMENT]),(6)))"
    },
    {
-    "stt": 2,
-    "cot": "StudentId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "STUDENT"
+    "position": 2,
+    "name": "StudentId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "STUDENT"
    },
    {
-    "stt": 3,
-    "cot": "ClassId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "CLASS"
+    "position": 3,
+    "name": "ClassId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "CLASS"
    },
    {
-    "stt": 4,
-    "cot": "EnrolledOn",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(CONVERT([date],getdate()))"
+    "position": 4,
+    "name": "EnrolledOn",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(CONVERT([date],getdate()))"
    },
    {
-    "stt": 5,
-    "cot": "BaseTuition",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 5,
+    "name": "BaseTuition",
+    "data_type": "decimal(12,0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 6,
-    "cot": "PromotionId",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "PROMOTION"
+    "position": 6,
+    "name": "PromotionId",
+    "data_type": "varchar(10)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "PROMOTION"
    },
    {
-    "stt": 7,
-    "cot": "DiscountAmount",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "((0))"
+    "position": 7,
+    "name": "DiscountAmount",
+    "data_type": "decimal(12,0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "((0))"
    },
    {
-    "stt": 8,
-    "cot": "TuitionDue",
-    "kieu": "decimal(13,0)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": true,
-    "khoa_chinh": false,
-    "cong_thuc": "([BaseTuition]-[DiscountAmount])"
+    "position": 8,
+    "name": "TuitionDue",
+    "data_type": "decimal(13,0)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": true,
+    "is_primary_key": false,
+    "formula": "([BaseTuition]-[DiscountAmount])"
    },
    {
-    "stt": 9,
-    "cot": "AmountPaid",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "((0))"
+    "position": 9,
+    "name": "AmountPaid",
+    "data_type": "decimal(12,0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "((0))"
    },
    {
-    "stt": 10,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Studying')"
+    "position": 10,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Studying')"
    },
    {
-    "stt": 11,
-    "cot": "FinalGrade",
-    "kieu": "decimal(4,2)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 11,
+    "name": "FinalGrade",
+    "data_type": "decimal(4,2)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 12,
-    "cot": "Result",
-    "kieu": "nvarchar(20)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 12,
+    "name": "Result",
+    "data_type": "nvarchar(20)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 13,
-    "cot": "EnrolledByEmployeeId",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "EMPLOYEE"
+    "position": 13,
+    "name": "EnrolledByEmployeeId",
+    "data_type": "varchar(10)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "EMPLOYEE"
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_ENROLLMENT_AmountPaid",
-    "dinh_nghia": "([AmountPaid]>=(0) AND [AmountPaid]<=([BaseTuition]-[DiscountAmount]))"
+    "name": "CK_ENROLLMENT_AmountPaid",
+    "definition": "([AmountPaid]>=(0) AND [AmountPaid]<=([BaseTuition]-[DiscountAmount]))"
    },
    {
-    "ten": "CK_ENROLLMENT_BaseTuition",
-    "dinh_nghia": "([BaseTuition]>=(0))"
+    "name": "CK_ENROLLMENT_BaseTuition",
+    "definition": "([BaseTuition]>=(0))"
    },
    {
-    "ten": "CK_ENROLLMENT_DiscountAmount",
-    "dinh_nghia": "([DiscountAmount]>=(0) AND [DiscountAmount]<=[BaseTuition])"
+    "name": "CK_ENROLLMENT_DiscountAmount",
+    "definition": "([DiscountAmount]>=(0) AND [DiscountAmount]<=[BaseTuition])"
    },
    {
-    "ten": "CK_ENROLLMENT_FinalGrade",
-    "dinh_nghia": "([FinalGrade]>=(0) AND [FinalGrade]<=(10))"
+    "name": "CK_ENROLLMENT_FinalGrade",
+    "definition": "([FinalGrade]>=(0) AND [FinalGrade]<=(10))"
    },
    {
-    "ten": "CK_ENROLLMENT_Result",
-    "dinh_nghia": "([Result]=N'Failed' OR [Result]=N'Passed')"
+    "name": "CK_ENROLLMENT_Result",
+    "definition": "([Result]=N'Failed' OR [Result]=N'Passed')"
    },
    {
-    "ten": "CK_ENROLLMENT_Status",
-    "dinh_nghia": "([Status]=N'Completed' OR [Status]=N'Left' OR [Status]=N'On hold' OR [Status]=N'Studying')"
+    "name": "CK_ENROLLMENT_Status",
+    "definition": "([Status]=N'Completed' OR [Status]=N'Left' OR [Status]=N'On hold' OR [Status]=N'Studying')"
    }
   ],
-  "unique_": [
+  "uniques": [
    {
-    "ten": "UQ_ENROLLMENT_StudentId_ClassId"
+    "name": "UQ_ENROLLMENT_StudentId_ClassId"
    }
   ],
-  "so_dong": 84
+  "row_count": 84
  },
  {
-  "bang": "GRADE",
-  "cot": [
+  "table_name": "GRADE",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "EnrollmentId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "tham_chieu": "ENROLLMENT"
+    "position": 1,
+    "name": "EnrollmentId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "referenced_table": "ENROLLMENT"
    },
    {
-    "stt": 2,
-    "cot": "ComponentId",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "tham_chieu": "GRADE_COMPONENT"
+    "position": 2,
+    "name": "ComponentId",
+    "data_type": "int",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "referenced_table": "GRADE_COMPONENT"
    },
    {
-    "stt": 3,
-    "cot": "Score",
-    "kieu": "decimal(4,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "Score",
+    "data_type": "decimal(4,2)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "EnteredAt",
-    "kieu": "datetime",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(getdate())"
+    "position": 4,
+    "name": "EnteredAt",
+    "data_type": "datetime",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(getdate())"
    },
    {
-    "stt": 5,
-    "cot": "EnteredBy",
-    "kieu": "nvarchar(128)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(original_login())"
+    "position": 5,
+    "name": "EnteredBy",
+    "data_type": "nvarchar(128)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(original_login())"
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_GRADE_Score",
-    "dinh_nghia": "([Score]>=(0) AND [Score]<=(10))"
+    "name": "CK_GRADE_Score",
+    "definition": "([Score]>=(0) AND [Score]<=(10))"
    }
   ],
-  "so_dong": 138
+  "row_count": 138
  },
  {
-  "bang": "GRADE_COMPONENT",
-  "cot": [
+  "table_name": "GRADE_COMPONENT",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "ComponentId",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": true,
-    "tinh_toan": false,
-    "khoa_chinh": true
+    "position": 1,
+    "name": "ComponentId",
+    "data_type": "int",
+    "is_nullable": false,
+    "is_identity": true,
+    "is_computed": false,
+    "is_primary_key": true
    },
    {
-    "stt": 2,
-    "cot": "CourseId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "COURSE"
+    "position": 2,
+    "name": "CourseId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "COURSE"
    },
    {
-    "stt": 3,
-    "cot": "ComponentName",
-    "kieu": "nvarchar(50)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "ComponentName",
+    "data_type": "nvarchar(50)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "Weight",
-    "kieu": "decimal(5,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "Weight",
+    "data_type": "decimal(5,2)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_GRADE_COMPONENT_Weight",
-    "dinh_nghia": "([Weight]>(0) AND [Weight]<=(100))"
+    "name": "CK_GRADE_COMPONENT_Weight",
+    "definition": "([Weight]>(0) AND [Weight]<=(100))"
    }
   ],
-  "unique_": [
+  "uniques": [
    {
-    "ten": "UQ_GRADE_COMPONENT_CourseId_ComponentName"
+    "name": "UQ_GRADE_COMPONENT_CourseId_ComponentName"
    }
   ],
-  "so_dong": 27
+  "row_count": 27
  },
  {
-  "bang": "PAYROLL",
-  "cot": [
+  "table_name": "PAYROLL",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "PayrollId",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": true,
-    "tinh_toan": false,
-    "khoa_chinh": true
+    "position": 1,
+    "name": "PayrollId",
+    "data_type": "int",
+    "is_nullable": false,
+    "is_identity": true,
+    "is_computed": false,
+    "is_primary_key": true
    },
    {
-    "stt": 2,
-    "cot": "TeacherId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "TEACHER"
+    "position": 2,
+    "name": "TeacherId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "TEACHER"
    },
    {
-    "stt": 3,
-    "cot": "Month",
-    "kieu": "tinyint",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "Month",
+    "data_type": "tinyint",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "Year",
-    "kieu": "smallint",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "Year",
+    "data_type": "smallint",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 5,
-    "cot": "SessionCount",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 5,
+    "name": "SessionCount",
+    "data_type": "int",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 6,
-    "cot": "Hours",
-    "kieu": "decimal(6,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 6,
+    "name": "Hours",
+    "data_type": "decimal(6,2)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 7,
-    "cot": "HourlyRate",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 7,
+    "name": "HourlyRate",
+    "data_type": "decimal(12,0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 8,
-    "cot": "Bonus",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "((0))"
+    "position": 8,
+    "name": "Bonus",
+    "data_type": "decimal(12,0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "((0))"
    },
    {
-    "stt": 9,
-    "cot": "Deduction",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "((0))"
+    "position": 9,
+    "name": "Deduction",
+    "data_type": "decimal(12,0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "((0))"
    },
    {
-    "stt": 10,
-    "cot": "TotalPay",
-    "kieu": "decimal(16,0)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": true,
-    "khoa_chinh": false,
-    "cong_thuc": "((CONVERT([decimal](14,0),[Hours]*[HourlyRate])+[Bonus])-[Deduction])"
+    "position": 10,
+    "name": "TotalPay",
+    "data_type": "decimal(16,0)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": true,
+    "is_primary_key": false,
+    "formula": "((CONVERT([decimal](14,0),[Hours]*[HourlyRate])+[Bonus])-[Deduction])"
    },
    {
-    "stt": 11,
-    "cot": "FinalizedAt",
-    "kieu": "datetime",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(getdate())"
+    "position": 11,
+    "name": "FinalizedAt",
+    "data_type": "datetime",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(getdate())"
    },
    {
-    "stt": 12,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Finalized')"
+    "position": 12,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Finalized')"
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_PAYROLL_Figures",
-    "dinh_nghia": "([SessionCount]>=(0) AND [Hours]>=(0) AND [Bonus]>=(0) AND [Deduction]>=(0))"
+    "name": "CK_PAYROLL_Figures",
+    "definition": "([SessionCount]>=(0) AND [Hours]>=(0) AND [Bonus]>=(0) AND [Deduction]>=(0))"
    },
    {
-    "ten": "CK_PAYROLL_Month",
-    "dinh_nghia": "([Month]>=(1) AND [Month]<=(12))"
+    "name": "CK_PAYROLL_Month",
+    "definition": "([Month]>=(1) AND [Month]<=(12))"
    },
    {
-    "ten": "CK_PAYROLL_Status",
-    "dinh_nghia": "([Status]=N'Paid' OR [Status]=N'Finalized')"
+    "name": "CK_PAYROLL_Status",
+    "definition": "([Status]=N'Paid' OR [Status]=N'Finalized')"
    },
    {
-    "ten": "CK_PAYROLL_Year",
-    "dinh_nghia": "([Year]>=(2020))"
+    "name": "CK_PAYROLL_Year",
+    "definition": "([Year]>=(2020))"
    }
   ],
-  "unique_": [
+  "uniques": [
    {
-    "ten": "UQ_PAYROLL_TeacherId_Month_Year"
+    "name": "UQ_PAYROLL_TeacherId_Month_Year"
    }
   ],
-  "so_dong": 9
+  "row_count": 9
  },
  {
-  "bang": "PLACEMENT_TEST",
-  "cot": [
+  "table_name": "PLACEMENT_TEST",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "TestId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('PT'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_PLACEMENT_TEST]),(5)))"
+    "position": 1,
+    "name": "TestId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "default_value": "('PT'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_PLACEMENT_TEST]),(5)))"
    },
    {
-    "stt": 2,
-    "cot": "StudentId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "STUDENT"
+    "position": 2,
+    "name": "StudentId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "STUDENT"
    },
    {
-    "stt": 3,
-    "cot": "TestDate",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(CONVERT([date],getdate()))"
+    "position": 3,
+    "name": "TestDate",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(CONVERT([date],getdate()))"
    },
    {
-    "stt": 4,
-    "cot": "ListeningScore",
-    "kieu": "decimal(4,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "ListeningScore",
+    "data_type": "decimal(4,2)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 5,
-    "cot": "SpeakingScore",
-    "kieu": "decimal(4,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 5,
+    "name": "SpeakingScore",
+    "data_type": "decimal(4,2)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 6,
-    "cot": "ReadingScore",
-    "kieu": "decimal(4,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 6,
+    "name": "ReadingScore",
+    "data_type": "decimal(4,2)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 7,
-    "cot": "WritingScore",
-    "kieu": "decimal(4,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 7,
+    "name": "WritingScore",
+    "data_type": "decimal(4,2)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 8,
-    "cot": "OverallScore",
-    "kieu": "decimal(4,2)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": true,
-    "khoa_chinh": false,
-    "cong_thuc": "(CONVERT([decimal](4,2),((([ListeningScore]+[SpeakingScore])+[ReadingScore])+[WritingScore])/(4)))"
+    "position": 8,
+    "name": "OverallScore",
+    "data_type": "decimal(4,2)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": true,
+    "is_primary_key": false,
+    "formula": "(CONVERT([decimal](4,2),((([ListeningScore]+[SpeakingScore])+[ReadingScore])+[WritingScore])/(4)))"
    },
    {
-    "stt": 9,
-    "cot": "RecommendedCourseId",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "COURSE"
+    "position": 9,
+    "name": "RecommendedCourseId",
+    "data_type": "varchar(10)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "COURSE"
    },
    {
-    "stt": 10,
-    "cot": "GradedByTeacherId",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "TEACHER"
+    "position": 10,
+    "name": "GradedByTeacherId",
+    "data_type": "varchar(10)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "TEACHER"
    },
    {
-    "stt": 11,
-    "cot": "Notes",
-    "kieu": "nvarchar(200)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 11,
+    "name": "Notes",
+    "data_type": "nvarchar(200)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_PLACEMENT_TEST_Scores",
-    "dinh_nghia": "([ListeningScore]>=(0) AND [ListeningScore]<=(10) AND ([SpeakingScore]>=(0) AND [SpeakingScore]<=(10)) AND ([ReadingScore]>=(0) AND [ReadingScore]<=(10)) AND ([WritingScore]>=(0) AND [WritingScore]<=(10)))"
+    "name": "CK_PLACEMENT_TEST_Scores",
+    "definition": "([ListeningScore]>=(0) AND [ListeningScore]<=(10) AND ([SpeakingScore]>=(0) AND [SpeakingScore]<=(10)) AND ([ReadingScore]>=(0) AND [ReadingScore]<=(10)) AND ([WritingScore]>=(0) AND [WritingScore]<=(10)))"
    }
   ],
-  "so_dong": 44
+  "row_count": 44
  },
  {
-  "bang": "PROGRAM",
-  "cot": [
+  "table_name": "PROGRAM",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "ProgramId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true
+    "position": 1,
+    "name": "ProgramId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true
    },
    {
-    "stt": 2,
-    "cot": "ProgramName",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 2,
+    "name": "ProgramName",
+    "data_type": "nvarchar(100)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 3,
-    "cot": "TargetLearners",
-    "kieu": "nvarchar(100)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "TargetLearners",
+    "data_type": "nvarchar(100)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "Description",
-    "kieu": "nvarchar(500)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "Description",
+    "data_type": "nvarchar(500)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    }
   ],
-  "unique_": [
+  "uniques": [
    {
-    "ten": "UQ_PROGRAM_ProgramName"
+    "name": "UQ_PROGRAM_ProgramName"
    }
   ],
-  "so_dong": 4
+  "row_count": 4
  },
  {
-  "bang": "PROMOTION",
-  "cot": [
+  "table_name": "PROMOTION",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "PromotionId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true
+    "position": 1,
+    "name": "PromotionId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true
    },
    {
-    "stt": 2,
-    "cot": "PromotionName",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 2,
+    "name": "PromotionName",
+    "data_type": "nvarchar(100)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 3,
-    "cot": "DiscountType",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "DiscountType",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "DiscountValue",
-    "kieu": "decimal(12,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "DiscountValue",
+    "data_type": "decimal(12,2)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 5,
-    "cot": "StartDate",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 5,
+    "name": "StartDate",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 6,
-    "cot": "EndDate",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 6,
+    "name": "EndDate",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_PROMOTION_Dates",
-    "dinh_nghia": "([EndDate]>=[StartDate])"
+    "name": "CK_PROMOTION_Dates",
+    "definition": "([EndDate]>=[StartDate])"
    },
    {
-    "ten": "CK_PROMOTION_DiscountType",
-    "dinh_nghia": "([DiscountType]='AMOUNT' OR [DiscountType]='PERCENT')"
+    "name": "CK_PROMOTION_DiscountType",
+    "definition": "([DiscountType]='AMOUNT' OR [DiscountType]='PERCENT')"
    },
    {
-    "ten": "CK_PROMOTION_DiscountValue",
-    "dinh_nghia": "([DiscountValue]>(0) AND ([DiscountType]<>'PERCENT' OR [DiscountValue]<=(50)))"
+    "name": "CK_PROMOTION_DiscountValue",
+    "definition": "([DiscountValue]>(0) AND ([DiscountType]<>'PERCENT' OR [DiscountValue]<=(50)))"
    }
   ],
-  "so_dong": 3
+  "row_count": 3
  },
  {
-  "bang": "RECEIPT",
-  "cot": [
+  "table_name": "RECEIPT",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "ReceiptId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('RC'+right('000000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_RECEIPT]),(6)))"
+    "position": 1,
+    "name": "ReceiptId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "default_value": "('RC'+right('000000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_RECEIPT]),(6)))"
    },
    {
-    "stt": 2,
-    "cot": "EnrollmentId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "ENROLLMENT"
+    "position": 2,
+    "name": "EnrollmentId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "ENROLLMENT"
    },
    {
-    "stt": 3,
-    "cot": "PaidAt",
-    "kieu": "datetime",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(getdate())"
+    "position": 3,
+    "name": "PaidAt",
+    "data_type": "datetime",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(getdate())"
    },
    {
-    "stt": 4,
-    "cot": "Amount",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "Amount",
+    "data_type": "decimal(12,0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 5,
-    "cot": "PaymentMethod",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Cash')"
+    "position": 5,
+    "name": "PaymentMethod",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Cash')"
    },
    {
-    "stt": 6,
-    "cot": "CollectedByEmployeeId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "EMPLOYEE"
+    "position": 6,
+    "name": "CollectedByEmployeeId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "EMPLOYEE"
    },
    {
-    "stt": 7,
-    "cot": "Description",
-    "kieu": "nvarchar(200)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 7,
+    "name": "Description",
+    "data_type": "nvarchar(200)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 8,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Valid')"
+    "position": 8,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Valid')"
    },
    {
-    "stt": 9,
-    "cot": "CancelReason",
-    "kieu": "nvarchar(200)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 9,
+    "name": "CancelReason",
+    "data_type": "nvarchar(200)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_RECEIPT_Amount",
-    "dinh_nghia": "([Amount]>(0))"
+    "name": "CK_RECEIPT_Amount",
+    "definition": "([Amount]>(0))"
    },
    {
-    "ten": "CK_RECEIPT_CancelReason",
-    "dinh_nghia": "([Status]=N'Valid' OR [CancelReason] IS NOT NULL)"
+    "name": "CK_RECEIPT_CancelReason",
+    "definition": "([Status]=N'Valid' OR [CancelReason] IS NOT NULL)"
    },
    {
-    "ten": "CK_RECEIPT_PaymentMethod",
-    "dinh_nghia": "([PaymentMethod]=N'Card' OR [PaymentMethod]=N'Bank transfer' OR [PaymentMethod]=N'Cash')"
+    "name": "CK_RECEIPT_PaymentMethod",
+    "definition": "([PaymentMethod]=N'Card' OR [PaymentMethod]=N'Bank transfer' OR [PaymentMethod]=N'Cash')"
    },
    {
-    "ten": "CK_RECEIPT_Status",
-    "dinh_nghia": "([Status]=N'Cancelled' OR [Status]=N'Valid')"
+    "name": "CK_RECEIPT_Status",
+    "definition": "([Status]=N'Cancelled' OR [Status]=N'Valid')"
    }
   ],
-  "so_dong": 97
+  "row_count": 97
  },
  {
-  "bang": "ROOM",
-  "cot": [
+  "table_name": "ROOM",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "RoomId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true
+    "position": 1,
+    "name": "RoomId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true
    },
    {
-    "stt": 2,
-    "cot": "BranchId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "BRANCH"
+    "position": 2,
+    "name": "BranchId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "BRANCH"
    },
    {
-    "stt": 3,
-    "cot": "RoomName",
-    "kieu": "nvarchar(50)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "RoomName",
+    "data_type": "nvarchar(50)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "Capacity",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "Capacity",
+    "data_type": "int",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 5,
-    "cot": "RoomType",
-    "kieu": "nvarchar(30)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Lecture')"
+    "position": 5,
+    "name": "RoomType",
+    "data_type": "nvarchar(30)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Lecture')"
    },
    {
-    "stt": 6,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Available')"
+    "position": 6,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Available')"
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_ROOM_Capacity",
-    "dinh_nghia": "([Capacity]>=(1) AND [Capacity]<=(100))"
+    "name": "CK_ROOM_Capacity",
+    "definition": "([Capacity]>=(1) AND [Capacity]<=(100))"
    },
    {
-    "ten": "CK_ROOM_RoomType",
-    "dinh_nghia": "([RoomType]=N'Multi-purpose' OR [RoomType]=N'Lab' OR [RoomType]=N'Lecture')"
+    "name": "CK_ROOM_RoomType",
+    "definition": "([RoomType]=N'Multi-purpose' OR [RoomType]=N'Lab' OR [RoomType]=N'Lecture')"
    },
    {
-    "ten": "CK_ROOM_Status",
-    "dinh_nghia": "([Status]=N'Maintenance' OR [Status]=N'Available')"
+    "name": "CK_ROOM_Status",
+    "definition": "([Status]=N'Maintenance' OR [Status]=N'Available')"
    }
   ],
-  "unique_": [
+  "uniques": [
    {
-    "ten": "UQ_ROOM_BranchId_RoomName"
+    "name": "UQ_ROOM_BranchId_RoomName"
    }
   ],
-  "so_dong": 8
+  "row_count": 8
  },
  {
-  "bang": "STUDENT",
-  "cot": [
+  "table_name": "STUDENT",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "StudentId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('ST'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_STUDENT]),(5)))"
+    "position": 1,
+    "name": "StudentId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "default_value": "('ST'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_STUDENT]),(5)))"
    },
    {
-    "stt": 2,
-    "cot": "FullName",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 2,
+    "name": "FullName",
+    "data_type": "nvarchar(100)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 3,
-    "cot": "DateOfBirth",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "DateOfBirth",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "Gender",
-    "kieu": "nvarchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "Gender",
+    "data_type": "nvarchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 5,
-    "cot": "Phone",
-    "kieu": "varchar(15)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 5,
+    "name": "Phone",
+    "data_type": "varchar(15)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 6,
-    "cot": "Email",
-    "kieu": "varchar(100)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 6,
+    "name": "Email",
+    "data_type": "varchar(100)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 7,
-    "cot": "Address",
-    "kieu": "nvarchar(200)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 7,
+    "name": "Address",
+    "data_type": "nvarchar(200)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 8,
-    "cot": "Occupation",
-    "kieu": "nvarchar(50)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 8,
+    "name": "Occupation",
+    "data_type": "nvarchar(50)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 9,
-    "cot": "GuardianName",
-    "kieu": "nvarchar(100)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 9,
+    "name": "GuardianName",
+    "data_type": "nvarchar(100)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 10,
-    "cot": "GuardianPhone",
-    "kieu": "varchar(15)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 10,
+    "name": "GuardianPhone",
+    "data_type": "varchar(15)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 11,
-    "cot": "BranchId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "BRANCH"
+    "position": 11,
+    "name": "BranchId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "BRANCH"
    },
    {
-    "stt": 12,
-    "cot": "RegisteredOn",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(CONVERT([date],getdate()))"
+    "position": 12,
+    "name": "RegisteredOn",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(CONVERT([date],getdate()))"
    },
    {
-    "stt": 13,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Prospective')"
+    "position": 13,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Prospective')"
    },
    {
-    "stt": 14,
-    "cot": "Notes",
-    "kieu": "nvarchar(500)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 14,
+    "name": "Notes",
+    "data_type": "nvarchar(500)",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_STUDENT_Contact",
-    "dinh_nghia": "([Phone] IS NOT NULL OR [GuardianPhone] IS NOT NULL)"
+    "name": "CK_STUDENT_Contact",
+    "definition": "([Phone] IS NOT NULL OR [GuardianPhone] IS NOT NULL)"
    },
    {
-    "ten": "CK_STUDENT_DateOfBirth",
-    "dinh_nghia": "([DateOfBirth]>'19300101' AND dateadd(year,(4),[DateOfBirth])<=[RegisteredOn])"
+    "name": "CK_STUDENT_DateOfBirth",
+    "definition": "([DateOfBirth]>'19300101' AND dateadd(year,(4),[DateOfBirth])<=[RegisteredOn])"
    },
    {
-    "ten": "CK_STUDENT_Email",
-    "dinh_nghia": "([Email] like '%_@_%._%')"
+    "name": "CK_STUDENT_Email",
+    "definition": "([Email] like '%_@_%._%')"
    },
    {
-    "ten": "CK_STUDENT_Gender",
-    "dinh_nghia": "([Gender]=N'Other' OR [Gender]=N'Female' OR [Gender]=N'Male')"
+    "name": "CK_STUDENT_Gender",
+    "definition": "([Gender]=N'Other' OR [Gender]=N'Female' OR [Gender]=N'Male')"
    },
    {
-    "ten": "CK_STUDENT_Guardian",
-    "dinh_nghia": "(dateadd(year,(18),[DateOfBirth])<=[RegisteredOn] OR [GuardianName] IS NOT NULL AND [GuardianPhone] IS NOT NULL)"
+    "name": "CK_STUDENT_Guardian",
+    "definition": "(dateadd(year,(18),[DateOfBirth])<=[RegisteredOn] OR [GuardianName] IS NOT NULL AND [GuardianPhone] IS NOT NULL)"
    },
    {
-    "ten": "CK_STUDENT_GuardianPhone",
-    "dinh_nghia": "(NOT [GuardianPhone] like '%[^0-9]%' AND (len([GuardianPhone])>=(9) AND len([GuardianPhone])<=(11)))"
+    "name": "CK_STUDENT_GuardianPhone",
+    "definition": "(NOT [GuardianPhone] like '%[^0-9]%' AND (len([GuardianPhone])>=(9) AND len([GuardianPhone])<=(11)))"
    },
    {
-    "ten": "CK_STUDENT_Phone",
-    "dinh_nghia": "(NOT [Phone] like '%[^0-9]%' AND (len([Phone])>=(9) AND len([Phone])<=(11)))"
+    "name": "CK_STUDENT_Phone",
+    "definition": "(NOT [Phone] like '%[^0-9]%' AND (len([Phone])>=(9) AND len([Phone])<=(11)))"
    },
    {
-    "ten": "CK_STUDENT_Status",
-    "dinh_nghia": "([Status]=N'Dropped out' OR [Status]=N'On hold' OR [Status]=N'Studying' OR [Status]=N'Prospective')"
+    "name": "CK_STUDENT_Status",
+    "definition": "([Status]=N'Dropped out' OR [Status]=N'On hold' OR [Status]=N'Studying' OR [Status]=N'Prospective')"
    }
   ],
-  "so_dong": 72
+  "row_count": 72
  },
  {
-  "bang": "TEACHER",
-  "cot": [
+  "table_name": "TEACHER",
+  "columns": [
    {
-    "stt": 1,
-    "cot": "TeacherId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('TE'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_TEACHER]),(4)))"
+    "position": 1,
+    "name": "TeacherId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": true,
+    "default_value": "('TE'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_TEACHER]),(4)))"
    },
    {
-    "stt": 2,
-    "cot": "FullName",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 2,
+    "name": "FullName",
+    "data_type": "nvarchar(100)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 3,
-    "cot": "DateOfBirth",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 3,
+    "name": "DateOfBirth",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 4,
-    "cot": "Gender",
-    "kieu": "nvarchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 4,
+    "name": "Gender",
+    "data_type": "nvarchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 5,
-    "cot": "Nationality",
-    "kieu": "nvarchar(50)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Vietnam')"
+    "position": 5,
+    "name": "Nationality",
+    "data_type": "nvarchar(50)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Vietnam')"
    },
    {
-    "stt": 6,
-    "cot": "Phone",
-    "kieu": "varchar(15)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 6,
+    "name": "Phone",
+    "data_type": "varchar(15)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 7,
-    "cot": "Email",
-    "kieu": "varchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 7,
+    "name": "Email",
+    "data_type": "varchar(100)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 8,
-    "cot": "Degree",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 8,
+    "name": "Degree",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 9,
-    "cot": "TeacherType",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 9,
+    "name": "TeacherType",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 10,
-    "cot": "HourlyRate",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 10,
+    "name": "HourlyRate",
+    "data_type": "decimal(12,0)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 11,
-    "cot": "ProfileXml",
-    "kieu": "xml",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "position": 11,
+    "name": "ProfileXml",
+    "data_type": "xml",
+    "is_nullable": true,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false
    },
    {
-    "stt": 12,
-    "cot": "BranchId",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "BRANCH"
+    "position": 12,
+    "name": "BranchId",
+    "data_type": "varchar(10)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "referenced_table": "BRANCH"
    },
    {
-    "stt": 13,
-    "cot": "HireDate",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(CONVERT([date],getdate()))"
+    "position": 13,
+    "name": "HireDate",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(CONVERT([date],getdate()))"
    },
    {
-    "stt": 14,
-    "cot": "Status",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Teaching')"
+    "position": 14,
+    "name": "Status",
+    "data_type": "nvarchar(20)",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(N'Teaching')"
    }
   ],
-  "check_": [
+  "checks": [
    {
-    "ten": "CK_TEACHER_Degree",
-    "dinh_nghia": "([Degree]=N'PhD' OR [Degree]=N'Master' OR [Degree]=N'Bachelor')"
+    "name": "CK_TEACHER_Degree",
+    "definition": "([Degree]=N'PhD' OR [Degree]=N'Master' OR [Degree]=N'Bachelor')"
    },
    {
-    "ten": "CK_TEACHER_Email",
-    "dinh_nghia": "([Email] like '%_@_%._%')"
+    "name": "CK_TEACHER_Email",
+    "definition": "([Email] like '%_@_%._%')"
    },
    {
-    "ten": "CK_TEACHER_Gender",
-    "dinh_nghia": "([Gender]=N'Other' OR [Gender]=N'Female' OR [Gender]=N'Male')"
+    "name": "CK_TEACHER_Gender",
+    "definition": "([Gender]=N'Other' OR [Gender]=N'Female' OR [Gender]=N'Male')"
    },
    {
-    "ten": "CK_TEACHER_HourlyRate",
-    "dinh_nghia": "([HourlyRate]>(0))"
+    "name": "CK_TEACHER_HourlyRate",
+    "definition": "([HourlyRate]>(0))"
    },
    {
-    "ten": "CK_TEACHER_Native",
-    "dinh_nghia": "([TeacherType]=N'Vietnamese' OR [Nationality]<>N'Vietnam')"
+    "name": "CK_TEACHER_Native",
+    "definition": "([TeacherType]=N'Vietnamese' OR [Nationality]<>N'Vietnam')"
    },
    {
-    "ten": "CK_TEACHER_Phone",
-    "dinh_nghia": "(NOT [Phone] like '%[^0-9]%' AND (len([Phone])>=(9) AND len([Phone])<=(11)))"
+    "name": "CK_TEACHER_Phone",
+    "definition": "(NOT [Phone] like '%[^0-9]%' AND (len([Phone])>=(9) AND len([Phone])<=(11)))"
    },
    {
-    "ten": "CK_TEACHER_Status",
-    "dinh_nghia": "([Status]=N'Left' OR [Status]=N'On leave' OR [Status]=N'Teaching')"
+    "name": "CK_TEACHER_Status",
+    "definition": "([Status]=N'Left' OR [Status]=N'On leave' OR [Status]=N'Teaching')"
    },
    {
-    "ten": "CK_TEACHER_TeacherType",
-    "dinh_nghia": "([TeacherType]=N'Native' OR [TeacherType]=N'Vietnamese')"
+    "name": "CK_TEACHER_TeacherType",
+    "definition": "([TeacherType]=N'Native' OR [TeacherType]=N'Vietnamese')"
    }
   ],
-  "unique_": [
+  "uniques": [
    {
-    "ten": "UQ_TEACHER_Email"
+    "name": "UQ_TEACHER_Email"
    },
    {
-    "ten": "UQ_TEACHER_Phone"
+    "name": "UQ_TEACHER_Phone"
    }
   ],
-  "so_dong": 8
+  "row_count": 8
  }
 ]

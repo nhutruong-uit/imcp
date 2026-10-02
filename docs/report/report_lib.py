@@ -1,8 +1,8 @@
-"""Thư viện dựng báo cáo .docx theo mẫu báo cáo UIT của nhóm (template/uit_report_template.docx).
+"""Builds the .docx report from the group's UIT report template (template/uit_report_template.docx).
 
-Cung cấp các khối: tiêu đề chương/mục, đoạn văn có định dạng nội tuyến (**đậm**, *nghiêng*, `mã`),
-danh sách gạch đầu dòng, bảng dữ liệu (tiêu đề nền navy), khung mã SQL tô màu cú pháp,
-hình có chú thích, mục lục / danh mục hình / danh mục bảng (field của Word).
+Building blocks: chapter/section headings, paragraphs with inline formatting (**bold**, *italic*, `code`),
+bullet lists, data tables (navy header), SQL code boxes with syntax highlighting, figures with captions,
+table of contents / list of figures / list of tables (Word fields).
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ BORDER = "BFBFBF"
 CODE_TITLE_BG = "E7ECF5"
 CODE_BG = "F7F7F7"
 INLINE_CODE = "C7254E"
-PAGE_WIDTH_TWIPS = 9070  # khổ A4, lề trái/phải 2,5 cm
+PAGE_WIDTH_TWIPS = 9070  # A4, 2.5 cm left/right margins
 
 SQL_KEYWORDS = set("""
 ADD AFTER ALL ALTER AND APPLY AS ASC AUTHORIZATION BACKUP BEGIN BETWEEN BREAK BY CASCADE CASE CATCH CHECK CLOSE
@@ -44,7 +44,7 @@ DATABASE_PRINCIPAL_ID CHECKSUM ABS FORMAT DATEFROMPARTS SERVERPROPERTY CHARINDEX
 """.split())
 
 
-# ---------------------------------------------------------------------------- tiện ích XML
+# ---------------------------------------------------------------------------- XML helpers
 def _set_cell_shading(cell, fill: str) -> None:
     tcPr = cell._tc.get_or_add_tcPr()
     shd = OxmlElement("w:shd")
@@ -101,7 +101,7 @@ def _cant_split(row) -> None:
 
 
 def _add_field(paragraph, instr: str, placeholder: str = "") -> None:
-    """Chèn field của Word (TOC, PAGE...) - Word cập nhật khi mở/ấn F9."""
+    """Inserts a Word field (TOC, PAGE...); Word fills it in when the document is opened or on F9."""
     run = paragraph.add_run()
     fld = OxmlElement("w:fldChar")
     fld.set(qn("w:fldCharType"), "begin")
@@ -143,7 +143,7 @@ def _para_format(p, after=120, line=276, first_line=284, align="both", before=0,
         pPr.insert(0, OxmlElement("w:keepNext"))
 
 
-# ---------------------------------------------------------------------------- tô màu SQL
+# ---------------------------------------------------------------------------- SQL highlighting
 _TOKEN_RE = re.compile(
     r"(--[^\n]*)|(/\*.*?\*/)|(N?'(?:[^']|'')*')|(@@?\w+)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][\w$#]*)|(\s+)|(.)",
     re.S,
@@ -151,7 +151,7 @@ _TOKEN_RE = re.compile(
 
 
 def sql_tokens(code: str):
-    """Trả về danh sách (đoạn văn bản, màu) theo màu của SSMS."""
+    """Returns a list of (text, color) pairs using the SSMS colors."""
     out = []
     for m in _TOKEN_RE.finditer(code):
         cmt1, cmt2, s, var, num, word, ws, other = m.groups()
@@ -178,19 +178,19 @@ def sql_tokens(code: str):
     return out
 
 
-# ---------------------------------------------------------------------------- trích mã từ file SQL
+# ---------------------------------------------------------------------------- code extracted from the SQL files
 def sql_object(sql_dir: Path, filename: str, name: str) -> str:
-    """Lấy câu lệnh CREATE ... dbo.<name> (tới trước dòng GO kế tiếp) trong file SQL."""
+    """Returns the CREATE ... dbo.<name> statement of a SQL file (up to the next GO line)."""
     text = (sql_dir / filename).read_text(encoding="utf-8")
     m = re.search(rf"^CREATE\s+(?:PROCEDURE|FUNCTION|TRIGGER|VIEW|TABLE)\s+dbo\.{re.escape(name)}\b.*?(?=^GO\s*$)",
                   text, re.S | re.M | re.I)
     if not m:
-        raise KeyError(f"Không tìm thấy {name} trong {filename}")
+        raise KeyError(f"{name} not found in {filename}")
     return m.group(0).rstrip()
 
 
 def sql_block(sql_dir: Path, filename: str, start_marker: str, end_marker: str | None = None) -> str:
-    """Lấy đoạn mã giữa 2 chuỗi đánh dấu (bao gồm dòng chứa start_marker)."""
+    """Returns the code between two markers (including the line that holds start_marker)."""
     text = (sql_dir / filename).read_text(encoding="utf-8")
     i = text.index(start_marker)
     i = text.rfind("\n", 0, i) + 1
@@ -198,7 +198,7 @@ def sql_block(sql_dir: Path, filename: str, start_marker: str, end_marker: str |
     return text[i:j].rstrip()
 
 
-# ---------------------------------------------------------------------------- lớp báo cáo
+# ---------------------------------------------------------------------------- report class
 class Report:
     def __init__(self, template: Path):
         self.doc = Document(str(template))
@@ -228,13 +228,13 @@ class Report:
         return self.doc.element.body
 
     def _move_before_sect(self, element):
-        """python-docx thêm phần tử vào cuối body; đảm bảo sectPr luôn ở cuối."""
+        """python-docx appends to the end of the body; keep sectPr as the last element."""
         sect = self.body.find(qn("w:sectPr"))
         if sect is not None:
             self.body.remove(sect)
             self.body.append(sect)
 
-    # ----- tiêu đề
+    # ----- headings
     def h1(self, text: str):
         self.chapter += 1
         self.fig = 0
@@ -267,9 +267,9 @@ class Report:
         p.paragraph_format.space_after = Pt(12)
         return p
 
-    # ----- đoạn văn
+    # ----- paragraphs
     def _inline(self, p, text: str, size=None, base_bold=False):
-        # **đậm**, *nghiêng*, `mã`, __gạch dưới__ (khóa chính)
+        # **bold**, *italic*, `code`, __underlined__ (primary keys)
         for part in re.split(r"(\*\*[^*]+\*\*|__[^_]+__|`[^`]+`|\*[^*]+\*)", text):
             if not part:
                 continue
@@ -301,7 +301,7 @@ class Report:
         return self._inline(p, text)
 
     def note(self, text: str):
-        """Đoạn ghi chú nền xám nhạt (ghi chú, lưu ý)."""
+        """Note paragraph on a light background (notes, remarks)."""
         t = self.doc.add_table(rows=1, cols=1)
         t.alignment = WD_TABLE_ALIGNMENT.CENTER
         c = t.cell(0, 0)
@@ -330,7 +330,7 @@ class Report:
             self._inline(p, it)
 
     def numbered(self, items):
-        """Danh sách đánh số thủ công 1), 2)... (tránh lỗi nối tiếp số giữa các danh sách)."""
+        """Manually numbered list 1), 2)... (Word would otherwise continue the numbering across lists)."""
         for i, it in enumerate(items, 1):
             p = self.doc.add_paragraph()
             _para_format(p, after=60, first_line=0, align="both")
@@ -342,7 +342,7 @@ class Report:
         p = self.doc.add_paragraph()
         p.paragraph_format.page_break_before = True
 
-    # ----- bảng
+    # ----- tables
     def table(self, headers, rows, widths_cm=None, caption: str | None = None, size=10.5, align=None,
               bold_first_col=False):
         if caption:
@@ -390,7 +390,7 @@ class Report:
         sp.paragraph_format.space_after = Pt(4)
         return t
 
-    # ----- khung mã
+    # ----- code boxes
     def code(self, title: str, code: str, lang: str = "sql", size=9.5):
         t = self.doc.add_table(rows=2, cols=1)
         t.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -427,7 +427,7 @@ class Report:
         sp = self.doc.add_paragraph()
         sp.paragraph_format.space_after = Pt(4)
 
-    # ----- hình
+    # ----- figures
     def figure(self, path: Path, caption: str, width_cm: float = 15.5):
         p = self.doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -438,31 +438,31 @@ class Report:
         self.doc.add_paragraph(f"Hình {self.chapter}.{self.fig}. {caption}", style="FigureCaption")
 
     def figures_landscape(self, items, width_cm: float = 24.5):
-        """Các hình lớn (ERD, DFD...) đặt trên trang khổ ngang (mỗi hình một trang) rồi quay lại khổ dọc."""
-        # Lưu kích thước khổ dọc TRƯỚC khi thêm section (đối tượng section cuối sẽ đổi sau add_section)
-        rong, cao = self.doc.sections[-1].page_width, self.doc.sections[-1].page_height
-        ngang = self.doc.add_section(WD_SECTION.NEW_PAGE)
-        ngang.orientation = WD_ORIENT.LANDSCAPE
-        ngang.page_width, ngang.page_height = cao, rong
+        """Large figures (ERD, DFD...) on landscape pages (one figure per page), then back to portrait."""
+        # Keep the portrait size BEFORE adding a section (the last section object changes after add_section)
+        width, height = self.doc.sections[-1].page_width, self.doc.sections[-1].page_height
+        landscape = self.doc.add_section(WD_SECTION.NEW_PAGE)
+        landscape.orientation = WD_ORIENT.LANDSCAPE
+        landscape.page_width, landscape.page_height = height, width
         for i, (path, caption) in enumerate(items):
             self.figure(path, caption, width_cm=width_cm)
-            if i > 0:   # đoạn chứa ảnh của hình thứ 2 trở đi sang trang mới
-                anh = self.doc.paragraphs[-2]
-                anh.paragraph_format.page_break_before = True
-        doc_lai = self.doc.add_section(WD_SECTION.NEW_PAGE)
-        doc_lai.orientation = WD_ORIENT.PORTRAIT
-        doc_lai.page_width, doc_lai.page_height = rong, cao
+            if i > 0:   # from the second figure on, the picture paragraph starts a new page
+                picture = self.doc.paragraphs[-2]
+                picture.paragraph_format.page_break_before = True
+        portrait = self.doc.add_section(WD_SECTION.NEW_PAGE)
+        portrait.orientation = WD_ORIENT.PORTRAIT
+        portrait.page_width, portrait.page_height = width, height
 
     def figure_landscape(self, path: Path, caption: str, width_cm: float = 24.5):
         self.figures_landscape([(path, caption)], width_cm)
 
-    # ----- mục lục
+    # ----- tables of contents
     def toc(self, title: str, instr: str, placeholder: str, page_break=True):
         self.centered_title(title, page_break=page_break)
         p = self.doc.add_paragraph()
         _add_field(p, instr, placeholder)
 
-    # ----- trang bìa: sửa nội dung trong mẫu
+    # ----- cover page: replace text inside the template
     def set_paragraph_text(self, index: int, text: str):
         par = self.doc.paragraphs[index]
         runs = par.runs
@@ -474,7 +474,7 @@ class Report:
             r.text = ""
 
     def fill_table(self, table_index: int, rows: list[list[str]], header: list[str] | None = None):
-        """Ghi đè dữ liệu bảng trong mẫu, tự thêm/bớt dòng (sao chép định dạng dòng dữ liệu đầu tiên)."""
+        """Overwrites a table of the template, adding/removing rows (copies the format of the first data row)."""
         t = self.doc.tables[table_index]
         if header:
             for i, h in enumerate(header):
@@ -507,21 +507,21 @@ class Report:
         el = settings.find(qn("w:updateFields"))
         if el is None:
             el = OxmlElement("w:updateFields")
-            # theo thứ tự CT_Settings: updateFields đứng trước hdrShapeDefaults, footnotePr, compat, rsids...
-            sau = {"hdrShapeDefaults", "footnotePr", "endnotePr", "compat", "docVars", "rsids", "mathPr",
+            # CT_Settings order: updateFields comes before hdrShapeDefaults, footnotePr, compat, rsids...
+            following = {"hdrShapeDefaults", "footnotePr", "endnotePr", "compat", "docVars", "rsids", "mathPr",
                    "attachedSchema", "themeFontLang", "clrSchemeMapping", "doNotIncludeSubdocsInStats",
                    "doNotAutoCompressPictures", "forceUpgrade", "captions", "readModeInkLockDown", "smartTagType",
                    "schemaLibrary", "shapeDefaults", "doNotEmbedSmartTags", "decimalSymbol", "listSeparator"}
-            moc = next((c for c in settings if c.tag.split("}")[-1] in sau), None)
-            if moc is not None:
-                moc.addprevious(el)
+            anchor = next((c for c in settings if c.tag.split("}")[-1] in following), None)
+            if anchor is not None:
+                anchor.addprevious(el)
             else:
                 settings.append(el)
         el.set(qn("w:val"), "true")
 
     def _normalize(self):
-        """Sắp lại thứ tự phần tử con của w:tcPr và w:pPr theo đúng lược đồ OOXML."""
-        thu_tu = {
+        """Reorders the children of w:tcPr and w:pPr as required by the OOXML schema."""
+        order_by_element = {
             "tcPr": ["cnfStyle", "tcW", "gridSpan", "hMerge", "vMerge", "tcBorders", "shd", "noWrap", "tcMar",
                      "textDirection", "tcFitText", "vAlign", "hideMark"],
             "pPr": ["pStyle", "keepNext", "keepLines", "pageBreakBefore", "framePr", "widowControl", "numPr",
@@ -531,12 +531,12 @@ class Report:
                     "textDirection", "textAlignment", "textboxTightWrap", "outlineLvl", "divId", "cnfStyle", "rPr",
                     "sectPr", "pPrChange"],
         }
-        for ten, order in thu_tu.items():
+        for name, order in order_by_element.items():
             rank = {n: i for i, n in enumerate(order)}
-            for el in self.body.iter(qn(f"w:{ten}")):
-                con = list(el)
-                con.sort(key=lambda c: rank.get(c.tag.split("}")[-1], len(order)))
-                for c in con:
+            for el in self.body.iter(qn(f"w:{name}")):
+                children = list(el)
+                children.sort(key=lambda c: rank.get(c.tag.split("}")[-1], len(order)))
+                for c in children:
                     el.remove(c)
                     el.append(c)
 

@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Sinh báo cáo đồ án IE103 (docs/report/IE103_Group1_Report.docx).
+"""Generates the IE103 project report (docs/report/IE103_Group1_Report.docx).
 
-Cách dùng:
+Usage:
     python3 docs/report/build_report.py
 
-Nội dung nằm trong thư mục content/ (mỗi chương một file). Mã SQL được trích trực tiếp từ database/*.sql,
-từ điển dữ liệu và kết quả truy vấn/kiểm thử lấy từ data/*.json|txt (xuất từ CSDL thật), hình chụp màn hình
-lấy từ images/screens (tools/qlttta_screenshots). File vừa sinh có cờ updateFields để Word đánh lại mục lục, danh
-mục hình/bảng và số trang khi mở (Word hỏi "update the fields?" -> "Yes"). Trên macOS chạy tiếp tools/export_pdf.sh:
-script xuất PDF và thay docx bằng bản Word đã cập nhật (không còn cờ, mở không bị hỏi nữa).
-Yêu cầu: pip install python-docx
+The content lives in content/ (one file per chapter). SQL code is extracted from database/*.sql; the data
+dictionary and the query/test results come from data/*.json|txt (exported from the real database); screenshots
+come from images/screens (tools/qlttta_screenshots). The generated file has the updateFields flag so Word refreshes
+the table of contents, the lists of figures/tables and the page numbers when it opens it (Word asks "update the
+fields?" -> "Yes"). On macOS run tools/export_pdf.sh next: it exports the PDF and replaces the docx with the version
+Word updated (no flag left, so opening it does not ask again).
+Requires: pip install python-docx
 """
 import sys
 from pathlib import Path
@@ -41,7 +42,7 @@ def main() -> None:
     chapter6_8.appendix(r)
     r.enable_update_fields_on_open()
     r.save(OUTPUT)
-    print(f"Đã tạo {OUTPUT.relative_to(HERE.parent.parent)}")
+    print(f"Created {OUTPUT.relative_to(HERE.parent.parent)}")
 
 
 if __name__ == "__main__":

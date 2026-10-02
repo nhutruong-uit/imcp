@@ -23,5 +23,5 @@ paths:
 - Diagrams: edit the `diagrams/*.dot` source, then `dot -Tpng` into `images/diagrams/`; screenshots are produced only by
   `tools/qlttta_screenshots` in Vietnamese (the default `QLTTTA_SHOT_LANG=vi`; never by hand, so every machine yields
   the same size/data).
-- After generating the PDF: check with `swift docs/report/tools/check_pdf.swift kiemtra <pdf>` (no Word field
-  errors left) and look at the images of the changed pages (`... anh <pdf> <folder> <page>`).
+- After generating the PDF: check with `swift docs/report/tools/check_pdf.swift check <pdf>` (no Word field
+  errors left) and look at the images of the changed pages (`... pages <pdf> <folder> <page>`).
