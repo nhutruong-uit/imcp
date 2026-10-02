@@ -6,7 +6,7 @@ description: Create (or update) a GitHub pull request for the QLTTTA repo with a
 # Create a pull request (QLTTTA)
 
 <!-- Note for the team: this skill writes the PR title + description in ENGLISH, like the commit messages
-     (see CLAUDE.md). Reply to the user (in the chat) in Vietnamese as usual. -->
+     (see AGENTS.md). Reply to the user (in the chat) in Vietnamese as usual. -->
 
 PR title and body are **always in English**. Older commits may still have Vietnamese messages: translate their
 meaning, never paste them into the PR as-is. Keep identifiers exactly as they are in code

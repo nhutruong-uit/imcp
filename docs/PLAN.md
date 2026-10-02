@@ -5,7 +5,7 @@ shift it if the instructor announces something different.
 
 ## 1. How we work
 
-- **Programming**: the team lead + Claude Code (following `CLAUDE.md`). The other members each **own an area**:
+- **Programming**: the team lead + Claude Code (following `AGENTS.md`). The other members each **own an area**:
   they understand the corresponding part of the database in depth, test it with SSMS/VS Code, write that part of the
   report, make the slides and answer the oral-defense questions about it. All changes go through GitHub (issues/PRs);
   the commit history is the evidence.
