@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Đóng gói bản cài macOS (.dmg) - chạy được cả trên máy cá nhân lẫn GitHub Actions.
-#   1. Build Release
-#   2. macdeployqt: chép Qt framework + plugin (gồm plugin ODBC) vào QLTTTA.app
-#   3. Kèm driver FreeTDS (LGPL) + unixODBC + OpenSSL => máy Mac không cần cài thêm driver
-#   4. Ký ad-hoc (bắt buộc với Apple Silicon) và tạo file .dmg trong thư mục dist/
+# Builds the macOS installer (.dmg) - works on a personal machine and on GitHub Actions.
+#   1. Release build
+#   2. macdeployqt: copies the Qt frameworks + plugins (including the ODBC plugin) into QLTTTA.app
+#   3. Bundles the FreeTDS driver (LGPL) + unixODBC + OpenSSL => the Mac needs no extra driver
+#   4. Ad-hoc signing (mandatory on Apple Silicon) and the .dmg file in dist/
 #
-# Yêu cầu: brew install qt qt-unixodbc unixodbc freetds cmake ninja
-# Tùy chọn: EXTRA_CMAKE_ARGS="-DCMAKE_OSX_SYSROOT=..." nếu SDK của Command Line Tools lỗi.
+# Requirements: brew install qt qt-unixodbc unixodbc freetds cmake ninja
+# Optional: EXTRA_CMAKE_ARGS="-DCMAKE_OSX_SYSROOT=..." when the Command Line Tools SDK is broken.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -16,7 +16,7 @@ QT_PREFIX="${QT_ROOT_DIR:-$(brew --prefix qt)}"
 VERSION="$(sed -n 's/^ *VERSION \([0-9][0-9.]*\).*/\1/p' CMakeLists.txt | head -1)"
 ARCH="$(uname -m)"
 
-echo ">> Build Release (QLTTTA $VERSION, $ARCH)"
+echo ">> Release build (QLTTTA $VERSION, $ARCH)"
 # shellcheck disable=SC2086
 cmake --preset macos-release ${EXTRA_CMAKE_ARGS:-}
 cmake --build --preset macos-release
@@ -25,14 +25,14 @@ APP="build/macos-release/src/app/QLTTTA.app"
 FW="$APP/Contents/Frameworks"
 
 echo ">> macdeployqt"
-# Qt của Homebrew: thư viện phụ thuộc dùng @rpath -> thêm rpath tạm để macdeployqt tìm thấy, deploy xong thì gỡ
+# Homebrew Qt: dependencies use @rpath -> add a temporary rpath so macdeployqt finds them, remove it afterwards
 install_name_tool -add_rpath "$BREW/lib" "$APP/Contents/MacOS/QLTTTA" 2>/dev/null || true
 "$QT_PREFIX/bin/macdeployqt" "$APP" -always-overwrite
 install_name_tool -delete_rpath "$BREW/lib" "$APP/Contents/MacOS/QLTTTA" 2>/dev/null || true
 
-echo ">> Kèm driver FreeTDS"
+echo ">> Bundle the FreeTDS driver"
 mkdir -p "$FW"
-copy_lib() {   # chép thư viện vào Frameworks nếu chưa có
+copy_lib() {   # copies a library into Frameworks unless it is already there
   local src="$1" name
   name="$(basename "$src")"
   [[ -f "$FW/$name" ]] || cp -L "$src" "$FW/$name"
@@ -45,7 +45,7 @@ copy_lib "$BREW/opt/libtool/lib/libltdl.7.dylib"
 copy_lib "$BREW/opt/openssl@3/lib/libssl.3.dylib"
 copy_lib "$BREW/opt/openssl@3/lib/libcrypto.3.dylib"
 
-# Đổi mọi đường dẫn tuyệt đối /opt/homebrew/... thành @loader_path (cùng thư mục Frameworks)
+# Rewrite every absolute /opt/homebrew/... path to @loader_path (the same Frameworks folder)
 for lib in "$FW"/libtdsodbc.so "$FW"/libodbc*.dylib "$FW"/libltdl*.dylib "$FW"/libssl*.dylib "$FW"/libcrypto*.dylib; do
   install_name_tool -id "@loader_path/$(basename "$lib")" "$lib" 2>/dev/null || true
   otool -L "$lib" | tail -n +2 | awk '{print $1}' | { grep -E "^($BREW|/usr/local/(opt|Cellar))" || true; } | while read -r dep; do
@@ -53,17 +53,17 @@ for lib in "$FW"/libtdsodbc.so "$FW"/libodbc*.dylib "$FW"/libltdl*.dylib "$FW"/l
   done
 done
 
-echo ">> Ký ad-hoc"
+echo ">> Ad-hoc signing"
 codesign --force --deep --sign - "$APP"
 codesign --verify --deep "$APP"
 
-echo ">> Tạo DMG"
+echo ">> Create the DMG"
 STAGE="build/macos-release/dmg"
 rm -rf "$STAGE" && mkdir -p "$STAGE" dist
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
-cp "$ROOT/packaging/macos/HUONG_DAN_CAI_DAT.txt" "$STAGE/"
+cp "$ROOT/packaging/macos/INSTALL.txt" "$STAGE/"
 DMG="dist/QLTTTA-$VERSION-macos-$ARCH.dmg"
 rm -f "$DMG"
 hdiutil create -volname "QLTTTA $VERSION" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
-echo "Hoàn tất: $DMG"
+echo "Done: $DMG"

@@ -1,14 +1,15 @@
 /* =====================================================================
-   File   : 06_security.sql - Xác thực & phân quyền
-   Mô hình:
-     - Mỗi tài khoản ứng dụng = 1 USER có mật khẩu trong CSDL độc lập
-       (contained database user) => SQL Server tự xác thực, mật khẩu được
-       băm và quản lý bởi DBMS, không lưu trong bảng của ứng dụng.
-     - 4 ROLE theo vai trò nghiệp vụ; quyền GRANT cho ROLE, không cho user.
-     - Nguyên tắc đặc quyền tối thiểu: role nghiệp vụ KHÔNG có quyền trên
-       bảng gốc, chỉ EXECUTE thủ tục và SELECT view. Nhờ "ownership chaining"
-       (view/thủ tục và bảng cùng chủ sở hữu dbo), người dùng truy cập dữ
-       liệu được qua view/thủ tục mà không cần quyền trên bảng.
+   File   : 06_security.sql - Authentication & authorization
+   Model:
+     - Every application account = 1 USER with a password in the
+       contained database => SQL Server authenticates it; the password is
+       hashed and managed by the DBMS, never stored in an application table.
+     - 4 ROLES, one per business role; permissions are GRANTed to roles,
+       never to users.
+     - Least privilege: business roles have NO permission on the base
+       tables, only EXECUTE on procedures and SELECT on views. Thanks to
+       ownership chaining (views/procedures and tables share the owner dbo),
+       users reach the data through views/procedures without table rights.
    ===================================================================== */
 USE QLTTTA;
 GO
@@ -16,123 +17,124 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
-/* 1. Tạo ROLE */
-IF DATABASE_PRINCIPAL_ID('rl_QuanLy')   IS NULL CREATE ROLE rl_QuanLy   AUTHORIZATION dbo;
-IF DATABASE_PRINCIPAL_ID('rl_GiaoVu')   IS NULL CREATE ROLE rl_GiaoVu   AUTHORIZATION dbo;
-IF DATABASE_PRINCIPAL_ID('rl_KeToan')   IS NULL CREATE ROLE rl_KeToan   AUTHORIZATION dbo;
-IF DATABASE_PRINCIPAL_ID('rl_GiaoVien') IS NULL CREATE ROLE rl_GiaoVien AUTHORIZATION dbo;
+/* 1. ROLES */
+IF DATABASE_PRINCIPAL_ID('rl_Manager')       IS NULL CREATE ROLE rl_Manager       AUTHORIZATION dbo;
+IF DATABASE_PRINCIPAL_ID('rl_AcademicStaff') IS NULL CREATE ROLE rl_AcademicStaff AUTHORIZATION dbo;
+IF DATABASE_PRINCIPAL_ID('rl_Accountant')    IS NULL CREATE ROLE rl_Accountant    AUTHORIZATION dbo;
+IF DATABASE_PRINCIPAL_ID('rl_Teacher')       IS NULL CREATE ROLE rl_Teacher       AUTHORIZATION dbo;
 GO
 
-/* 2. Quyền chung cho mọi người dùng đã đăng nhập */
-GRANT SELECT  ON dbo.vw_TaiKhoanHienTai           TO rl_QuanLy, rl_GiaoVu, rl_KeToan, rl_GiaoVien;
-GRANT EXECUTE ON dbo.usp_TaiKhoan_GhiNhanDangNhap TO rl_QuanLy, rl_GiaoVu, rl_KeToan, rl_GiaoVien;
-GRANT EXECUTE ON dbo.usp_TaiKhoan_DoiMatKhau      TO rl_QuanLy, rl_GiaoVu, rl_KeToan, rl_GiaoVien;
--- Danh mục dùng cho combobox (không chứa dữ liệu nhạy cảm)
-GRANT SELECT ON dbo.CHINHANH    TO rl_QuanLy, rl_GiaoVu, rl_KeToan, rl_GiaoVien;
-GRANT SELECT ON dbo.CHUONGTRINH TO rl_QuanLy, rl_GiaoVu, rl_KeToan, rl_GiaoVien;
-GRANT SELECT ON dbo.KHOAHOC     TO rl_QuanLy, rl_GiaoVu, rl_KeToan, rl_GiaoVien;
-GRANT SELECT ON dbo.PHONGHOC    TO rl_QuanLy, rl_GiaoVu, rl_GiaoVien;
+/* 2. Permissions shared by every signed-in user */
+GRANT SELECT  ON dbo.vw_CurrentAccount          TO rl_Manager, rl_AcademicStaff, rl_Accountant, rl_Teacher;
+GRANT EXECUTE ON dbo.usp_Account_RecordLogin    TO rl_Manager, rl_AcademicStaff, rl_Accountant, rl_Teacher;
+GRANT EXECUTE ON dbo.usp_Account_ChangePassword TO rl_Manager, rl_AcademicStaff, rl_Accountant, rl_Teacher;
+-- Catalogs used by combo boxes (no sensitive data)
+GRANT SELECT ON dbo.BRANCH  TO rl_Manager, rl_AcademicStaff, rl_Accountant, rl_Teacher;
+GRANT SELECT ON dbo.PROGRAM TO rl_Manager, rl_AcademicStaff, rl_Accountant, rl_Teacher;
+GRANT SELECT ON dbo.COURSE  TO rl_Manager, rl_AcademicStaff, rl_Accountant, rl_Teacher;
+GRANT SELECT ON dbo.ROOM    TO rl_Manager, rl_AcademicStaff, rl_Teacher;
 GO
 
-/* 3. QUẢN LÝ: toàn quyền nghiệp vụ, quản trị tài khoản, sao lưu */
-ALTER ROLE db_datareader ADD MEMBER rl_QuanLy;
-GRANT EXECUTE ON SCHEMA::dbo TO rl_QuanLy;
-GRANT INSERT, UPDATE ON dbo.CHINHANH      TO rl_QuanLy;
-GRANT INSERT, UPDATE ON dbo.PHONGHOC      TO rl_QuanLy;
-GRANT INSERT, UPDATE ON dbo.CHUONGTRINH   TO rl_QuanLy;
-GRANT INSERT, UPDATE ON dbo.KHOAHOC       TO rl_QuanLy;
-GRANT INSERT, UPDATE, DELETE ON dbo.THANHPHANDIEM TO rl_QuanLy;
-GRANT INSERT, UPDATE ON dbo.NHANVIEN      TO rl_QuanLy;
-GRANT INSERT, UPDATE ON dbo.GIAOVIEN      TO rl_QuanLy;
-GRANT INSERT, UPDATE ON dbo.KHUYENMAI     TO rl_QuanLy;
--- Kể cả quản lý cũng không được sửa nhật ký và xóa chứng từ
-DENY UPDATE, DELETE ON dbo.NHATKYHETHONG TO rl_QuanLy;
-DENY DELETE ON dbo.PHIEUTHU TO rl_QuanLy;
+/* 3. MANAGER: every business operation, account administration, backups */
+ALTER ROLE db_datareader ADD MEMBER rl_Manager;
+GRANT EXECUTE ON SCHEMA::dbo TO rl_Manager;
+GRANT INSERT, UPDATE ON dbo.BRANCH           TO rl_Manager;
+GRANT INSERT, UPDATE ON dbo.ROOM             TO rl_Manager;
+GRANT INSERT, UPDATE ON dbo.PROGRAM          TO rl_Manager;
+GRANT INSERT, UPDATE ON dbo.COURSE           TO rl_Manager;
+GRANT INSERT, UPDATE, DELETE ON dbo.GRADE_COMPONENT TO rl_Manager;
+GRANT INSERT, UPDATE ON dbo.EMPLOYEE         TO rl_Manager;
+GRANT INSERT, UPDATE ON dbo.TEACHER          TO rl_Manager;
+GRANT INSERT, UPDATE ON dbo.PROMOTION        TO rl_Manager;
+-- Not even the manager may change the audit log or delete financial documents
+DENY UPDATE, DELETE ON dbo.AUDIT_LOG TO rl_Manager;
+DENY DELETE ON dbo.RECEIPT TO rl_Manager;
 GO
 
-/* 4. GIÁO VỤ: học viên, lớp, lịch, ghi danh, kiểm tra đầu vào */
-GRANT SELECT ON dbo.vw_HocVien_TongQuan   TO rl_GiaoVu;
-GRANT SELECT ON dbo.vw_LopHoc_ChiTiet     TO rl_GiaoVu;
-GRANT SELECT ON dbo.vw_BuoiHoc_ChiTiet    TO rl_GiaoVu;
-GRANT SELECT ON dbo.vw_KetQuaHocTap       TO rl_GiaoVu;
-GRANT SELECT ON dbo.vw_CongNo             TO rl_GiaoVu;
-GRANT SELECT ON dbo.GIAOVIEN (MaGV, HoTen, LoaiGV, QuocTich, TrinhDo, MaCN, TrangThai) TO rl_GiaoVu; -- phân quyền mức CỘT: không thấy đơn giá giờ
-GRANT SELECT ON dbo.KHUYENMAI             TO rl_GiaoVu;
-GRANT SELECT ON dbo.THANHPHANDIEM         TO rl_GiaoVu;
-GRANT SELECT ON dbo.KIEMTRADAUVAO         TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_HocVien_Them              TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_HocVien_CapNhat           TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_HocVien_Xoa               TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_HocVien_TimKiem           TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_HocVien_ChiTiet           TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_HocVien_XuatXML           TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_HocVien_NhapXML           TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_LopHoc_Tao                TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_LichHoc_Them              TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_LopHoc_TaoBuoiHoc         TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_LopHoc_CapNhatTrangThai   TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_LopHoc_XetKetQua          TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_BuoiHoc_CapNhat           TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_GhiDanh                   TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_GhiDanh_ChuyenLop         TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_GhiDanh_CapNhatTrangThai  TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_GhiDanh_TheoLop           TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_KiemTraDauVao_Them        TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_DiemDanh_TheoBuoi         TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_DiemDanh_Luu              TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_Diem_Luu                  TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_KhoaHoc_TimTheoKyNang     TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_KhoaHoc_DeCuong           TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_GiaoVien_TimTheoChungChi  TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_ThongKe_TongQuan          TO rl_GiaoVu;
-GRANT EXECUTE ON dbo.usp_BaoCao_KetQuaLop          TO rl_GiaoVu;
-GRANT SELECT  ON dbo.fn_LichDayGiaoVien            TO rl_GiaoVu;
--- Giáo vụ không được xem lương, không được thu tiền
-DENY SELECT ON dbo.BANGLUONG TO rl_GiaoVu;
-DENY EXECUTE ON dbo.usp_PhieuThu_Tao TO rl_GiaoVu;
+/* 4. ACADEMIC STAFF: students, classes, schedules, enrollment, placement tests */
+GRANT SELECT ON dbo.vw_StudentOverview     TO rl_AcademicStaff;
+GRANT SELECT ON dbo.vw_ClassDetails        TO rl_AcademicStaff;
+GRANT SELECT ON dbo.vw_SessionDetails      TO rl_AcademicStaff;
+GRANT SELECT ON dbo.vw_LearningResults     TO rl_AcademicStaff;
+GRANT SELECT ON dbo.vw_OutstandingTuition  TO rl_AcademicStaff;
+GRANT SELECT ON dbo.TEACHER (TeacherId, FullName, TeacherType, Nationality, Degree, BranchId, Status)
+    TO rl_AcademicStaff; -- COLUMN-level permission: the hourly rate stays hidden
+GRANT SELECT ON dbo.PROMOTION              TO rl_AcademicStaff;
+GRANT SELECT ON dbo.GRADE_COMPONENT        TO rl_AcademicStaff;
+GRANT SELECT ON dbo.PLACEMENT_TEST         TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Student_Add                TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Student_Update             TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Student_Delete             TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Student_Search             TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Student_Details            TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Student_ExportXml          TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Student_ImportXml          TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Class_Create               TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_ClassSchedule_Add          TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Class_GenerateSessions     TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Class_UpdateStatus         TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Class_EvaluateResults      TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Session_Update             TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Enrollment_Create          TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Enrollment_TransferClass   TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Enrollment_UpdateStatus    TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Enrollment_ByClass         TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_PlacementTest_Add          TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Attendance_BySession       TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Attendance_Save            TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Grade_Save                 TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Course_FindBySkill         TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Course_Syllabus            TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Teacher_FindByCertificate  TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Dashboard_Stats            TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Report_ClassResults        TO rl_AcademicStaff;
+GRANT SELECT  ON dbo.fn_TeacherSchedule             TO rl_AcademicStaff;
+-- Academic staff can neither see payroll nor collect payments
+DENY SELECT ON dbo.PAYROLL TO rl_AcademicStaff;
+DENY EXECUTE ON dbo.usp_Receipt_Create TO rl_AcademicStaff;
 GO
 
-/* 5. KẾ TOÁN: học phí, công nợ, doanh thu, lương */
-GRANT SELECT ON dbo.vw_CongNo             TO rl_KeToan;
-GRANT SELECT ON dbo.vw_DoanhThuThang      TO rl_KeToan;
-GRANT SELECT ON dbo.vw_LopHoc_ChiTiet     TO rl_KeToan;
-GRANT SELECT ON dbo.vw_HocVien_TongQuan   TO rl_KeToan;
-GRANT SELECT ON dbo.KHUYENMAI             TO rl_KeToan;
-GRANT SELECT ON dbo.PHIEUTHU              TO rl_KeToan;
-GRANT SELECT ON dbo.BANGLUONG             TO rl_KeToan;
-GRANT SELECT ON dbo.GIAOVIEN (MaGV, HoTen, LoaiGV, DonGiaGio, MaCN, TrangThai) TO rl_KeToan;
-GRANT EXECUTE ON dbo.usp_HocVien_TimKiem      TO rl_KeToan;
-GRANT EXECUTE ON dbo.usp_GhiDanh_TheoLop      TO rl_KeToan;
-GRANT EXECUTE ON dbo.usp_PhieuThu_Tao         TO rl_KeToan;
-GRANT EXECUTE ON dbo.usp_PhieuThu_Huy         TO rl_KeToan;
-GRANT EXECUTE ON dbo.usp_PhieuThu_InBienLai   TO rl_KeToan;
-GRANT EXECUTE ON dbo.usp_BangLuong_Chot       TO rl_KeToan;
-GRANT EXECUTE ON dbo.usp_BaoCao_DoanhThu      TO rl_KeToan;
-GRANT EXECUTE ON dbo.usp_ThongKe_TongQuan     TO rl_KeToan;
-GRANT SELECT  ON dbo.fn_DoanhThuTheoThang     TO rl_KeToan;
-GRANT SELECT  ON dbo.fn_CongNoHocVien         TO rl_KeToan;
--- Kế toán không được sửa điểm, không được ghi danh
-DENY EXECUTE ON dbo.usp_Diem_Luu TO rl_KeToan;
-DENY EXECUTE ON dbo.usp_GhiDanh  TO rl_KeToan;
+/* 5. ACCOUNTANT: tuition, outstanding balances, revenue, payroll */
+GRANT SELECT ON dbo.vw_OutstandingTuition  TO rl_Accountant;
+GRANT SELECT ON dbo.vw_MonthlyRevenue      TO rl_Accountant;
+GRANT SELECT ON dbo.vw_ClassDetails        TO rl_Accountant;
+GRANT SELECT ON dbo.vw_StudentOverview     TO rl_Accountant;
+GRANT SELECT ON dbo.PROMOTION              TO rl_Accountant;
+GRANT SELECT ON dbo.RECEIPT                TO rl_Accountant;
+GRANT SELECT ON dbo.PAYROLL                TO rl_Accountant;
+GRANT SELECT ON dbo.TEACHER (TeacherId, FullName, TeacherType, HourlyRate, BranchId, Status) TO rl_Accountant;
+GRANT EXECUTE ON dbo.usp_Student_Search       TO rl_Accountant;
+GRANT EXECUTE ON dbo.usp_Enrollment_ByClass   TO rl_Accountant;
+GRANT EXECUTE ON dbo.usp_Receipt_Create       TO rl_Accountant;
+GRANT EXECUTE ON dbo.usp_Receipt_Cancel       TO rl_Accountant;
+GRANT EXECUTE ON dbo.usp_Receipt_Print        TO rl_Accountant;
+GRANT EXECUTE ON dbo.usp_Payroll_Finalize     TO rl_Accountant;
+GRANT EXECUTE ON dbo.usp_Report_Revenue       TO rl_Accountant;
+GRANT EXECUTE ON dbo.usp_Dashboard_Stats      TO rl_Accountant;
+GRANT SELECT  ON dbo.fn_MonthlyRevenue        TO rl_Accountant;
+GRANT SELECT  ON dbo.fn_StudentBalance        TO rl_Accountant;
+-- Accountants can neither change grades nor enroll students
+DENY EXECUTE ON dbo.usp_Grade_Save        TO rl_Accountant;
+DENY EXECUTE ON dbo.usp_Enrollment_Create TO rl_Accountant;
 GO
 
-/* 6. GIÁO VIÊN: chỉ dữ liệu lớp mình dạy (qua view lọc theo người đăng nhập) */
-GRANT SELECT ON dbo.vw_GV_LopCuaToi       TO rl_GiaoVien;
-GRANT SELECT ON dbo.vw_GV_HocVienCuaToi   TO rl_GiaoVien;
-GRANT SELECT ON dbo.vw_GV_LichDayCuaToi   TO rl_GiaoVien;
-GRANT SELECT ON dbo.vw_GV_DiemLopCuaToi   TO rl_GiaoVien;
-GRANT SELECT ON dbo.vw_GV_LuongCuaToi     TO rl_GiaoVien;
-GRANT EXECUTE ON dbo.usp_BuoiHoc_CapNhat      TO rl_GiaoVien;
-GRANT EXECUTE ON dbo.usp_DiemDanh_TheoBuoi    TO rl_GiaoVien;
-GRANT EXECUTE ON dbo.usp_DiemDanh_Luu         TO rl_GiaoVien;
-GRANT EXECUTE ON dbo.usp_Diem_Luu             TO rl_GiaoVien;
-GRANT EXECUTE ON dbo.usp_KhoaHoc_DeCuong      TO rl_GiaoVien;
--- Chặn tường minh dữ liệu nhạy cảm (DENY ưu tiên hơn GRANT)
-DENY SELECT ON dbo.HOCVIEN   TO rl_GiaoVien;
-DENY SELECT ON dbo.PHIEUTHU  TO rl_GiaoVien;
-DENY SELECT ON dbo.BANGLUONG TO rl_GiaoVien;
+/* 6. TEACHER: only the data of their own classes (through views filtered by the signed-in user) */
+GRANT SELECT ON dbo.vw_Teacher_MyClasses   TO rl_Teacher;
+GRANT SELECT ON dbo.vw_Teacher_MyStudents  TO rl_Teacher;
+GRANT SELECT ON dbo.vw_Teacher_MySchedule  TO rl_Teacher;
+GRANT SELECT ON dbo.vw_Teacher_MyGrades    TO rl_Teacher;
+GRANT SELECT ON dbo.vw_Teacher_MyPay       TO rl_Teacher;
+GRANT EXECUTE ON dbo.usp_Session_Update        TO rl_Teacher;
+GRANT EXECUTE ON dbo.usp_Attendance_BySession  TO rl_Teacher;
+GRANT EXECUTE ON dbo.usp_Attendance_Save       TO rl_Teacher;
+GRANT EXECUTE ON dbo.usp_Grade_Save            TO rl_Teacher;
+GRANT EXECUTE ON dbo.usp_Course_Syllabus       TO rl_Teacher;
+-- Explicitly block sensitive data (DENY wins over GRANT)
+DENY SELECT ON dbo.STUDENT TO rl_Teacher;
+DENY SELECT ON dbo.RECEIPT TO rl_Teacher;
+DENY SELECT ON dbo.PAYROLL TO rl_Teacher;
 GO
 
-/* 7. Tài khoản mẫu (mật khẩu demo ghi trong docs/SETUP.md, đổi ngay khi triển khai thật).
-      Hồ sơ NHANVIEN/GIAOVIEN tương ứng được tạo trong 07_seed_data.sql,
-      vì vậy phần tạo tài khoản được gọi ở cuối file seed. */
+/* 7. Demo accounts (the demo password is in docs/SETUP.md; change it in a real deployment).
+      Their EMPLOYEE/TEACHER rows are created in 07_seed_data.sql,
+      so the accounts are created at the end of the seed file. */

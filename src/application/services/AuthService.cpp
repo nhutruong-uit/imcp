@@ -1,56 +1,64 @@
 #include "application/services/AuthService.h"
 
-AuthService::AuthService(IAuthGateway& gateway, ICauHinhStore& store) : m_gateway(gateway), m_store(store) {}
+AuthService::AuthService(IAuthGateway& gateway, ISettingsStore& settings)
+    : m_gateway(gateway), m_settings(settings) {}
 
-CauHinhMayChu AuthService::cauHinh() const {
-    return m_store.docCauHinh();
+ServerConfig AuthService::serverConfig() const {
+    return m_settings.serverConfig();
 }
 
-void AuthService::luuCauHinh(const CauHinhMayChu& cauHinh) {
-    m_store.luuCauHinh(cauHinh);
+void AuthService::saveServerConfig(const ServerConfig& config) {
+    m_settings.saveServerConfig(config);
 }
 
-QString AuthService::tenDangNhapGanNhat() const {
-    return m_store.tenDangNhapGanNhat();
+QString AuthService::lastUsername() const {
+    return m_settings.lastUsername();
 }
 
-Result<TaiKhoan> AuthService::dangNhap(const QString& tenDangNhap, const QString& matKhau) {
-    const QString ten = tenDangNhap.trimmed();
-    if (ten.isEmpty() || matKhau.isEmpty())
-        return Result<TaiKhoan>::failure(QStringLiteral("Vui lòng nhập tên đăng nhập và mật khẩu."));
+Result<Account> AuthService::login(const QString& username, const QString& password) {
+    const QString name = username.trimmed();
+    if (name.isEmpty() || password.isEmpty())
+        return Result<Account>::failure(tr("Please enter your username and password."));
 
-    const CauHinhMayChu cauHinh = m_store.docCauHinh();
-    if (cauHinh.mayChu.trimmed().isEmpty() || cauHinh.csdl.trimmed().isEmpty())
-        return Result<TaiKhoan>::failure(QStringLiteral("Chưa cấu hình máy chủ CSDL."));
+    const ServerConfig config = m_settings.serverConfig();
+    if (config.host.trimmed().isEmpty() || config.database.trimmed().isEmpty())
+        return Result<Account>::failure(tr("The database server is not configured."));
 
-    auto ketQua = m_gateway.dangNhap(cauHinh, ten, matKhau);
-    if (!ketQua.ok())
-        return ketQua;
+    auto result = m_gateway.login(config, name, password);
+    if (!result.ok())
+        return result;
 
-    if (ketQua.value().vaiTro == VaiTro::KhongXacDinh) {
-        m_gateway.dangXuat();
-        return Result<TaiKhoan>::failure(
-            QStringLiteral("Tài khoản SQL Server hợp lệ nhưng chưa được gán vai trò trong hệ thống."));
+    // SQL Server accepted the password; the application still refuses locked accounts and accounts without a
+    // role
+    if (!result.value().active) {
+        m_gateway.logout();
+        return Result<Account>::failure(tr("The account is locked."));
+    }
+    if (result.value().role == Role::Unknown) {
+        m_gateway.logout();
+        return Result<Account>::failure(
+            tr("Valid SQL Server account, but no role is assigned to it in the system."));
     }
 
-    m_store.luuTenDangNhap(ten);
-    m_taiKhoan = ketQua.value();
-    return ketQua;
+    m_settings.saveLastUsername(name);
+    m_account = result.value();
+    return result;
 }
 
-void AuthService::dangXuat() {
-    m_gateway.dangXuat();
-    m_taiKhoan.reset();
+void AuthService::logout() {
+    m_gateway.logout();
+    m_account.reset();
 }
 
-VoidResult AuthService::doiMatKhau(const QString& matKhauCu, const QString& matKhauMoi, const QString& nhapLai) {
-    if (!daDangNhap())
-        return VoidResult::failure(QStringLiteral("Bạn chưa đăng nhập."));
-    if (matKhauMoi.size() < 8)
-        return VoidResult::failure(QStringLiteral("Mật khẩu mới tối thiểu 8 ký tự."));
-    if (matKhauMoi != nhapLai)
-        return VoidResult::failure(QStringLiteral("Mật khẩu nhập lại không khớp."));
-    if (matKhauMoi == matKhauCu)
-        return VoidResult::failure(QStringLiteral("Mật khẩu mới phải khác mật khẩu cũ."));
-    return m_gateway.doiMatKhau(matKhauCu, matKhauMoi);
+VoidResult AuthService::changePassword(const QString& oldPassword, const QString& newPassword,
+                                       const QString& confirmation) {
+    if (!isLoggedIn())
+        return VoidResult::failure(tr("You are not logged in."));
+    if (newPassword.size() < 8)
+        return VoidResult::failure(tr("The new password must be at least 8 characters long."));
+    if (newPassword != confirmation)
+        return VoidResult::failure(tr("The password confirmation does not match."));
+    if (newPassword == oldPassword)
+        return VoidResult::failure(tr("The new password must differ from the old one."));
+    return m_gateway.changePassword(oldPassword, newPassword);
 }

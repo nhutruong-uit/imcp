@@ -1,59 +1,105 @@
-# Quy trình làm việc nhóm
+# Team workflow
 
-## Nhánh Git
+## Git branches
 
 ```
-feature/<ten-ngan>  ──PR──▶  develop  ──PR (nhóm trưởng duyệt)──▶  main  ──▶  GitHub Release (file cài)
-fix/<ten-ngan>               (CI build + test Win/Mac)                        (tự động đóng gói)
-docs/<ten-ngan>
+feature/<short-name>  ──PR──▶  develop  ──PR (team lead reviews)──▶  main  ──▶  GitHub Release (installers)
+fix/<short-name>               (default branch;                (protected; CI required)   (packaged automatically)
+docs/<short-name>               CI runs after the merge)
 ```
 
-- **Không push thẳng** vào `develop` và `main`. Mỗi thay đổi đi qua Pull Request.
-- PR vào `develop`: CI (`ci.yml`) phải xanh trên **cả macOS và Windows**.
-- PR `develop → main` = phát hành: `release.yml` đóng gói `.exe`/`.zip`/`.dmg` và tạo Release `vX.Y.Z-build.N`.
-  Trước khi phát hành, tăng `project(VERSION ...)` trong `CMakeLists.txt` nếu có tính năng mới.
-- Nên bật *Settings > Branches > Branch protection* cho `develop`, `main`: bắt buộc PR + CI xanh.
-  (Repo private cần GitHub Pro — sinh viên đăng ký miễn phí qua GitHub Student Developer Pack.)
+- `develop` is the default branch on GitHub. Work on a `feature/...`, `fix/...` or `docs/...` branch and open a Pull
+  Request into `develop`; **never push directly** to `main`.
+- **CI** (`ci.yml`, build + unit tests on macOS and Windows) runs when something is merged into `develop`, on every PR
+  into `main`, and when started by hand (`gh workflow run CI --ref <branch>` or *Actions > CI > Run workflow*).
+  Pushes to work branches and PRs into `develop` do **not** run CI: run `scripts/test_all` locally before merging
+  (see the checklist below). CI has no SQL Server, so the database test suite and the end-to-end GUI test only run
+  through `test_all` (see [SETUP.md](SETUP.md)).
+- PR `develop → main` = release: `release.yml` packages `.exe` / `.zip` / `.dmg` and creates a Release tagged
+  `vX.Y.Z-build.N`. Before releasing, bump `project(VERSION ...)` in `CMakeLists.txt` if there are new features.
+- *Branch protection* is enabled for `main` only: a PR is required, both CI jobs (`macOS (Apple Silicon)`,
+  `Windows (Qt + MinGW)`) must be green and the branch must be up to date with `main` before merging. It also applies
+  to admins; force pushes and branch deletion are blocked. No reviewer is required (the team lead can merge once CI is
+  green). `develop` is not locked, but the team still works through PRs.
+- PR title, description and commit messages are written **in English**. With Claude Code: type
+  `/imcp-create-pr`. (A private repo needs GitHub Pro; students can get it for free via the GitHub Student Developer
+  Pack.)
 
-## Thành viên không lập trình đóng góp thế nào?
+## How do non-programming members contribute?
 
-Mọi thành viên đều đóng góp qua GitHub (lịch sử commit là minh chứng phân công khi vấn đáp):
-1. Mở **Issue** khi phát hiện lỗi dữ liệu/nghiệp vụ hoặc muốn đề xuất (gắn nhãn `database`, `report`, `app`).
-2. Sửa tài liệu/báo cáo: tạo nhánh `docs/...` ngay trên giao diện web GitHub (*Edit file* → *Create a new branch* → PR).
-3. Sửa script SQL phần mình phụ trách: dùng **GitHub Desktop** (Windows/macOS) để clone, tạo nhánh, commit, push, mở PR.
+Everyone contributes through GitHub (the commit history is the evidence of who did what at the oral defense):
+1. Open an **Issue** when you find a data/business bug or want to suggest something (labels: `database`, `report`, `app`).
+2. Edit documentation/report: create a `docs/...` branch directly in the GitHub web UI (*Edit file* →
+   *Create a new branch* → PR).
+3. Edit the SQL scripts you own: use **GitHub Desktop** (Windows/macOS) to clone, create a branch, commit, push and open a PR.
+4. Review the Vietnamese UI texts: open `resources/translations/qlttta_vi.ts` in **Qt Linguist** and correct the
+   translations (the English source strings are fixed by the code).
 
-## Quy ước
+## Conventions
 
-### Commit (tiếng Việt, theo Conventional Commits)
+### Language
+- Everything in the repository is written in **English**: C++ code, CMake, scripts, CI configuration, docs, commit
+  messages and the database (objects, columns, stored values, business messages, SQL comments). People's names and
+  addresses in the demo data stay Vietnamese. Only the course report (`docs/report/`) is Vietnamese.
+- The UI is bilingual: English source strings in the code, Vietnamese translation in
+  `resources/translations/qlttta_vi.ts` (including the stored database values and the database messages);
+  Vietnamese is the default UI language.
+
+### Commits (English, Conventional Commits)
 ```
-feat(hocvien): thêm tìm kiếm theo số điện thoại phụ huynh
-fix(db): sửa trigger trùng lịch khi lớp chưa có ngày kết thúc
-docs(report): bổ sung mục 3.7 ràng buộc toàn vẹn
+feat(students): add search by guardian phone number
+fix(db): fix the schedule-clash trigger for classes without an end date
+docs(report): add section 3.7 on integrity constraints
 ```
 
-### CSDL (`database/`)
-- Bảng VIẾT HOA không dấu (`HOCVIEN`), cột PascalCase (`MaHV`, `HoTen`), ràng buộc đặt tên
-  `PK_`, `FK_<CON>_<CHA>`, `CK_<BANG>_<Cot>`, `UQ_`, `DF_`; tiền tố `usp_` (thủ tục), `fn_`, `vw_`, `trg_`.
-- Chuỗi tiếng Việt luôn là `NVARCHAR` + tiền tố `N'...'`.
-- Giữ tương thích **SQL Server 2012** (không `CREATE OR ALTER`, `DROP ... IF EXISTS`, `STRING_AGG`, `TRIM`, JSON).
-- Đối tượng mới phải được `GRANT` cho đúng role trong `06_security.sql`.
-- Sau khi sửa: chạy lại toàn bộ `scripts/db_init` để chắc chắn script chạy được từ đầu.
+### Database (`database/`)
+- Tables in UPPER_SNAKE_CASE (`STUDENT`, `CLASS_SESSION`), columns in PascalCase (`StudentId`, `FullName`), constraints
+  named `PK_`, `FK_<CHILD>_<PARENT>`, `CK_<TABLE>_<Column>`, `UQ_`, `DF_`; prefixes `usp_` (procedure,
+  `usp_<Entity>_<Verb>`), `fn_`, `vw_`, `trg_`, `rl_` (role).
+- Text is always `NVARCHAR` with the `N'...'` prefix (names and addresses are Vietnamese).
+- Stay compatible with **SQL Server 2012** (no `CREATE OR ALTER`, `DROP ... IF EXISTS`, `STRING_AGG`, `TRIM`, JSON).
+  Use the pattern `IF OBJECT_ID(N'dbo.x', N'P') IS NOT NULL DROP PROCEDURE dbo.x; GO`.
+- Every file starts with `USE QLTTTA; GO; SET ANSI_NULLS ON; SET QUOTED_IDENTIFIER ON; GO`.
+- Business errors: `THROW 5xxxx, N'English message.', 1;` in procedures, `RAISERROR` + `ROLLBACK` in triggers.
+  The application shows them in the UI language: register every new message in
+  `src/infrastructure/db/DbMessages.cpp` and translate it in `qlttta_vi.ts` (`tst_i18n` reads the SQL scripts and
+  fails otherwise). Triggers must handle **sets** (several rows in `inserted`/`deleted`).
+- The application never inserts/updates tables directly; every write goes through a procedure.
+- New objects must be `GRANT`ed to the right roles in `06_security.sql`.
+- New business rules, constraints or permissions need a test case in `12_tests.sql` **and** an entry (case code +
+  message pattern) in the `#Expected` table, so a "Rejected" case only passes when it is rejected for the right
+  reason. Do not change the expectation of an existing case just to make the tests green, unless the
+  specification really changed; say so in the PR.
+- A new enumerated value (`CHECK ... IN (N'...')`) needs an entry in `src/presentation/common/DbValues.cpp` and a
+  Vietnamese translation (`tst_i18n` reads `01_tables.sql` and fails otherwise); a new column shown in a list needs an entry in
+  `src/presentation/common/Columns.cpp`.
+- After editing, re-run the whole `scripts/db_init` to make sure the scripts work from scratch.
 
 ### C++ / Qt
-- Tuân thủ chiều phụ thuộc trong [ARCHITECTURE.md](ARCHITECTURE.md): `presentation` không include `infrastructure`.
-- Tên lớp/hàm nghiệp vụ dùng tiếng Việt không dấu (`HocVienService::themMoi`) cho khớp CSDL và báo cáo.
-- Chuỗi hiển thị tiếng Việt viết thẳng trong `QStringLiteral("...")`, file mã nguồn UTF-8.
-- Định dạng bằng `clang-format` (file `.clang-format` ở gốc repo; Qt Creator: *Beautifier*).
-- Mỗi use case mới cần ít nhất một unit test trong `tests/` (dùng repository giả).
+- Follow the dependency direction in [ARCHITECTURE.md](ARCHITECTURE.md): `presentation` must not include
+  `infrastructure`, and SQL lives only in `infrastructure/repositories`.
+- Errors are returned as `Result<T>` / `VoidResult` (no exceptions across layers).
+- English names: classes PascalCase (`StudentService`), functions/variables camelCase (`add`, `filter`), members
+  `m_...`. Database names only inside SQL strings; C++ names follow them (`StudentId` → `Student::id`).
+- Every user-visible string goes through `tr("English text")`; after adding strings run the `update_translations`
+  target and translate them in `qlttta_vi.ts` (see [SETUP.md](SETUP.md#translations-multi-language-ui)). Display text
+  for codes belongs to `Labels`/`Columns`/`DbValues`, never to domain/application, and no logic may depend on
+  displayed (translated) text - use codes, column keys and stored values.
+- Format with `clang-format` (the `.clang-format` file in the repo root; in Qt Creator: *Beautifier*); format only
+  the lines you changed (`git clang-format`).
+- Every new use case needs at least one unit test in `tests/` (with a fake repository), and every new screen must be
+  opened by the end-to-end test (it covers every feature listed in `Permissions` automatically).
 
-## Checklist Pull Request
-- [ ] Build và unit test chạy được trên máy (`cmake --build`, `ctest`)
-- [ ] Nếu sửa CSDL: `db_init` chạy lại từ đầu không lỗi, đã cập nhật `06_security.sql`
-- [ ] Đã thử bằng tài khoản demo của vai trò liên quan
-- [ ] Cập nhật tài liệu/báo cáo nếu thay đổi thiết kế
+## Pull Request checklist
+- [ ] `scripts/test_all.sh` (Windows: `scripts\test_all.ps1`) reports **ALL TESTS PASSED** (database + unit tests,
+      including translations, + end-to-end) - paste the result line into the PR
+- [ ] If the database changed: `06_security.sql` is updated; new business rules have test cases in `12_tests.sql` (+ `#Expected`); new messages are in `DbMessages.cpp`
+- [ ] New UI strings are translated in `resources/translations/qlttta_vi.ts`
+- [ ] Tried with the demo account of the relevant role, in Vietnamese and English when the UI changed
+- [ ] Documentation/report updated if the design changed
 
-## Dùng Claude Code (được giảng viên cho phép)
-- Đọc `CLAUDE.md` ở gốc repo: Claude Code tự áp dụng các quy ước trên.
-- Mỗi thành viên phải **hiểu và giải thích được** phần mình phụ trách: khi nhờ Claude viết/sửa,
-  yêu cầu Claude giải thích từng câu lệnh và tự chạy thử trong SSMS.
-- Không commit thông tin bí mật (mật khẩu thật, file `.env`).
+## Using Claude Code (allowed by the instructor)
+- Read `CLAUDE.md` in the repo root and `.claude/rules/`: Claude Code applies the conventions above automatically.
+- Every member must be able to **understand and explain** their own area: when you ask Claude to write or change
+  something, ask it to explain each statement and run it yourself in SSMS.
+- Never commit secrets (real passwords, `.env` files).

@@ -1,0 +1,16 @@
+// Clean Architecture của ứng dụng QLTTTA
+digraph ARCH {
+  graph [rankdir=TB, fontname="Arial", dpi=220, pad=0.2, nodesep=0.5, ranksep=0.55, compound=true];
+  node  [fontname="Arial", fontsize=12, shape=box, style="rounded,filled"];
+  edge  [color="#1F3864", penwidth=1.4, fontname="Arial", fontsize=10];
+  APP [label="app - composition root\nmain.cpp, AppContainer (khởi tạo & nối dây)", fillcolor="#E2E8F0"];
+  subgraph cluster_outer { label="Tầng ngoài - chi tiết kỹ thuật"; style="rounded,dashed"; color="#94A3B8"; fontsize=11;
+    P [label="presentation (Qt Widgets)\nLoginDialog · MainWindow · StudentPage\nListPage · DashboardPage · form .ui\nI18n · Labels · Columns · DbValues · TableExporter", fillcolor="#DBEAFE"];
+    I [label="infrastructure (Qt SQL / ODBC)\nDatabaseManager · Sql*Repository\nSqlAuthGateway · SqlErrorMapper · DbMessages\nQSettingsStore", fillcolor="#DBEAFE"]; }
+  A [label="application - use case\nAuthService · StudentService · StatisticsService\nListService · LanguageService · Permissions\nPorts: IStudentRepository, IAuthGateway, ...", fillcolor="#C7D2FE"];
+  D [label="domain - nghiệp vụ thuần\nStudent::validate() · Account · Role\nDashboardStats · Result<T>", fillcolor="#A5B4FC"];
+  DB [label="SQL Server - QLTTTA\nthủ tục · view · trigger · role", shape=cylinder, fillcolor="#FEF3C7", color="#B45309"];
+  APP -> P; APP -> I;
+  P -> A [label=" gọi use case"]; I -> A [label=" hiện thực port", style=dashed, arrowhead=empty];
+  A -> D; I -> DB [label=" ODBC (Driver 18 / FreeTDS)"];
+}

@@ -1,5 +1,5 @@
-﻿; Bộ cài Windows cho QLTTTA (Inno Setup 6). Được gọi bởi scripts\package-windows.ps1:
-;   ISCC /DAppVersion=0.1.0 /DSourceDir=<thư mục đã windeployqt> /DOutputDir=<dist> installer.iss
+﻿; Windows installer for QLTTTA (Inno Setup 6). Called by scripts\package-windows.ps1:
+;   ISCC /DAppVersion=0.1.0 /DSourceDir=<folder prepared by windeployqt> /DOutputDir=<dist> installer.iss
 #ifndef AppVersion
   #define AppVersion "0.1.0"
 #endif
@@ -12,10 +12,10 @@
 
 [Setup]
 AppId={{6D2B7F3E-9C41-4E8A-B5D0-2A71C9E4F318}
-AppName=QLTTTA - Quản lý Trung tâm Tiếng Anh
+AppName=QLTTTA - English Center Management
 AppVersion={#AppVersion}
 AppVerName=QLTTTA {#AppVersion}
-AppPublisher=UIT - IE103 Nhóm 1
+AppPublisher=UIT - IE103 Group 1
 DefaultDirName={autopf}\QLTTTA
 DefaultGroupName=QLTTTA
 DisableProgramGroupPage=yes
@@ -28,7 +28,7 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-; Cài cho người dùng hiện tại, không cần quyền Administrator (tiện cho máy giảng viên)
+; Installs for the current user, no Administrator rights needed (convenient on the instructor's machine)
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 
@@ -43,7 +43,7 @@ Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs 
 
 [Icons]
 Name: "{group}\QLTTTA"; Filename: "{app}\QLTTTA.exe"
-Name: "{group}\Hướng dẫn cài đặt"; Filename: "{app}\HUONG_DAN_CAI_DAT.txt"
+Name: "{group}\Installation guide"; Filename: "{app}\INSTALL.txt"
 Name: "{autodesktop}\QLTTTA"; Filename: "{app}\QLTTTA.exe"; Tasks: desktopicon
 
 [Run]

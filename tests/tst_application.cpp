@@ -1,132 +1,175 @@
 #include "application/services/AuthService.h"
-#include "application/services/HocVienService.h"
-#include "application/services/PhanQuyen.h"
+#include "application/services/LanguageService.h"
+#include "application/services/Permissions.h"
+#include "application/services/StudentService.h"
 
 #include <QtTest>
 
-// ===== Đối tượng giả (fake) thay cho SQL Server =====
-class FakeHocVienRepository : public IHocVienRepository {
+// ===== Fakes that replace SQL Server =====
+class FakeStudentRepository : public IStudentRepository {
 public:
-    QList<HocVien> duLieu;
-    int soLanThem = 0;
+    QList<Student> data;
+    int addCalls = 0;
 
-    Result<QList<HocVien>> timKiem(const BoLocHocVien&) override { return Result<QList<HocVien>>::success(duLieu); }
-    Result<HocVien> layTheoMa(const QString& ma) override {
-        for (const auto& hv : duLieu)
-            if (hv.maHV == ma)
-                return Result<HocVien>::success(hv);
-        return Result<HocVien>::failure(QStringLiteral("Không tìm thấy"));
+    Result<QList<Student>> search(const StudentFilter&) override {
+        return Result<QList<Student>>::success(data);
     }
-    Result<QString> them(const HocVien& hv) override {
-        ++soLanThem;
-        HocVien moi = hv;
-        moi.maHV = QStringLiteral("HV%1").arg(duLieu.size() + 1, 5, 10, QLatin1Char('0'));
-        duLieu.append(moi);
-        return Result<QString>::success(moi.maHV);
+    Result<Student> findById(const QString& id) override {
+        for (const auto& s : data)
+            if (s.id == id)
+                return Result<Student>::success(s);
+        return Result<Student>::failure(QStringLiteral("Not found"));
     }
-    VoidResult capNhat(const HocVien&) override { return VoidResult::success(); }
-    VoidResult xoa(const QString&) override { return VoidResult::success(); }
+    Result<QString> add(const Student& student) override {
+        ++addCalls;
+        Student added = student;
+        added.id = QStringLiteral("HV%1").arg(data.size() + 1, 5, 10, QLatin1Char('0'));
+        data.append(added);
+        return Result<QString>::success(added.id);
+    }
+    VoidResult update(const Student&) override { return VoidResult::success(); }
+    VoidResult remove(const QString&) override { return VoidResult::success(); }
 };
 
-class FakeDanhMuc : public IDanhMucRepository {
+class FakeCatalog : public ICatalogRepository {
 public:
-    Result<QList<ChiNhanh>> danhSachChiNhanh() override {
-        return Result<QList<ChiNhanh>>::success({{QStringLiteral("CN01"), QStringLiteral("Quận 1")}});
+    Result<QList<Branch>> branches() override {
+        return Result<QList<Branch>>::success(
+            {{QStringLiteral("BR01"), QStringLiteral("District 1 Branch")}});
     }
 };
 
 class FakeAuthGateway : public IAuthGateway {
 public:
-    Result<TaiKhoan> dangNhap(const CauHinhMayChu&, const QString& ten, const QString& mk) override {
-        if (ten == QStringLiteral("gvu_lan") && mk == QStringLiteral("dung-mat-khau")) {
-            TaiKhoan tk;
-            tk.tenDangNhap = ten;
-            tk.vaiTro = VaiTro::GiaoVu;
-            tk.hoTen = QStringLiteral("Lê Thị Lan");
-            return Result<TaiKhoan>::success(tk);
+    bool locked = false;
+    int logoutCalls = 0;
+
+    Result<Account> login(const ServerConfig&, const QString& username, const QString& password) override {
+        if (username == QStringLiteral("gvu_lan") && password == QStringLiteral("right-password")) {
+            Account account;
+            account.username = username;
+            account.role = Role::AcademicStaff;
+            account.fullName = QStringLiteral("Lê Thị Lan");
+            account.active = !locked;
+            return Result<Account>::success(account);
         }
-        return Result<TaiKhoan>::failure(QStringLiteral("Sai tên đăng nhập hoặc mật khẩu"));
+        return Result<Account>::failure(QStringLiteral("Wrong username or password"));
     }
-    void dangXuat() override {}
-    VoidResult doiMatKhau(const QString&, const QString&) override { return VoidResult::success(); }
+    void logout() override { ++logoutCalls; }
+    VoidResult changePassword(const QString&, const QString&) override { return VoidResult::success(); }
 };
 
-class FakeStore : public ICauHinhStore {
+class FakeSettings : public ISettingsStore {
 public:
-    CauHinhMayChu cauHinh;
-    QString ten;
-    CauHinhMayChu docCauHinh() const override { return cauHinh; }
-    void luuCauHinh(const CauHinhMayChu& c) override { cauHinh = c; }
-    QString tenDangNhapGanNhat() const override { return ten; }
-    void luuTenDangNhap(const QString& t) override { ten = t; }
+    ServerConfig config;
+    QString username;
+    Language lang = Language::Vietnamese;
+    int languageSaves = 0;
+    ServerConfig serverConfig() const override { return config; }
+    void saveServerConfig(const ServerConfig& c) override { config = c; }
+    QString lastUsername() const override { return username; }
+    void saveLastUsername(const QString& u) override { username = u; }
+    Language language() const override { return lang; }
+    void saveLanguage(Language l) override {
+        lang = l;
+        ++languageSaves;
+    }
 };
 
 class TestApplication : public QObject {
     Q_OBJECT
 
 private slots:
-    void themHocVien_hopLe_goiRepository() {
-        FakeHocVienRepository repo;
-        FakeDanhMuc dm;
-        HocVienService service(repo, dm);
-        HocVien hv;
-        hv.hoTen = QStringLiteral("  Trần   Thị  Bích  ");
-        hv.ngaySinh = QDate(2001, 3, 4);
-        hv.gioiTinh = QStringLiteral("Nữ");
-        hv.soDienThoai = QStringLiteral("0909000111");
-        hv.maCN = QStringLiteral("CN01");
-        const auto kq = service.themMoi(hv, QDate(2026, 10, 1));
-        QVERIFY2(kq.ok(), qPrintable(kq.error()));
-        QCOMPARE(repo.soLanThem, 1);
-        QCOMPARE(repo.duLieu.first().hoTen, QStringLiteral("Trần Thị Bích"));   // đã chuẩn hóa khoảng trắng
+    void addStudent_valid_callsRepository() {
+        FakeStudentRepository repository;
+        FakeCatalog catalog;
+        StudentService service(repository, catalog);
+        Student s;
+        s.fullName = QStringLiteral("  Trần   Thị  Bích  ");
+        s.dateOfBirth = QDate(2001, 3, 4);
+        s.gender = QStringLiteral("Female");
+        s.phone = QStringLiteral("0909000111");
+        s.branchId = QStringLiteral("BR01");
+        const auto result = service.add(s, QDate(2026, 10, 1));
+        QVERIFY2(result.ok(), qPrintable(result.error()));
+        QCOMPARE(repository.addCalls, 1);
+        QCOMPARE(repository.data.first().fullName, QStringLiteral("Trần Thị Bích")); // whitespace normalized
     }
 
-    void themHocVien_khongHopLe_khongGoiRepository() {
-        FakeHocVienRepository repo;
-        FakeDanhMuc dm;
-        HocVienService service(repo, dm);
-        const auto kq = service.themMoi(HocVien{}, QDate(2026, 10, 1));
-        QVERIFY(!kq.ok());
-        QCOMPARE(repo.soLanThem, 0);
+    void addStudent_invalid_doesNotCallRepository() {
+        FakeStudentRepository repository;
+        FakeCatalog catalog;
+        StudentService service(repository, catalog);
+        const auto result = service.add(Student{}, QDate(2026, 10, 1));
+        QVERIFY(!result.ok());
+        QCOMPARE(repository.addCalls, 0);
     }
 
-    void dangNhap_thanhCong_luuPhien() {
-        FakeAuthGateway gw;
-        FakeStore store;
-        AuthService auth(gw, store);
-        QVERIFY(auth.dangNhap(QStringLiteral("gvu_lan"), QStringLiteral("dung-mat-khau")).ok());
-        QVERIFY(auth.daDangNhap());
-        QCOMPARE(auth.vaiTro(), VaiTro::GiaoVu);
-        QCOMPARE(store.ten, QStringLiteral("gvu_lan"));
-        auth.dangXuat();
-        QVERIFY(!auth.daDangNhap());
+    void login_success_keepsSession() {
+        FakeAuthGateway gateway;
+        FakeSettings settings;
+        AuthService auth(gateway, settings);
+        QVERIFY(auth.login(QStringLiteral("gvu_lan"), QStringLiteral("right-password")).ok());
+        QVERIFY(auth.isLoggedIn());
+        QCOMPARE(auth.role(), Role::AcademicStaff);
+        QCOMPARE(settings.username, QStringLiteral("gvu_lan"));
+        auth.logout();
+        QVERIFY(!auth.isLoggedIn());
     }
 
-    void dangNhap_thieuThongTin_baoLoi() {
-        FakeAuthGateway gw;
-        FakeStore store;
-        AuthService auth(gw, store);
-        QVERIFY(!auth.dangNhap(QString(), QString()).ok());
-        QVERIFY(!auth.dangNhap(QStringLiteral("gvu_lan"), QStringLiteral("sai")).ok());
+    void login_missingInput_fails() {
+        FakeAuthGateway gateway;
+        FakeSettings settings;
+        AuthService auth(gateway, settings);
+        QVERIFY(!auth.login(QString(), QString()).ok());
+        QVERIFY(!auth.login(QStringLiteral("gvu_lan"), QStringLiteral("wrong")).ok());
     }
 
-    void doiMatKhau_kiemTraDauVao() {
-        FakeAuthGateway gw;
-        FakeStore store;
-        AuthService auth(gw, store);
-        QVERIFY(auth.dangNhap(QStringLiteral("gvu_lan"), QStringLiteral("dung-mat-khau")).ok());
-        QVERIFY(!auth.doiMatKhau(QStringLiteral("a"), QStringLiteral("ngan"), QStringLiteral("ngan")).ok());
-        QVERIFY(!auth.doiMatKhau(QStringLiteral("a"), QStringLiteral("MatKhau@1"), QStringLiteral("KhacNhau@1")).ok());
-        QVERIFY(auth.doiMatKhau(QStringLiteral("a"), QStringLiteral("MatKhau@1"), QStringLiteral("MatKhau@1")).ok());
+    void login_lockedAccount_isRejectedAndDisconnected() {
+        FakeAuthGateway gateway;
+        gateway.locked = true;
+        FakeSettings settings;
+        AuthService auth(gateway, settings);
+        const auto result = auth.login(QStringLiteral("gvu_lan"), QStringLiteral("right-password"));
+        QVERIFY(!result.ok());
+        QCOMPARE(result.error(), QStringLiteral("The account is locked."));
+        QVERIFY(!auth.isLoggedIn());
+        QCOMPARE(gateway.logoutCalls, 1);     // the connection opened by the gateway is closed
+        QVERIFY(settings.username.isEmpty()); // a refused login is not remembered
     }
 
-    void phanQuyen_giaoVienKhongThayHocVien() {
-        QVERIFY(!PhanQuyen::duocPhep(VaiTro::GiaoVien, ChucNang::HocVien));
-        QVERIFY(PhanQuyen::duocPhep(VaiTro::GiaoVien, ChucNang::LichDayCuaToi));
-        QVERIFY(!PhanQuyen::duocPhep(VaiTro::GiaoVu, ChucNang::BangLuong));
-        QVERIFY(PhanQuyen::duocPhep(VaiTro::KeToan, ChucNang::CongNo));
-        QVERIFY(!PhanQuyen::duocSuaHocVien(VaiTro::KeToan));
-        QVERIFY(PhanQuyen::chucNangDuocPhep(VaiTro::KhongXacDinh).isEmpty());
+    void changePassword_validatesInput() {
+        FakeAuthGateway gateway;
+        FakeSettings settings;
+        AuthService auth(gateway, settings);
+        QVERIFY(auth.login(QStringLiteral("gvu_lan"), QStringLiteral("right-password")).ok());
+        QVERIFY(
+            !auth.changePassword(QStringLiteral("a"), QStringLiteral("short"), QStringLiteral("short")).ok());
+        QVERIFY(
+            !auth.changePassword(QStringLiteral("a"), QStringLiteral("Password@1"), QStringLiteral("Other@1"))
+                 .ok());
+        QVERIFY(auth.changePassword(QStringLiteral("a"), QStringLiteral("Password@1"),
+                                    QStringLiteral("Password@1"))
+                    .ok());
+    }
+
+    void permissions_teacherCannotSeeStudents() {
+        QVERIFY(!Permissions::isAllowed(Role::Teacher, Feature::Students));
+        QVERIFY(Permissions::isAllowed(Role::Teacher, Feature::MyTeachingSchedule));
+        QVERIFY(!Permissions::isAllowed(Role::AcademicStaff, Feature::Payroll));
+        QVERIFY(Permissions::isAllowed(Role::Accountant, Feature::OutstandingTuition));
+        QVERIFY(!Permissions::canEditStudents(Role::Accountant));
+        QVERIFY(Permissions::allowedFeatures(Role::Unknown).isEmpty());
+    }
+
+    void language_defaultVietnamese_selectionIsSaved() {
+        FakeSettings settings;
+        LanguageService language(settings);
+        QCOMPARE(language.current(), Language::Vietnamese);
+        language.select(Language::English);
+        QCOMPARE(settings.languageSaves, 1);
+        QCOMPARE(language.current(), Language::English);
+        QCOMPARE(LanguageService::supported(), supportedLanguages());
     }
 };
 

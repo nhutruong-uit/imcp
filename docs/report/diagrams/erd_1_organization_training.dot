@@ -1,0 +1,44 @@
+// ERD (ký hiệu Chen) - Phân hệ tổ chức, nhân sự, đào tạo, lớp học
+graph ERD1 {
+  graph [layout=neato, overlap=prism, overlap_scaling=-2, splines=true, sep="+8", esep="+4", fontname="Arial", pad=0.2, dpi=220, start=7];
+  node  [fontname="Arial", fontsize=13];
+  edge  [fontname="Arial", fontsize=12, color="#334155", labelfontcolor="#B91C1C", labelfontsize=12, len=1.1];
+
+  node [shape=box, style="filled,rounded", fillcolor="#DBEAFE", color="#1F3864", penwidth=1.4];
+  BRANCH [label=<<B>BRANCH</B><BR/><U>BranchId</U>, BranchName, Address>];
+  ROOM [label=<<B>ROOM</B><BR/><U>RoomId</U>, RoomName, Capacity>];
+  EMPLOYEE [label=<<B>EMPLOYEE</B><BR/><U>EmployeeId</U>, FullName, Position>];
+  TEACHER [label=<<B>TEACHER</B><BR/><U>TeacherId</U>, FullName, TeacherType,<BR/>HourlyRate, ProfileXml>];
+  ACCOUNT [label=<<B>ACCOUNT</B><BR/><U>Username</U>, Role>];
+  PROGRAM [label=<<B>PROGRAM</B><BR/><U>ProgramId</U>, ProgramName>];
+  COURSE [label=<<B>COURSE</B><BR/><U>CourseId</U>, CourseName, Level,<BR/>SessionCount, Tuition, SyllabusXml>];
+  GRADE_COMPONENT [label=<<B>GRADE_COMPONENT</B><BR/><U>ComponentId</U>, ComponentName, Weight>];
+  CLASS [label=<<B>CLASS</B><BR/><U>ClassId</U>, ClassName, StartDate,<BR/>MaxStudents, Tuition, Status>];
+  CLASS_SCHEDULE [label=<<B>CLASS_SCHEDULE</B> (yếu)<BR/><U>Weekday</U>, StartTime, EndTime>, peripheries=2];
+  CLASS_SESSION [label=<<B>CLASS_SESSION</B><BR/><U>SessionId</U>, SessionNo, SessionDate, Status>];
+  PAYROLL [label=<<B>PAYROLL</B><BR/><U>PayrollId</U>, Month, Year, Hours, TotalPay>];
+
+  node [shape=diamond, style=filled, fillcolor="#FEF3C7", color="#B45309", penwidth=1.2, fontsize=10, width=1.2, height=0.7];
+  r_co [label="có"]; r_tuyen [label="làm việc\ntại"]; r_ql [label="trực\nthuộc"];
+  r_tkNV [label="đăng nhập\n(NV)"]; r_tkGV [label="đăng nhập\n(GV)"];
+  r_gom [label="gồm"]; r_tq [label="tiên\nquyết"]; r_dg [label="đánh giá\ntheo"];
+  r_mo [label="mở\nthành"]; r_cn [label="thuộc"]; r_pt [label="phụ\ntrách"]; r_ph [label="học tại"];
+  r_lich [label="học\ntheo"]; r_gom2 [label="gồm\nbuổi"]; r_day [label="dạy"]; r_luong [label="nhận"];
+
+  BRANCH -- r_co [taillabel="(1,n)"]; r_co -- ROOM [headlabel="(1,1)"];
+  EMPLOYEE -- r_tuyen [taillabel="(1,1)"]; r_tuyen -- BRANCH [headlabel="(1,n)"];
+  TEACHER -- r_ql [taillabel="(1,1)"]; r_ql -- BRANCH [headlabel="(0,n)"];
+  ACCOUNT -- r_tkNV [taillabel="(0,1)"]; r_tkNV -- EMPLOYEE [headlabel="(0,1)"];
+  ACCOUNT -- r_tkGV [taillabel="(0,1)"]; r_tkGV -- TEACHER [headlabel="(0,1)"];
+  PROGRAM -- r_gom [taillabel="(1,n)"]; r_gom -- COURSE [headlabel="(1,1)"];
+  COURSE -- r_tq [taillabel="(0,1) cần", labelangle=-60, labeldistance=3.2]; r_tq -- COURSE [headlabel="(0,n) là", labelangle=60, labeldistance=3.2];
+  COURSE -- r_dg [taillabel="(1,n)"]; r_dg -- GRADE_COMPONENT [headlabel="(1,1)"];
+  COURSE -- r_mo [taillabel="(0,n)"]; r_mo -- CLASS [headlabel="(1,1)"];
+  CLASS -- r_cn [taillabel="(1,1)"]; r_cn -- BRANCH [headlabel="(0,n)"];
+  TEACHER -- r_pt [taillabel="(0,n)"]; r_pt -- CLASS [headlabel="(1,1)"];
+  CLASS -- r_ph [taillabel="(1,1)"]; r_ph -- ROOM [headlabel="(0,n)"];
+  CLASS -- r_lich [taillabel="(1,n)"]; r_lich -- CLASS_SCHEDULE [headlabel="(1,1)"];
+  CLASS -- r_gom2 [taillabel="(0,n)"]; r_gom2 -- CLASS_SESSION [headlabel="(1,1)"];
+  TEACHER -- r_day [taillabel="(0,n)"]; r_day -- CLASS_SESSION [headlabel="(1,1)"];
+  TEACHER -- r_luong [taillabel="(0,n)"]; r_luong -- PAYROLL [headlabel="(1,1)"];
+}

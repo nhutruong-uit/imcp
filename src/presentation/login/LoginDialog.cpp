@@ -1,11 +1,14 @@
 #include "presentation/login/LoginDialog.h"
 
 #include "application/services/AuthService.h"
+#include "application/services/LanguageService.h"
+#include "presentation/common/I18n.h"
 #include "presentation/common/Icons.h"
 #include "presentation/common/UiHelpers.h"
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -14,27 +17,28 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-LoginDialog::LoginDialog(AuthService& auth, QWidget* parent) : QDialog(parent), m_auth(auth) {
-    setWindowTitle(QStringLiteral("Đăng nhập - Quản lý Trung tâm Tiếng Anh"));
+LoginDialog::LoginDialog(AuthService& auth, LanguageService& language, QWidget* parent)
+    : QDialog(parent), m_auth(auth), m_language(language) {
+    setWindowTitle(tr("Sign in - English Center Management"));
     setObjectName(QStringLiteral("LoginDialog"));
     setMinimumSize(820, 500);
 
     auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
-    layout->addWidget(taoPanelThuongHieu(), 5);
-    layout->addWidget(taoPanelForm(), 6);
+    layout->addWidget(buildBrandPanel(), 5);
+    layout->addWidget(buildFormPanel(), 6);
 
-    const CauHinhMayChu cauHinh = m_auth.cauHinh();
-    m_mayChu->setText(cauHinh.mayChu);
-    m_csdl->setText(cauHinh.csdl);
-    m_tinCay->setChecked(cauHinh.tinCayChungChi);
-    m_tenDangNhap->setText(m_auth.tenDangNhapGanNhat());
-    m_nhomCauHinh->setVisible(false);
-    (m_tenDangNhap->text().isEmpty() ? m_tenDangNhap : m_matKhau)->setFocus();
+    const ServerConfig config = m_auth.serverConfig();
+    m_server->setText(config.host);
+    m_database->setText(config.database);
+    m_trustCertificate->setChecked(config.trustServerCertificate);
+    m_username->setText(m_auth.lastUsername());
+    m_serverGroup->setVisible(false);
+    (m_username->text().isEmpty() ? m_username : m_password)->setFocus();
 }
 
-QWidget* LoginDialog::taoPanelThuongHieu() {
+QWidget* LoginDialog::buildBrandPanel() {
     auto* panel = new QFrame(this);
     panel->setObjectName(QStringLiteral("BrandPanel"));
     auto* v = new QVBoxLayout(panel);
@@ -42,119 +46,144 @@ QWidget* LoginDialog::taoPanelThuongHieu() {
 
     auto* logo = new QLabel(panel);
     logo->setPixmap(Icons::pixmap(QStringLiteral("logo"), QStringLiteral("#FFFFFF"), 56));
-    auto* ten = new QLabel(QStringLiteral("English Center\nManager"), panel);
-    ten->setObjectName(QStringLiteral("BrandTitle"));
-    auto* moTa = new QLabel(QStringLiteral("Hệ thống quản lý trung tâm tiếng Anh: học viên, lớp học, "
-                                           "ghi danh, học phí, điểm danh, kết quả học tập."),
-                            panel);
-    moTa->setObjectName(QStringLiteral("BrandText"));
-    moTa->setWordWrap(true);
-    auto* chan = new QLabel(QStringLiteral("Đồ án IE103 - Quản lý thông tin · UIT · Nhóm 1"), panel);
-    chan->setObjectName(QStringLiteral("BrandFooter"));
+    auto* brand =
+        new QLabel(QStringLiteral("English Center\nManager"), panel); // product name, not translated
+    brand->setObjectName(QStringLiteral("BrandTitle"));
+    auto* description =
+        new QLabel(tr("English center management system: students, classes, enrollment, tuition, "
+                      "attendance and learning results."),
+                   panel);
+    description->setObjectName(QStringLiteral("BrandText"));
+    description->setWordWrap(true);
+    auto* footer = new QLabel(tr("IE103 project - Information Management · UIT · Group 1"), panel);
+    footer->setObjectName(QStringLiteral("BrandFooter"));
 
     v->addWidget(logo);
     v->addSpacing(16);
-    v->addWidget(ten);
+    v->addWidget(brand);
     v->addSpacing(8);
-    v->addWidget(moTa);
+    v->addWidget(description);
     v->addStretch();
-    v->addWidget(chan);
+    v->addWidget(footer);
     return panel;
 }
 
-QWidget* LoginDialog::taoPanelForm() {
+QWidget* LoginDialog::buildFormPanel() {
     auto* panel = new QWidget(this);
     auto* v = new QVBoxLayout(panel);
     v->setContentsMargins(48, 48, 48, 32);
     v->setSpacing(10);
 
-    auto* tieuDe = new QLabel(QStringLiteral("Đăng nhập"), panel);
-    tieuDe->setObjectName(QStringLiteral("LoginTitle"));
-    auto* goiY = new QLabel(QStringLiteral("Dùng tài khoản được quản lý cấp (tài khoản SQL Server)."), panel);
-    goiY->setObjectName(QStringLiteral("Muted"));
-    v->addWidget(tieuDe);
-    v->addWidget(goiY);
+    auto* title = new QLabel(tr("Sign in"), panel);
+    title->setObjectName(QStringLiteral("LoginTitle"));
+    auto* hint = new QLabel(tr("Use the account issued by your manager (a SQL Server account)."), panel);
+    hint->setObjectName(QStringLiteral("Muted"));
+    hint->setWordWrap(true); // translations may be longer than the original text
+    v->addWidget(title);
+    v->addWidget(hint);
     v->addSpacing(12);
 
-    m_tenDangNhap = new QLineEdit(panel);
-    m_tenDangNhap->setPlaceholderText(QStringLiteral("Tên đăng nhập"));
-    m_tenDangNhap->addAction(Icons::get(QStringLiteral("user"), QStringLiteral("#94A3B8"), 16), QLineEdit::LeadingPosition);
-    m_matKhau = new QLineEdit(panel);
-    m_matKhau->setPlaceholderText(QStringLiteral("Mật khẩu"));
-    m_matKhau->setEchoMode(QLineEdit::Password);
-    m_matKhau->addAction(Icons::get(QStringLiteral("key"), QStringLiteral("#94A3B8"), 16), QLineEdit::LeadingPosition);
-    v->addWidget(m_tenDangNhap);
-    v->addWidget(m_matKhau);
+    m_username = new QLineEdit(panel);
+    m_username->setObjectName(QStringLiteral("usernameEdit"));
+    m_username->setPlaceholderText(tr("Username"));
+    m_username->addAction(Icons::get(QStringLiteral("user"), QStringLiteral("#94A3B8"), 16),
+                          QLineEdit::LeadingPosition);
+    m_password = new QLineEdit(panel);
+    m_password->setObjectName(QStringLiteral("passwordEdit"));
+    m_password->setPlaceholderText(tr("Password"));
+    m_password->setEchoMode(QLineEdit::Password);
+    m_password->addAction(Icons::get(QStringLiteral("key"), QStringLiteral("#94A3B8"), 16),
+                          QLineEdit::LeadingPosition);
+    v->addWidget(m_username);
+    v->addWidget(m_password);
 
-    m_loi = new QLabel(panel);
-    m_loi->setObjectName(QStringLiteral("ErrorText"));
-    m_loi->setWordWrap(true);
-    m_loi->hide();
-    v->addWidget(m_loi);
+    m_error = new QLabel(panel);
+    m_error->setObjectName(QStringLiteral("ErrorText"));
+    m_error->setProperty("testId", QStringLiteral("loginError"));
+    m_error->setWordWrap(true);
+    m_error->hide();
+    v->addWidget(m_error);
 
-    m_nutDangNhap = UiHelpers::nutChinh(QStringLiteral("Đăng nhập"), QString(), panel);
-    m_nutDangNhap->setDefault(true);
-    m_nutDangNhap->setMinimumHeight(38);
-    v->addWidget(m_nutDangNhap);
+    m_loginButton = UiHelpers::primaryButton(tr("Sign in"), QString(), panel);
+    m_loginButton->setObjectName(QStringLiteral("loginButton"));
+    m_loginButton->setDefault(true);
+    m_loginButton->setMinimumHeight(38);
+    v->addWidget(m_loginButton);
 
-    m_nutCauHinh = new QPushButton(QStringLiteral("Cấu hình máy chủ ▸"), panel);
-    m_nutCauHinh->setFlat(true);
-    m_nutCauHinh->setObjectName(QStringLiteral("LinkButton"));
-    m_nutCauHinh->setCursor(Qt::PointingHandCursor);
-    v->addWidget(m_nutCauHinh, 0, Qt::AlignLeft);
+    m_serverToggle = new QPushButton(tr("Server settings") + QStringLiteral(" ▸"), panel);
+    m_serverToggle->setFlat(true);
+    m_serverToggle->setObjectName(QStringLiteral("LinkButton"));
+    m_serverToggle->setCursor(Qt::PointingHandCursor);
+    v->addWidget(m_serverToggle, 0, Qt::AlignLeft);
 
-    m_nhomCauHinh = new QGroupBox(QStringLiteral("Máy chủ SQL Server"), panel);
-    auto* form = new QFormLayout(m_nhomCauHinh);
-    m_mayChu = new QLineEdit(m_nhomCauHinh);
-    m_mayChu->setPlaceholderText(QStringLiteral("localhost,1433 hoặc TEN-MAY\\SQLEXPRESS"));
-    m_csdl = new QLineEdit(m_nhomCauHinh);
-    m_tinCay = new QCheckBox(QStringLiteral("Tin cậy chứng chỉ máy chủ (TrustServerCertificate)"), m_nhomCauHinh);
-    form->addRow(QStringLiteral("Máy chủ"), m_mayChu);
-    form->addRow(QStringLiteral("CSDL"), m_csdl);
-    form->addRow(QString(), m_tinCay);
-    v->addWidget(m_nhomCauHinh);
+    m_serverGroup = new QGroupBox(tr("SQL Server"), panel);
+    auto* form = new QFormLayout(m_serverGroup);
+    m_server = new QLineEdit(m_serverGroup);
+    m_server->setObjectName(QStringLiteral("serverEdit"));
+    m_server->setPlaceholderText(tr("localhost,1433 or PC-NAME\\SQLEXPRESS"));
+    m_database = new QLineEdit(m_serverGroup);
+    m_trustCertificate =
+        new QCheckBox(tr("Trust server certificate (TrustServerCertificate)"), m_serverGroup);
+    form->addRow(tr("Server"), m_server);
+    form->addRow(tr("Database"), m_database);
+    form->addRow(QString(), m_trustCertificate);
+    v->addWidget(m_serverGroup);
     v->addStretch();
 
-    auto* phienBan = new QLabel(QStringLiteral("Phiên bản %1").arg(QApplication::applicationVersion()), panel);
-    phienBan->setObjectName(QStringLiteral("Muted"));
-    v->addWidget(phienBan, 0, Qt::AlignRight);
+    auto* bottom = new QHBoxLayout;
+    m_languageCombo = UiHelpers::languageSelector(I18n::current(), panel); // the language actually displayed
+    auto* version = new QLabel(tr("Version %1").arg(QApplication::applicationVersion()), panel);
+    version->setObjectName(QStringLiteral("Muted"));
+    bottom->addWidget(m_languageCombo);
+    bottom->addStretch();
+    bottom->addWidget(version);
+    v->addLayout(bottom);
 
-    connect(m_nutDangNhap, &QPushButton::clicked, this, &LoginDialog::dangNhap);
-    connect(m_nutCauHinh, &QPushButton::clicked, this, &LoginDialog::anHienCauHinh);
+    connect(m_loginButton, &QPushButton::clicked, this, &LoginDialog::login);
+    connect(m_serverToggle, &QPushButton::clicked, this, &LoginDialog::toggleServerSettings);
+    connect(m_languageCombo, &QComboBox::currentIndexChanged, this, &LoginDialog::changeLanguage);
     return panel;
 }
 
-void LoginDialog::anHienCauHinh() {
-    const bool hien = !m_nhomCauHinh->isVisible();
-    m_nhomCauHinh->setVisible(hien);
-    m_nutCauHinh->setText(hien ? QStringLiteral("Cấu hình máy chủ ▾") : QStringLiteral("Cấu hình máy chủ ▸"));
+void LoginDialog::toggleServerSettings() {
+    const bool show = !m_serverGroup->isVisible();
+    m_serverGroup->setVisible(show);
+    m_serverToggle->setText(tr("Server settings") + (show ? QStringLiteral(" ▾") : QStringLiteral(" ▸")));
 }
 
-void LoginDialog::dangNhap() {
-    CauHinhMayChu cauHinh;
-    cauHinh.mayChu = m_mayChu->text().trimmed();
-    cauHinh.csdl = m_csdl->text().trimmed();
-    cauHinh.tinCayChungChi = m_tinCay->isChecked();
-    m_auth.luuCauHinh(cauHinh);
+void LoginDialog::changeLanguage() {
+    const Language selected = languageFromCode(m_languageCombo->currentData().toString());
+    if (selected == I18n::current())
+        return;
+    I18n::switchTo(m_language, selected);
+    done(LanguageChanged); // the caller shows a new login dialog, built in the new language
+}
 
-    m_loi->hide();
-    m_nutDangNhap->setEnabled(false);
-    m_nutDangNhap->setText(QStringLiteral("Đang kết nối..."));
+void LoginDialog::login() {
+    ServerConfig config;
+    config.host = m_server->text().trimmed();
+    config.database = m_database->text().trimmed();
+    config.trustServerCertificate = m_trustCertificate->isChecked();
+    m_auth.saveServerConfig(config);
+
+    m_error->hide();
+    m_loginButton->setEnabled(false);
+    m_loginButton->setText(tr("Connecting..."));
     QApplication::setOverrideCursor(Qt::WaitCursor);
     QApplication::processEvents();
 
-    const auto ketQua = m_auth.dangNhap(m_tenDangNhap->text(), m_matKhau->text());
+    const auto result = m_auth.login(m_username->text(), m_password->text());
 
     QApplication::restoreOverrideCursor();
-    m_nutDangNhap->setEnabled(true);
-    m_nutDangNhap->setText(QStringLiteral("Đăng nhập"));
+    m_loginButton->setEnabled(true);
+    m_loginButton->setText(tr("Sign in"));
 
-    if (ketQua.ok()) {
+    if (result.ok()) {
         accept();
         return;
     }
-    m_loi->setText(ketQua.error());
-    m_loi->show();
-    m_matKhau->selectAll();
-    m_matKhau->setFocus();
+    m_error->setText(result.error());
+    m_error->show();
+    m_password->selectAll();
+    m_password->setFocus();
 }

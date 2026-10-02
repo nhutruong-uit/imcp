@@ -4,11 +4,11 @@
 
 class QAbstractItemModel;
 
-// Xuất dữ liệu đang hiển thị trên bảng ra file:
-// - CSV (UTF-8 có BOM, mở trực tiếp bằng Excel không lỗi font tiếng Việt)
-// - PDF dạng báo cáo: tiêu đề báo cáo, thông tin người lập, bảng chi tiết, dòng tổng, số trang
+// Exports the data shown in a table to a file:
+// - CSV (UTF-8 with BOM, opens directly in Excel without garbling Vietnamese text)
+// - PDF report: report title, author, detail table, totals row, page numbers
 namespace TableExporter {
-bool xuatCsv(const QAbstractItemModel& model, const QString& duongDan, QString* loi = nullptr);
-bool xuatPdf(const QAbstractItemModel& model, const QString& tieuDe, const QString& nguoiLap,
-             const QString& duongDan, QString* loi = nullptr);
+bool exportCsv(const QAbstractItemModel& model, const QString& filePath, QString* error = nullptr);
+bool exportPdf(const QAbstractItemModel& model, const QString& title, const QString& preparedBy,
+               const QString& filePath, QString* error = nullptr);
 } // namespace TableExporter

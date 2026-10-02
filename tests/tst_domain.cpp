@@ -1,5 +1,6 @@
-#include "domain/entities/HocVien.h"
-#include "domain/entities/VaiTro.h"
+#include "domain/entities/Language.h"
+#include "domain/entities/Role.h"
+#include "domain/entities/Student.h"
 
 #include <QtTest>
 
@@ -7,62 +8,70 @@ class TestDomain : public QObject {
     Q_OBJECT
 
 private:
-    static HocVien hocVienHopLe() {
-        HocVien hv;
-        hv.hoTen = QStringLiteral("Nguyễn Văn An");
-        hv.ngaySinh = QDate(2000, 5, 10);
-        hv.gioiTinh = QStringLiteral("Nam");
-        hv.soDienThoai = QStringLiteral("0901234567");
-        hv.maCN = QStringLiteral("CN01");
-        return hv;
+    static Student validStudent() {
+        Student s;
+        s.fullName = QStringLiteral("Nguyễn Văn An");
+        s.dateOfBirth = QDate(2000, 5, 10);
+        s.gender = QStringLiteral("Male");
+        s.phone = QStringLiteral("0901234567");
+        s.branchId = QStringLiteral("BR01");
+        return s;
     }
 
 private slots:
-    void hocVienHopLe_khongCoLoi() {
-        QVERIFY(hocVienHopLe().kiemTra(QDate(2026, 10, 1)).isEmpty());
+    void validStudent_hasNoErrors() { QVERIFY(validStudent().validate(QDate(2026, 10, 1)).isEmpty()); }
+
+    void age_beforeBirthday() {
+        Student s;
+        s.dateOfBirth = QDate(2008, 12, 31);
+        QCOMPARE(s.age(QDate(2026, 10, 1)), 17);
+        QCOMPARE(s.age(QDate(2026, 12, 31)), 18);
     }
 
-    void tinhTuoi_chuaToiSinhNhat() {
-        HocVien hv;
-        hv.ngaySinh = QDate(2008, 12, 31);
-        QCOMPARE(hv.tuoi(QDate(2026, 10, 1)), 17);
-        QCOMPARE(hv.tuoi(QDate(2026, 12, 31)), 18);
+    void under18_requiresGuardian() {
+        Student s = validStudent();
+        s.dateOfBirth = QDate(2015, 1, 1);
+        QVERIFY(!s.validate(QDate(2026, 10, 1)).isEmpty());
+        s.guardianName = QStringLiteral("Nguyễn Văn Hòa");
+        s.guardianPhone = QStringLiteral("0912000001");
+        QVERIFY(s.validate(QDate(2026, 10, 1)).isEmpty());
     }
 
-    void duoi18Tuoi_batBuocPhuHuynh() {
-        HocVien hv = hocVienHopLe();
-        hv.ngaySinh = QDate(2015, 1, 1);
-        QVERIFY(!hv.kiemTra(QDate(2026, 10, 1)).isEmpty());
-        hv.tenPhuHuynh = QStringLiteral("Nguyễn Văn Hòa");
-        hv.sdtPhuHuynh = QStringLiteral("0912000001");
-        QVERIFY(hv.kiemTra(QDate(2026, 10, 1)).isEmpty());
+    void phone_digitsOnly() {
+        Student s = validStudent();
+        s.phone = QStringLiteral("09-123");
+        QVERIFY(!s.validate(QDate(2026, 10, 1)).isEmpty());
     }
 
-    void soDienThoai_chiChuSo() {
-        HocVien hv = hocVienHopLe();
-        hv.soDienThoai = QStringLiteral("09-123");
-        QVERIFY(!hv.kiemTra(QDate(2026, 10, 1)).isEmpty());
+    void email_format() {
+        Student s = validStudent();
+        s.email = QStringLiteral("not-an-email");
+        QVERIFY(!s.validate(QDate(2026, 10, 1)).isEmpty());
+        s.email = QStringLiteral("an.nv@gmail.com");
+        QVERIFY(s.validate(QDate(2026, 10, 1)).isEmpty());
     }
 
-    void email_dinhDang() {
-        HocVien hv = hocVienHopLe();
-        hv.email = QStringLiteral("khong-hop-le");
-        QVERIFY(!hv.kiemTra(QDate(2026, 10, 1)).isEmpty());
-        hv.email = QStringLiteral("an.nv@gmail.com");
-        QVERIFY(hv.kiemTra(QDate(2026, 10, 1)).isEmpty());
+    void atLeastOneContactNumber() {
+        Student s = validStudent();
+        s.phone.clear();
+        QVERIFY(!s.validate(QDate(2026, 10, 1)).isEmpty());
     }
 
-    void canItNhatMotSoLienLac() {
-        HocVien hv = hocVienHopLe();
-        hv.soDienThoai.clear();
-        QVERIFY(!hv.kiemTra(QDate(2026, 10, 1)).isEmpty());
+    void role_codeMapping() {
+        QCOMPARE(roleFromCode(QStringLiteral("MANAGER")), Role::Manager);
+        QCOMPARE(roleFromCode(QStringLiteral("teacher")), Role::Teacher);
+        QCOMPARE(roleFromCode(QStringLiteral("ACADEMIC_STAFF")), Role::AcademicStaff);
+        QCOMPARE(roleFromCode(QStringLiteral("abc")), Role::Unknown);
+        QCOMPARE(roleCode(Role::Accountant), QStringLiteral("ACCOUNTANT"));
     }
 
-    void vaiTro_anhXaMa() {
-        QCOMPARE(vaiTroTuMa(QStringLiteral("QUANLY")), VaiTro::QuanLy);
-        QCOMPARE(vaiTroTuMa(QStringLiteral("giaovien")), VaiTro::GiaoVien);
-        QCOMPARE(vaiTroTuMa(QStringLiteral("abc")), VaiTro::KhongXacDinh);
-        QCOMPARE(maVaiTro(VaiTro::KeToan), QStringLiteral("KETOAN"));
+    void language_codeMapping() {
+        QCOMPARE(languageCode(Language::Vietnamese), QStringLiteral("vi"));
+        QCOMPARE(languageCode(Language::English), QStringLiteral("en"));
+        QCOMPARE(languageFromCode(QStringLiteral("en")), Language::English);
+        QCOMPARE(languageFromCode(QStringLiteral("en_GB")), Language::English);
+        QCOMPARE(languageFromCode(QStringLiteral("fr")), Language::Vietnamese); // unsupported => default
+        QCOMPARE(supportedLanguages().first(), Language::Vietnamese);
     }
 };
 

@@ -8,7 +8,7 @@
 void Theme::apply(QApplication& app) {
     app.setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
 
-    // Luôn dùng bảng màu sáng để giao diện giống nhau kể cả khi hệ điều hành bật Dark Mode
+    // Always use the light palette so the UI looks the same even when the OS is in Dark Mode
     QPalette p;
     p.setColor(QPalette::Window, QColor(0xF4, 0xF6, 0xFA));
     p.setColor(QPalette::WindowText, QColor(0x1E, 0x29, 0x3B));

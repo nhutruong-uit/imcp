@@ -1,0 +1,105 @@
+---
+paths:
+  - "database/**/*.sql"
+---
+# T-SQL rules (database/)
+
+Complements the "Database" section of `CLAUDE.md` (SQL Server 2012+, DROP/GO pattern, THROW 5xxxx, set-based
+triggers, GRANT).
+
+## Language and naming (English)
+- Everything is **English**: tables in UPPER_SNAKE_CASE (`STUDENT`, `CLASS_SESSION`), columns in PascalCase
+  (`StudentId`, `EnrolledOn`), procedures `usp_<Entity>_<Verb>` (`usp_Student_Add`, `usp_Enrollment_Create`),
+  functions `fn_` (`fn_FinalGrade`), views `vw_` (`vw_ClassDetails`, teacher views `vw_Teacher_My...`), triggers
+  `trg_<TABLE>_<Purpose>` (`trg_RECEIPT_UpdateAmountPaid`), roles `rl_` (`rl_AcademicStaff`), comments in English.
+  Constraints: `PK_<TABLE>`, `FK_<CHILD>_<PARENT>`, `CK_<TABLE>_<Column>`, `UQ_`, `DF_`, filtered unique indexes `UX_`.
+- Stored values are English text with the `N'...'` prefix (`N'Studying'`, `N'Bank transfer'`); codes without
+  diacritics or spaces stay `VARCHAR` without `N` (`'MANAGER'`, `'PERCENT'`). Weekdays are ISO numbers
+  (1 = Monday ... 7 = Sunday, `fn_Weekday`). People's names and addresses in the demo data stay Vietnamese
+  (the database collation is `Vietnamese_CI_AS`).
+- Business messages are English sentences (`THROW 50022, N'The student is already enrolled in this class.', 1;`).
+  The application shows them in the UI language, so every new message is added to `kTemplates` in
+  `src/infrastructure/db/DbMessages.cpp` (a message built from values becomes a template with `%1`, `%2`; keep each
+  fixed part in one `N'...'` literal) and translated in `qlttta_vi.ts`. `tst_i18n` fails on an unregistered message.
+- A new enumerated value displayed in the UI (new value in a `CHECK ... IN (...)`) needs an entry in `kEntries`
+  (`src/presentation/common/DbValues.cpp`) and a Vietnamese translation (`tst_i18n` checks both); a new column shown
+  in a list needs an entry in `kCatalog` (`src/presentation/common/Columns.cpp`).
+
+## Format
+- Keywords in **UPPERCASE** (`SELECT`, `JOIN`, `BEGIN TRY`), **4-space** indentation, every statement ends with `;`.
+- Always qualify the schema: `dbo.STUDENT`, `dbo.usp_Enrollment_Create`. Text values always use the `N'...'` prefix.
+- Align parameters as in `usp_Student_Add`; optional parameters end with `= NULL`.
+- Every object starts with **one comment line with its section code** (the groups of the file):
+  `/* C5. usp_Enrollment_Cancel: cancel an enrollment, refund it when no session was attended */`.
+- No `SELECT *` in procedures/views (demo queries excepted); never the `sp_` prefix.
+
+## Template of a multi-step write procedure
+```sql
+/* C5. usp_Entity_Verb: <one-line description> */
+IF OBJECT_ID(N'dbo.usp_Entity_Verb', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Entity_Verb;
+GO
+CREATE PROCEDURE dbo.usp_Entity_Verb
+    @EntityId  VARCHAR(10),
+    @Notes     NVARCHAR(200) = NULL,
+    @NewId     VARCHAR(10)   OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    -- 1. Check the business rules first; English message (number from the group's range, see below)
+    IF NOT EXISTS (SELECT 1 FROM dbo.ENTITY WHERE EntityId = @EntityId)
+        THROW 50028, N'Entity not found.', 1;
+
+    -- 2. Write the data in a transaction
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        ...
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+END;
+GO
+```
+A procedure with a single write statement needs no TRY/TRANSACTION (like `usp_Student_Add`).
+
+## THROW error-number ranges (one block of ten per procedure group - pick an unused number in the range)
+| Group (section of 04_procedures.sql) | Range | | Group | Range |
+|---|---|---|---|---|
+| A. Students | 50001-50009 | | E. Attendance, grades, results | 50040-50049 |
+| B. Classes, schedules, sessions | 50010-50019 | | F. Payroll | 50050-50059 |
+| C. Enrollment, class transfer | 50020-50029 | | I. Accounts | 50060-50069 |
+| D. Receipts | 50030-50039 | | I7. Backup | 50070-50079 |
+New group: use the next free block (50080...). `50099` is reserved for `12_tests.sql`. Triggers use
+`RAISERROR (N'...', 16, 1); ROLLBACK TRANSACTION;`. Numbers in use:
+`grep -o "THROW 50[0-9]*" database/04_procedures.sql | sort -u`.
+
+## Trigger template (always handle a SET of rows)
+```sql
+CREATE TRIGGER dbo.trg_TABLE_Purpose
+ON dbo.TABLE_NAME
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT UPDATE(RelatedColumn) RETURN;         -- skip when the related column did not change
+    IF EXISTS (SELECT 1 FROM inserted i JOIN ... WHERE <violation>)   -- join with inserted, NEVER a scalar variable
+    BEGIN
+        RAISERROR (N'<English message>.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END;
+END;
+GO
+```
+Forbidden: `SELECT @x = Col FROM inserted` (reads a single row only), cursors inside triggers.
+
+## Mandatory when adding/changing an object
+1. `GRANT` to the right roles in `06_security.sql` (business roles have no rights on base tables).
+2. A test case in `12_tests.sql` + its code and message pattern registered in `#Expected` (see `tests.md`).
+   New business messages: register them in `DbMessages.cpp` and translate them (see "Language and naming").
+3. Re-run everything: `scripts/test_all.sh` (includes `db_init` from scratch) - not only the file you changed.
+4. If the number of objects or content quoted in the report changes: run `/imcp-update-report`.

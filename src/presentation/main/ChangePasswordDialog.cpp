@@ -11,41 +11,41 @@
 #include <QVBoxLayout>
 
 ChangePasswordDialog::ChangePasswordDialog(AuthService& auth, QWidget* parent) : QDialog(parent), m_auth(auth) {
-    setWindowTitle(QStringLiteral("Đổi mật khẩu"));
+    setWindowTitle(tr("Change password"));
     setMinimumWidth(420);
     auto* v = new QVBoxLayout(this);
     auto* form = new QFormLayout;
-    m_cu = new QLineEdit(this);
-    m_moi = new QLineEdit(this);
-    m_nhapLai = new QLineEdit(this);
-    for (QLineEdit* e : {m_cu, m_moi, m_nhapLai})
+    m_current = new QLineEdit(this);
+    m_new = new QLineEdit(this);
+    m_confirmation = new QLineEdit(this);
+    for (QLineEdit* e : {m_current, m_new, m_confirmation})
         e->setEchoMode(QLineEdit::Password);
-    form->addRow(QStringLiteral("Mật khẩu hiện tại"), m_cu);
-    form->addRow(QStringLiteral("Mật khẩu mới"), m_moi);
-    form->addRow(QStringLiteral("Nhập lại mật khẩu mới"), m_nhapLai);
+    form->addRow(tr("Current password"), m_current);
+    form->addRow(tr("New password"), m_new);
+    form->addRow(tr("Confirm new password"), m_confirmation);
     v->addLayout(form);
 
-    m_loi = new QLabel(this);
-    m_loi->setObjectName(QStringLiteral("ErrorText"));
-    m_loi->setWordWrap(true);
-    m_loi->hide();
-    v->addWidget(m_loi);
+    m_error = new QLabel(this);
+    m_error->setObjectName(QStringLiteral("ErrorText"));
+    m_error->setWordWrap(true);
+    m_error->hide();
+    v->addWidget(m_error);
 
-    auto* nut = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, this);
-    nut->button(QDialogButtonBox::Save)->setText(QStringLiteral("Lưu"));
-    nut->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("Hủy"));
-    v->addWidget(nut);
-    connect(nut, &QDialogButtonBox::accepted, this, &ChangePasswordDialog::luu);
-    connect(nut, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, this);
+    buttons->button(QDialogButtonBox::Save)->setText(tr("Save"));
+    buttons->button(QDialogButtonBox::Cancel)->setText(tr("Cancel"));
+    v->addWidget(buttons);
+    connect(buttons, &QDialogButtonBox::accepted, this, &ChangePasswordDialog::save);
+    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
 }
 
-void ChangePasswordDialog::luu() {
-    const auto kq = m_auth.doiMatKhau(m_cu->text(), m_moi->text(), m_nhapLai->text());
-    if (!kq.ok()) {
-        m_loi->setText(kq.error());
-        m_loi->show();
+void ChangePasswordDialog::save() {
+    const auto result = m_auth.changePassword(m_current->text(), m_new->text(), m_confirmation->text());
+    if (!result.ok()) {
+        m_error->setText(result.error());
+        m_error->show();
         return;
     }
-    QMessageBox::information(this, QStringLiteral("Thành công"), QStringLiteral("Đã đổi mật khẩu."));
+    QMessageBox::information(this, tr("Success"), tr("Your password has been changed."));
     accept();
 }

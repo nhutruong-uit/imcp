@@ -1,21 +1,21 @@
 #pragma once
 
-#include "domain/entities/ThongKe.h"
+#include "domain/entities/DashboardStats.h"
 
 #include <QWidget>
 
-// Biểu đồ cột doanh thu 12 tháng, tự vẽ bằng QPainter (không cần thêm thư viện biểu đồ)
+// Bar chart of the revenue of 12 months, painted with QPainter (no chart library needed)
 class RevenueChart : public QWidget {
     Q_OBJECT
 public:
     explicit RevenueChart(QWidget* parent = nullptr);
-    void setDuLieu(const QList<DoanhThuThang>& duLieu);
-    void setThongBao(const QString& thongBao);
+    void setData(const QList<MonthlyRevenue>& data);
+    void setMessage(const QString& message);
 
 protected:
     void paintEvent(QPaintEvent* event) override;
 
 private:
-    QList<DoanhThuThang> m_duLieu;
-    QString m_thongBao;
+    QList<MonthlyRevenue> m_data;
+    QString m_message;
 };

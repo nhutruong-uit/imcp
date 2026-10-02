@@ -1,0 +1,40 @@
+// ERD (ký hiệu Chen) - Phân hệ học viên, ghi danh, tài chính, kết quả học tập
+graph ERD2 {
+  graph [layout=neato, overlap=prism, overlap_scaling=-2, splines=true, sep="+8", esep="+4", fontname="Arial", pad=0.2, dpi=220, start=7];
+  node  [fontname="Arial", fontsize=13];
+  edge  [fontname="Arial", fontsize=12, color="#334155", labelfontcolor="#B91C1C", labelfontsize=12, len=1.1];
+
+  node [shape=box, style="filled,rounded", fillcolor="#DBEAFE", color="#1F3864", penwidth=1.4];
+  STUDENT [label=<<B>STUDENT</B><BR/><U>StudentId</U>, FullName, DateOfBirth, Phone,<BR/>GuardianName, GuardianPhone, Status>];
+  PLACEMENT_TEST [label=<<B>PLACEMENT_TEST</B><BR/><U>TestId</U>, ListeningScore, SpeakingScore,<BR/>ReadingScore, WritingScore, /OverallScore>];
+  ENROLLMENT [label=<<B>ENROLLMENT</B> (thực thể kết hợp)<BR/><U>EnrollmentId</U>, EnrolledOn, BaseTuition, DiscountAmount,<BR/>/TuitionDue, /AmountPaid, Result>, fillcolor="#E0E7FF"];
+  CLASS [label=<<B>CLASS</B><BR/><U>ClassId</U>, ...>, fillcolor="#F1F5F9"];
+  COURSE [label=<<B>COURSE</B><BR/><U>CourseId</U>, ...>, fillcolor="#F1F5F9"];
+  CLASS_SESSION [label=<<B>CLASS_SESSION</B><BR/><U>SessionId</U>, ...>, fillcolor="#F1F5F9"];
+  GRADE_COMPONENT [label=<<B>GRADE_COMPONENT</B><BR/><U>ComponentId</U>, ...>, fillcolor="#F1F5F9"];
+  EMPLOYEE [label=<<B>EMPLOYEE</B><BR/><U>EmployeeId</U>, ...>, fillcolor="#F1F5F9"];
+  BRANCH [label=<<B>BRANCH</B><BR/><U>BranchId</U>, ...>, fillcolor="#F1F5F9"];
+  PROMOTION [label=<<B>PROMOTION</B><BR/><U>PromotionId</U>, DiscountType, DiscountValue,<BR/>StartDate, EndDate>];
+  RECEIPT [label=<<B>RECEIPT</B><BR/><U>ReceiptId</U>, PaidAt, Amount,<BR/>PaymentMethod, Status>];
+  CERTIFICATE [label=<<B>CERTIFICATE</B><BR/><U>CertificateId</U>, SerialNumber, IssuedOn, Classification>];
+  AUDIT_LOG [label=<<B>AUDIT_LOG</B><BR/><U>LogId</U>, TableName, Action,<BR/>OldData (XML), NewData (XML)>, fillcolor="#FCE7F3"];
+
+  node [shape=diamond, style=filled, fillcolor="#FEF3C7", color="#B45309", penwidth=1.2, fontsize=10, width=1.2, height=0.7];
+  r_dk [label="đăng\nký"]; r_co [label="có học\nviên"]; r_lam [label="làm\nbài"]; r_dx [label="đề\nxuất"];
+  r_km [label="áp\ndụng"]; r_dong [label="đóng\ntiền"]; r_lap [label="lập\nphiếu"]; r_nv [label="ghi\ndanh bởi"];
+  r_cap [label="được\ncấp"]; r_tn [label="tiếp\nnhận"];
+  ATTENDANCE [label="ATTENDANCE\n(Status)"]; GRADE [label="GRADE\n(Score)"];
+
+  STUDENT -- r_dk [taillabel="(0,n)"]; r_dk -- ENROLLMENT [headlabel="(1,1)"];
+  CLASS -- r_co [taillabel="(0,n)"]; r_co -- ENROLLMENT [headlabel="(1,1)"];
+  STUDENT -- r_tn [taillabel="(1,1)"]; r_tn -- BRANCH [headlabel="(0,n)"];
+  STUDENT -- r_lam [taillabel="(0,n)"]; r_lam -- PLACEMENT_TEST [headlabel="(1,1)"];
+  PLACEMENT_TEST -- r_dx [taillabel="(0,1)"]; r_dx -- COURSE [headlabel="(0,n)"];
+  ENROLLMENT -- r_km [taillabel="(0,1)"]; r_km -- PROMOTION [headlabel="(0,n)"];
+  ENROLLMENT -- r_nv [taillabel="(0,1)"]; r_nv -- EMPLOYEE [headlabel="(0,n)"];
+  ENROLLMENT -- r_dong [taillabel="(0,n)"]; r_dong -- RECEIPT [headlabel="(1,1)"];
+  RECEIPT -- r_lap [taillabel="(1,1)"]; r_lap -- EMPLOYEE [headlabel="(0,n)"];
+  ENROLLMENT -- ATTENDANCE [taillabel="(0,n)"]; ATTENDANCE -- CLASS_SESSION [headlabel="(0,n)"];
+  ENROLLMENT -- GRADE [taillabel="(0,n)"]; GRADE -- GRADE_COMPONENT [headlabel="(0,n)"];
+  ENROLLMENT -- r_cap [taillabel="(0,1)"]; r_cap -- CERTIFICATE [headlabel="(1,1)"];
+}

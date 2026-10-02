@@ -1,14 +1,16 @@
 #pragma once
 
 #include "application/services/AuthService.h"
-#include "application/services/DanhSachService.h"
-#include "application/services/HocVienService.h"
-#include "application/services/ThongKeService.h"
+#include "application/services/LanguageService.h"
+#include "application/services/ListService.h"
+#include "application/services/StatisticsService.h"
+#include "application/services/StudentService.h"
 
-// Gói các use case mà giao diện được phép dùng (được tạo ở composition root - src/app)
+// The use cases the UI may call (created in the composition root - src/app)
 struct AppServices {
     AuthService& auth;
-    HocVienService& hocVien;
-    ThongKeService& thongKe;
-    DanhSachService& danhSach;
+    StudentService& students;
+    StatisticsService& statistics;
+    ListService& lists;
+    LanguageService& language;
 };

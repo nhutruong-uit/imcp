@@ -1,59 +1,82 @@
 #include "app/AppContainer.h"
+#include "presentation/common/I18n.h"
 #include "presentation/common/Icons.h"
+#include "presentation/common/Labels.h"
 #include "presentation/common/Theme.h"
 #include "presentation/login/LoginDialog.h"
 #include "presentation/main/MainWindow.h"
 
 #include <QApplication>
 #include <QTextStream>
+#include <optional>
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     QApplication::setOrganizationName(QStringLiteral("UIT-IE103"));
     QApplication::setApplicationName(QStringLiteral("QLTTTA"));
-    QApplication::setApplicationDisplayName(QStringLiteral("Quản lý Trung tâm Tiếng Anh"));
     QApplication::setApplicationVersion(QStringLiteral(QLTTTA_VERSION));
     QApplication::setWindowIcon(Icons::get(QStringLiteral("logo"), QStringLiteral("#1F3864"), 64));
     Theme::apply(app);
 
     AppContainer container;
+    I18n::apply(container.language().current()); // the language chosen last time (Vietnamese by default)
 
-    // Chế độ chẩn đoán (không mở giao diện): QLTTTA_USER, QLTTTA_PASSWORD, tùy chọn QLTTTA_SERVER
+    // Diagnostic mode (no GUI): QLTTTA_USER, QLTTTA_PASSWORD, optional QLTTTA_SERVER
     //   ./QLTTTA --check-connection
     if (QApplication::arguments().contains(QStringLiteral("--check-connection"))) {
         if (qEnvironmentVariableIsSet("QLTTTA_SERVER")) {
-            CauHinhMayChu cauHinh = container.auth().cauHinh();
-            cauHinh.mayChu = qEnvironmentVariable("QLTTTA_SERVER");
-            container.auth().luuCauHinh(cauHinh);
+            ServerConfig config = container.auth().serverConfig();
+            config.host = qEnvironmentVariable("QLTTTA_SERVER");
+            container.auth().saveServerConfig(config);
         }
-        const auto kq = container.auth().dangNhap(qEnvironmentVariable("QLTTTA_USER"),
-                                                  qEnvironmentVariable("QLTTTA_PASSWORD"));
+        const auto result = container.auth().login(qEnvironmentVariable("QLTTTA_USER"),
+                                                   qEnvironmentVariable("QLTTTA_PASSWORD"));
         QTextStream out(stdout);
-        if (kq.ok())
-            out << "OK: " << kq.value().hoTen << " (" << tenVaiTro(kq.value().vaiTro) << ")" << Qt::endl;
+        if (result.ok())
+            out << "OK: " << result.value().fullName << " (" << Labels::role(result.value().role) << ")"
+                << Qt::endl;
         else
-            out << "LOI: " << kq.error() << Qt::endl;
-        return kq.ok() ? 0 : 1;
+            out << "ERROR: " << result.error() << Qt::endl;
+        return result.ok() ? 0 : 1;
     }
 
-    // Vòng lặp: Đăng nhập -> Cửa sổ chính -> (Đăng xuất) -> Đăng nhập lại
+    // Loop: login -> main window -> (log out) -> login again.
+    // Switching language rebuilds the screen that is open (the new translation is already loaded);
+    // the session stays logged in.
     for (;;) {
-        LoginDialog login(container.auth());
-        if (login.exec() != QDialog::Accepted)
+        LoginDialog login(container.auth(), container.language());
+        const int outcome = login.exec();
+        if (outcome == LoginDialog::LanguageChanged)
+            continue;
+        if (outcome != QDialog::Accepted)
             return 0;
 
-        bool dangXuat = false;
-        {
+        enum class Exit { Closed, LoggedOut, LanguageChanged };
+        Exit exit = Exit::LanguageChanged;
+        std::optional<Feature> openPage;
+        QByteArray geometry;
+        while (exit == Exit::LanguageChanged) {
+            exit = Exit::Closed;
             MainWindow window(container.services());
-            QObject::connect(&window, &MainWindow::yeuCauDangXuat, &window, [&] {
-                dangXuat = true;
+            if (!geometry.isEmpty())
+                window.restoreGeometry(geometry);
+            if (openPage)
+                window.openFeature(*openPage);
+            QObject::connect(&window, &MainWindow::logoutRequested, &window, [&] {
+                exit = Exit::LoggedOut;
+                window.close();
+            });
+            QObject::connect(&window, &MainWindow::languageChangeRequested, &window, [&] {
+                exit = Exit::LanguageChanged;
+                openPage = window.currentFeature();
+                geometry = window.saveGeometry();
                 window.close();
             });
             window.show();
             app.exec();
         }
-        container.auth().dangXuat();
-        if (!dangXuat)
+        container.auth().logout();
+        if (exit != Exit::LoggedOut)
             return 0;
     }
 }

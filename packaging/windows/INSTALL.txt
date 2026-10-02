@@ -1,0 +1,27 @@
+QLTTTA - ENGLISH CENTER MANAGEMENT (Windows 10/11, 64-bit)
+==========================================================
+
+1. Installation
+   - Setup: run QLTTTA-x.y.z-windows-x64-setup.exe (no Administrator rights needed).
+   - Portable: unzip the .zip file and run QLTTTA.exe.
+   - If Windows says "Windows protected your PC" (SmartScreen): click "More info" > "Run anyway"
+     (the student app is not commercially code-signed).
+
+2. Database
+   - Needs SQL Server 2012 or later (Express or Developer) with the QLTTTA database initialized
+     by the scripts in the database/ folder of the source code (run scripts\db_init.ps1
+     or open 00 -> 07 in order in SSMS).
+
+3. Login
+   - Login screen > "Server settings":
+       Server  : localhost (or PC-NAME\SQLEXPRESS, or 192.168.1.10,1433)
+       Database: QLTTTA
+   - Demo accounts: see docs/SETUP.md.
+   - Language: pick "Tiếng Việt" or "English" at the bottom of the login screen or in the header of
+     the main window. The choice is remembered.
+
+4. Connection driver
+   - The app uses "ODBC Driver 18/17 for SQL Server" when installed (usually installed together with
+     SSMS); otherwise it falls back to the "SQL Server" driver built into Windows.
+   - On a certificate/TLS error: install "Microsoft ODBC Driver 18 for SQL Server" from Microsoft
+     and turn on "Trust server certificate" in the server settings.

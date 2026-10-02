@@ -1,66 +1,75 @@
-# QLTTTA - Hệ thống quản lý trung tâm tiếng Anh
+# QLTTTA - English Center Management System
 
-Đồ án môn **IE103 - Quản lý thông tin** · Lớp IE103.Q21.VB2 · Trường ĐH Công nghệ Thông tin - ĐHQG TP.HCM
-Giảng viên hướng dẫn: TS. Võ Phương Bình · **Nhóm 1**
+Course project for **IE103 - Information Management** · Class IE103.Q21.VB2 · University of Information Technology (UIT), VNU-HCM
+Supervisor: Dr. Võ Phương Bình · **Group 1**
 
-Ứng dụng desktop chạy trên **Windows và macOS** quản lý một chuỗi trung tâm tiếng Anh: học viên, khóa học,
-lớp học và lịch học, ghi danh, học phí và công nợ, điểm danh, điểm số, chứng nhận, lương giáo viên.
-Trọng tâm là **cơ sở dữ liệu SQL Server**: ràng buộc toàn vẹn, stored procedure, function, trigger,
-cursor, view, phân quyền, sao lưu/phục hồi, XML/XQuery.
+A desktop application for **Windows and macOS** that manages a chain of English-language centers: students, courses,
+classes and timetables, enrollment, tuition and outstanding balances, attendance, grades, certificates and teacher payroll.
+The UI is available in **Vietnamese and English** (switchable at runtime).
+The focus is the **SQL Server database**: integrity constraints, stored procedures, functions, triggers, cursors,
+views, authorization, backup/restore and XML/XQuery. The Qt application is the presentation layer (menus, forms, reports).
 
-| Thành phần | Công nghệ |
+| Component | Technology |
 |---|---|
-| CSDL | Microsoft SQL Server 2012+ (T-SQL), contained database users |
-| Ứng dụng | C++17, Qt 6 Widgets, Qt SQL (ODBC) |
-| Kiến trúc | Clean Architecture: domain / application / infrastructure / presentation |
-| Build & CI | CMake + Ninja, GitHub Actions (build, test, đóng gói `.exe`/`.zip`/`.dmg`) |
+| Database | Microsoft SQL Server 2012+ (T-SQL), contained database users |
+| Application | C++17, Qt 6 Widgets, Qt SQL (ODBC), Qt Linguist (UI translations: Vietnamese / English) |
+| Architecture | Clean Architecture: domain / application / infrastructure / presentation |
+| Build & CI | CMake + Ninja, GitHub Actions (build, unit tests, `.exe` / `.zip` / `.dmg` packaging) |
 
-## Bắt đầu nhanh
+> **Language note.** Code, database (objects, stored values, business messages), docs, scripts and CI are in English.
+> The UI ships with a Vietnamese translation (default) and English; the Vietnamese UI also translates the values and
+> messages that come from the database. Only the course report (`docs/report/`) is written in Vietnamese.
+
+## Quick start
 
 ```bash
-# 1. Khởi tạo CSDL (SQL Server đang chạy, ví dụ Docker container "sql2022")
-SQL_PASSWORD='<mật khẩu sa>' ./scripts/db_init.sh --docker sql2022
+# 1. Initialize the database (SQL Server must be running, e.g. a Docker container named "sql2022")
+SQL_PASSWORD='<sa password>' ./scripts/db_init.sh --docker sql2022
 
-# 2. Build và chạy ứng dụng (macOS, Qt từ Homebrew)
+# 2. Build and run the application (macOS, Qt from Homebrew)
 cmake --preset macos-debug && cmake --build --preset macos-debug
 open build/macos-debug/src/app/QLTTTA.app
 ```
 
-Windows: xem [docs/SETUP.md](docs/SETUP.md). Tài khoản demo (quản lý, giáo vụ, kế toán, giáo viên) cũng được liệt kê ở đó.
+For Windows, see [docs/SETUP.md](docs/SETUP.md), which also lists the demo accounts (manager, academic staff,
+accountant, teacher).
 
-## Cấu trúc thư mục
+## Repository layout
 
 ```
-database/        Script SQL Server: 00 tạo CSDL ... 07 dữ liệu mẫu, 08-11 demo truy vấn/backup/import/phân tán
-src/domain/        Thực thể + quy tắc nghiệp vụ (không phụ thuộc CSDL, giao diện)
-src/application/   Use case (service) + port (interface repository) + ma trận phân quyền
-src/infrastructure/ Kết nối ODBC, repository gọi stored procedure, lưu cấu hình
-src/presentation/  Giao diện Qt Widgets (menu theo vai trò, form, báo cáo PDF/Excel)
-src/app/           Composition root (khởi tạo và nối các tầng)
-tests/             Unit test (Qt Test) với repository giả
-tools/             Công cụ chụp màn hình tự động cho báo cáo
-packaging/         Icon, Info.plist, bộ cài Inno Setup, hướng dẫn cài đặt
-scripts/           Khởi tạo CSDL, đóng gói macOS/Windows
-docs/              Tài liệu + báo cáo đồ án (docs/report)
+database/            SQL Server scripts: 00 create DB ... 07 seed data, 08-11 demos (queries / backup / import / distributed),
+                     12 test suite, samples/ (CSV for BULK INSERT)
+src/domain/          Entities + business rules (no dependency on the database or the UI)
+src/application/     Use cases (services), ports (repository interfaces), role/menu permission matrix
+src/infrastructure/  ODBC connection, repositories that call stored procedures, settings storage
+src/presentation/    Qt Widgets UI (role-based menu, forms, PDF/CSV export of reports, i18n)
+src/app/             Composition root (creates and wires the layers)
+tests/               Unit tests (Qt Test, fake repositories), translation checks, end-to-end GUI test against a real database
+tools/               Screenshot generator used for the report
+resources/           Icons, the QSS style sheet and translations/qlttta_vi.ts (Vietnamese UI)
+packaging/           Icons, Info.plist, Inno Setup installer, end-user install notes
+scripts/             Database init, full test run, macOS/Windows packaging
+.github/workflows/   CI (build + unit tests) and Release (installers)
+docs/                Documentation + the project report (docs/report)
 ```
 
-## Tài liệu
+## Documentation
 
-- [docs/SETUP.md](docs/SETUP.md) - cài môi trường trên macOS/Windows, khởi tạo CSDL, tài khoản demo, đóng gói
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Clean Architecture, luồng xử lý, cách thêm một module mới
-- [docs/DATABASE.md](docs/DATABASE.md) - thiết kế CSDL, danh mục đối tượng, ánh xạ với nội dung môn học
-- [docs/PLAN.md](docs/PLAN.md) - kế hoạch đến ngày nộp, phân công thành viên, chuẩn bị vấn đáp
-- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) - quy trình Git/GitHub, quy ước code, dùng Claude Code
-- [docs/report/](docs/report/) - báo cáo đồ án (.docx) và script sinh báo cáo
+- [docs/SETUP.md](docs/SETUP.md) - environment setup on macOS/Windows, database initialization, demo accounts, test run, packaging
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Clean Architecture, request flow, naming conventions, how to add a new module, multi-language UI
+- [docs/DATABASE.md](docs/DATABASE.md) - database design, object catalog, roles and permissions, mapping to the course syllabus
+- [docs/PLAN.md](docs/PLAN.md) - schedule up to the submission date, member assignments, oral-defense preparation
+- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) - Git/GitHub workflow, coding conventions, working with Claude Code
+- [docs/report/](docs/report/) - the project report (.docx, .pdf; written in Vietnamese for the course) and the script that generates it
 
-## Thành viên
+## Team
 
-| STT | Họ và tên | MSSV | Phụ trách chính |
+| No. | Name | Student ID | Main responsibility |
 |---|---|---|---|
-| 1 | Trương Quang Như (nhóm trưởng) | 25540022 | Kiến trúc, lập trình ứng dụng, CI/CD, tích hợp |
-| 2 | Đỗ Phạm Minh Trâm | 25540042 | Khảo sát nghiệp vụ, phân tích yêu cầu, ERD/CD |
-| 3 | Nguyễn Việt Phú | 25540025 | Mô hình quan hệ, chuẩn hóa, ràng buộc toàn vẹn, trigger |
-| 4 | Đỗ Bình Dương | 25540008 | Stored procedure, function, cursor, truy vấn SQL, XQuery |
-| 5 | Nguyễn Bảo Giang | 25540009 | An ninh dữ liệu, backup/restore, import/export, CSDL tiên tiến |
+| 1 | Trương Quang Như (team lead) | 25540022 | Architecture, application development, CI/CD, integration |
+| 2 | Đỗ Phạm Minh Trâm | 25540042 | Domain survey, requirements analysis, ERD/CD |
+| 3 | Nguyễn Việt Phú | 25540025 | Relational model, normalization, integrity constraints, triggers |
+| 4 | Đỗ Bình Dương | 25540008 | Stored procedures, functions, cursors, SQL queries, XQuery |
+| 5 | Nguyễn Bảo Giang | 25540009 | Data security, backup/restore, import/export, advanced databases |
 
-Chi tiết phân công: [docs/PLAN.md](docs/PLAN.md).
+Detailed assignments: [docs/PLAN.md](docs/PLAN.md).

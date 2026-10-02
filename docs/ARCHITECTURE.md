@@ -1,15 +1,24 @@
-# Kiến trúc ứng dụng - Clean Architecture
+# Application architecture - Clean Architecture
 
-## 1. Các tầng và chiều phụ thuộc
+## Naming conventions
+
+Everything is written in English: the C++ code and the database (see `.claude/rules/sql.md`), so the C++ names follow
+the database names directly - table `STUDENT` ↔ entity `Student`, column `StudentId` ↔ field `Student::id`,
+`BranchId` ↔ `branchId`, procedures `usp_Student_Add/Update/Delete/Search/Details` ↔ `SqlStudentRepository::add/...`.
+Role codes stored in `ACCOUNT.Role`: `MANAGER`, `ACADEMIC_STAFF`, `ACCOUNTANT`, `TEACHER` (`roleFromCode`).
+Prefixes: `usp_` stored procedure, `fn_` function, `vw_` view, `trg_` trigger, `rl_` database role. In C++, interfaces
+start with `I` (`IStudentRepository`) and infrastructure classes that talk to SQL Server start with `Sql`.
+
+## 1. Layers and dependency direction
 
 ```mermaid
 flowchart LR
-    subgraph Ngoai["Tầng ngoài (chi tiết kỹ thuật)"]
-        P["presentation<br/>Qt Widgets: LoginDialog, MainWindow,<br/>HocVienPage, DanhSachPage, form .ui"]
-        I["infrastructure<br/>DatabaseManager (ODBC), Sql*Repository,<br/>SqlErrorMapper, QSettingsCauHinhStore"]
+    subgraph Outer["Outer layers (technical details)"]
+        P["presentation<br/>Qt Widgets: LoginDialog, MainWindow,<br/>StudentPage, ListPage, .ui forms,<br/>I18n, Labels, Columns"]
+        I["infrastructure<br/>DatabaseManager (ODBC), Sql*Repository,<br/>SqlErrorMapper, QSettingsStore"]
     end
-    A["application<br/>Use case: AuthService, HocVienService,<br/>ThongKeService, DanhSachService, PhanQuyen<br/>Port: IHocVienRepository, IAuthGateway..."]
-    D["domain<br/>HocVien, TaiKhoan, VaiTro, ThongKe,<br/>quy tắc kiểm tra, Result&lt;T&gt;"]
+    A["application<br/>Use cases: AuthService, StudentService,<br/>StatisticsService, ListService, LanguageService,<br/>Permissions<br/>Ports: IStudentRepository, IAuthGateway..."]
+    D["domain<br/>Student, Account, Role, Language,<br/>validation rules, Result&lt;T&gt;"]
     APP["app (composition root)<br/>main.cpp, AppContainer"]
     DB[("SQL Server<br/>QLTTTA")]
 
@@ -21,84 +30,151 @@ flowchart LR
     I -.ODBC.-> DB
 ```
 
-| Tầng | Thư viện CMake | Được phụ thuộc vào | Không được biết tới |
+| Layer | CMake library | May depend on | Must not know about |
 |---|---|---|---|
-| `domain` | `qlttta_domain` | Qt Core | CSDL, giao diện, use case |
+| `domain` | `qlttta_domain` | Qt Core | database, UI, use cases |
 | `application` | `qlttta_application` | domain | Qt SQL, Qt Widgets |
 | `infrastructure` | `qlttta_infrastructure` | application, Qt SQL | Qt Widgets |
-| `presentation` | `qlttta_presentation` | application, Qt Widgets | Qt SQL, câu lệnh SQL |
-| `app` | `QLTTTA` (exe) | tất cả | - |
+| `presentation` | `qlttta_presentation` | application, Qt Widgets, Qt SVG | Qt SQL, SQL statements |
+| `app` | `QLTTTA` (executable) | all of the above | - |
 
-Chiều phụ thuộc được ép bằng `target_link_libraries` trong CMake: `presentation` không link
-`infrastructure`, nên giao diện không thể gọi SQL trực tiếp.
+The dependency direction is enforced by `target_link_libraries` in CMake: `presentation` does not link
+`infrastructure`, so the UI cannot call SQL directly. The `app` target (and the end-to-end test and the screenshot tool,
+which reuse `AppContainer.cpp`) are the only places that see both sides.
 
-**Lợi ích cụ thể trong đồ án**
-- Toàn bộ SQL nằm ở `infrastructure/repositories` → dễ đối chiếu với thủ tục trong `database/`.
-- Unit test `tests/tst_application.cpp` kiểm thử use case bằng **repository giả**, không cần SQL Server.
-- Đổi DBMS (vd. PostgreSQL) chỉ cần viết lại các lớp `Sql*Repository`, giao diện giữ nguyên.
+**What this buys the project**
+- All SQL lives in `infrastructure/repositories`, so it is easy to compare against the procedures in `database/`.
+- The unit tests in `tests/tst_application.cpp` exercise the use cases with **fake repositories**; no SQL Server needed.
+- Switching DBMS (e.g. to PostgreSQL) means rewriting the `Sql*Repository` classes only; the UI stays unchanged.
+- Adding a UI language touches only the presentation layer and a translation file (section 5).
 
-## 2. Luồng xử lý ví dụ: thêm học viên
+## 2. Example flow: adding a student
 
 ```mermaid
 sequenceDiagram
-    actor GV as Giáo vụ
-    participant F as HocVienFormDialog (presentation)
-    participant S as HocVienService (application)
-    participant H as HocVien::kiemTra (domain)
-    participant R as SqlHocVienRepository (infrastructure)
+    actor U as Academic staff
+    participant F as StudentFormDialog (presentation)
+    participant S as StudentService (application)
+    participant V as Student::validate (domain)
+    participant R as SqlStudentRepository (infrastructure)
     participant DB as SQL Server
 
-    GV->>F: Nhập thông tin, bấm Lưu
-    F->>S: themMoi(hocVien, homNay)
-    S->>H: chuẩn hóa + kiểm tra quy tắc
-    H-->>S: danh sách lỗi (rỗng = hợp lệ)
-    S->>R: them(hocVien)
-    R->>DB: EXEC dbo.usp_HocVien_Them ... @MaHV OUTPUT
-    DB-->>DB: CHECK, UNIQUE, SEQUENCE sinh mã HVxxxxx
-    DB-->>R: MaHV mới / lỗi THROW 5xxxx
+    U->>F: Fill in the form, click Save
+    F->>S: add(student, today)
+    S->>V: normalize + validate rules
+    V-->>S: list of errors (empty = valid)
+    S->>R: add(student)
+    R->>DB: EXEC dbo.usp_Student_Add ... @StudentId OUTPUT
+    DB-->>DB: CHECK, UNIQUE, SEQUENCE generates code STxxxxx
+    DB-->>R: new StudentId / THROW 5xxxx error
     R-->>S: Result<QString>
     S-->>F: Result<QString>
-    F-->>GV: Đóng form, chọn dòng học viên mới / hiện lỗi tiếng Việt
+    F-->>U: Close the form and select the new student / show the error
 ```
 
-Quy tắc được kiểm tra **2 lớp**: tại ứng dụng (phản hồi nhanh) và tại CSDL (CHECK/trigger/thủ tục -
-nguồn sự thật cuối cùng, bảo vệ cả khi dữ liệu được sửa bằng SSMS).
+Rules are checked in **two places**: in the application (fast feedback) and in the database (CHECK / trigger /
+procedure). The database is the final source of truth and also protects the data when it is edited directly from SSMS.
+Business errors raised by the database (`THROW` / `RAISERROR`) are English sentences. `SqlErrorMapper` strips ODBC
+driver noise from them and shows them in the UI language through the `DbMessages` catalog (exact messages, plus
+templates such as `Class %1 is full.` for the messages the database builds from values); it also translates the
+technical errors that have no business message: login/connection/certificate/permission failures and raw constraint
+names such as `CK_STUDENT_Guardian`.
 
-## 3. Đăng nhập và phân quyền
+## 3. Login and authorization
 
-1. `LoginDialog` → `AuthService::dangNhap` → `SqlAuthGateway`: mở kết nối ODBC bằng chính
-   tên đăng nhập/mật khẩu người dùng. SQL Server xác thực (contained database user).
-2. Gọi `usp_TaiKhoan_GhiNhanDangNhap` → đọc vai trò từ `vw_TaiKhoanHienTai`.
-3. `PhanQuyen::chucNangDuocPhep(vaiTro)` quyết định menu hiển thị.
-4. Mọi truy vấn sau đó chạy dưới quyền của user đó: nếu ứng dụng có lỗi, SQL Server vẫn chặn
-   bằng `GRANT/DENY` trên role (`06_security.sql`).
+1. `LoginDialog` → `AuthService::login` → `SqlAuthGateway`: opens an ODBC connection with the user's own username and
+   password. SQL Server authenticates them (contained database user).
+2. `SqlAuthGateway` calls `usp_Account_RecordLogin`, which records the login time and returns the row of the
+   current user from `vw_CurrentAccount` (role, employee/teacher ID, full name, branch, status).
+   A locked account is rejected; a valid SQL Server user with no row in `ACCOUNT` is rejected by `AuthService`
+   ("valid SQL Server account, but no role is assigned"). The only exception is a database owner (`db_owner`, e.g.
+   `sa`), who is admitted with the Manager role so the database can be administered from the app.
+3. `Permissions::allowedFeatures(role)` decides which menu entries are shown.
+4. From then on every query runs under that user's own permissions. If the application has a bug, SQL Server still
+   blocks access through `GRANT/DENY` on the roles (`database/06_security.sql`; summary in
+   [DATABASE.md](DATABASE.md#4-roles-and-permissions)). The application-side matrix only controls what is *displayed*.
 
-## 4. Thêm một module mới (cookbook)
+## 4. Adding a new module (cookbook)
 
-Ví dụ module **Ghi danh** (chưa làm):
+Example: an **Enrollment** module (not implemented yet; database table `ENROLLMENT`). The reference implementation is
+the Students module (`Student*`).
 
-1. **CSDL**: thủ tục đã có (`usp_GhiDanh`, `usp_GhiDanh_TheoLop`...). Nếu thêm mới → viết trong
-   `04_procedures.sql`, `GRANT EXECUTE` trong `06_security.sql`.
-2. **domain**: `src/domain/entities/GhiDanh.h` - struct + hàm `kiemTra()` nếu có quy tắc.
-3. **application**: port `src/application/ports/IGhiDanhRepository.h`, use case
-   `src/application/services/GhiDanhService.{h,cpp}`; thêm vào `src/application/CMakeLists.txt`.
-4. **infrastructure**: `SqlGhiDanhRepository.{h,cpp}` gọi thủ tục (mẫu: `SqlHocVienRepository.cpp`,
-   tham số OUTPUT dùng lô lệnh `DECLARE ... EXEC ... OUTPUT; SELECT`).
-5. **presentation**: trang `GhiDanhPage` + form `.ui` (mở bằng Qt Designer), mẫu: `hocvien/`.
-6. **app**: khởi tạo repository + service trong `AppContainer`, thêm vào `AppServices`.
-7. **Phân quyền**: thêm `ChucNang::GhiDanh` vào `PhanQuyen.cpp` cho vai trò phù hợp; nối trang trong
-   `MainWindow::trangCho`.
-8. **Test**: thêm test use case với repository giả trong `tests/`.
+1. **Database**: the procedures already exist (`usp_Enrollment_Create`, `usp_Enrollment_ByClass`, ...). For new ones,
+   write them in `04_procedures.sql`, add `GRANT EXECUTE` in `06_security.sql` and register their business messages in
+   `DbMessages.cpp`.
+2. **domain**: `src/domain/entities/Enrollment.h` - a struct plus a `validate()` function if there are rules.
+3. **application**: port `src/application/ports/IEnrollmentRepository.h`, use case
+   `src/application/services/EnrollmentService.{h,cpp}`; register both in `src/application/CMakeLists.txt`.
+4. **infrastructure**: `SqlEnrollmentRepository.{h,cpp}` calling the procedures (template: `SqlStudentRepository.cpp`;
+   for OUTPUT parameters use the batch `SET NOCOUNT ON; DECLARE ...; EXEC ... OUTPUT; SELECT ...`, and pass NULLs with
+   `SqlHelpers::stringOrNull`). Add the files to `src/infrastructure/CMakeLists.txt`.
+5. **presentation**: an `EnrollmentPage` and a `.ui` form (open it in Qt Designer) in `src/presentation/enrollments/`;
+   template: `students/`. Every user-visible string goes through `tr()` (section 5).
+6. **app**: create the repository and the service in `AppContainer`, and expose the service through `AppServices`.
+7. **Authorization**: add `Feature::Enrollments` to the matrix in `Permissions.cpp` for the right roles, add its menu
+   text/icon in `Labels::feature`, and return the page from `MainWindow::pageFor`.
+8. **Tests**: add a use-case test with a fake repository in `tests/`. The end-to-end test
+   `everyRole_opensEveryFeature_withData` automatically opens every feature listed in `Permissions`, so a new screen
+   is covered as soon as it is in the matrix. New business rules or permissions also need a case in
+   `database/12_tests.sql` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+9. **Translations**: `cmake --build --preset macos-debug --target update_translations`, then translate the new entries
+   of `resources/translations/qlttta_vi.ts`; `tst_i18n` fails while any entry is untranslated.
 
-## 5. Kết nối CSDL trên từng hệ điều hành
+**Read-only list screens need no new page.** Features such as classes, timetable, outstanding tuition, revenue or
+payroll are all rendered by the generic `ListPage`. To add one: add a `Feature` value and a `ListKind` value
+(`IListRepository.h`), map them in `ListService.cpp`, and add the `SELECT` / `EXEC` for that list in
+`SqlListRepository.cpp` (a view or procedure granted to the role). The result columns are identified by their
+**column keys** (column names or `AS` aliases); every new key needs a row in the column catalog
+(`src/presentation/common/Columns.cpp`) with its English title, money/total flags and, for summable columns, the label of
+the totals line. The end-to-end test fails when a displayed column has no catalog entry.
 
-`DatabaseManager` thử lần lượt các ODBC driver và dừng ở driver đầu tiên kết nối được:
+## 5. Multi-language UI (English / Vietnamese)
 
-| Hệ điều hành | Thứ tự driver |
+The user picks the language on the login screen or in the header of the main window; the choice is remembered and
+Vietnamese is the default. Design:
+
+| Concern | Where | How |
+|---|---|---|
+| Source strings | every layer | English, inside `tr("...")`. Non-QObject classes use `Q_DECLARE_TR_FUNCTIONS`; namespaces use a small helper struct (`LabelsText::tr`). Domain/application only need Qt Core for this. |
+| Vietnamese translation | `resources/translations/qlttta_vi.ts` | Qt Linguist file; `lrelease` builds `qlttta_vi.qm` at build time and embeds it as `:/i18n/qlttta_vi.qm` (`qt_add_translations` in `src/presentation/CMakeLists.txt`). |
+| Which language | `LanguageService` (application) + `ISettingsStore` | Use case that reads/saves the choice (`QSettings` key `ui/language` = `vi` / `en`). |
+| Applying it | `I18n` (presentation) | `I18n::apply` installs the `QTranslator` and sets the default `QLocale` (number grouping, weekday/month names). |
+| Switching at runtime | `main.cpp` | `LoginDialog` closes with `LanguageChanged`, `MainWindow` emits `languageChangeRequested`; the loop in `main.cpp` rebuilds the window in the new language and keeps the session, current page and window geometry. No per-widget re-translation code is needed. |
+| Codes → text | `Labels`, `Columns` (presentation) | Inner layers only hold codes (`Role`, `Feature`, column keys). Role/menu names come from `Labels`; column titles and formatting rules (money, totals, debt highlighting, role codes, schedules) from `Columns`. |
+| Database values | `DbValues` | Enumerated values stored in English (`Studying`, `Female`, ...): `label()` shows them as they are in English and translates them (context `DbValues` of the `.ts` file) in Vietnamese; `tone()` decides the table highlighting (passed/taught/active account green, failed/cancelled/locked red). Combo boxes show the label and keep the stored value as item data. |
+| Database messages | `DbMessages` (infrastructure) | Business messages of `THROW`/`RAISERROR` (English), translated in context `DbMessages`; messages built from values match a template (`Class %1 is full.`) and keep the values. |
+| Formatting | `Format` | `Format::money` / `Format::month` / `Format::weekday` follow the default locale (`6.500.000 ₫` vs `6,500,000 ₫`, `T1` vs `Jan`, `T2` vs `Mon`); `Format::schedule` localizes the day names of the weekly schedule built by `vw_ClassDetails` (`Mon 18:00-20:00` → `T2 18:00-20:00`); dates stay `dd/MM/yyyy`. |
+
+Not translated on purpose: free-text data (names, addresses, branch/course/class names).
+
+**Rule: no logic depends on displayed text.** Money columns, totals and highlighting are decided by column keys and
+stored values; file names of screenshots come from fixed per-feature names. The first version of the lists recognized
+money columns and built the totals line from the Vietnamese header text ("Còn nợ"), which would have broken as soon as
+the header was translated; column keys replaced it.
+
+Guards: `tests/tst_i18n.cpp` (runs on CI) fails when the `.ts` file has an unfinished entry, when a menu/role/column text
+is not translated, when a value of a `CHECK ... IN (N'...')` constraint in `database/01_tables.sql` is not registered in
+`DbValues` or has no Vietnamese label, or when a `THROW`/`RAISERROR` message of `04_procedures.sql`/`05_triggers.sql`
+is not in `DbMessages`; the end-to-end test `language_switchToEnglish_rebuildsUi` switches the real UI to English and
+back, and `changePassword_wrongCurrentPassword_showsError` checks a database message shown in Vietnamese.
+
+Workflow for a new string: write it in English with `tr()` → `cmake --build --preset <preset> --target
+update_translations` (runs `lupdate` over the four layers) → translate it in Qt Linguist (or in the `.ts` file) → build.
+
+## 6. Database connection on each operating system
+
+`DatabaseManager` tries the ODBC drivers one after another (`DatabaseManager::candidateDrivers`) and stops at the first
+one that connects. A driver named in the environment variable `QLTTTA_ODBC_DRIVER` (name or path) is always tried first,
+which helps when diagnosing.
+
+| OS | Driver order |
 |---|---|
-| Windows | ODBC Driver 18 → ODBC Driver 17 → "SQL Server" (driver có sẵn của Windows) |
-| macOS (bản .dmg) | FreeTDS đóng gói kèm → ODBC Driver 18/17 (nếu đã cài) |
-| macOS (dev) | ODBC Driver 18/17 → FreeTDS của Homebrew |
+| Windows | ODBC Driver 18 → ODBC Driver 17 → "SQL Server" (the legacy driver built into Windows) |
+| macOS (.dmg build) | bundled FreeTDS → ODBC Driver 18/17 (if installed) |
+| macOS (development) | ODBC Driver 18/17 → Homebrew FreeTDS |
 
-Nếu SQL Server phản hồi "sai mật khẩu" thì dừng ngay; các lỗi khác (thiếu driver, TLS) thì thử driver tiếp theo.
-Biến môi trường `QLTTTA_ODBC_DRIVER` cho phép chỉ định driver cụ thể khi chẩn đoán.
+If SQL Server answers with a login failure (wrong password, or the database cannot be opened) the search stops
+immediately because another driver would fail the same way. Other errors (missing driver, TLS, network) make it try
+the next driver. Connections request encryption (all drivers except the legacy Windows "SQL Server" one). The "Trust
+server certificate" option is on by default because the Docker image uses a self-signed certificate; it is stored in the
+settings and should be turned off in the login dialog when the server has a certificate from a trusted CA.
