@@ -1,9 +1,9 @@
 /* =====================================================================
-   File   : 02_functions.sql - Hàm (Function)
-   Gồm 3 loại hàm của SQL Server:
-     - Scalar function           : trả về 1 giá trị
-     - Inline table-valued (ITVF): trả về bảng từ 1 câu SELECT
-     - Multi-statement TVF       : trả về biến bảng, xử lý nhiều lệnh
+   File   : 02_functions.sql - Functions
+   The three kinds of SQL Server functions:
+     - Scalar function            : returns one value
+     - Inline table-valued (ITVF) : returns the result of one SELECT
+     - Multi-statement TVF        : fills a table variable with several statements
    ===================================================================== */
 USE QLTTTA;
 GO
@@ -11,239 +11,239 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
-/* 1. fn_ThuTrongTuan: Thứ trong tuần theo quy ước Việt Nam (2..7, CN = 8),
-      không phụ thuộc thiết lập SET DATEFIRST của server.
-      Ngày 01/01/1900 là thứ Hai. */
-IF OBJECT_ID(N'dbo.fn_ThuTrongTuan', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_ThuTrongTuan;
+/* 1. fn_Weekday: ISO 8601 day of the week (1 = Monday ... 7 = Sunday),
+      independent of the server's SET DATEFIRST setting.
+      1900-01-01 was a Monday. */
+IF OBJECT_ID(N'dbo.fn_Weekday', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_Weekday;
 GO
-CREATE FUNCTION dbo.fn_ThuTrongTuan (@Ngay DATE)
+CREATE FUNCTION dbo.fn_Weekday (@Date DATE)
 RETURNS TINYINT
 WITH SCHEMABINDING
 AS
 BEGIN
-    RETURN CAST(DATEDIFF(DAY, CAST('19000101' AS DATE), @Ngay) % 7 + 2 AS TINYINT);
+    RETURN CAST(DATEDIFF(DAY, CAST('19000101' AS DATE), @Date) % 7 + 1 AS TINYINT);
 END;
 GO
 
-/* 2. fn_MaGVHienTai / fn_MaNVHienTai / fn_VaiTroHienTai:
-      Ánh xạ USER đang làm việc trong CSDL (USER_NAME()) sang hồ sơ trong TAIKHOAN.
-      USER_NAME() cũng đổi theo khi giảng viên/nhóm demo bằng EXECUTE AS USER = N'gv_john'. */
-IF OBJECT_ID(N'dbo.fn_VaiTroHienTai', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_VaiTroHienTai;
-IF OBJECT_ID(N'dbo.fn_MaGVHienTai', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_MaGVHienTai;
-IF OBJECT_ID(N'dbo.fn_MaNVHienTai', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_MaNVHienTai;
+/* 2. fn_CurrentTeacherId / fn_CurrentEmployeeId / fn_CurrentRole:
+      map the USER working in the database (USER_NAME()) to its ACCOUNT row.
+      USER_NAME() also follows EXECUTE AS USER = N'gv_john' used in the demos. */
+IF OBJECT_ID(N'dbo.fn_CurrentRole', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_CurrentRole;
+IF OBJECT_ID(N'dbo.fn_CurrentTeacherId', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_CurrentTeacherId;
+IF OBJECT_ID(N'dbo.fn_CurrentEmployeeId', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_CurrentEmployeeId;
 GO
-CREATE FUNCTION dbo.fn_VaiTroHienTai ()
+CREATE FUNCTION dbo.fn_CurrentRole ()
 RETURNS VARCHAR(20)
 AS
 BEGIN
-    DECLARE @VaiTro VARCHAR(20);
-    SELECT @VaiTro = VaiTro FROM dbo.TAIKHOAN WHERE TenDangNhap = USER_NAME() COLLATE DATABASE_DEFAULT;
-    -- dbo / sysadmin (người cài đặt) được coi như quản lý
-    IF @VaiTro IS NULL AND (IS_MEMBER('db_owner') = 1 OR IS_SRVROLEMEMBER('sysadmin') = 1)
-        SET @VaiTro = 'QUANLY';
-    RETURN @VaiTro;
+    DECLARE @Role VARCHAR(20);
+    SELECT @Role = Role FROM dbo.ACCOUNT WHERE Username = USER_NAME() COLLATE DATABASE_DEFAULT;
+    -- dbo / sysadmin (whoever installed the database) counts as a manager
+    IF @Role IS NULL AND (IS_MEMBER('db_owner') = 1 OR IS_SRVROLEMEMBER('sysadmin') = 1)
+        SET @Role = 'MANAGER';
+    RETURN @Role;
 END;
 GO
-CREATE FUNCTION dbo.fn_MaGVHienTai ()
+CREATE FUNCTION dbo.fn_CurrentTeacherId ()
 RETURNS VARCHAR(10)
 AS
 BEGIN
-    RETURN (SELECT MaGV FROM dbo.TAIKHOAN WHERE TenDangNhap = USER_NAME() COLLATE DATABASE_DEFAULT);
+    RETURN (SELECT TeacherId FROM dbo.ACCOUNT WHERE Username = USER_NAME() COLLATE DATABASE_DEFAULT);
 END;
 GO
-CREATE FUNCTION dbo.fn_MaNVHienTai ()
+CREATE FUNCTION dbo.fn_CurrentEmployeeId ()
 RETURNS VARCHAR(10)
 AS
 BEGIN
-    RETURN (SELECT MaNV FROM dbo.TAIKHOAN WHERE TenDangNhap = USER_NAME() COLLATE DATABASE_DEFAULT);
+    RETURN (SELECT EmployeeId FROM dbo.ACCOUNT WHERE Username = USER_NAME() COLLATE DATABASE_DEFAULT);
 END;
 GO
 
-/* 3. fn_SiSoHienTai: Số học viên đang theo học một lớp */
-IF OBJECT_ID(N'dbo.fn_SiSoHienTai', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_SiSoHienTai;
+/* 3. fn_EnrolledCount: number of students currently taking a class */
+IF OBJECT_ID(N'dbo.fn_EnrolledCount', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_EnrolledCount;
 GO
-CREATE FUNCTION dbo.fn_SiSoHienTai (@MaLop VARCHAR(10))
+CREATE FUNCTION dbo.fn_EnrolledCount (@ClassId VARCHAR(10))
 RETURNS INT
 AS
 BEGIN
-    RETURN (SELECT COUNT(*) FROM dbo.GHIDANH
-            WHERE MaLop = @MaLop AND TrangThai IN (N'Đang học', N'Hoàn thành'));
+    RETURN (SELECT COUNT(*) FROM dbo.ENROLLMENT
+            WHERE ClassId = @ClassId AND Status IN (N'Studying', N'Completed'));
 END;
 GO
 
-/* 4. fn_TinhDiemTongKet: Điểm tổng kết = SUM(Diem * TrongSo) / 100.
-      Trả về NULL nếu chưa nhập đủ điểm các thành phần. */
-IF OBJECT_ID(N'dbo.fn_TinhDiemTongKet', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_TinhDiemTongKet;
+/* 4. fn_FinalGrade: final grade = SUM(Score * Weight) / 100.
+      Returns NULL while some grade components have no score yet. */
+IF OBJECT_ID(N'dbo.fn_FinalGrade', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_FinalGrade;
 GO
-CREATE FUNCTION dbo.fn_TinhDiemTongKet (@MaGD VARCHAR(10))
+CREATE FUNCTION dbo.fn_FinalGrade (@EnrollmentId VARCHAR(10))
 RETURNS DECIMAL(4,2)
 AS
 BEGIN
-    DECLARE @SoThanhPhan INT, @SoDaNhap INT, @Tong DECIMAL(9,4);
+    DECLARE @ComponentCount INT, @ScoredCount INT, @Total DECIMAL(9,4);
 
-    SELECT @SoThanhPhan = COUNT(*)
-    FROM dbo.GHIDANH gd
-    JOIN dbo.LOPHOC l ON l.MaLop = gd.MaLop
-    JOIN dbo.THANHPHANDIEM tp ON tp.MaKH = l.MaKH
-    WHERE gd.MaGD = @MaGD;
+    SELECT @ComponentCount = COUNT(*)
+    FROM dbo.ENROLLMENT en
+    JOIN dbo.CLASS cl            ON cl.ClassId = en.ClassId
+    JOIN dbo.GRADE_COMPONENT gc  ON gc.CourseId = cl.CourseId
+    WHERE en.EnrollmentId = @EnrollmentId;
 
-    SELECT @SoDaNhap = COUNT(*), @Tong = SUM(d.Diem * tp.TrongSo) / 100
-    FROM dbo.DIEM d
-    JOIN dbo.THANHPHANDIEM tp ON tp.MaTP = d.MaTP
-    WHERE d.MaGD = @MaGD;
+    SELECT @ScoredCount = COUNT(*), @Total = SUM(gr.Score * gc.Weight) / 100
+    FROM dbo.GRADE gr
+    JOIN dbo.GRADE_COMPONENT gc ON gc.ComponentId = gr.ComponentId
+    WHERE gr.EnrollmentId = @EnrollmentId;
 
-    IF @SoThanhPhan = 0 OR @SoDaNhap < @SoThanhPhan RETURN NULL;
-    RETURN CAST(ROUND(@Tong, 2) AS DECIMAL(4,2));
+    IF @ComponentCount = 0 OR @ScoredCount < @ComponentCount RETURN NULL;
+    RETURN CAST(ROUND(@Total, 2) AS DECIMAL(4,2));
 END;
 GO
 
-/* 5. fn_XepLoai: Xếp loại theo điểm tổng kết */
-IF OBJECT_ID(N'dbo.fn_XepLoai', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_XepLoai;
+/* 5. fn_Classification: classification from the final grade */
+IF OBJECT_ID(N'dbo.fn_Classification', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_Classification;
 GO
-CREATE FUNCTION dbo.fn_XepLoai (@Diem DECIMAL(4,2))
+CREATE FUNCTION dbo.fn_Classification (@Grade DECIMAL(4,2))
 RETURNS NVARCHAR(20)
 WITH SCHEMABINDING
 AS
 BEGIN
     RETURN CASE
-        WHEN @Diem IS NULL THEN NULL
-        WHEN @Diem >= 9   THEN N'Xuất sắc'
-        WHEN @Diem >= 8   THEN N'Giỏi'
-        WHEN @Diem >= 6.5 THEN N'Khá'
-        WHEN @Diem >= 5   THEN N'Trung bình'
-        ELSE N'Không đạt'
+        WHEN @Grade IS NULL THEN NULL
+        WHEN @Grade >= 9   THEN N'Excellent'
+        WHEN @Grade >= 8   THEN N'Very good'
+        WHEN @Grade >= 6.5 THEN N'Good'
+        WHEN @Grade >= 5   THEN N'Average'
+        ELSE N'Failed'
     END;
 END;
 GO
 
-/* 6. fn_TyLeChuyenCan: % buổi có mặt (kể cả đi trễ) trên số buổi đã dạy */
-IF OBJECT_ID(N'dbo.fn_TyLeChuyenCan', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_TyLeChuyenCan;
+/* 6. fn_AttendanceRate: % of taught sessions attended (late counts as present) */
+IF OBJECT_ID(N'dbo.fn_AttendanceRate', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_AttendanceRate;
 GO
-CREATE FUNCTION dbo.fn_TyLeChuyenCan (@MaGD VARCHAR(10))
+CREATE FUNCTION dbo.fn_AttendanceRate (@EnrollmentId VARCHAR(10))
 RETURNS DECIMAL(5,2)
 AS
 BEGIN
-    DECLARE @SoBuoiDaDay INT, @SoBuoiCoMat INT;
+    DECLARE @TaughtCount INT, @PresentCount INT;
 
-    SELECT @SoBuoiDaDay = COUNT(*)
-    FROM dbo.BUOIHOC b
-    JOIN dbo.GHIDANH gd ON gd.MaLop = b.MaLop
-    WHERE gd.MaGD = @MaGD AND b.TrangThai = N'Đã dạy';
+    SELECT @TaughtCount = COUNT(*)
+    FROM dbo.CLASS_SESSION se
+    JOIN dbo.ENROLLMENT en ON en.ClassId = se.ClassId
+    WHERE en.EnrollmentId = @EnrollmentId AND se.Status = N'Taught';
 
-    SELECT @SoBuoiCoMat = COUNT(*)
-    FROM dbo.DIEMDANH dd
-    JOIN dbo.BUOIHOC b ON b.MaBuoi = dd.MaBuoi
-    WHERE dd.MaGD = @MaGD AND b.TrangThai = N'Đã dạy'
-      AND dd.TrangThai IN (N'Có mặt', N'Đi trễ');
+    SELECT @PresentCount = COUNT(*)
+    FROM dbo.ATTENDANCE at
+    JOIN dbo.CLASS_SESSION se ON se.SessionId = at.SessionId
+    WHERE at.EnrollmentId = @EnrollmentId AND se.Status = N'Taught'
+      AND at.Status IN (N'Present', N'Late');
 
-    IF @SoBuoiDaDay = 0 RETURN NULL;
-    RETURN CAST(100.0 * @SoBuoiCoMat / @SoBuoiDaDay AS DECIMAL(5,2));
+    IF @TaughtCount = 0 RETURN NULL;
+    RETURN CAST(100.0 * @PresentCount / @TaughtCount AS DECIMAL(5,2));
 END;
 GO
 
-/* 7. fn_DeXuatKhoaHoc: Khóa học phù hợp nhất với điểm kiểm tra đầu vào
-      (khóa có điểm đầu vào tối thiểu cao nhất mà học viên đạt được) */
-IF OBJECT_ID(N'dbo.fn_DeXuatKhoaHoc', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_DeXuatKhoaHoc;
+/* 7. fn_RecommendCourse: the best course for a placement-test score
+      (the open course with the highest minimum score the student reached) */
+IF OBJECT_ID(N'dbo.fn_RecommendCourse', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_RecommendCourse;
 GO
-CREATE FUNCTION dbo.fn_DeXuatKhoaHoc (@DiemTong DECIMAL(4,2), @MaCT VARCHAR(10) = NULL)
+CREATE FUNCTION dbo.fn_RecommendCourse (@OverallScore DECIMAL(4,2), @ProgramId VARCHAR(10) = NULL)
 RETURNS VARCHAR(10)
 AS
 BEGIN
     RETURN (
-        SELECT TOP (1) MaKH
-        FROM dbo.KHOAHOC
-        WHERE TrangThai = N'Đang mở'
-          AND ISNULL(DiemDauVaoToiThieu, 0) <= @DiemTong
-          AND (@MaCT IS NULL OR MaCT = @MaCT)
-        ORDER BY ISNULL(DiemDauVaoToiThieu, 0) DESC, HocPhi ASC);
+        SELECT TOP (1) CourseId
+        FROM dbo.COURSE
+        WHERE Status = N'Open'
+          AND ISNULL(MinPlacementScore, 0) <= @OverallScore
+          AND (@ProgramId IS NULL OR ProgramId = @ProgramId)
+        ORDER BY ISNULL(MinPlacementScore, 0) DESC, Tuition ASC);
 END;
 GO
 
-/* 8. fn_TinhSoTienGiam: Số tiền giảm của khuyến mãi tại một ngày */
-IF OBJECT_ID(N'dbo.fn_TinhSoTienGiam', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_TinhSoTienGiam;
+/* 8. fn_DiscountAmount: discount of a promotion on a given date */
+IF OBJECT_ID(N'dbo.fn_DiscountAmount', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_DiscountAmount;
 GO
-CREATE FUNCTION dbo.fn_TinhSoTienGiam (@MaKM VARCHAR(10), @HocPhi DECIMAL(12,0), @Ngay DATE)
+CREATE FUNCTION dbo.fn_DiscountAmount (@PromotionId VARCHAR(10), @Tuition DECIMAL(12,0), @Date DATE)
 RETURNS DECIMAL(12,0)
 AS
 BEGIN
-    DECLARE @Giam DECIMAL(12,0) = 0;
-    SELECT @Giam = CASE LoaiGiam
-                       WHEN 'PHANTRAM' THEN ROUND(@HocPhi * GiaTri / 100, -3)
-                       ELSE GiaTri
-                   END
-    FROM dbo.KHUYENMAI
-    WHERE MaKM = @MaKM AND @Ngay BETWEEN NgayBatDau AND NgayKetThuc;
+    DECLARE @Discount DECIMAL(12,0) = 0;
+    SELECT @Discount = CASE DiscountType
+                           WHEN 'PERCENT' THEN ROUND(@Tuition * DiscountValue / 100, -3)
+                           ELSE DiscountValue
+                       END
+    FROM dbo.PROMOTION
+    WHERE PromotionId = @PromotionId AND @Date BETWEEN StartDate AND EndDate;
 
-    IF @Giam > @HocPhi SET @Giam = @HocPhi;
-    RETURN ISNULL(@Giam, 0);
+    IF @Discount > @Tuition SET @Discount = @Tuition;
+    RETURN ISNULL(@Discount, 0);
 END;
 GO
 
-/* 9. fn_LichDayGiaoVien (Inline TVF): lịch dạy của giáo viên trong khoảng ngày */
-IF OBJECT_ID(N'dbo.fn_LichDayGiaoVien', N'IF') IS NOT NULL DROP FUNCTION dbo.fn_LichDayGiaoVien;
+/* 9. fn_TeacherSchedule (inline TVF): a teacher's sessions between two dates */
+IF OBJECT_ID(N'dbo.fn_TeacherSchedule', N'IF') IS NOT NULL DROP FUNCTION dbo.fn_TeacherSchedule;
 GO
-CREATE FUNCTION dbo.fn_LichDayGiaoVien (@MaGV VARCHAR(10), @TuNgay DATE, @DenNgay DATE)
+CREATE FUNCTION dbo.fn_TeacherSchedule (@TeacherId VARCHAR(10), @FromDate DATE, @ToDate DATE)
 RETURNS TABLE
 AS
 RETURN (
-    SELECT b.MaBuoi, b.NgayHoc, b.GioBatDau, b.GioKetThuc, b.STT,
-           l.MaLop, l.TenLop, k.TenKH, p.TenPhong, cn.TenCN, b.TrangThai
-    FROM dbo.BUOIHOC b
-    JOIN dbo.LOPHOC l    ON l.MaLop = b.MaLop
-    JOIN dbo.KHOAHOC k   ON k.MaKH = l.MaKH
-    JOIN dbo.PHONGHOC p  ON p.MaPhong = b.MaPhong
-    JOIN dbo.CHINHANH cn ON cn.MaCN = p.MaCN
-    WHERE b.MaGV = @MaGV AND b.NgayHoc BETWEEN @TuNgay AND @DenNgay
+    SELECT se.SessionId, se.SessionDate, se.StartTime, se.EndTime, se.SessionNo,
+           cl.ClassId, cl.ClassName, co.CourseName, rm.RoomName, br.BranchName, se.Status
+    FROM dbo.CLASS_SESSION se
+    JOIN dbo.CLASS cl   ON cl.ClassId = se.ClassId
+    JOIN dbo.COURSE co  ON co.CourseId = cl.CourseId
+    JOIN dbo.ROOM rm    ON rm.RoomId = se.RoomId
+    JOIN dbo.BRANCH br  ON br.BranchId = rm.BranchId
+    WHERE se.TeacherId = @TeacherId AND se.SessionDate BETWEEN @FromDate AND @ToDate
 );
 GO
 
-/* 10. fn_CongNoHocVien (Inline TVF): các khoản học phí còn nợ của học viên */
-IF OBJECT_ID(N'dbo.fn_CongNoHocVien', N'IF') IS NOT NULL DROP FUNCTION dbo.fn_CongNoHocVien;
+/* 10. fn_StudentBalance (inline TVF): unpaid tuition of a student */
+IF OBJECT_ID(N'dbo.fn_StudentBalance', N'IF') IS NOT NULL DROP FUNCTION dbo.fn_StudentBalance;
 GO
-CREATE FUNCTION dbo.fn_CongNoHocVien (@MaHV VARCHAR(10))
+CREATE FUNCTION dbo.fn_StudentBalance (@StudentId VARCHAR(10))
 RETURNS TABLE
 AS
 RETURN (
-    SELECT gd.MaGD, l.MaLop, l.TenLop, gd.HocPhiPhaiDong, gd.DaDong,
-           gd.HocPhiPhaiDong - gd.DaDong AS ConNo
-    FROM dbo.GHIDANH gd
-    JOIN dbo.LOPHOC l ON l.MaLop = gd.MaLop
-    WHERE gd.MaHV = @MaHV AND gd.HocPhiPhaiDong > gd.DaDong
-      AND gd.TrangThai <> N'Đã nghỉ'
+    SELECT en.EnrollmentId, cl.ClassId, cl.ClassName, en.TuitionDue, en.AmountPaid,
+           en.TuitionDue - en.AmountPaid AS Balance
+    FROM dbo.ENROLLMENT en
+    JOIN dbo.CLASS cl ON cl.ClassId = en.ClassId
+    WHERE en.StudentId = @StudentId AND en.TuitionDue > en.AmountPaid
+      AND en.Status <> N'Left'
 );
 GO
 
-/* 11. fn_DoanhThuTheoThang (Multi-statement TVF): doanh thu 12 tháng của năm,
-       tháng không phát sinh vẫn hiển thị 0 (dùng cho báo cáo/biểu đồ). */
-IF OBJECT_ID(N'dbo.fn_DoanhThuTheoThang', N'TF') IS NOT NULL DROP FUNCTION dbo.fn_DoanhThuTheoThang;
+/* 11. fn_MonthlyRevenue (multi-statement TVF): revenue of the 12 months of a year;
+       months without receipts still return 0 (used by reports and the chart). */
+IF OBJECT_ID(N'dbo.fn_MonthlyRevenue', N'TF') IS NOT NULL DROP FUNCTION dbo.fn_MonthlyRevenue;
 GO
-CREATE FUNCTION dbo.fn_DoanhThuTheoThang (@Nam INT, @MaCN VARCHAR(10) = NULL)
-RETURNS @KetQua TABLE (
-    Thang      TINYINT       PRIMARY KEY,
-    SoPhieu    INT           NOT NULL,
-    DoanhThu   DECIMAL(14,0) NOT NULL
+CREATE FUNCTION dbo.fn_MonthlyRevenue (@Year INT, @BranchId VARCHAR(10) = NULL)
+RETURNS @Result TABLE (
+    Month         TINYINT        PRIMARY KEY,
+    ReceiptCount  INT            NOT NULL,
+    Revenue       DECIMAL(14,0)  NOT NULL
 )
 AS
 BEGIN
-    DECLARE @Thang TINYINT = 1;
-    WHILE @Thang <= 12
+    DECLARE @Month TINYINT = 1;
+    WHILE @Month <= 12
     BEGIN
-        INSERT INTO @KetQua (Thang, SoPhieu, DoanhThu) VALUES (@Thang, 0, 0);
-        SET @Thang += 1;
+        INSERT INTO @Result (Month, ReceiptCount, Revenue) VALUES (@Month, 0, 0);
+        SET @Month += 1;
     END;
 
-    UPDATE kq
-    SET SoPhieu = t.SoPhieu, DoanhThu = t.DoanhThu
-    FROM @KetQua kq
+    UPDATE r
+    SET ReceiptCount = t.ReceiptCount, Revenue = t.Revenue
+    FROM @Result r
     JOIN (
-        SELECT MONTH(pt.NgayThu) AS Thang, COUNT(*) AS SoPhieu, SUM(pt.SoTien) AS DoanhThu
-        FROM dbo.PHIEUTHU pt
-        JOIN dbo.GHIDANH gd ON gd.MaGD = pt.MaGD
-        JOIN dbo.LOPHOC l   ON l.MaLop = gd.MaLop
-        WHERE YEAR(pt.NgayThu) = @Nam AND pt.TrangThai = N'Hợp lệ'
-          AND (@MaCN IS NULL OR l.MaCN = @MaCN)
-        GROUP BY MONTH(pt.NgayThu)
-    ) t ON t.Thang = kq.Thang;
+        SELECT MONTH(rc.PaidAt) AS Month, COUNT(*) AS ReceiptCount, SUM(rc.Amount) AS Revenue
+        FROM dbo.RECEIPT rc
+        JOIN dbo.ENROLLMENT en ON en.EnrollmentId = rc.EnrollmentId
+        JOIN dbo.CLASS cl      ON cl.ClassId = en.ClassId
+        WHERE YEAR(rc.PaidAt) = @Year AND rc.Status = N'Valid'
+          AND (@BranchId IS NULL OR cl.BranchId = @BranchId)
+        GROUP BY MONTH(rc.PaidAt)
+    ) t ON t.Month = r.Month;
 
     RETURN;
 END;
