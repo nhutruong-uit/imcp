@@ -99,7 +99,8 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
   to `main`.
 - Only `main` has branch protection (PR required + green CI on macOS and Windows + branch up to date with its base,
   applies to admins too). `develop` is not locked.
-- Commit messages in English (Conventional Commits): `feat(students): ...`, `fix(db): ...`.
+- Commit messages in English (Conventional Commits): `feat(students): ...`, `fix(db): ...`. No AI attribution
+  lines in commits or PRs (no `Co-Authored-By: Claude ...`, no "Generated with Claude Code").
 - **PRs (title + description) are written in English**: use the `/imcp-create-pr` skill
   (`.claude/skills/imcp-create-pr/SKILL.md`), which runs `test_all` before creating the PR.
 - Never commit real passwords, `.env`, `build/`, `dist/`.

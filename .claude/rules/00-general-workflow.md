@@ -30,7 +30,8 @@ kind of report**, so the team lead can merge it without rework and everyone can 
 - UI strings: English in `tr("...")`, translated to Vietnamese in `resources/translations/qlttta_vi.ts`; stored
   database values and database messages are translated there too (`DbValues`, `DbMessages`).
 - Database naming (`STUDENT`, `usp_Enrollment_Create`, `StudentId`): see `sql.md`.
-- Commit messages in English `type(scope): description` (feat, fix, test, docs, ci, refactor, chore);
+- Commit messages in English `type(scope): description` (feat, fix, test, docs, ci, refactor, chore), without AI
+  attribution lines (`Co-Authored-By: Claude ...`);
   PRs in English through `/imcp-create-pr`.
 - When `git status` shows changes that are not yours (someone/another session is working): do **not** `git add -A`,
   stash, checkout or reset. Commit **only your paths**: `git commit --only -m "..." -- <your files>`
