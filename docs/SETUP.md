@@ -104,8 +104,13 @@ SQL_PASSWORD='<mật khẩu sa>' ./scripts/test_all.sh --docker sql2022   # ho�
 Lần lượt: khởi tạo lại CSDL → `database/12_kiem_thu.sql` (39 ca: ràng buộc, nghiệp vụ, hàm/trigger/cursor, XML,
 phân quyền) → build → unit test → end-to-end qua giao diện. Bước nào hỏng thì dừng ngay, mã thoát khác 0;
 chi tiết ở `build/test-results/`. Thêm `--no-init` để bỏ qua bước khởi tạo lại CSDL.
-Windows: chạy `.\scripts\db_init.ps1`, mở `database/12_kiem_thu.sql` trong SSMS (cuối file phải không có lỗi
-`50099`), rồi `ctest --preset windows-debug` với biến `QLTTTA_E2E_PASSWORD`.
+Windows (PowerShell, đã đặt `QT_ROOT_DIR` và PATH như mục 3):
+```powershell
+.\scripts\test_all.ps1                                  # Windows Authentication, server "localhost"
+.\scripts\test_all.ps1 -Server "localhost\SQLEXPRESS"   # bản Express
+.\scripts\test_all.ps1 -Docker sql2022                  # SQL Server trong Docker, mật khẩu sa trong $env:SQL_PASSWORD
+```
+Chỉ kiểm thử phần CSDL (không cần Qt): mở `database/12_kiem_thu.sql` trong SSMS, cuối file không có lỗi `50099` là đạt.
 
 ### Kiểm thử end-to-end qua giao diện (cần CSDL đã nạp dữ liệu mẫu)
 Bài test `tests/tst_e2e_gui.cpp` gõ phím, bấm nút trên các màn hình thật với CSDL thật: đăng nhập, mỗi vai trò mở

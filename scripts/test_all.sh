@@ -47,7 +47,7 @@ FILE_KT="$KET_QUA/kiem_thu_csdl.txt"
 set +e
 if [[ -n "$CONTAINER" ]]; then
   docker cp "$ROOT/database/12_kiem_thu.sql" "$CONTAINER:/tmp/12_kiem_thu.sql" >/dev/null
-  docker exec -e SQLCMDPASSWORD="$SQL_PASSWORD" "$CONTAINER" /opt/mssql-tools18/bin/sqlcmd \
+  SQLCMDPASSWORD="$SQL_PASSWORD" docker exec -e SQLCMDPASSWORD "$CONTAINER" /opt/mssql-tools18/bin/sqlcmd \
     -S localhost -U "$SQL_USER" -C -I -b -f 65001 -d QLTTTA -W -s '|' -i /tmp/12_kiem_thu.sql > "$FILE_KT" 2>&1
 else
   SQLCMDPASSWORD="$SQL_PASSWORD" sqlcmd -S "$SQL_SERVER" -U "$SQL_USER" -C -I -b -f 65001 -d QLTTTA -W -s '|' \
