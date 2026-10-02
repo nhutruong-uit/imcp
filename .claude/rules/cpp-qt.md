@@ -4,41 +4,64 @@ paths:
   - "tools/**"
   - "CMakeLists.txt"
 ---
-# Quy tắc C++ / Qt (src/, tools/)
+# C++ / Qt rules (src/, tools/)
 
-Bổ sung cho mục "C++ / Qt" trong `CLAUDE.md` và cookbook `docs/ARCHITECTURE.md` mục 4.
+Complements the "C++ / Qt" section of `CLAUDE.md` and the cookbook in `docs/ARCHITECTURE.md` section 4.
 
-## Bố cục một module (mẫu: Học viên) - đủ 7 phần, đúng thư mục
-| Tầng | File | Ghi chú |
+## Layout of a module (reference: Students) - all 7 parts, in the right folders
+| Layer | File | Notes |
 |---|---|---|
-| domain | `src/domain/entities/GhiDanh.{h,cpp}` | struct dữ liệu + `kiemTra()` trả `QStringList` lỗi |
-| application | `src/application/ports/IGhiDanhRepository.h` | interface thuần ảo, trả `Result<T>`/`VoidResult` |
-| application | `src/application/services/GhiDanhService.{h,cpp}` | use case: kiểm tra quy tắc rồi gọi port |
-| infrastructure | `src/infrastructure/repositories/SqlGhiDanhRepository.{h,cpp}` | **SQL duy nhất ở đây**, gọi `usp_` |
-| presentation | `src/presentation/ghidanh/GhiDanhPage.{h,cpp}` (+ `.ui` nếu là form) | không include `infrastructure/` |
-| app | `AppContainer` + `AppServices` | nối repository → service → trang |
-| phân quyền | `ChucNang::...` trong `PhanQuyen.cpp`, `MainWindow::trangCho` | menu theo vai trò |
-Thêm file mới vào `CMakeLists.txt` của đúng tầng.
+| domain | `src/domain/entities/Enrollment.{h,cpp}` | data struct + `validate()` returning a `QStringList` of errors |
+| application | `src/application/ports/IEnrollmentRepository.h` | pure virtual interface returning `Result<T>`/`VoidResult` |
+| application | `src/application/services/EnrollmentService.{h,cpp}` | use case: check the rules, then call the port |
+| infrastructure | `src/infrastructure/repositories/SqlEnrollmentRepository.{h,cpp}` | **the only place with SQL**, calls `usp_` |
+| presentation | `src/presentation/enrollments/EnrollmentPage.{h,cpp}` (+ `.ui` for a form) | never includes `infrastructure/` |
+| app | `AppContainer` + `AppServices` | wires repository → service → page |
+| permissions | `Feature::...` in `Permissions.cpp`, label/icon in `Labels::feature`, page in `MainWindow::pageFor` | role-based menu |
+Add new files to the `CMakeLists.txt` of the right layer. Read-only lists need no page: see "Read-only list screens"
+in `docs/ARCHITECTURE.md`.
 
-## Đặt tên
-- Lớp/struct PascalCase tiếng Việt không dấu (`GhiDanhService`); hàm, biến camelCase (`themMoi`, `boLoc`).
-- Thành viên lớp tiền tố `m_` (`m_repository`); hằng/enum PascalCase (`ChucNang::CongNo`).
-- Hàm repository: `timKiem`, `layTheoMa`, `them`, `capNhat`, `xoa`; service: `timKiem`, `layChiTiet`, `themMoi`, `capNhat`, `xoa`.
-- `objectName` cho widget mà test cần tìm: camelCase tiếng Việt (`tuKhoa`, `nutThem`, `bangHocVien`);
-  nhãn cần kiểm tra dùng `setProperty("vaiTro", "...")`. objectName PascalCase (`PageTitle`, `ErrorText`) dành cho style (Theme).
+## Naming (English)
+- Classes/structs PascalCase (`EnrollmentService`); functions and variables camelCase (`add`, `filter`).
+- Members prefixed with `m_` (`m_repository`); enum values PascalCase (`Feature::OutstandingTuition`).
+- Repository functions: `search`, `findById`, `add`, `update`, `remove`; services: `search`, `details`, `add`,
+  `update`, `remove`.
+- Database names appear only inside SQL strings; C++ names follow the database names (`StudentId` → `id`,
+  `BranchId` → `branchId`). Stored database values are English constants in the domain
+  (e.g. `StudentValues::statuses()`), never display text.
+- `objectName` of widgets the tests look up: camelCase English (`searchEdit`, `addButton`, `studentTable`); labels that
+  tests check use `setProperty("testId", "...")`. PascalCase object names (`PageTitle`, `ErrorText`) are for styling
+  (Theme/QSS).
 
-## Mẫu code
-- Lỗi đi qua `Result<T>`/`VoidResult`, không ném exception qua tầng:
-  `if (!q.exec()) return Result<QString>::failure(loiCua(q));`
-- Gọi thủ tục có OUTPUT: lô lệnh `SET NOCOUNT ON; DECLARE @x ...; EXEC ... @Out = @x OUTPUT; SELECT @x;`,
-  tham số `?` + `addBindValue`, NULL qua `SqlHelpers::chuoiHoacNull`. Không nối chuỗi giá trị vào SQL.
-- Chuỗi giao diện: `QStringLiteral("Tiếng Việt có dấu")`. Tiền/ngày: `Format::tien`, `Format::ngay`.
-- Hộp thoại: `UiHelpers::baoLoi`, `UiHelpers::xacNhan` (nút "Đồng ý/Không"); nút: `UiHelpers::nutChinh/nutPhu`.
-- Màu, font chỉ đặt trong `Theme`/stylesheet - không hard-code màu trong trang (trừ biểu đồ).
-- Kiểm tra quyền **không** chỉ ở giao diện: ẩn nút là UX, quyền thật do CSDL (GRANT) quyết định.
+## Code patterns
+- Errors go through `Result<T>`/`VoidResult`, never exceptions across layers:
+  `if (!q.exec()) return Result<QString>::failure(errorOf(q));`
+- Procedures with OUTPUT: batch `SET NOCOUNT ON; DECLARE @x ...; EXEC ... @Out = @x OUTPUT; SELECT @x;`,
+  `?` parameters + `addBindValue`, NULL via `SqlHelpers::stringOrNull`. Never concatenate values into SQL.
+- Money/dates: `Format::money`, `Format::date` (they follow the UI language through the default `QLocale`).
+- Dialogs: `UiHelpers::showError`, `UiHelpers::confirm`; buttons: `UiHelpers::primaryButton/secondaryButton`.
+- Colors and fonts only in `Theme`/the style sheet - no hard-coded colors in pages (charts excepted).
+- Permissions are **not** only a UI matter: hiding a button is UX, the real check is the database (GRANT).
 
-## Format và include
-- Format theo `.clang-format` (LLVM, 4 cách, 110 cột). Chỉ format phần đã sửa: `git clang-format` (hoặc
-  `git clang-format --staged`). Không reformat cả file cũ - repo còn file chưa theo chuẩn, sẽ format riêng một lần.
-- Thứ tự include: header của chính file → header dự án (`"domain/..."`, `"application/..."`) → Qt (`<QString>`) → STL.
-- C++17, Qt ≥ 6.5; thêm include đủ cho GCC/MinGW (CI Windows) - đừng dựa vào include gián tiếp của Clang.
+## Multi-language UI (i18n)
+- Every user-visible string: English in `tr("...")` (QObject classes) or a `Q_DECLARE_TR_FUNCTIONS` helper
+  (non-QObject classes and namespaces, e.g. `LabelsText::tr`). Never build sentences by concatenating translated
+  pieces; use placeholders: `tr("Delete student %1 - %2?").arg(id, name)`.
+- Never cache translated text in a `static`: store the source with `QT_TRANSLATE_NOOP` and translate on use
+  (see `SqlErrorMapper::constraintMessage`, `Columns`, `DbValues`, `DbMessages`).
+- Codes → text in the presentation layer only: roles/menu → `Labels`, column titles/formats → `Columns`
+  (key = column name of the view), stored database values → `DbValues::label`/`tone` (combo boxes show the label
+  and keep the stored value as item data). Database business messages are translated by `DbMessages`
+  (infrastructure, called by `SqlErrorMapper`).
+- **No logic on displayed text**: never compare, parse or build identifiers (column detection, colors, file names)
+  from translated text; use codes, column keys and stored values.
+- After adding/changing strings: `cmake --build --preset macos-debug --target update_translations`, translate the new
+  entries in `resources/translations/qlttta_vi.ts` (Qt Linguist or a text editor), and run `tst_i18n`.
+- Switching language rebuilds the window (`I18n::switchTo` + `languageChangeRequested`); do not add per-widget
+  `retranslateUi` code.
+
+## Format and includes
+- Format with `.clang-format` (LLVM, 4 spaces, 110 columns). Format only what you changed: `git clang-format`
+  (or `git clang-format --staged`); `clang-format -i` only for new files.
+- Include order: the file's own header → project headers (`"domain/..."`, `"application/..."`) → Qt (`<QString>`) → STL.
+- C++17, Qt ≥ 6.7; include everything GCC/MinGW needs (Windows CI) - do not rely on Clang's indirect includes.

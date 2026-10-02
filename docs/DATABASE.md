@@ -1,100 +1,135 @@
-# Thiết kế cơ sở dữ liệu QLTTTA
+# QLTTTA database design
 
-> Bản đầy đủ (ERD ký hiệu Chen, lược đồ quan hệ kèm tân từ, từ điển dữ liệu, ràng buộc toàn vẹn,
-> giải thích từng thủ tục/trigger) nằm trong báo cáo `docs/report/`. Tài liệu này là bản tra cứu nhanh.
+> The full version (Chen-notation ERD, relational schema with descriptions, data dictionary, integrity constraints,
+> and an explanation of every procedure/trigger) is in the project report under `docs/report/` (written in Vietnamese).
+> This document is a quick reference. The database is written in English: object and column names, stored values
+> (`N'Studying'`) and business messages. The Vietnamese UI translates stored values (`DbValues`) and messages
+> (`DbMessages`) through `resources/translations/qlttta_vi.ts`; people's names and addresses in the demo data are
+> Vietnamese (collation `Vietnamese_CI_AS`).
 
-## 1. Vì sao chọn SQL Server (không phải SQLite)
+## 1. Why SQL Server (and not SQLite)
 
-Đề cương IE103 yêu cầu: stored procedure, function, trigger, cursor, xác thực và phân quyền CSDL,
-view, backup/restore, import/export, XPath/XQuery; công cụ thực hành là SSMS.
+The IE103 syllabus requires stored procedures, functions, triggers, cursors, database authentication and authorization,
+views, backup/restore, import/export and XPath/XQuery, and the lab tool is SSMS.
 
-| Yêu cầu môn học | SQLite | PostgreSQL | **SQL Server** |
+| Syllabus requirement | SQLite | PostgreSQL | **SQL Server** |
 |---|---|---|---|
-| Stored procedure / Function | Không | Có (PL/pgSQL) | **Có (T-SQL, giống bài lab)** |
-| Trigger / Cursor | Trigger hạn chế / Không | Có | **Có** |
-| Xác thực, user, role, GRANT/DENY | Không | Có | **Có (+ contained user)** |
-| Backup Full/Differential/Log | Sao chép file | pg_dump/WAL | **Có (T-SQL BACKUP/RESTORE)** |
-| XML + XPath/XQuery | Không | Chỉ XPath 1.0 | **XQuery đầy đủ (.query/.value/.nodes/.exist/.modify)** |
-| Công cụ trên lớp | - | - | **SSMS** |
-| Phát hành ứng dụng không cần cài DB | Rất dễ | Khó | Cần SQL Server (Express miễn phí / Docker) |
+| Stored procedures / functions | No | Yes (PL/pgSQL) | **Yes (T-SQL, same as the labs)** |
+| Triggers / cursors | Limited triggers / No | Yes | **Yes** |
+| Authentication, users, roles, GRANT/DENY | No | Yes | **Yes (+ contained users)** |
+| Full/Differential/Log backup | File copy | pg_dump / WAL | **Yes (T-SQL BACKUP/RESTORE)** |
+| XML + XPath/XQuery | No | XPath 1.0 only | **Full XQuery (.query/.value/.nodes/.exist/.modify)** |
+| Tool used in class | - | - | **SSMS** |
+| Shipping the app without installing a DB | Very easy | Hard | Needs SQL Server (free Express / Docker) |
 
-## 2. Sơ đồ thực thể - liên kết (rút gọn)
+## 2. Entity-relationship diagram (simplified)
 
 ```mermaid
 erDiagram
-    CHINHANH ||--o{ PHONGHOC : "có"
-    CHINHANH ||--o{ NHANVIEN : "tuyển dụng"
-    CHINHANH ||--o{ GIAOVIEN : "quản lý"
-    CHINHANH ||--o{ HOCVIEN : "tiếp nhận"
-    CHINHANH ||--o{ LOPHOC : "mở"
-    CHUONGTRINH ||--|{ KHOAHOC : "gồm"
-    KHOAHOC |o--o{ KHOAHOC : "tiên quyết"
-    KHOAHOC ||--|{ THANHPHANDIEM : "đánh giá theo"
-    KHOAHOC ||--o{ LOPHOC : "được mở thành"
-    GIAOVIEN ||--o{ LOPHOC : "phụ trách"
-    PHONGHOC ||--o{ LOPHOC : "là phòng chính"
-    LOPHOC ||--|{ LICHHOC : "học theo"
-    LOPHOC ||--o{ BUOIHOC : "gồm"
-    GIAOVIEN ||--o{ BUOIHOC : "dạy"
-    HOCVIEN ||--o{ GHIDANH : "đăng ký"
-    LOPHOC ||--o{ GHIDANH : "có"
-    KHUYENMAI |o--o{ GHIDANH : "áp dụng"
-    GHIDANH ||--o{ PHIEUTHU : "đóng tiền"
-    GHIDANH ||--o{ DIEMDANH : "được điểm danh"
-    BUOIHOC ||--o{ DIEMDANH : "có"
-    GHIDANH ||--o{ DIEM : "có điểm"
-    THANHPHANDIEM ||--o{ DIEM : "cho cột"
-    GHIDANH |o--o| CHUNGCHI : "được cấp"
-    HOCVIEN ||--o{ KIEMTRADAUVAO : "làm bài"
-    KHOAHOC |o--o{ KIEMTRADAUVAO : "được đề xuất"
-    GIAOVIEN ||--o{ BANGLUONG : "nhận"
-    NHANVIEN |o--o| TAIKHOAN : "đăng nhập bằng"
-    GIAOVIEN |o--o| TAIKHOAN : "đăng nhập bằng"
-    NHANVIEN ||--o{ PHIEUTHU : "lập"
+    BRANCH ||--o{ ROOM : "has"
+    BRANCH ||--o{ EMPLOYEE : "employs"
+    BRANCH ||--o{ TEACHER : "manages"
+    BRANCH ||--o{ STUDENT : "admits"
+    BRANCH ||--o{ CLASS : "opens"
+    PROGRAM ||--|{ COURSE : "consists of"
+    COURSE |o--o{ COURSE : "prerequisite"
+    COURSE ||--|{ GRADE_COMPONENT : "assessed by"
+    COURSE ||--o{ CLASS : "is opened as"
+    TEACHER ||--o{ CLASS : "is in charge of"
+    ROOM ||--o{ CLASS : "is the main room of"
+    CLASS ||--|{ CLASS_SCHEDULE : "meets on"
+    CLASS ||--o{ CLASS_SESSION : "consists of"
+    TEACHER ||--o{ CLASS_SESSION : "teaches"
+    STUDENT ||--o{ ENROLLMENT : "enrolls"
+    CLASS ||--o{ ENROLLMENT : "has"
+    PROMOTION |o--o{ ENROLLMENT : "applies to"
+    ENROLLMENT ||--o{ RECEIPT : "is paid by"
+    ENROLLMENT ||--o{ ATTENDANCE : "is marked in"
+    CLASS_SESSION ||--o{ ATTENDANCE : "has"
+    ENROLLMENT ||--o{ GRADE : "has grades"
+    GRADE_COMPONENT ||--o{ GRADE : "defines column of"
+    ENROLLMENT |o--o| CERTIFICATE : "is awarded"
+    STUDENT ||--o{ PLACEMENT_TEST : "takes"
+    COURSE |o--o{ PLACEMENT_TEST : "is recommended by"
+    TEACHER ||--o{ PAYROLL : "receives"
+    EMPLOYEE |o--o| ACCOUNT : "logs in with"
+    TEACHER |o--o| ACCOUNT : "logs in with"
+    EMPLOYEE ||--o{ RECEIPT : "issues"
 ```
 
-## 3. Danh sách bảng (21)
+## 3. Tables (21)
 
-| Nhóm | Bảng | Ý nghĩa |
+| Group | Tables | Meaning |
 |---|---|---|
-| Tổ chức | `CHINHANH`, `PHONGHOC` | Chi nhánh, phòng học (cơ sở cho thiết kế CSDL phân tán theo chi nhánh) |
-| Nhân sự | `NHANVIEN`, `GIAOVIEN`, `TAIKHOAN` | Nhân viên văn phòng, giáo viên (hồ sơ năng lực XML), tài khoản ↔ user SQL Server |
-| Đào tạo | `CHUONGTRINH`, `KHOAHOC`, `THANHPHANDIEM` | Chương trình, khóa học (đề cương XML có XSD, khóa tiên quyết đệ quy), cột điểm + trọng số |
-| Lớp học | `LOPHOC`, `LICHHOC`, `BUOIHOC` | Lớp, lịch tuần, từng buổi học (sinh tự động) |
-| Học viên | `HOCVIEN`, `KIEMTRADAUVAO`, `GHIDANH` | Học viên, kiểm tra xếp lớp (đề xuất khóa học), ghi danh (n-n HOCVIEN-LOPHOC) |
-| Tài chính | `KHUYENMAI`, `PHIEUTHU`, `BANGLUONG` | Khuyến mãi, phiếu thu nhiều đợt, lương giáo viên theo tháng |
-| Kết quả | `DIEMDANH`, `DIEM`, `CHUNGCHI` | Điểm danh theo buổi, điểm thành phần, chứng nhận hoàn thành |
-| Hệ thống | `NHATKYHETHONG` | Nhật ký kiểm toán (dữ liệu cũ/mới dạng XML) |
+| Organization | `BRANCH`, `ROOM` | Branches and classrooms (basis of the branch-based distributed design) |
+| People | `EMPLOYEE`, `TEACHER`, `ACCOUNT` | Office staff, teachers (competency profile as XML), account ↔ SQL Server user |
+| Training | `PROGRAM`, `COURSE`, `GRADE_COMPONENT` | Programs, courses (XML syllabus validated by an XSD, recursive prerequisite course), grade components + weights |
+| Classes | `CLASS`, `CLASS_SCHEDULE` (weekly schedule), `CLASS_SESSION` | Classes, weekly timetable (ISO weekdays 1 = Monday ... 7 = Sunday), individual sessions (generated automatically) |
+| Students | `STUDENT`, `PLACEMENT_TEST`, `ENROLLMENT` | Students, placement tests (recommend a course), enrollment (n-n STUDENT-CLASS) |
+| Finance | `PROMOTION`, `RECEIPT`, `PAYROLL` | Promotions, multi-installment receipts, monthly teacher payroll |
+| Results | `ATTENDANCE`, `GRADE`, `CERTIFICATE` | Per-session attendance, component grades, completion certificates |
+| System | `AUDIT_LOG` | Audit trail (old/new values as XML) |
 
-## 4. Đối tượng CSDL và nội dung môn học
+IDs are generated by sequences: `EM0001` (employee), `TE0001` (teacher), `ST00001` (student), `CL0001` (class),
+`EN000001` (enrollment), `RC000001` (receipt), `PT00001` (placement test), `CE00001` (certificate).
 
-| Nội dung đề cương | Hiện thực trong đồ án | File |
+## 4. Roles and permissions
+
+Every application account is a **contained database user** (password stored and hashed by SQL Server, no server
+login) that belongs to exactly one of four roles. Permissions are granted to the roles, never to individual users
+(`database/06_security.sql`). Business roles mostly work through views and procedures (least privilege); thanks to
+ownership chaining (views/procedures and tables are all owned by `dbo`) they can read and change data through those
+objects without table permissions.
+
+| Role | Application role | What it can do | Explicitly denied |
+|---|---|---|---|
+| `rl_Manager` (`MANAGER`) | Manager | Read all tables (`db_datareader`), `EXECUTE` on every procedure in `dbo`, insert/update catalog tables (branches, rooms, programs, courses, grade components, employees, teachers, promotions), account administration, backup | `UPDATE`/`DELETE` on `AUDIT_LOG` (audit log is append-only even for managers); `DELETE` on `RECEIPT` |
+| `rl_AcademicStaff` (`ACADEMIC_STAFF`) | Academic staff | Student/class/schedule/enrollment/attendance/grade procedures, views of students, classes, sessions, results and balances, teacher list (column-level: no hourly rate) | `SELECT` on `PAYROLL`; `EXECUTE` on `usp_Receipt_Create` (cannot collect money) |
+| `rl_Accountant` (`ACCOUNTANT`) | Accountant | Balances, revenue, receipts, payroll (`PAYROLL`, `usp_Payroll_Finalize`), read-only student search, receipt procedures | `EXECUTE` on `usp_Grade_Save` and `usp_Enrollment_Create` (cannot change grades or enroll) |
+| `rl_Teacher` (`TEACHER`) | Teacher | Only the five `vw_Teacher_My*` views (my classes, students, schedule, grades, pay, filtered by the logged-in teacher), attendance/grade procedures for own classes | `SELECT` on `STUDENT`, `RECEIPT`, `PAYROLL` (`DENY` overrides any `GRANT`) |
+
+The role code in brackets is stored in `ACCOUNT.Role`. All roles can also read the login view `vw_CurrentAccount`,
+run `usp_Account_RecordLogin` and `usp_Account_ChangePassword`, and read the catalog tables needed for combo boxes
+(`BRANCH`, `PROGRAM`, `COURSE`, and `ROOM` except for accountants).
+
+## 5. Database objects and the course syllabus
+
+| Syllabus topic | Implementation in the project | File |
 |---|---|---|
-| Mô hình quan niệm, logic; ERD, CD | 21 thực thể, liên kết đệ quy, n-n, chuyên biệt hóa (người) | báo cáo Ch.3 |
-| Ràng buộc toàn vẹn | 21 PK, 32 FK, 72 CHECK, 13 UNIQUE + 5 filtered unique index, 44 DEFAULT, 8 SEQUENCE | `01_tables.sql` |
-| Mô hình XML | XML có kiểu (XSD) cho đề cương khóa học, XML không kiểu cho hồ sơ giáo viên, nhật ký | `01`, `07` |
-| Truy vấn SQL | JOIN, GROUP BY/HAVING, NOT EXISTS, phép chia, CTE, đệ quy, window function, PIVOT | `08_demo_queries.sql` |
+| Conceptual and logical model; ERD, CD | 21 entities, recursive relationship, n-n, specialization (people) | report Ch.3 |
+| Integrity constraints | 21 PK, 32 FK, 72 CHECK, 13 UNIQUE + 5 filtered unique indexes, 44 DEFAULT, 8 SEQUENCE | `01_tables.sql` |
+| XML model | Typed XML (XSD) for course syllabi, untyped XML for teacher profiles and the audit log | `01`, `07` |
+| SQL queries | JOIN, GROUP BY/HAVING, NOT EXISTS, relational division, CTE, recursion, window functions, PIVOT | `08_demo_queries.sql` |
 | XPath/XQuery | `.value() .query() .exist() .nodes() .modify()`, FLWOR, `sql:variable`, `FOR XML PATH` | `04`, `08` |
-| Stored procedure | 38 thủ tục: nghiệp vụ, giao dịch, tham số OUTPUT, dynamic SQL an toàn, `EXECUTE AS OWNER` | `04_procedures.sql` |
-| Function | 10 scalar, 2 inline TVF, 1 multi-statement TVF | `02_functions.sql` |
-| Trigger | 13 trigger: AFTER/INSTEAD OF, ràng buộc liên quan hệ, thuộc tính dẫn xuất, audit | `05_triggers.sql` |
-| Cursor | Xét kết quả cuối khóa, chốt lương tháng, nạp dữ liệu mẫu | `04`, `07` |
-| View | 13 view, gồm 5 view bảo mật lọc theo giáo viên đang đăng nhập | `03_views.sql` |
-| Xác thực / phân quyền | Contained user, 4 role, GRANT/DENY mức đối tượng và mức cột, ownership chaining | `06_security.sql` |
-| Backup / Restore | Full + Differential + Log, phục hồi chuỗi NORECOVERY/RECOVERY, VERIFYONLY | `09_backup_restore.sql`, `usp_SaoLuu` |
-| Import / Export | FOR XML, nhập XML qua `.nodes()`, BULK INSERT, bcp/sqlcmd, xuất CSV/PDF từ ứng dụng | `10_import_export.sql` |
-| Menu / Form / Report | Ứng dụng Qt: menu theo vai trò, form Qt Designer, báo cáo PDF có header/footer/tổng | `src/presentation` |
-| CSDL phân tán | Phân mảnh ngang theo chi nhánh, nhân bản danh mục, view phân tán, kiểm tra đầy đủ/tách biệt | `11_distributed_demo.sql` |
-| CSDL hướng đối tượng, NoSQL | Chuyển đổi mô hình và so sánh | báo cáo Ch.7 |
+| Stored procedures | 38 procedures: business logic, transactions, OUTPUT parameters, safe dynamic SQL, `EXECUTE AS OWNER` | `04_procedures.sql` |
+| Functions | 10 scalar, 2 inline table-valued, 1 multi-statement table-valued | `02_functions.sql` |
+| Triggers | 13 triggers: AFTER/INSTEAD OF, inter-relation constraints, derived attributes, audit | `05_triggers.sql` |
+| Cursors | Course-result evaluation (`usp_Class_EvaluateResults`), monthly payroll closing (`usp_Payroll_Finalize`), seed-data loading | `04`, `07` |
+| Views | 13 views, including 5 security views filtered by the logged-in teacher | `03_views.sql` |
+| Authentication / authorization | Contained users, 4 roles, object-level and column-level GRANT/DENY, ownership chaining (section 4) | `06_security.sql` |
+| Backup / restore | Full + Differential + Log, restore chain with NORECOVERY/RECOVERY, VERIFYONLY | `09_backup_restore.sql`, `usp_Backup` |
+| Import / export | FOR XML, XML import via `.nodes()`, BULK INSERT (`database/samples/student_import.csv`), bcp/sqlcmd, CSV/PDF export from the application | `10_import_export.sql` |
+| Menu / form / report | Qt application: role-based menu, Qt Designer forms, PDF reports with header/footer/totals | `src/presentation` |
+| Distributed database | Horizontal fragmentation by branch, replicated catalog tables, distributed view, completeness/disjointness check | `11_distributed_demo.sql` |
+| Object-oriented DB, NoSQL | Model conversion and comparison | report Ch.7 |
+| Automated database tests | 39 cases: `T01`-`T27` (integrity constraints and business rules, functions, triggers, cursors, XML) and `P01`-`P12` (permissions, via `EXECUTE AS USER`); each case runs in a transaction that is rolled back | `12_tests.sql` |
 
-## 5. Quy tắc nghiệp vụ chính (được CSDL bảo đảm)
+`db_init` runs scripts `00`-`07` (create database, tables, functions, views, procedures, triggers, security, seed
+data). Scripts `08`-`11` are demonstrations to run by hand; `12` is the automated test suite (see
+[SETUP.md](SETUP.md#running-the-full-test-suite-with-one-command-before-every-pr)).
 
-1. Học viên dưới 18 tuổi phải có họ tên + SĐT phụ huynh; phải có ít nhất một số liên lạc.
-2. Phòng của lớp thuộc cùng chi nhánh; sĩ số tối đa ≤ sức chứa phòng.
-3. Không trùng lịch phòng/giáo viên giữa các lớp đang hoạt động; học viên không học 2 lớp trùng giờ.
-4. Ghi danh: lớp còn chỗ và đang mở; đạt khóa tiên quyết **hoặc** điểm kiểm tra đầu vào ≥ yêu cầu.
-5. Đã đóng = tổng phiếu thu hợp lệ (trigger), không thu vượt học phí; phiếu thu không được xóa, chỉ được hủy có lý do.
-6. Điểm 0-10, đúng cột điểm của khóa; giáo viên chỉ nhập điểm/điểm danh lớp mình dạy.
-7. Đạt khi điểm tổng kết ≥ 5 và chuyên cần ≥ 80%; chỉ lượt ghi danh Đạt mới được cấp chứng nhận.
-8. Buổi đã dạy không được đổi giờ/phòng/giáo viên (giữ đúng dữ liệu tính lương).
-9. Nhật ký hệ thống chỉ được ghi thêm (INSTEAD OF UPDATE, DELETE + DENY cho cả quản lý).
+## 6. Main business rules (guaranteed by the database)
+
+1. A student under 18 must have a guardian name + phone; every student needs at least one contact phone number.
+2. A class's room belongs to the same branch as the class; the maximum class size must not exceed the room capacity.
+3. No room or teacher double-booking between active classes; a student cannot attend two classes that overlap in time.
+4. Enrollment: the class must be open and have free seats; the student must have passed the prerequisite course
+   **or** reached the required placement-test score.
+5. Amount paid = sum of valid receipts (trigger); payment cannot exceed tuition; receipts are never deleted, only
+   cancelled with a reason.
+6. Grades are 0-10 and must belong to a grade component of the course; a teacher can only enter grades/attendance for
+   their own classes.
+7. A student passes when the final grade is ≥ 5 and attendance is ≥ 80%; only a passed enrollment can receive a
+   certificate.
+8. A session that has already been taught cannot change time/room/teacher (this keeps payroll data correct).
+9. The audit log is append-only (INSTEAD OF UPDATE, DELETE, plus `DENY` even for managers).
