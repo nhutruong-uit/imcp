@@ -22,7 +22,9 @@ Mục tiêu: dù thành viên nào nhờ Claude Code làm, kết quả phải **
 - Tên trong code: tiếng Việt **không dấu** (`themMoi`, `HocVienService`, `usp_GhiDanh`); chuỗi giao diện có dấu.
 - Commit message tiếng Việt `type(scope): mô tả` (feat, fix, test, docs, ci, refactor, chore); PR tiếng Anh qua `/imcp-create-pr`.
 - `git status` có thay đổi không phải của mình (người khác/phiên khác đang làm): **không** `git add -A`,
-  không stash/checkout/reset - chỉ `git add` đúng file mình sửa và báo lại cho người dùng.
+  không stash/checkout/reset. Commit **chỉ đường dẫn của mình**: `git commit --only -m "..." -- <file của mình>`
+  (lệnh `git commit` thường lấy CẢ vùng staging, kể cả `git mv` người khác đã stage), rồi kiểm tra
+  `git show --stat HEAD` trước khi push và báo lại cho người dùng.
 - Không đưa mật khẩu thật, `.env`, `build/`, `dist/` vào commit hay câu trả lời (mật khẩu demo ở `docs/SETUP.md` là dữ liệu thử).
 - Hỏi lại khi yêu cầu mơ hồ ảnh hưởng tới thiết kế CSDL hoặc phân quyền; còn lại chọn theo mẫu có sẵn và ghi rõ giả định.
 
