@@ -4,7 +4,8 @@
 
 #include <QAbstractTableModel>
 
-// Model hiển thị TableData lên QTableView (Qt::DisplayRole: đã định dạng, Qt::UserRole: giá trị gốc để sắp xếp)
+// Shows TableData in a QTableView (Qt::DisplayRole: formatted text, Qt::UserRole: raw value used for
+// sorting). Horizontal headers: DisplayRole = title in the UI language, Columns::KeyRole = column key.
 class TableDataModel : public QAbstractTableModel {
     Q_OBJECT
 public:

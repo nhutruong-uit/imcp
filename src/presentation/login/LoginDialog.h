@@ -3,34 +3,42 @@
 #include <QDialog>
 
 class AuthService;
+class LanguageService;
 class QCheckBox;
+class QComboBox;
 class QGroupBox;
 class QLabel;
 class QLineEdit;
 class QPushButton;
 
-// Màn hình đăng nhập: xác thực bằng tài khoản SQL Server (contained user) + cấu hình máy chủ
+// Login screen: authenticates with a SQL Server account (contained user) + server settings + language
 class LoginDialog : public QDialog {
     Q_OBJECT
 public:
-    explicit LoginDialog(AuthService& auth, QWidget* parent = nullptr);
+    // exec() result when the user switched language: the caller rebuilds the dialog in the new language
+    enum Outcome { LanguageChanged = 2 };
+
+    LoginDialog(AuthService& auth, LanguageService& language, QWidget* parent = nullptr);
 
 private slots:
-    void dangNhap();
-    void anHienCauHinh();
+    void login();
+    void toggleServerSettings();
+    void changeLanguage();
 
 private:
-    QWidget* taoPanelThuongHieu();
-    QWidget* taoPanelForm();
+    QWidget* buildBrandPanel();
+    QWidget* buildFormPanel();
 
     AuthService& m_auth;
-    QLineEdit* m_tenDangNhap = nullptr;
-    QLineEdit* m_matKhau = nullptr;
-    QLineEdit* m_mayChu = nullptr;
-    QLineEdit* m_csdl = nullptr;
-    QCheckBox* m_tinCay = nullptr;
-    QGroupBox* m_nhomCauHinh = nullptr;
-    QPushButton* m_nutCauHinh = nullptr;
-    QPushButton* m_nutDangNhap = nullptr;
-    QLabel* m_loi = nullptr;
+    LanguageService& m_language;
+    QLineEdit* m_username = nullptr;
+    QLineEdit* m_password = nullptr;
+    QLineEdit* m_server = nullptr;
+    QLineEdit* m_database = nullptr;
+    QCheckBox* m_trustCertificate = nullptr;
+    QGroupBox* m_serverGroup = nullptr;
+    QPushButton* m_serverToggle = nullptr;
+    QPushButton* m_loginButton = nullptr;
+    QComboBox* m_languageCombo = nullptr;
+    QLabel* m_error = nullptr;
 };

@@ -1,17 +1,26 @@
-// Kiểm thử end-to-end qua GIAO DIỆN với CSDL thật: gõ phím/bấm nút trên chính các màn hình của ứng dụng.
-// Cần CSDL QLTTTA đã nạp dữ liệu mẫu. Bỏ qua (SKIP) nếu không đặt biến môi trường:
-//   QLTTTA_E2E_PASSWORD  mật khẩu chung của tài khoản demo (docs/SETUP.md)
-//   QLTTTA_SERVER        máy chủ SQL Server (mặc định localhost,1433)
-// Chạy: QLTTTA_E2E_PASSWORD='...' ctest --preset macos-debug -R e2e --output-on-failure
+// End-to-end tests through the GUI with a real database: typing and clicking on the application's own
+// screens. Needs the QLTTTA database loaded with the seed data. SKIPPED unless these environment variables
+// are set:
+//   QLTTTA_E2E_PASSWORD  shared password of the demo accounts (docs/SETUP.md)
+//   QLTTTA_SERVER        SQL Server address (default localhost,1433)
+// Run: QLTTTA_E2E_PASSWORD='...' ctest --preset macos-debug -R e2e --output-on-failure
+// The scenarios run in Vietnamese (the default UI language);
+// language_switchToEnglish_rebuildsUi covers English.
 #include "app/AppContainer.h"
-#include "application/services/PhanQuyen.h"
+#include "application/services/Permissions.h"
+#include "presentation/common/Columns.h"
+#include "presentation/common/DbValues.h"
 #include "presentation/common/Format.h"
+#include "presentation/common/I18n.h"
+#include "presentation/common/Labels.h"
 #include "presentation/common/TableExporter.h"
+#include "presentation/common/Theme.h"
 #include "presentation/login/LoginDialog.h"
 #include "presentation/main/ChangePasswordDialog.h"
 #include "presentation/main/MainWindow.h"
 
 #include <QApplication>
+#include <QComboBox>
 #include <QDateEdit>
 #include <QDialogButtonBox>
 #include <QFileInfo>
@@ -20,86 +29,94 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSignalSpy>
 #include <QStackedWidget>
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QtTest>
-
 #include <memory>
 
 namespace {
-// Gõ từng ký tự (kể cả tiếng Việt có dấu) như bộ gõ gửi sự kiện bàn phím có text
-void goChu(QWidget* o, const QString& chu) {
-    for (const QChar c : chu)
-        QTest::sendKeyEvent(QTest::Click, o, Qt::Key_unknown, QString(c), Qt::NoModifier);
+// Types character by character (including Vietnamese letters), like an input method sending text key events
+void typeText(QWidget* target, const QString& text) {
+    for (const QChar c : text)
+        QTest::sendKeyEvent(QTest::Click, target, Qt::Key_unknown, QString(c), Qt::NoModifier);
 }
 
-template <typename T>
-T* timTheoVaiTro(QWidget* goc, const QString& vaiTro) {
-    for (T* w : goc->findChildren<T*>())
-        if (w->property("vaiTro").toString() == vaiTro)
+// Widget tagged with setProperty("testId", ...)
+template <typename T> T* findByTestId(QWidget* root, const QString& testId) {
+    for (T* w : root->findChildren<T*>())
+        if (w->property("testId").toString() == testId)
             return w;
     return nullptr;
 }
 
-QStringList menuHienThi(MainWindow& w) {
-    QStringList ten;
+template <typename T> T* findVisibleByTestId(QWidget* root, const QString& testId) {
+    for (T* w : root->findChildren<T*>())
+        if (w->isVisible() && w->property("testId").toString() == testId)
+            return w;
+    return nullptr;
+}
+
+QStringList visibleMenu(MainWindow& w) {
+    QStringList names;
     auto* nav = w.findChild<QListWidget*>(QStringLiteral("NavList"));
     for (int i = 0; nav && i < nav->count(); ++i)
         if (nav->item(i)->data(Qt::UserRole).toInt() >= 0)
-            ten << nav->item(i)->text();
-    return ten;
+            names << nav->item(i)->text();
+    return names;
 }
 
-QStringList menuMongDoi(VaiTro vt) {
-    QStringList ten;
-    for (ChucNang cn : PhanQuyen::chucNangDuocPhep(vt))
-        ten << PhanQuyen::thongTin(cn).ten;
-    return ten;
+QStringList expectedMenu(Role role) {
+    QStringList names;
+    for (Feature f : Permissions::allowedFeatures(role))
+        names << Labels::feature(f).name;
+    return names;
 }
 
-// Vừa mở cửa sổ chính: phải chọn sẵn chức năng đầu tiên (không phải dòng tiêu đề nhóm) và có tiêu đề trang
-bool moSanTrangDau(MainWindow& w, VaiTro vt) {
+// Right after opening, the main window shows the first feature (not a group header) and its page title
+bool opensFirstFeature(MainWindow& w, Role role) {
     auto* nav = w.findChild<QListWidget*>(QStringLiteral("NavList"));
-    auto* tieuDe = w.findChild<QLabel*>(QStringLiteral("HeaderTitle"));
-    const ChucNang dau = PhanQuyen::chucNangDuocPhep(vt).first();
-    return nav && nav->currentItem() && nav->currentItem()->data(Qt::UserRole).toInt() == static_cast<int>(dau)
-           && tieuDe && tieuDe->text() == PhanQuyen::thongTin(dau).ten;
+    auto* title = w.findChild<QLabel*>(QStringLiteral("HeaderTitle"));
+    const Feature first = Permissions::allowedFeatures(role).first();
+    return nav && nav->currentItem() &&
+           nav->currentItem()->data(Qt::UserRole).toInt() == static_cast<int>(first) && title &&
+           title->text() == Labels::feature(first).name;
 }
 
-// Bắt mọi hộp thoại thông báo (QMessageBox) bật lên trong lúc kiểm thử: ghi lại nội dung rồi đóng,
-// để bài test không bị treo và biết màn hình nào đã báo lỗi
-class BatHopThoai {
+// Catches every message box shown during a test: records its text and closes it,
+// so the test never hangs and we know which screen reported an error
+class MessageBoxCatcher {
 public:
-    BatHopThoai() {
-        m_dongHo.setInterval(100);
-        QObject::connect(&m_dongHo, &QTimer::timeout, [this] {
-            if (auto* hop = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) {
-                m_noiDung << hop->text();
-                hop->done(0);
+    MessageBoxCatcher() {
+        m_timer.setInterval(100);
+        QObject::connect(&m_timer, &QTimer::timeout, [this] {
+            if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) {
+                m_texts << box->text();
+                box->done(0);
             }
         });
-        m_dongHo.start();
+        m_timer.start();
     }
-    const QStringList& noiDung() const { return m_noiDung; }
+    const QStringList& texts() const { return m_texts; }
 
 private:
-    QTimer m_dongHo;
-    QStringList m_noiDung;
+    QTimer m_timer;
+    QStringList m_texts;
 };
 
-// Cột có tiêu đề cho trước trong bảng (-1 nếu không có)
-int cotTheoTieuDe(const QAbstractItemModel* model, const QString& tieuDe) {
+// Column with the given key (header Columns::KeyRole), -1 if absent
+int columnByKey(const QAbstractItemModel* model, const QString& key) {
     for (int c = 0; c < model->columnCount(); ++c)
-        if (model->headerData(c, Qt::Horizontal).toString() == tieuDe)
+        if (model->headerData(c, Qt::Horizontal, Columns::KeyRole).toString() == key)
             return c;
     return -1;
 }
 
-// Bảng (QTableView) đang hiển thị trên trang hiện tại của cửa sổ chính
-QTableView* bangDangHien(MainWindow& w, const QString& ten) {
-    for (QTableView* t : w.findChildren<QTableView*>(ten))
+// Table (QTableView) visible on the current page of the main window
+QTableView* visibleTable(MainWindow& w, const QString& name) {
+    for (QTableView* t : w.findChildren<QTableView*>(name))
         if (t->isVisible())
             return t;
     return nullptr;
@@ -111,341 +128,444 @@ class TestE2EGui : public QObject {
 
 private:
     std::unique_ptr<AppContainer> m_app;
-    QString m_matKhau;
+    QString m_password;
 
-    // Đăng nhập bằng cách gõ vào LoginDialog và bấm nút "Đăng nhập"
-    bool dangNhap(const QString& ten, const QString& matKhau, QString* loi = nullptr) {
-        LoginDialog dlg(m_app->auth());
-        dlg.show();
-        auto* oTen = dlg.findChild<QLineEdit*>(QStringLiteral("tenDangNhap"));
-        auto* oMatKhau = dlg.findChild<QLineEdit*>(QStringLiteral("matKhau"));
-        auto* nut = dlg.findChild<QPushButton*>(QStringLiteral("nutDangNhap"));
-        if (!oTen || !oMatKhau || !nut)
+    // Logs in by typing into the LoginDialog and clicking "Sign in"
+    bool login(const QString& username, const QString& password, QString* error = nullptr) {
+        LoginDialog dialog(m_app->auth(), m_app->language());
+        dialog.show();
+        auto* usernameEdit = dialog.findChild<QLineEdit*>(QStringLiteral("usernameEdit"));
+        auto* passwordEdit = dialog.findChild<QLineEdit*>(QStringLiteral("passwordEdit"));
+        auto* button = dialog.findChild<QPushButton*>(QStringLiteral("loginButton"));
+        if (!usernameEdit || !passwordEdit || !button)
             return false;
-        oTen->clear();
-        oMatKhau->clear();
-        QTest::keyClicks(oTen, ten);
-        QTest::keyClicks(oMatKhau, matKhau);
-        QTest::mouseClick(nut, Qt::LeftButton);
-        if (loi) {
-            auto* nhan = timTheoVaiTro<QLabel>(&dlg, QStringLiteral("loiDangNhap"));
-            *loi = (nhan && !nhan->isHidden()) ? nhan->text() : QString();
+        usernameEdit->clear();
+        passwordEdit->clear();
+        QTest::keyClicks(usernameEdit, username);
+        QTest::keyClicks(passwordEdit, password);
+        QTest::mouseClick(button, Qt::LeftButton);
+        if (error) {
+            auto* label = findByTestId<QLabel>(&dialog, QStringLiteral("loginError"));
+            *error = (label && !label->isHidden()) ? label->text() : QString();
         }
-        return dlg.result() == QDialog::Accepted;
+        return dialog.result() == QDialog::Accepted;
+    }
+
+    void useVietnamese() {
+        m_app->language().select(Language::Vietnamese);
+        I18n::apply(Language::Vietnamese);
     }
 
 private slots:
     void initTestCase() {
-        m_matKhau = qEnvironmentVariable("QLTTTA_E2E_PASSWORD");
-        if (m_matKhau.isEmpty())
-            QSKIP("Chưa đặt QLTTTA_E2E_PASSWORD - bỏ qua kiểm thử giao diện với CSDL thật.");
-        QApplication::setOrganizationName(QStringLiteral("UIT-IE103-E2E"));   // không đụng cấu hình thật
+        m_password = qEnvironmentVariable("QLTTTA_E2E_PASSWORD");
+        if (m_password.isEmpty())
+            QSKIP("QLTTTA_E2E_PASSWORD is not set - skipping the GUI tests against a real database.");
+        QApplication::setOrganizationName(
+            QStringLiteral("UIT-IE103-E2E")); // keep the real settings untouched
         m_app = std::make_unique<AppContainer>();
-        CauHinhMayChu cauHinh;
-        cauHinh.mayChu = qEnvironmentVariable("QLTTTA_SERVER", QStringLiteral("localhost,1433"));
-        m_app->auth().luuCauHinh(cauHinh);
+        ServerConfig config;
+        config.host = qEnvironmentVariable("QLTTTA_SERVER", QStringLiteral("localhost,1433"));
+        m_app->auth().saveServerConfig(config);
+        useVietnamese();
     }
 
     void cleanup() {
-        if (m_app)
-            m_app->auth().dangXuat();
+        if (!m_app)
+            return;
+        m_app->auth().logout();
+        if (I18n::current() != Language::Vietnamese)
+            useVietnamese();
     }
 
-    void dangNhap_saiMatKhau_hienLoi() {
-        QString loi;
-        QVERIFY(!dangNhap(QStringLiteral("gvu_lan"), QStringLiteral("sai-mat-khau-123"), &loi));
-        QVERIFY2(loi.contains(QStringLiteral("Sai tên đăng nhập")), qPrintable(loi));
-        QVERIFY(!m_app->auth().daDangNhap());
+    void login_wrongPassword_showsError() {
+        QString error;
+        QVERIFY(!login(QStringLiteral("gvu_lan"), QStringLiteral("wrong-password-123"), &error));
+        QVERIFY2(error.contains(QStringLiteral("Sai tên đăng nhập")), qPrintable(error));
+        QVERIFY(!m_app->auth().isLoggedIn());
     }
 
-    void giaoVu_timKiem_them_xoaHocVien() {
-        QVERIFY(dangNhap(QStringLiteral("gvu_lan"), m_matKhau));
-        QCOMPARE(m_app->auth().vaiTro(), VaiTro::GiaoVu);
+    void academicStaff_searchAddDeleteStudent() {
+        QVERIFY(login(QStringLiteral("gvu_lan"), m_password));
+        QCOMPARE(m_app->auth().role(), Role::AcademicStaff);
 
         MainWindow w(m_app->services());
         w.show();
-        QCOMPARE(menuHienThi(w), menuMongDoi(VaiTro::GiaoVu));
-        QVERIFY(moSanTrangDau(w, VaiTro::GiaoVu));
-        // Giáo vụ không được xem doanh thu: CSDL trả NULL, thẻ KPI ghi "Không có quyền"
-        auto* kpiDoanhThu = timTheoVaiTro<QLabel>(&w, QStringLiteral("kpiDoanhThu"));
-        QVERIFY(kpiDoanhThu);
-        QCOMPARE(kpiDoanhThu->text(), QStringLiteral("Không có quyền"));
+        QCOMPARE(visibleMenu(w), expectedMenu(Role::AcademicStaff));
+        QVERIFY(opensFirstFeature(w, Role::AcademicStaff));
+        // Academic staff may not see revenue: the database returns NULL,
+        // the KPI card says "Không có quyền" (no permission)
+        auto* revenueKpi = findByTestId<QLabel>(&w, QStringLiteral("revenueKpi"));
+        QVERIFY(revenueKpi);
+        QCOMPARE(revenueKpi->text(), QStringLiteral("Không có quyền"));
 
-        w.moChucNang(ChucNang::HocVien);
-        QTableView* bang = nullptr;
-        QTRY_VERIFY((bang = bangDangHien(w, QStringLiteral("bangHocVien"))) != nullptr);
-        QTRY_VERIFY(bang->model()->rowCount() >= 72);
+        w.openFeature(Feature::Students);
+        QTableView* table = nullptr;
+        QTRY_VERIFY((table = visibleTable(w, QStringLiteral("studentTable"))) != nullptr);
+        QTRY_VERIFY(table->model()->rowCount() >= 72);
 
-        // Tìm kiếm (tự chạy sau 300 ms ngừng gõ)
-        auto* tuKhoa = w.findChild<QLineEdit*>(QStringLiteral("tuKhoa"));
-        QVERIFY(tuKhoa);
-        goChu(tuKhoa, QStringLiteral("Ngô Khánh"));
-        QTRY_COMPARE_WITH_TIMEOUT(bang->model()->rowCount(), 1, 3000);
-        QCOMPARE(bang->model()->index(0, 1).data().toString(), QStringLiteral("Ngô Khánh Linh"));
+        // Search (runs 300 ms after the user stops typing)
+        auto* search = w.findChild<QLineEdit*>(QStringLiteral("searchEdit"));
+        QVERIFY(search);
+        typeText(search, QStringLiteral("Ngô Khánh"));
+        QTRY_COMPARE_WITH_TIMEOUT(table->model()->rowCount(), 1, 3000);
+        QCOMPARE(table->model()->index(0, 1).data().toString(), QStringLiteral("Ngô Khánh Linh"));
 
-        // Thêm học viên 10 tuổi: lần 1 thiếu phụ huynh => form báo lỗi, lần 2 bổ sung => lưu được
-        QString loiLan1;
-        bool daMoForm = false;
+        // Add a 10-year-old student: first save fails (no guardian), second save with a guardian succeeds
+        QString firstError;
+        bool formOpened = false;
         QTimer::singleShot(300, this, [&] {
-            auto* dlg = qobject_cast<QDialog*>(QApplication::activeModalWidget());
-            if (!dlg)
+            auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
+            if (!dialog)
                 return;
-            daMoForm = true;
-            dlg->findChild<QLineEdit*>(QStringLiteral("hoTenEdit"))->setText(QStringLiteral("Bé Kiểm Thử E2E"));
-            dlg->findChild<QDateEdit*>(QStringLiteral("ngaySinhEdit"))->setDate(QDate::currentDate().addYears(-10));
-            auto* luu = dlg->findChild<QDialogButtonBox*>(QStringLiteral("buttonBox"))->button(QDialogButtonBox::Save);
-            luu->click();
-            for (QLabel* l : dlg->findChildren<QLabel*>(QStringLiteral("ErrorText")))
+            formOpened = true;
+            dialog->findChild<QLineEdit*>(QStringLiteral("fullNameEdit"))
+                ->setText(QStringLiteral("Bé Kiểm Thử E2E"));
+            dialog->findChild<QDateEdit*>(QStringLiteral("dateOfBirthEdit"))
+                ->setDate(QDate::currentDate().addYears(-10));
+            auto* save = dialog->findChild<QDialogButtonBox*>(QStringLiteral("buttonBox"))
+                             ->button(QDialogButtonBox::Save);
+            save->click();
+            for (QLabel* l : dialog->findChildren<QLabel*>(QStringLiteral("ErrorText")))
                 if (!l->isHidden())
-                    loiLan1 = l->text();
-            dlg->findChild<QLineEdit*>(QStringLiteral("tenPhuHuynhEdit"))->setText(QStringLiteral("Phụ Huynh E2E"));
-            dlg->findChild<QLineEdit*>(QStringLiteral("sdtPhuHuynhEdit"))->setText(QStringLiteral("0987000111"));
-            luu->click();
-            if (dlg->isVisible())
-                dlg->reject();   // tránh treo nếu lưu thất bại
+                    firstError = l->text();
+            dialog->findChild<QLineEdit*>(QStringLiteral("guardianNameEdit"))
+                ->setText(QStringLiteral("Phụ Huynh E2E"));
+            dialog->findChild<QLineEdit*>(QStringLiteral("guardianPhoneEdit"))
+                ->setText(QStringLiteral("0987000111"));
+            save->click();
+            if (dialog->isVisible())
+                dialog->reject(); // never hang if saving failed
         });
-        tuKhoa->clear();
-        QTest::mouseClick(w.findChild<QPushButton*>(QStringLiteral("nutThem")), Qt::LeftButton);
-        QVERIFY(daMoForm);
-        QVERIFY2(loiLan1.contains(QStringLiteral("phụ huynh")), qPrintable(loiLan1));
+        search->clear();
+        QTest::mouseClick(w.findChild<QPushButton*>(QStringLiteral("addButton")), Qt::LeftButton);
+        QVERIFY(formOpened);
+        QVERIFY2(firstError.contains(QStringLiteral("phụ huynh")), qPrintable(firstError));
 
-        goChu(tuKhoa, QStringLiteral("Kiểm Thử E2E"));
-        QTRY_COMPARE_WITH_TIMEOUT(bang->model()->rowCount(), 1, 3000);
-        const QString maMoi = bang->model()->index(0, 0).data().toString();
-        QVERIFY2(maMoi.startsWith(QStringLiteral("HV")), qPrintable(maMoi));
+        typeText(search, QStringLiteral("Kiểm Thử E2E"));
+        QTRY_COMPARE_WITH_TIMEOUT(table->model()->rowCount(), 1, 3000);
+        const QString newId = table->model()->index(0, 0).data().toString();
+        QVERIFY2(newId.startsWith(QStringLiteral("ST")), qPrintable(newId));
 
-        // Xóa học viên vừa thêm (xác nhận Yes trong hộp thoại)
-        bang->selectRow(0);
+        // Delete the new student (confirm with Yes)
+        table->selectRow(0);
         QTimer::singleShot(300, this, [] {
-            if (auto* mb = qobject_cast<QMessageBox*>(QApplication::activeModalWidget()))
-                mb->button(QMessageBox::Yes)->click();
+            if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget()))
+                box->button(QMessageBox::Yes)->click();
         });
-        QTest::mouseClick(w.findChild<QPushButton*>(QStringLiteral("nutXoa")), Qt::LeftButton);
-        QTRY_COMPARE_WITH_TIMEOUT(bang->model()->rowCount(), 0, 3000);
+        QTest::mouseClick(w.findChild<QPushButton*>(QStringLiteral("deleteButton")), Qt::LeftButton);
+        QTRY_COMPARE_WITH_TIMEOUT(table->model()->rowCount(), 0, 3000);
     }
 
-    void giaoVien_chiThayLopCuaMinh() {
-        QVERIFY(dangNhap(QStringLiteral("gv_john"), m_matKhau));
+    void teacher_seesOnlyOwnClasses() {
+        QVERIFY(login(QStringLiteral("gv_john"), m_password));
         MainWindow w(m_app->services());
         w.show();
-        QCOMPARE(menuHienThi(w), menuMongDoi(VaiTro::GiaoVien));
-        QVERIFY(moSanTrangDau(w, VaiTro::GiaoVien));
+        QCOMPARE(visibleMenu(w), expectedMenu(Role::Teacher));
+        QVERIFY(opensFirstFeature(w, Role::Teacher));
 
-        w.moChucNang(ChucNang::LopCuaToi);
-        QTableView* bang = nullptr;
-        QTRY_VERIFY((bang = bangDangHien(w, QStringLiteral("bangDanhSach"))) != nullptr);
-        QCOMPARE(bang->model()->rowCount(), 2);   // GV0001 dạy LH0003 và LH0008
+        w.openFeature(Feature::MyClasses);
+        QTableView* table = nullptr;
+        QTRY_VERIFY((table = visibleTable(w, QStringLiteral("listTable"))) != nullptr);
+        QCOMPARE(table->model()->rowCount(), 2); // TE0001 teaches CL0003 and CL0008
+        // Database values (English) are shown in the UI language
+        const int statusColumn = columnByKey(table->model(), QStringLiteral("Status"));
+        QVERIFY(statusColumn >= 0);
+        const QModelIndex status = table->model()->index(0, statusColumn);
+        const QString stored = status.data(Qt::UserRole).toString();
+        QCOMPARE(status.data().toString(), DbValues::label(stored));
+        QVERIFY2(status.data().toString() != stored, qPrintable(stored));
 
-        w.moChucNang(ChucNang::LichDayCuaToi);
-        QTRY_VERIFY((bang = bangDangHien(w, QStringLiteral("bangDanhSach"))) != nullptr);
-        QVERIFY(bang->model()->rowCount() > 0);
-        for (int r = 0; r < bang->model()->rowCount(); ++r) {
-            const QString lop = bang->model()->index(r, 3).data().toString();
-            QVERIFY2(lop == QStringLiteral("LH0003") || lop == QStringLiteral("LH0008"), qPrintable(lop));
+        w.openFeature(Feature::MyTeachingSchedule);
+        QTRY_VERIFY((table = visibleTable(w, QStringLiteral("listTable"))) != nullptr);
+        QVERIFY(table->model()->rowCount() > 0);
+        const int classColumn = columnByKey(table->model(), QStringLiteral("ClassId"));
+        QVERIFY(classColumn >= 0);
+        for (int r = 0; r < table->model()->rowCount(); ++r) {
+            const QString classCode = table->model()->index(r, classColumn).data().toString();
+            QVERIFY2(classCode == QStringLiteral("CL0003") || classCode == QStringLiteral("CL0008"),
+                     qPrintable(classCode));
         }
     }
 
-    void keToan_congNo_xuatPdf() {
-        QVERIFY(dangNhap(QStringLiteral("kt_minh"), m_matKhau));
+    void accountant_outstandingTuition_exportsPdf() {
+        QVERIFY(login(QStringLiteral("kt_minh"), m_password));
         MainWindow w(m_app->services());
         w.show();
-        QCOMPARE(menuHienThi(w), menuMongDoi(VaiTro::KeToan));
-        QVERIFY(moSanTrangDau(w, VaiTro::KeToan));
-        auto* kpiDoanhThu = timTheoVaiTro<QLabel>(&w, QStringLiteral("kpiDoanhThu"));
-        QVERIFY(kpiDoanhThu);
-        QVERIFY2(kpiDoanhThu->text().at(0).isDigit(), qPrintable(kpiDoanhThu->text()));   // vd "5.000.000 ₫"
+        QCOMPARE(visibleMenu(w), expectedMenu(Role::Accountant));
+        QVERIFY(opensFirstFeature(w, Role::Accountant));
+        auto* revenueKpi = findByTestId<QLabel>(&w, QStringLiteral("revenueKpi"));
+        QVERIFY(revenueKpi);
+        QVERIFY2(revenueKpi->text().at(0).isDigit(), qPrintable(revenueKpi->text())); // e.g. "5.000.000 ₫"
 
-        // Kế toán chỉ xem học viên: nút Thêm/Sửa/Xóa bị ẩn
-        w.moChucNang(ChucNang::HocVien);
-        QTRY_VERIFY(bangDangHien(w, QStringLiteral("bangHocVien")) != nullptr);
-        QVERIFY(w.findChild<QPushButton*>(QStringLiteral("nutThem"))->isHidden());
+        // Accountants can only view students: Add/Edit/Delete are hidden
+        w.openFeature(Feature::Students);
+        QTRY_VERIFY(visibleTable(w, QStringLiteral("studentTable")) != nullptr);
+        QVERIFY(w.findChild<QPushButton*>(QStringLiteral("addButton"))->isHidden());
 
-        w.moChucNang(ChucNang::CongNo);
-        QTableView* bang = nullptr;
-        QTRY_VERIFY((bang = bangDangHien(w, QStringLiteral("bangDanhSach"))) != nullptr);
-        QVERIFY(bang->model()->rowCount() > 0);
-        QLabel* tong = nullptr;
-        for (QLabel* l : w.findChildren<QLabel*>())
-            if (l->property("vaiTro") == QStringLiteral("dongTong") && l->isVisible())
-                tong = l;
-        QVERIFY(tong);
-        QVERIFY2(tong->text().contains(QStringLiteral("Tổng còn nợ")), qPrintable(tong->text()));
+        w.openFeature(Feature::OutstandingTuition);
+        QTableView* table = nullptr;
+        QTRY_VERIFY((table = visibleTable(w, QStringLiteral("listTable"))) != nullptr);
+        QVERIFY(table->model()->rowCount() > 0);
+        auto* totals = findVisibleByTestId<QLabel>(&w, QStringLiteral("totalsLine"));
+        QVERIFY(totals);
+        QVERIFY2(totals->text().contains(QStringLiteral("Tổng còn nợ")), qPrintable(totals->text()));
 
-        QTemporaryDir thuMuc;
-        const QString pdf = thuMuc.filePath(QStringLiteral("cong_no.pdf"));
-        QString loi;
-        QVERIFY2(TableExporter::xuatPdf(*bang->model(), QStringLiteral("Công nợ học phí"), QStringLiteral("Kế toán"),
-                                        pdf, &loi), qPrintable(loi));
+        QTemporaryDir folder;
+        const QString pdf = folder.filePath(QStringLiteral("outstanding.pdf"));
+        QString error;
+        QVERIFY2(TableExporter::exportPdf(*table->model(), QStringLiteral("Công nợ học phí"),
+                                          QStringLiteral("Kế toán"), pdf, &error),
+                 qPrintable(error));
         QVERIFY(QFileInfo(pdf).size() > 2000);
-        QVERIFY(TableExporter::xuatCsv(*bang->model(), thuMuc.filePath(QStringLiteral("cong_no.csv")), &loi));
+        QVERIFY(TableExporter::exportCsv(*table->model(), folder.filePath(QStringLiteral("outstanding.csv")),
+                                         &error));
     }
 
-    void doiMatKhau_nhapLaiSai_baoLoi() {
-        QVERIFY(dangNhap(QStringLiteral("gvu_ha"), m_matKhau));
-        ChangePasswordDialog dlg(m_app->auth());
-        dlg.show();
-        const auto o = dlg.findChildren<QLineEdit*>();
-        QCOMPARE(o.size(), 3);
-        QTest::keyClicks(o[0], m_matKhau);
-        QTest::keyClicks(o[1], QStringLiteral("MatKhauMoi@1"));
-        QTest::keyClicks(o[2], QStringLiteral("KhongKhop@2"));
-        dlg.findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Save)->click();
-        QVERIFY(dlg.isVisible());   // không đóng vì lỗi
-        bool coLoi = false;
-        for (QLabel* l : dlg.findChildren<QLabel*>(QStringLiteral("ErrorText")))
-            coLoi = coLoi || (!l->isHidden() && l->text().contains(QStringLiteral("không khớp")));
-        QVERIFY(coLoi);
+    void changePassword_mismatch_showsError() {
+        QVERIFY(login(QStringLiteral("gvu_ha"), m_password));
+        ChangePasswordDialog dialog(m_app->auth());
+        dialog.show();
+        const auto edits = dialog.findChildren<QLineEdit*>();
+        QCOMPARE(edits.size(), 3);
+        QTest::keyClicks(edits[0], m_password);
+        QTest::keyClicks(edits[1], QStringLiteral("NewPassword@1"));
+        QTest::keyClicks(edits[2], QStringLiteral("Different@2"));
+        dialog.findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Save)->click();
+        QVERIFY(dialog.isVisible()); // stays open because of the error
+        bool hasError = false;
+        for (QLabel* l : dialog.findChildren<QLabel*>(QStringLiteral("ErrorText")))
+            hasError = hasError || (!l->isHidden() && l->text().contains(QStringLiteral("không khớp")));
+        QVERIFY(hasError);
     }
 
-    // Sai mật khẩu hiện tại: SQL Server từ chối ALTER USER ... OLD_PASSWORD, thủ tục báo lỗi tiếng Việt
-    void doiMatKhau_saiMatKhauHienTai_baoLoi() {
-        QVERIFY(dangNhap(QStringLiteral("gvu_ha"), m_matKhau));
-        ChangePasswordDialog dlg(m_app->auth());
-        dlg.show();
-        const auto o = dlg.findChildren<QLineEdit*>();
-        QCOMPARE(o.size(), 3);
-        QTest::keyClicks(o[0], QStringLiteral("SaiMatKhau@1"));
-        QTest::keyClicks(o[1], QStringLiteral("MatKhauMoi@1"));
-        QTest::keyClicks(o[2], QStringLiteral("MatKhauMoi@1"));
-        dlg.findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Save)->click();
-        QVERIFY(dlg.isVisible());
-        QString loi;
-        for (QLabel* l : dlg.findChildren<QLabel*>(QStringLiteral("ErrorText")))
+    // Wrong current password: SQL Server rejects ALTER USER ... OLD_PASSWORD, the procedure reports it in
+    // English and the UI shows it in Vietnamese (DbMessages catalog)
+    void changePassword_wrongCurrentPassword_showsError() {
+        QVERIFY(login(QStringLiteral("gvu_ha"), m_password));
+        ChangePasswordDialog dialog(m_app->auth());
+        dialog.show();
+        const auto edits = dialog.findChildren<QLineEdit*>();
+        QCOMPARE(edits.size(), 3);
+        QTest::keyClicks(edits[0], QStringLiteral("WrongPassword@1"));
+        QTest::keyClicks(edits[1], QStringLiteral("NewPassword@1"));
+        QTest::keyClicks(edits[2], QStringLiteral("NewPassword@1"));
+        dialog.findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Save)->click();
+        QVERIFY(dialog.isVisible());
+        QString error;
+        for (QLabel* l : dialog.findChildren<QLabel*>(QStringLiteral("ErrorText")))
             if (!l->isHidden())
-                loi = l->text();
-        QCOMPARE(loi, QStringLiteral("Mật khẩu hiện tại không đúng."));
+                error = l->text();
+        QCOMPARE(error, QStringLiteral("Mật khẩu hiện tại không đúng."));
     }
 
-    // Mỗi vai trò mở lần lượt MỌI chức năng được phép: đúng tiêu đề, có dữ liệu, không báo lỗi.
-    // Bắt được cả lỗi phân quyền ở CSDL (thiếu GRANT trong 06_security.sql thì trang sẽ rỗng/báo lỗi).
-    void moiVaiTro_moMoiChucNang_coDuLieu_data() {
-        QTest::addColumn<QString>("taiKhoan");
-        QTest::addColumn<int>("vaiTro");
-        QTest::newRow("quan_ly") << QStringLiteral("ql_quan") << static_cast<int>(VaiTro::QuanLy);
-        QTest::newRow("giao_vu") << QStringLiteral("gvu_lan") << static_cast<int>(VaiTro::GiaoVu);
-        QTest::newRow("ke_toan") << QStringLiteral("kt_minh") << static_cast<int>(VaiTro::KeToan);
-        QTest::newRow("giao_vien") << QStringLiteral("gv_john") << static_cast<int>(VaiTro::GiaoVien);
+    // Every role opens EVERY allowed feature: right title, data present, no error, every column has a title.
+    // Also catches database permission bugs (a missing GRANT in 06_security.sql leaves the page empty).
+    void everyRole_opensEveryFeature_withData_data() {
+        QTest::addColumn<QString>("username");
+        QTest::addColumn<int>("role");
+        QTest::newRow("manager") << QStringLiteral("ql_quan") << static_cast<int>(Role::Manager);
+        QTest::newRow("academic_staff") << QStringLiteral("gvu_lan") << static_cast<int>(Role::AcademicStaff);
+        QTest::newRow("accountant") << QStringLiteral("kt_minh") << static_cast<int>(Role::Accountant);
+        QTest::newRow("teacher") << QStringLiteral("gv_john") << static_cast<int>(Role::Teacher);
     }
 
-    void moiVaiTro_moMoiChucNang_coDuLieu() {
-        QFETCH(QString, taiKhoan);
-        QFETCH(int, vaiTro);
-        const auto vt = static_cast<VaiTro>(vaiTro);
-        QVERIFY(dangNhap(taiKhoan, m_matKhau));
-        QCOMPARE(m_app->auth().vaiTro(), vt);
+    void everyRole_opensEveryFeature_withData() {
+        QFETCH(QString, username);
+        QFETCH(int, role);
+        const auto r = static_cast<Role>(role);
+        QVERIFY(login(username, m_password));
+        QCOMPARE(m_app->auth().role(), r);
 
-        BatHopThoai hopThoai;
+        MessageBoxCatcher boxes;
         MainWindow w(m_app->services());
         w.show();
-        QCOMPARE(menuHienThi(w), menuMongDoi(vt));
-        auto* tieuDe = w.findChild<QLabel*>(QStringLiteral("HeaderTitle"));
-        auto* noiDung = w.findChild<QStackedWidget*>(QStringLiteral("Content"));
-        QVERIFY(tieuDe && noiDung);
+        QCOMPARE(visibleMenu(w), expectedMenu(r));
+        auto* title = w.findChild<QLabel*>(QStringLiteral("HeaderTitle"));
+        auto* content = w.findChild<QStackedWidget*>(QStringLiteral("Content"));
+        QVERIFY(title && content);
 
-        for (ChucNang cn : PhanQuyen::chucNangDuocPhep(vt)) {
-            const QString ten = PhanQuyen::thongTin(cn).ten;
-            w.moChucNang(cn);
-            QCOMPARE(tieuDe->text(), ten);
-            QWidget* trang = noiDung->currentWidget();
-            QVERIFY(trang);
-            if (cn == ChucNang::TongQuan) {
-                for (QLabel* l : trang->findChildren<QLabel*>(QStringLiteral("ErrorText")))
-                    QVERIFY2(l->isHidden(), qPrintable(ten + QStringLiteral(": ") + l->text()));
+        for (Feature f : Permissions::allowedFeatures(r)) {
+            const QString name = Labels::feature(f).name;
+            w.openFeature(f);
+            QCOMPARE(title->text(), name);
+            QWidget* page = content->currentWidget();
+            QVERIFY(page);
+            if (f == Feature::Dashboard) {
+                for (QLabel* l : page->findChildren<QLabel*>(QStringLiteral("ErrorText")))
+                    QVERIFY2(l->isHidden(), qPrintable(name + QStringLiteral(": ") + l->text()));
                 continue;
             }
-            QTableView* bang = nullptr;
-            for (QTableView* t : trang->findChildren<QTableView*>())
+            QTableView* table = nullptr;
+            for (QTableView* t : page->findChildren<QTableView*>())
                 if (t->isVisible())
-                    bang = t;
-            QVERIFY2(bang, qPrintable(ten));
-            QTRY_VERIFY2(bang->model()->rowCount() > 0,
-                         qPrintable(QStringLiteral("%1 / %2: không có dữ liệu").arg(taiKhoan, ten)));
+                    table = t;
+            QVERIFY2(table, qPrintable(name));
+            QTRY_VERIFY2(table->model()->rowCount() > 0,
+                         qPrintable(QStringLiteral("%1 / %2: no data").arg(username, name)));
+            // Every column key returned by the database has an entry in the column catalog (Columns)
+            for (int c = 0; c < table->model()->columnCount(); ++c) {
+                const QString key =
+                    table->model()->headerData(c, Qt::Horizontal, Columns::KeyRole).toString();
+                QVERIFY2(Columns::contains(key),
+                         qPrintable(QStringLiteral("%1: column %2 has no title").arg(name, key)));
+            }
         }
-        QVERIFY2(hopThoai.noiDung().isEmpty(), qPrintable(hopThoai.noiDung().join(QStringLiteral(" | "))));
+        QVERIFY2(boxes.texts().isEmpty(), qPrintable(boxes.texts().join(QStringLiteral(" | "))));
     }
 
-    // Giáo vụ sửa địa chỉ học viên qua form, kiểm tra đã lưu xuống CSDL rồi trả lại như cũ
-    void giaoVu_suaHocVien_luuXuongCsdl() {
-        QVERIFY(dangNhap(QStringLiteral("gvu_lan"), m_matKhau));
+    // Academic staff edits a student's address in the form, checks it is saved, then restores it
+    void academicStaff_editStudent_savesToDatabase() {
+        QVERIFY(login(QStringLiteral("gvu_lan"), m_password));
         MainWindow w(m_app->services());
         w.show();
-        w.moChucNang(ChucNang::HocVien);
-        QTableView* bang = nullptr;
-        QTRY_VERIFY((bang = bangDangHien(w, QStringLiteral("bangHocVien"))) != nullptr);
-        auto* tuKhoa = w.findChild<QLineEdit*>(QStringLiteral("tuKhoa"));
-        goChu(tuKhoa, QStringLiteral("HV00010"));
-        QTRY_COMPARE_WITH_TIMEOUT(bang->model()->rowCount(), 1, 3000);
+        w.openFeature(Feature::Students);
+        QTableView* table = nullptr;
+        QTRY_VERIFY((table = visibleTable(w, QStringLiteral("studentTable"))) != nullptr);
+        auto* search = w.findChild<QLineEdit*>(QStringLiteral("searchEdit"));
+        typeText(search, QStringLiteral("ST00010"));
+        QTRY_COMPARE_WITH_TIMEOUT(table->model()->rowCount(), 1, 3000);
 
-        // Mở form Sửa, đổi ô Địa chỉ rồi bấm Lưu; trả về false nếu form không mở hoặc không đóng được
-        auto suaDiaChi = [&](const QString& diaChiMoi, QString* diaChiCu) {
-            bool daLuu = false;
+        // Opens the Edit form, changes the Address field and saves; false if the form did not open or close
+        auto editAddress = [&](const QString& newAddress, QString* oldAddress) {
+            bool saved = false;
             QTimer::singleShot(300, this, [&] {
-                auto* dlg = qobject_cast<QDialog*>(QApplication::activeModalWidget());
-                if (!dlg)
+                auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
+                if (!dialog)
                     return;
-                auto* o = dlg->findChild<QLineEdit*>(QStringLiteral("diaChiEdit"));
-                if (diaChiCu)
-                    *diaChiCu = o->text();
-                o->setText(diaChiMoi);
-                dlg->findChild<QDialogButtonBox*>(QStringLiteral("buttonBox"))->button(QDialogButtonBox::Save)->click();
-                daLuu = !dlg->isVisible();
-                if (dlg->isVisible())
-                    dlg->reject();   // tránh treo nếu lưu thất bại
+                auto* field = dialog->findChild<QLineEdit*>(QStringLiteral("addressEdit"));
+                if (oldAddress)
+                    *oldAddress = field->text();
+                field->setText(newAddress);
+                dialog->findChild<QDialogButtonBox*>(QStringLiteral("buttonBox"))
+                    ->button(QDialogButtonBox::Save)
+                    ->click();
+                saved = !dialog->isVisible();
+                if (dialog->isVisible())
+                    dialog->reject(); // never hang if saving failed
             });
-            bang->selectRow(0);
-            QTest::mouseClick(w.findChild<QPushButton*>(QStringLiteral("nutSua")), Qt::LeftButton);
-            return daLuu;
+            table->selectRow(0);
+            QTest::mouseClick(w.findChild<QPushButton*>(QStringLiteral("editButton")), Qt::LeftButton);
+            return saved;
         };
 
-        const QString diaChiMoi = QStringLiteral("Số 1 đường Kiểm Thử E2E, TP. Thủ Đức");
-        QString diaChiCu;
-        QVERIFY(suaDiaChi(diaChiMoi, &diaChiCu));
-        auto ct = m_app->services().hocVien.layChiTiet(QStringLiteral("HV00010"));
-        QVERIFY2(ct.ok(), qPrintable(ct.error()));
-        QCOMPARE(ct.value().diaChi, diaChiMoi);
+        const QString newAddress = QStringLiteral("Số 1 đường Kiểm Thử E2E, TP. Thủ Đức");
+        QString oldAddress;
+        QVERIFY(editAddress(newAddress, &oldAddress));
+        auto details = m_app->services().students.details(QStringLiteral("ST00010"));
+        QVERIFY2(details.ok(), qPrintable(details.error()));
+        QCOMPARE(details.value().address, newAddress);
 
-        QVERIFY(suaDiaChi(diaChiCu, nullptr));   // trả dữ liệu mẫu về như cũ
-        ct = m_app->services().hocVien.layChiTiet(QStringLiteral("HV00010"));
-        QVERIFY(ct.ok());
-        QCOMPARE(ct.value().diaChi, diaChiCu);
+        QVERIFY(editAddress(oldAddress, nullptr)); // restore the seed data
+        details = m_app->services().students.details(QStringLiteral("ST00010"));
+        QVERIFY(details.ok());
+        QCOMPARE(details.value().address, oldAddress);
     }
 
-    // Lọc nhanh danh sách công nợ: chỉ còn dòng khớp, dòng tổng tính lại theo các dòng đang hiển thị
-    void keToan_locNhanh_dongTongTinhLai() {
-        QVERIFY(dangNhap(QStringLiteral("kt_minh"), m_matKhau));
+    // Quick filter on outstanding tuition: only matching rows remain,
+    // the totals line follows the visible rows
+    void accountant_quickFilter_recomputesTotals() {
+        QVERIFY(login(QStringLiteral("kt_minh"), m_password));
         MainWindow w(m_app->services());
         w.show();
-        w.moChucNang(ChucNang::CongNo);
-        QTableView* bang = nullptr;
-        QTRY_VERIFY((bang = bangDangHien(w, QStringLiteral("bangDanhSach"))) != nullptr);
-        const int tatCa = bang->model()->rowCount();
-        QVERIFY(tatCa > 2);
+        w.openFeature(Feature::OutstandingTuition);
+        QTableView* table = nullptr;
+        QTRY_VERIFY((table = visibleTable(w, QStringLiteral("listTable"))) != nullptr);
+        const int allRows = table->model()->rowCount();
+        QVERIFY(allRows > 2);
 
-        QLineEdit* loc = nullptr;
-        for (QLineEdit* o : w.findChildren<QLineEdit*>(QStringLiteral("locNhanh")))
-            if (o->isVisible())
-                loc = o;
-        QVERIFY(loc);
-        goChu(loc, QStringLiteral("LH0008"));
-        QTRY_VERIFY(bang->model()->rowCount() > 0 && bang->model()->rowCount() < tatCa);
+        QLineEdit* filter = nullptr;
+        for (QLineEdit* e : w.findChildren<QLineEdit*>(QStringLiteral("quickFilter")))
+            if (e->isVisible())
+                filter = e;
+        QVERIFY(filter);
+        typeText(filter, QStringLiteral("CL0008"));
+        QTRY_VERIFY(table->model()->rowCount() > 0 && table->model()->rowCount() < allRows);
 
-        const auto* m = bang->model();
-        const int cotLop = cotTheoTieuDe(m, QStringLiteral("Mã lớp"));
-        const int cotNo = cotTheoTieuDe(m, QStringLiteral("Còn nợ"));
-        QVERIFY(cotLop >= 0 && cotNo >= 0);
-        qint64 tongNo = 0;
+        const auto* m = table->model();
+        const int classColumn = columnByKey(m, QStringLiteral("ClassId"));
+        const int outstandingColumn = columnByKey(m, QStringLiteral("Balance"));
+        QVERIFY(classColumn >= 0 && outstandingColumn >= 0);
+        qint64 outstanding = 0;
         for (int r = 0; r < m->rowCount(); ++r) {
-            QCOMPARE(m->index(r, cotLop).data().toString(), QStringLiteral("LH0008"));
-            tongNo += m->index(r, cotNo).data(Qt::UserRole).toLongLong();
+            QCOMPARE(m->index(r, classColumn).data().toString(), QStringLiteral("CL0008"));
+            outstanding += m->index(r, outstandingColumn).data(Qt::UserRole).toLongLong();
         }
-        QLabel* dongTong = nullptr;
-        for (QLabel* l : w.findChildren<QLabel*>())
-            if (l->isVisible() && l->property("vaiTro").toString() == QStringLiteral("dongTong"))
-                dongTong = l;
-        QVERIFY(dongTong);
-        QVERIFY2(dongTong->text().startsWith(QStringLiteral("%1 dòng").arg(m->rowCount())), qPrintable(dongTong->text()));
-        QVERIFY2(dongTong->text().contains(QStringLiteral("Tổng còn nợ: ") + Format::tien(tongNo)),
-                 qPrintable(dongTong->text()));
+        auto* totals = findVisibleByTestId<QLabel>(&w, QStringLiteral("totalsLine"));
+        QVERIFY(totals);
+        QVERIFY2(totals->text().startsWith(QStringLiteral("%1 dòng").arg(m->rowCount())),
+                 qPrintable(totals->text()));
+        QVERIFY2(totals->text().contains(QStringLiteral("Tổng còn nợ: ") + Format::money(outstanding)),
+                 qPrintable(totals->text()));
+    }
+
+    // The user picks English on the login screen: the choice is saved, the screens are rebuilt in English
+    // (menu, KPI cards, column titles, database values, totals) and switching back from the header works.
+    void language_switchToEnglish_rebuildsUi() {
+        {
+            LoginDialog dialog(m_app->auth(), m_app->language());
+            dialog.show();
+            auto* combo = dialog.findChild<QComboBox*>(QStringLiteral("languageCombo"));
+            QVERIFY(combo);
+            QCOMPARE(combo->currentData().toString(), QStringLiteral("vi"));
+            combo->setCurrentIndex(combo->findData(QStringLiteral("en")));
+            QCOMPARE(dialog.result(), static_cast<int>(LoginDialog::LanguageChanged));
+        }
+        QCOMPARE(I18n::current(), Language::English);
+        QCOMPARE(m_app->language().current(), Language::English);
+
+        QString error;
+        QVERIFY(!login(QStringLiteral("gvu_lan"), QStringLiteral("wrong-password-123"), &error));
+        QVERIFY2(error.startsWith(QStringLiteral("Wrong username or password")), qPrintable(error));
+        QVERIFY(login(QStringLiteral("gvu_lan"), m_password));
+
+        MainWindow w(m_app->services());
+        w.show();
+        QCOMPARE(visibleMenu(w).first(), QStringLiteral("Overview"));
+        QVERIFY(visibleMenu(w).contains(QStringLiteral("Students")));
+        auto* revenueKpi = findByTestId<QLabel>(&w, QStringLiteral("revenueKpi"));
+        QVERIFY(revenueKpi);
+        QCOMPARE(revenueKpi->text(), QStringLiteral("No permission"));
+
+        w.openFeature(Feature::Classes);
+        QTableView* table = nullptr;
+        QTRY_VERIFY((table = visibleTable(w, QStringLiteral("listTable"))) != nullptr);
+        const int statusColumn = columnByKey(table->model(), QStringLiteral("Status"));
+        QVERIFY(statusColumn >= 0);
+        QCOMPARE(table->model()->headerData(statusColumn, Qt::Horizontal).toString(),
+                 QStringLiteral("Status"));
+        const QModelIndex status = table->model()->index(0, statusColumn);
+        const QString stored = status.data(Qt::UserRole).toString(); // English value from the database
+        QCOMPARE(status.data().toString(), stored);                  // shown as it is in English
+        QCOMPARE(status.data().toString(), DbValues::label(stored));
+
+        w.openFeature(Feature::OutstandingTuition);
+        QTRY_VERIFY((table = visibleTable(w, QStringLiteral("listTable"))) != nullptr);
+        auto* totals = findVisibleByTestId<QLabel>(&w, QStringLiteral("totalsLine"));
+        QVERIFY(totals);
+        QVERIFY2(totals->text().startsWith(QStringLiteral("%1 rows").arg(table->model()->rowCount())),
+                 qPrintable(totals->text()));
+        QVERIFY2(totals->text().contains(QStringLiteral("Total outstanding: ")), qPrintable(totals->text()));
+        // Money detection, totals and highlighting rely on column keys, so they still work with English
+        // headers
+        const int outstandingColumn = columnByKey(table->model(), QStringLiteral("Balance"));
+        QVERIFY(outstandingColumn >= 0);
+        QCOMPARE(table->model()->headerData(outstandingColumn, Qt::Horizontal).toString(),
+                 QStringLiteral("Outstanding"));
+        const QModelIndex owed = table->model()->index(0, outstandingColumn);
+        // vw_OutstandingTuition only lists unpaid enrollments
+        QVERIFY(owed.data(Qt::UserRole).toDouble() > 0);
+        QVERIFY2(owed.data().toString().endsWith(QStringLiteral(" ₫")), qPrintable(owed.data().toString()));
+        QCOMPARE(owed.data(Qt::ForegroundRole).value<QColor>(), QColor(Theme::kNegativeText));
+
+        // Back to Vietnamese from the header: the window asks to be rebuilt
+        QSignalSpy rebuild(&w, &MainWindow::languageChangeRequested);
+        auto* combo = w.findChild<QComboBox*>(QStringLiteral("languageCombo"));
+        QVERIFY(combo);
+        combo->setCurrentIndex(combo->findData(QStringLiteral("vi")));
+        QCOMPARE(rebuild.count(), 1);
+        QCOMPARE(I18n::current(), Language::Vietnamese);
+        QCOMPARE(m_app->language().current(), Language::Vietnamese);
     }
 };
 

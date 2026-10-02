@@ -1,4 +1,4 @@
-# Composition root: nơi DUY NHẤT biết tất cả các tầng, khởi tạo và "nối dây" các đối tượng.
+# Composition root: the ONLY place that knows every layer; it creates and wires the objects.
 qt_add_executable(QLTTTA
     main.cpp
     AppContainer.h
@@ -21,7 +21,7 @@ set_target_properties(QLTTTA PROPERTIES
 if(WIN32)
     set(QLTTTA_RC ${PROJECT_SOURCE_DIR}/packaging/windows/app.rc)
     target_sources(QLTTTA PRIVATE ${QLTTTA_RC})
-    # windres/rc tìm app.ico theo thư mục include
+    # windres/rc finds app.ico through the include directories
     set_property(SOURCE ${QLTTTA_RC} APPEND PROPERTY INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/packaging/windows)
 endif()
 if(APPLE)

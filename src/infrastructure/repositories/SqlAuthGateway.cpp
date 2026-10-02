@@ -4,59 +4,61 @@
 
 using namespace SqlHelpers;
 
+namespace {
+const QString kActiveStatus = QStringLiteral("Active"); // ACCOUNT.Status of an active account
+} // namespace
+
 SqlAuthGateway::SqlAuthGateway(DatabaseManager& db) : m_db(db) {}
 
-Result<TaiKhoan> SqlAuthGateway::dangNhap(const CauHinhMayChu& cauHinh, const QString& tenDangNhap,
-                                          const QString& matKhau) {
-    const VoidResult ketNoi = m_db.moKetNoi(cauHinh, tenDangNhap, matKhau);
-    if (!ketNoi.ok())
-        return Result<TaiKhoan>::failure(ketNoi.error());
+Result<Account> SqlAuthGateway::login(const ServerConfig& config, const QString& username,
+                                      const QString& password) {
+    const VoidResult connected = m_db.open(config, username, password);
+    if (!connected.ok())
+        return Result<Account>::failure(connected.error());
 
-    QSqlQuery q = taoCauLenh(m_db.db());
-    if (!q.exec(QStringLiteral("EXEC dbo.usp_TaiKhoan_GhiNhanDangNhap"))) {
-        const QString loi = loiCua(q);
-        m_db.dongKetNoi();
-        return Result<TaiKhoan>::failure(loi);
+    QSqlQuery q = makeQuery(m_db.db());
+    if (!q.exec(QStringLiteral("EXEC dbo.usp_Account_RecordLogin"))) {
+        const QString error = errorOf(q);
+        m_db.close();
+        return Result<Account>::failure(error);
     }
 
-    TaiKhoan tk;
+    // Columns: Username, Role, EmployeeId, TeacherId, Status, FullName, BranchId
+    Account account;
     if (q.next()) {
-        tk.tenDangNhap = q.value(0).toString();
-        tk.vaiTro = vaiTroTuMa(q.value(1).toString());
-        tk.maNV = q.value(2).toString();
-        tk.maGV = q.value(3).toString();
-        tk.hoTen = q.value(5).toString();
-        tk.maCN = q.value(6).toString();
-        if (q.value(4).toString() != QStringLiteral("Hoạt động")) {
-            m_db.dongKetNoi();
-            return Result<TaiKhoan>::failure(QStringLiteral("Tài khoản đã bị khóa."));
-        }
-        return Result<TaiKhoan>::success(tk);
+        account.username = q.value(0).toString();
+        account.role = roleFromCode(q.value(1).toString());
+        account.employeeId = q.value(2).toString();
+        account.teacherId = q.value(3).toString();
+        account.fullName = q.value(5).toString();
+        account.branchId = q.value(6).toString();
+        account.active = q.value(4).toString() == kActiveStatus;
+        return Result<Account>::success(account);
     }
 
-    // Không có trong TAIKHOAN: cho phép chủ sở hữu CSDL (sa / db_owner) vào với quyền Quản lý
-    QSqlQuery q2 = taoCauLenh(m_db.db());
-    if (q2.exec(QStringLiteral("SELECT IS_MEMBER('db_owner'), ORIGINAL_LOGIN()")) && q2.next() &&
-        q2.value(0).toInt() == 1) {
-        tk.tenDangNhap = q2.value(1).toString();
-        tk.hoTen = tk.tenDangNhap + QStringLiteral(" (quản trị CSDL)");
-        tk.vaiTro = VaiTro::QuanLy;
-        return Result<TaiKhoan>::success(tk);
+    // Not in ACCOUNT: let the database owner (sa / db_owner) in with the Manager role
+    QSqlQuery owner = makeQuery(m_db.db());
+    if (owner.exec(QStringLiteral("SELECT IS_MEMBER('db_owner'), ORIGINAL_LOGIN()")) && owner.next() &&
+        owner.value(0).toInt() == 1) {
+        account.username = owner.value(1).toString();
+        account.fullName = account.username + tr(" (database administrator)");
+        account.role = Role::Manager;
+        return Result<Account>::success(account);
     }
-    tk.tenDangNhap = tenDangNhap;
-    return Result<TaiKhoan>::success(tk);   // VaiTro::KhongXacDinh => AuthService từ chối
+    account.username = username;
+    return Result<Account>::success(account); // Role::Unknown => rejected by AuthService
 }
 
-void SqlAuthGateway::dangXuat() {
-    m_db.dongKetNoi();
+void SqlAuthGateway::logout() {
+    m_db.close();
 }
 
-VoidResult SqlAuthGateway::doiMatKhau(const QString& matKhauCu, const QString& matKhauMoi) {
-    QSqlQuery q = taoCauLenh(m_db.db());
-    q.prepare(QStringLiteral("EXEC dbo.usp_TaiKhoan_DoiMatKhau @MatKhauCu = ?, @MatKhauMoi = ?"));
-    q.addBindValue(matKhauCu);
-    q.addBindValue(matKhauMoi);
+VoidResult SqlAuthGateway::changePassword(const QString& oldPassword, const QString& newPassword) {
+    QSqlQuery q = makeQuery(m_db.db());
+    q.prepare(QStringLiteral("EXEC dbo.usp_Account_ChangePassword @OldPassword = ?, @NewPassword = ?"));
+    q.addBindValue(oldPassword);
+    q.addBindValue(newPassword);
     if (!q.exec())
-        return VoidResult::failure(loiCua(q));
+        return VoidResult::failure(errorOf(q));
     return VoidResult::success();
 }

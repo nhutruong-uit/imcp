@@ -5,8 +5,9 @@
 #include <optional>
 #include <utility>
 
-// Kết quả của một thao tác: thành công (kèm giá trị) hoặc thất bại (kèm thông báo lỗi).
-// Dùng thay cho exception để luồng lỗi đi rõ ràng qua các tầng và dễ hiển thị lên giao diện.
+// Outcome of an operation: success (with a value) or failure (with a user-facing error message).
+// Used instead of exceptions so that errors flow explicitly through the layers and are easy to show
+// in the UI.
 template <typename T>
 class Result {
 public:
@@ -32,7 +33,7 @@ private:
     QString m_error;
 };
 
-// Phiên bản không trả giá trị (chỉ cần biết thành công hay thất bại)
+// Variant without a value (only success or failure matters)
 template <>
 class Result<void> {
 public:

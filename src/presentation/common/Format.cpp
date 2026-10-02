@@ -1,74 +1,105 @@
 #include "presentation/common/Format.h"
 
+#include "presentation/common/Columns.h"
+#include "presentation/common/DbValues.h"
+#include "presentation/common/Labels.h"
+
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QLocale>
-#include <QStringList>
-
+#include <QRegularExpression>
 #include <cmath>
 #include <cstdlib>
 
 namespace {
-const QLocale& viVN() {
-    static const QLocale l(QLocale::Vietnamese, QLocale::Vietnam);
-    return l;
-}
+// Provides tr() with translation context "Format" for the free functions of namespace Format
+struct FormatText {
+    Q_DECLARE_TR_FUNCTIONS(Format)
+};
 } // namespace
 
-QString Format::tien(qint64 soTien) {
-    return viVN().toString(soTien) + QStringLiteral(" ₫");
+QString Format::money(qint64 amount) {
+    return QLocale().toString(amount) + QStringLiteral(" ₫");
 }
 
-QString Format::tienRutGon(qint64 soTien) {
-    if (std::llabs(soTien) >= 1000000000LL)
-        return viVN().toString(soTien / 1e9, 'f', 1) + QStringLiteral(" tỷ");
-    if (std::llabs(soTien) >= 1000000LL)
-        return viVN().toString(soTien / 1e6, 'f', 1) + QStringLiteral(" tr");
-    return viVN().toString(soTien);
+QString Format::moneyShort(qint64 amount) {
+    const QLocale locale;
+    if (std::llabs(amount) >= 1000000000LL)
+        return FormatText::tr("%1B").arg(locale.toString(amount / 1e9, 'f', 1));
+    if (std::llabs(amount) >= 1000000LL)
+        return FormatText::tr("%1M").arg(locale.toString(amount / 1e6, 'f', 1));
+    return locale.toString(amount);
 }
 
-QString Format::ngay(const QDate& d) {
+QString Format::date(const QDate& d) {
     return d.isValid() ? d.toString(QStringLiteral("dd/MM/yyyy")) : QString();
 }
 
-bool Format::laCotTien(const QString& tieuDe) {
-    static const QStringList cot = {QStringLiteral("Học phí"),     QStringLiteral("Đã đóng"),
-                                    QStringLiteral("Còn nợ"),      QStringLiteral("Doanh thu"),
-                                    QStringLiteral("Đơn giá/giờ"), QStringLiteral("Thưởng"),
-                                    QStringLiteral("Khấu trừ"),    QStringLiteral("Tổng lương"),
-                                    QStringLiteral("Công nợ"),     QStringLiteral("Số tiền")};
-    return cot.contains(tieuDe);
+QString Format::month(int month) {
+    const QLocale locale;
+    // Vietnamese readers expect T1..T12 (the CLDR abbreviation "thg 1" is longer); other languages use the
+    // locale's short month name
+    if (locale.language() == QLocale::Vietnamese)
+        return QStringLiteral("T%1").arg(month);
+    return locale.standaloneMonthName(month, QLocale::ShortFormat);
 }
 
-bool Format::laCotCongDon(const QString& tieuDe) {
-    static const QStringList cot = {QStringLiteral("Đã đóng"), QStringLiteral("Còn nợ"), QStringLiteral("Doanh thu"),
-                                    QStringLiteral("Thưởng"), QStringLiteral("Khấu trừ"), QStringLiteral("Tổng lương"),
-                                    QStringLiteral("Công nợ"), QStringLiteral("Số tiền")};
-    return cot.contains(tieuDe);
+QString Format::weekday(int isoDay) {
+    const QLocale locale;
+    // Vietnamese timetables use T2..T7 and CN (the CLDR abbreviations "Th 2"... are longer)
+    if (locale.language() == QLocale::Vietnamese)
+        return isoDay == 7 ? QStringLiteral("CN") : QStringLiteral("T%1").arg(isoDay + 1);
+    return locale.dayName(isoDay, QLocale::ShortFormat);
 }
 
-QString Format::oBang(const QVariant& v, const QString& tieuDeCot) {
-    if (v.isNull() || !v.isValid())
+QString Format::schedule(const QString& stored) {
+    // The database writes the ISO day names in English (vw_ClassDetails.Schedule)
+    static const QStringList days = {QStringLiteral("Mon"), QStringLiteral("Tue"), QStringLiteral("Wed"),
+                                     QStringLiteral("Thu"), QStringLiteral("Fri"), QStringLiteral("Sat"),
+                                     QStringLiteral("Sun")};
+    static const QRegularExpression day(QStringLiteral("\\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\\b"));
+    QString result;
+    qsizetype from = 0;
+    for (auto it = day.globalMatch(stored); it.hasNext();) {
+        const QRegularExpressionMatch m = it.next();
+        result += stored.mid(from, m.capturedStart() - from);
+        result += weekday(static_cast<int>(days.indexOf(m.captured(1))) + 1);
+        from = m.capturedEnd();
+    }
+    return result + stored.mid(from);
+}
+
+QString Format::cell(const QVariant& value, const QString& columnKey) {
+    if (value.isNull() || !value.isValid())
         return QString();
-    switch (v.metaType().id()) {
+    switch (value.metaType().id()) {
     case QMetaType::QDate:
-        return ngay(v.toDate());
+        return date(value.toDate());
     case QMetaType::QDateTime:
-        return v.toDateTime().toString(QStringLiteral("dd/MM/yyyy HH:mm"));
+        return value.toDateTime().toString(QStringLiteral("dd/MM/yyyy HH:mm"));
     case QMetaType::Double:
     case QMetaType::Float: {
-        const double d = v.toDouble();
-        if (laCotTien(tieuDeCot))
-            return tien(static_cast<qint64>(std::llround(d)));
+        const double d = value.toDouble();
+        if (Columns::isMoney(columnKey))
+            return money(static_cast<qint64>(std::llround(d)));
         if (std::floor(d) == d)
-            return viVN().toString(static_cast<qint64>(d));
-        return viVN().toString(d, 'f', 2);
+            return QLocale().toString(static_cast<qint64>(d));
+        return QLocale().toString(d, 'f', 2);
     }
     case QMetaType::Int:
     case QMetaType::LongLong:
     case QMetaType::UInt:
     case QMetaType::ULongLong:
-        return laCotTien(tieuDeCot) ? tien(v.toLongLong()) : v.toString();
+        return Columns::isMoney(columnKey) ? money(value.toLongLong()) : value.toString();
     default:
-        return v.toString();
+        // Database enumerations (status, classification...) and codes are translated;
+        // free text (names, notes) is kept
+        if (Columns::isEnumerated(columnKey))
+            return DbValues::label(value.toString());
+        if (Columns::isRoleCode(columnKey))
+            return Labels::role(roleFromCode(value.toString()));
+        if (Columns::isSchedule(columnKey))
+            return schedule(value.toString());
+        return value.toString();
     }
 }

@@ -11,25 +11,25 @@
 
 namespace SqlHelpers {
 
-// Chuỗi rỗng => NULL kiểu NVARCHAR (ODBC cần biết kiểu dữ liệu của NULL)
-inline QVariant chuoiHoacNull(const QString& s) {
+// Empty string => NULL of type NVARCHAR (ODBC needs to know the type of a NULL parameter)
+inline QVariant stringOrNull(const QString& s) {
     return s.trimmed().isEmpty() ? QVariant(QMetaType::fromType<QString>()) : QVariant(s);
 }
 
-inline QVariant ngayHoacNull(const QDate& d) {
+inline QVariant dateOrNull(const QDate& d) {
     return d.isValid() ? QVariant(d) : QVariant(QMetaType::fromType<QDate>());
 }
 
-// Tạo câu lệnh đã cấu hình sẵn: số thập phân trả về dạng double, chỉ đọc tiến
-inline QSqlQuery taoCauLenh(const QSqlDatabase& db) {
+// Pre-configured query: decimals returned as double, forward-only reading
+inline QSqlQuery makeQuery(const QSqlDatabase& db) {
     QSqlQuery q(db);
     q.setForwardOnly(true);
     q.setNumericalPrecisionPolicy(QSql::LowPrecisionDouble);
     return q;
 }
 
-inline QString loiCua(const QSqlQuery& q) {
-    return SqlErrorMapper::thongBao(q.lastError());
+inline QString errorOf(const QSqlQuery& q) {
+    return SqlErrorMapper::message(q.lastError());
 }
 
 } // namespace SqlHelpers

@@ -1,4 +1,4 @@
-# Thứ tự = chiều phụ thuộc của Clean Architecture (tầng trong không biết tầng ngoài):
+# Order = dependency direction of the Clean Architecture (inner layers know nothing about outer ones):
 #   domain  <-  application  <-  infrastructure / presentation  <-  app (composition root)
 add_subdirectory(domain)
 add_subdirectory(application)

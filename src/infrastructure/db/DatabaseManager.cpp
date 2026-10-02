@@ -2,17 +2,16 @@
 
 #include "infrastructure/db/SqlErrorMapper.h"
 
-#include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
 #include <QSqlError>
 #include <QSqlQuery>
 
 namespace {
-const char* const kTenKetNoi = "qlttta";
+const char* const kConnectionName = "qlttta";
 
-// Giá trị trong chuỗi kết nối ODBC: bọc {} nếu có ký tự đặc biệt, '}' viết thành '}}'
-QString giaTriOdbc(const QString& v) {
+// Value inside an ODBC connection string: wrapped in {} when it has special characters, '}' written as '}}'
+QString odbcValue(const QString& v) {
     if (!v.contains(QLatin1Char(';')) && !v.contains(QLatin1Char('{')) && !v.contains(QLatin1Char('}')) &&
         !v.contains(QLatin1Char('=')) && v.trimmed() == v)
         return v;
@@ -21,133 +20,136 @@ QString giaTriOdbc(const QString& v) {
     return QLatin1Char('{') + s + QLatin1Char('}');
 }
 
-bool laLoiThieuDriver(const QSqlError& loi) {
-    const QString t = loi.databaseText() + QLatin1Char(' ') + loi.driverText() + QLatin1Char(' ') + loi.nativeErrorCode();
+bool isMissingDriverError(const QSqlError& error) {
+    const QString t = error.databaseText() + QLatin1Char(' ') + error.driverText() + QLatin1Char(' ') +
+                      error.nativeErrorCode();
     return t.contains(QLatin1String("IM002")) || t.contains(QLatin1String("Can't open lib")) ||
            t.contains(QLatin1String("Data source name not found"), Qt::CaseInsensitive) ||
            t.contains(QLatin1String("file not found"), Qt::CaseInsensitive);
 }
 
-// Máy chủ đã phản hồi nhưng từ chối đăng nhập => thử driver khác cũng vô ích
-bool laLoiXacThuc(const QSqlError& loi) {
-    const QString t = loi.databaseText() + QLatin1Char(' ') + loi.nativeErrorCode();
+// The server answered but rejected the login => trying another driver is pointless
+bool isAuthenticationError(const QSqlError& error) {
+    const QString t = error.databaseText() + QLatin1Char(' ') + error.nativeErrorCode();
     return t.contains(QLatin1String("18456")) || t.contains(QLatin1String("Login failed"), Qt::CaseInsensitive) ||
            t.contains(QLatin1String("Cannot open database"), Qt::CaseInsensitive);
 }
 } // namespace
 
 DatabaseManager::~DatabaseManager() {
-    dongKetNoi();
+    close();
 }
 
-QStringList DatabaseManager::danhSachDriver() {
+QStringList DatabaseManager::candidateDrivers() {
     QStringList drivers;
-    const QString tuyChinh = qEnvironmentVariable("QLTTTA_ODBC_DRIVER");
-    if (!tuyChinh.isEmpty())
-        drivers << tuyChinh;
+    const QString custom = qEnvironmentVariable("QLTTTA_ODBC_DRIVER");
+    if (!custom.isEmpty())
+        drivers << custom;
 #if defined(Q_OS_MACOS)
-    // Bản .dmg đóng gói kèm FreeTDS (mã nguồn mở, LGPL) cùng unixODBC riêng => ưu tiên dùng trước,
-    // tránh nạp lẫn driver Microsoft (vốn liên kết với unixODBC của Homebrew) vào cùng tiến trình.
-    const QString kemTheo = QDir(QCoreApplication::applicationDirPath())
+    // The .dmg bundles FreeTDS (open source, LGPL) with its own unixODBC => try it first, so the Microsoft
+    // driver (linked against Homebrew's unixODBC) is never loaded into the same process.
+    const QString bundled = QDir(QCoreApplication::applicationDirPath())
                                 .absoluteFilePath(QStringLiteral("../Frameworks/libtdsodbc.so"));
-    if (QFileInfo::exists(kemTheo))
-        drivers << QFileInfo(kemTheo).canonicalFilePath();
+    if (QFileInfo::exists(bundled))
+        drivers << QFileInfo(bundled).canonicalFilePath();
 #endif
     drivers << QStringLiteral("ODBC Driver 18 for SQL Server") << QStringLiteral("ODBC Driver 17 for SQL Server");
 #if defined(Q_OS_WIN)
-    drivers << QStringLiteral("SQL Server");   // driver cũ, luôn có sẵn trên Windows
+    drivers << QStringLiteral("SQL Server"); // legacy driver, always present on Windows
 #elif defined(Q_OS_MACOS)
-    for (const QString& p : {QStringLiteral("/opt/homebrew/opt/freetds/lib/libtdsodbc.so"),
-                             QStringLiteral("/usr/local/opt/freetds/lib/libtdsodbc.so")}) {
-        if (QFileInfo::exists(p))
-            drivers << QFileInfo(p).canonicalFilePath();
+    for (const QString& path : {QStringLiteral("/opt/homebrew/opt/freetds/lib/libtdsodbc.so"),
+                                QStringLiteral("/usr/local/opt/freetds/lib/libtdsodbc.so")}) {
+        if (QFileInfo::exists(path))
+            drivers << QFileInfo(path).canonicalFilePath();
     }
 #endif
     drivers.removeDuplicates();
     return drivers;
 }
 
-QString DatabaseManager::chuoiKetNoi(const QString& driver, const CauHinhMayChu& cauHinh,
-                                     const QString& tenDangNhap, const QString& matKhau) {
+QString DatabaseManager::connectionString(const QString& driver, const ServerConfig& config,
+                                          const QString& username, const QString& password) {
     if (driver.contains(QLatin1String("tdsodbc"))) {
-        // FreeTDS: máy chủ và cổng tách riêng, giao thức TDS 7.4 (SQL Server 2012+), mã hóa bắt buộc
-        QString host = cauHinh.mayChu.trimmed();
+        // FreeTDS: separate server and port, TDS protocol 7.4 (SQL Server 2012+), encryption required
+        QString host = config.host.trimmed();
         QString port = QStringLiteral("1433");
-        const int phay = host.indexOf(QLatin1Char(','));
-        if (phay > 0) {
-            port = host.mid(phay + 1).trimmed();
-            host = host.left(phay).trimmed();
+        const int comma = host.indexOf(QLatin1Char(','));
+        if (comma > 0) {
+            port = host.mid(comma + 1).trimmed();
+            host = host.left(comma).trimmed();
         }
         QString s = QStringLiteral("DRIVER={%1};SERVER=%2;DATABASE=%3;UID=%4;PWD=%5;"
                                    "TDS_Version=7.4;ClientCharset=UTF-8;Encryption=require;APP=QLTTTA;")
-                        .arg(driver, giaTriOdbc(host), giaTriOdbc(cauHinh.csdl.trimmed()), giaTriOdbc(tenDangNhap),
-                             giaTriOdbc(matKhau));
+                        .arg(driver, odbcValue(host), odbcValue(config.database.trimmed()),
+                             odbcValue(username), odbcValue(password));
         if (!host.contains(QLatin1Char('\\')))
             s += QStringLiteral("PORT=%1;").arg(port);
         return s;
     }
 
     QString s = QStringLiteral("DRIVER={%1};SERVER=%2;DATABASE=%3;UID=%4;PWD=%5;")
-                    .arg(driver, giaTriOdbc(cauHinh.mayChu.trimmed()), giaTriOdbc(cauHinh.csdl.trimmed()),
-                         giaTriOdbc(tenDangNhap), giaTriOdbc(matKhau));
+                    .arg(driver, odbcValue(config.host.trimmed()), odbcValue(config.database.trimmed()),
+                         odbcValue(username), odbcValue(password));
     if (driver != QLatin1String("SQL Server")) {
         s += QStringLiteral("Encrypt=yes;TrustServerCertificate=%1;")
-                 .arg(cauHinh.tinCayChungChi ? QStringLiteral("yes") : QStringLiteral("no"));
+                 .arg(config.trustServerCertificate ? QStringLiteral("yes") : QStringLiteral("no"));
     }
     s += QStringLiteral("APP=QLTTTA;");
     return s;
 }
 
-VoidResult DatabaseManager::moKetNoi(const CauHinhMayChu& cauHinh, const QString& tenDangNhap,
-                                     const QString& matKhau) {
-    dongKetNoi();
+VoidResult DatabaseManager::open(const ServerConfig& config, const QString& username,
+                                 const QString& password) {
+    close();
     if (!QSqlDatabase::isDriverAvailable(QStringLiteral("QODBC")))
-        return VoidResult::failure(QStringLiteral("Thiếu plugin Qt ODBC (qsqlodbc). Hãy cài lại ứng dụng."));
+        return VoidResult::failure(
+            tr("The Qt ODBC plugin (qsqlodbc) is missing. Please reinstall the application."));
 
-    QSqlError loiCuoi;          // lỗi của driver thử sau cùng
-    QSqlError loiCoYNghia;      // lỗi đầu tiên không phải "thiếu driver" (đã tới được driver/máy chủ)
-    for (const QString& driver : danhSachDriver()) {
+    QSqlError lastError;       // error of the last driver tried
+    QSqlError meaningfulError; // first error that is not "driver missing" (the driver/server was reached)
+    for (const QString& driver : candidateDrivers()) {
         {
-            QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QODBC"), QLatin1String(kTenKetNoi));
-            db.setDatabaseName(chuoiKetNoi(driver, cauHinh, tenDangNhap, matKhau));
+            QSqlDatabase db =
+                QSqlDatabase::addDatabase(QStringLiteral("QODBC"), QLatin1String(kConnectionName));
+            db.setDatabaseName(connectionString(driver, config, username, password));
             db.setConnectOptions(QStringLiteral("SQL_ATTR_LOGIN_TIMEOUT=8"));
             if (db.open()) {
                 m_driver = driver;
                 QSqlQuery(db).exec(QStringLiteral("SET DATEFORMAT ymd; SET LANGUAGE us_english;"));
                 return VoidResult::success();
             }
-            loiCuoi = db.lastError();
+            lastError = db.lastError();
         }
-        QSqlDatabase::removeDatabase(QLatin1String(kTenKetNoi));
-        if (laLoiXacThuc(loiCuoi))
-            return VoidResult::failure(SqlErrorMapper::thongBao(loiCuoi));   // sai mật khẩu => dừng
-        if (!laLoiThieuDriver(loiCuoi) && !loiCoYNghia.isValid())
-            loiCoYNghia = loiCuoi;   // lỗi khác (mạng, TLS...) => vẫn thử driver tiếp theo
+        QSqlDatabase::removeDatabase(QLatin1String(kConnectionName));
+        if (isAuthenticationError(lastError))
+            return VoidResult::failure(SqlErrorMapper::message(lastError)); // wrong password => stop
+        if (!isMissingDriverError(lastError) && !meaningfulError.isValid())
+            meaningfulError = lastError; // other errors (network, TLS...) => still try the next driver
     }
 
-    if (loiCoYNghia.isValid())
-        return VoidResult::failure(SqlErrorMapper::thongBao(loiCoYNghia));
-    return VoidResult::failure(QStringLiteral(
-        "Không tìm thấy ODBC Driver cho SQL Server trên máy.\n"
-        "Hãy cài \"Microsoft ODBC Driver 18 for SQL Server\" rồi thử lại."));
+    if (meaningfulError.isValid())
+        return VoidResult::failure(SqlErrorMapper::message(meaningfulError));
+    return VoidResult::failure(
+        tr("No ODBC driver for SQL Server was found on this computer.\n"
+           "Please install \"Microsoft ODBC Driver 18 for SQL Server\" and try again."));
 }
 
-void DatabaseManager::dongKetNoi() {
-    if (QSqlDatabase::contains(QLatin1String(kTenKetNoi))) {
+void DatabaseManager::close() {
+    if (QSqlDatabase::contains(QLatin1String(kConnectionName))) {
         {
-            QSqlDatabase db = QSqlDatabase::database(QLatin1String(kTenKetNoi), false);
+            QSqlDatabase db = QSqlDatabase::database(QLatin1String(kConnectionName), false);
             db.close();
         }
-        QSqlDatabase::removeDatabase(QLatin1String(kTenKetNoi));
+        QSqlDatabase::removeDatabase(QLatin1String(kConnectionName));
     }
     m_driver.clear();
 }
 
-bool DatabaseManager::daKetNoi() const {
-    return QSqlDatabase::contains(QLatin1String(kTenKetNoi)) &&
-           QSqlDatabase::database(QLatin1String(kTenKetNoi), false).isOpen();
+bool DatabaseManager::isOpen() const {
+    return QSqlDatabase::contains(QLatin1String(kConnectionName)) &&
+           QSqlDatabase::database(QLatin1String(kConnectionName), false).isOpen();
 }
 
 QSqlDatabase DatabaseManager::db() const {
-    return QSqlDatabase::database(QLatin1String(kTenKetNoi), false);
+    return QSqlDatabase::database(QLatin1String(kConnectionName), false);
 }

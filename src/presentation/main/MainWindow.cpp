@@ -1,13 +1,16 @@
 #include "presentation/main/MainWindow.h"
 
+#include "presentation/common/I18n.h"
 #include "presentation/common/Icons.h"
+#include "presentation/common/Labels.h"
 #include "presentation/common/UiHelpers.h"
 #include "presentation/dashboard/DashboardPage.h"
-#include "presentation/danhsach/DanhSachPage.h"
-#include "presentation/hocvien/HocVienPage.h"
+#include "presentation/lists/ListPage.h"
 #include "presentation/main/ChangePasswordDialog.h"
+#include "presentation/students/StudentPage.h"
 
 #include <QApplication>
+#include <QComboBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
@@ -16,36 +19,36 @@
 #include <QVBoxLayout>
 
 MainWindow::MainWindow(AppServices services, QWidget* parent) : QMainWindow(parent), m_services(services) {
-    setWindowTitle(QStringLiteral("Quản lý Trung tâm Tiếng Anh"));
+    setWindowTitle(tr("English Center Management"));
     resize(1280, 780);
     setMinimumSize(1024, 640);
 
-    m_chucNang = PhanQuyen::chucNangDuocPhep(m_services.auth.vaiTro());
+    m_features = Permissions::allowedFeatures(m_services.auth.role());
 
-    auto* trungTam = new QWidget(this);
-    auto* h = new QHBoxLayout(trungTam);
+    auto* central = new QWidget(this);
+    auto* h = new QHBoxLayout(central);
     h->setContentsMargins(0, 0, 0, 0);
     h->setSpacing(0);
-    h->addWidget(taoSidebar());
+    h->addWidget(buildSidebar());
 
-    auto* phai = new QWidget(trungTam);
-    auto* v = new QVBoxLayout(phai);
+    auto* right = new QWidget(central);
+    auto* v = new QVBoxLayout(right);
     v->setContentsMargins(0, 0, 0, 0);
     v->setSpacing(0);
-    v->addWidget(taoHeader());
-    m_noiDung = new QStackedWidget(phai);
-    m_noiDung->setObjectName(QStringLiteral("Content"));
-    v->addWidget(m_noiDung, 1);
-    h->addWidget(phai, 1);
-    setCentralWidget(trungTam);
+    v->addWidget(buildHeader());
+    m_content = new QStackedWidget(right);
+    m_content->setObjectName(QStringLiteral("Content"));
+    v->addWidget(m_content, 1);
+    h->addWidget(right, 1);
+    setCentralWidget(central);
 
-    connect(m_menu, &QListWidget::currentRowChanged, this, &MainWindow::chonChucNang);
-    // Dòng 0 của menu là tiêu đề nhóm ("CHUNG"), nên mở chức năng đầu tiên thay vì chọn dòng 0
-    if (!m_chucNang.isEmpty())
-        moChucNang(m_chucNang.first());
+    connect(m_menu, &QListWidget::currentRowChanged, this, &MainWindow::onMenuRowChanged);
+    // Row 0 of the menu is a group header ("GENERAL"), so open the first feature instead of selecting row 0
+    if (!m_features.isEmpty())
+        openFeature(m_features.first());
 }
 
-QWidget* MainWindow::taoSidebar() {
+QWidget* MainWindow::buildSidebar() {
     auto* sidebar = new QFrame(this);
     sidebar->setObjectName(QStringLiteral("Sidebar"));
     sidebar->setFixedWidth(240);
@@ -58,115 +61,133 @@ QWidget* MainWindow::taoSidebar() {
     bh->setContentsMargins(20, 0, 20, 12);
     auto* logo = new QLabel(brand);
     logo->setPixmap(Icons::pixmap(QStringLiteral("logo"), QStringLiteral("#FFFFFF"), 30));
-    auto* ten = new QLabel(QStringLiteral("English Center"), brand);
-    ten->setObjectName(QStringLiteral("SidebarBrand"));
+    auto* name = new QLabel(QStringLiteral("English Center"), brand); // product name, not translated
+    name->setObjectName(QStringLiteral("SidebarBrand"));
     bh->addWidget(logo);
-    bh->addWidget(ten, 1);
+    bh->addWidget(name, 1);
     v->addWidget(brand);
 
     m_menu = new QListWidget(sidebar);
     m_menu->setObjectName(QStringLiteral("NavList"));
     m_menu->setIconSize(QSize(18, 18));
     m_menu->setFocusPolicy(Qt::NoFocus);
-    QString nhomTruoc;
-    for (ChucNang cn : m_chucNang) {
-        const ThongTinChucNang tt = PhanQuyen::thongTin(cn);
-        if (tt.nhom != nhomTruoc) {
-            auto* tieuDeNhom = new QListWidgetItem(tt.nhom.toUpper(), m_menu);
-            tieuDeNhom->setFlags(Qt::NoItemFlags);
-            tieuDeNhom->setData(Qt::UserRole, -1);
-            tieuDeNhom->setSizeHint(QSize(0, 30));
-            QFont f = tieuDeNhom->font();
-            f.setPointSizeF(f.pointSizeF() * 0.8);
-            f.setBold(true);
-            tieuDeNhom->setFont(f);
-            nhomTruoc = tt.nhom;
+    QString previousGroup;
+    for (Feature f : m_features) {
+        const FeatureInfo info = Labels::feature(f);
+        if (info.group != previousGroup) {
+            auto* groupHeader = new QListWidgetItem(info.group.toUpper(), m_menu);
+            groupHeader->setFlags(Qt::NoItemFlags);
+            groupHeader->setData(Qt::UserRole, -1);
+            groupHeader->setSizeHint(QSize(0, 30));
+            QFont font = groupHeader->font();
+            font.setPointSizeF(font.pointSizeF() * 0.8);
+            font.setBold(true);
+            groupHeader->setFont(font);
+            previousGroup = info.group;
         }
-        auto* item = new QListWidgetItem(Icons::get(tt.icon, QStringLiteral("#E2E8F0"), 18), tt.ten, m_menu);
-        item->setData(Qt::UserRole, static_cast<int>(cn));
+        auto* item =
+            new QListWidgetItem(Icons::get(info.icon, QStringLiteral("#E2E8F0"), 18), info.name, m_menu);
+        item->setData(Qt::UserRole, static_cast<int>(f));
         item->setSizeHint(QSize(0, 40));
     }
     v->addWidget(m_menu, 1);
 
-    auto* nguoiDung = new QLabel(QStringLiteral("%1\n%2")
-                                     .arg(m_services.auth.taiKhoan().hoTen,
-                                          tenVaiTro(m_services.auth.vaiTro())),
-                                 sidebar);
-    nguoiDung->setObjectName(QStringLiteral("SidebarUser"));
-    v->addWidget(nguoiDung);
+    auto* user = new QLabel(QStringLiteral("%1\n%2").arg(m_services.auth.account().fullName,
+                                                         Labels::role(m_services.auth.role())),
+                            sidebar);
+    user->setObjectName(QStringLiteral("SidebarUser"));
+    v->addWidget(user);
     return sidebar;
 }
 
-QWidget* MainWindow::taoHeader() {
+QWidget* MainWindow::buildHeader() {
     auto* header = new QFrame(this);
     header->setObjectName(QStringLiteral("Header"));
     header->setFixedHeight(60);
     auto* h = new QHBoxLayout(header);
     h->setContentsMargins(24, 0, 16, 0);
 
-    m_tieuDe = new QLabel(header);
-    m_tieuDe->setObjectName(QStringLiteral("HeaderTitle"));
-    h->addWidget(m_tieuDe, 1);
+    m_title = new QLabel(header);
+    m_title->setObjectName(QStringLiteral("HeaderTitle"));
+    h->addWidget(m_title, 1);
 
-    auto* vaiTro = new QLabel(tenVaiTro(m_services.auth.vaiTro()), header);
-    vaiTro->setObjectName(QStringLiteral("RoleBadge"));
-    vaiTro->setFixedHeight(26);
-    h->addWidget(vaiTro, 0, Qt::AlignVCenter);
+    auto* role = new QLabel(Labels::role(m_services.auth.role()), header);
+    role->setObjectName(QStringLiteral("RoleBadge"));
+    role->setFixedHeight(26);
+    h->addWidget(role, 0, Qt::AlignVCenter);
 
-    auto* nutMatKhau = UiHelpers::nutPhu(QStringLiteral("Đổi mật khẩu"), QStringLiteral("key"), header);
-    auto* nutThoat = UiHelpers::nutPhu(QStringLiteral("Đăng xuất"), QStringLiteral("logout"), header);
-    h->addWidget(nutMatKhau);
-    h->addWidget(nutThoat);
+    m_languageCombo = UiHelpers::languageSelector(I18n::current(), header);
+    auto* passwordButton = UiHelpers::secondaryButton(tr("Change password"), QStringLiteral("key"), header);
+    auto* logoutButton = UiHelpers::secondaryButton(tr("Log out"), QStringLiteral("logout"), header);
+    h->addWidget(m_languageCombo);
+    h->addWidget(passwordButton);
+    h->addWidget(logoutButton);
 
-    connect(nutMatKhau, &QPushButton::clicked, this, &MainWindow::doiMatKhau);
-    connect(nutThoat, &QPushButton::clicked, this, [this] {
-        if (UiHelpers::xacNhan(this, QStringLiteral("Bạn muốn đăng xuất?")))
-            emit yeuCauDangXuat();
+    connect(m_languageCombo, &QComboBox::currentIndexChanged, this, &MainWindow::changeLanguage);
+    connect(passwordButton, &QPushButton::clicked, this, &MainWindow::changePassword);
+    connect(logoutButton, &QPushButton::clicked, this, [this] {
+        if (UiHelpers::confirm(this, tr("Do you want to log out?")))
+            emit logoutRequested();
     });
     return header;
 }
 
-QWidget* MainWindow::trangCho(ChucNang chucNang) {
-    const int khoa = static_cast<int>(chucNang);
-    if (QWidget* daCo = m_trang.value(khoa, nullptr))
-        return daCo;
+QWidget* MainWindow::pageFor(Feature feature) {
+    const int key = static_cast<int>(feature);
+    if (QWidget* existing = m_pages.value(key, nullptr))
+        return existing;
 
-    QWidget* trang = nullptr;
-    switch (chucNang) {
-    case ChucNang::TongQuan:
-        trang = new DashboardPage(m_services, m_noiDung);
+    QWidget* page = nullptr;
+    switch (feature) {
+    case Feature::Dashboard:
+        page = new DashboardPage(m_services, m_content);
         break;
-    case ChucNang::HocVien:
-        trang = new HocVienPage(m_services, m_noiDung);
+    case Feature::Students:
+        page = new StudentPage(m_services, m_content);
         break;
     default:
-        trang = new DanhSachPage(m_services, chucNang, m_noiDung);
+        page = new ListPage(m_services, feature, m_content); // every read-only lookup list
         break;
     }
-    m_noiDung->addWidget(trang);
-    m_trang.insert(khoa, trang);
-    return trang;
+    m_content->addWidget(page);
+    m_pages.insert(key, page);
+    return page;
 }
 
-void MainWindow::chonChucNang(int dong) {
-    QListWidgetItem* item = m_menu->item(dong);
+void MainWindow::onMenuRowChanged(int row) {
+    QListWidgetItem* item = m_menu->item(row);
     if (!item || item->data(Qt::UserRole).toInt() < 0)
         return;
-    const auto cn = static_cast<ChucNang>(item->data(Qt::UserRole).toInt());
-    m_tieuDe->setText(PhanQuyen::thongTin(cn).ten);
-    m_noiDung->setCurrentWidget(trangCho(cn));
+    const auto feature = static_cast<Feature>(item->data(Qt::UserRole).toInt());
+    m_title->setText(Labels::feature(feature).name);
+    m_content->setCurrentWidget(pageFor(feature));
 }
 
-void MainWindow::moChucNang(ChucNang chucNang) {
+void MainWindow::openFeature(Feature feature) {
     for (int i = 0; i < m_menu->count(); ++i) {
-        if (m_menu->item(i)->data(Qt::UserRole).toInt() == static_cast<int>(chucNang)) {
+        if (m_menu->item(i)->data(Qt::UserRole).toInt() == static_cast<int>(feature)) {
             m_menu->setCurrentRow(i);
             return;
         }
     }
 }
 
-void MainWindow::doiMatKhau() {
-    ChangePasswordDialog dlg(m_services.auth, this);
-    dlg.exec();
+std::optional<Feature> MainWindow::currentFeature() const {
+    const QListWidgetItem* item = m_menu->currentItem();
+    if (!item || item->data(Qt::UserRole).toInt() < 0)
+        return std::nullopt;
+    return static_cast<Feature>(item->data(Qt::UserRole).toInt());
+}
+
+void MainWindow::changePassword() {
+    ChangePasswordDialog dialog(m_services.auth, this);
+    dialog.exec();
+}
+
+void MainWindow::changeLanguage() {
+    const Language selected = languageFromCode(m_languageCombo->currentData().toString());
+    if (selected == I18n::current())
+        return;
+    I18n::switchTo(m_services.language, selected);
+    emit languageChangeRequested();
 }

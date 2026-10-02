@@ -7,25 +7,25 @@
 class QLabel;
 class RevenueChart;
 
-// Trang Tổng quan: các chỉ số chính + biểu đồ doanh thu năm hiện tại
+// Overview page: key figures + revenue chart of the current year
 class DashboardPage : public QWidget {
     Q_OBJECT
 public:
     explicit DashboardPage(AppServices services, QWidget* parent = nullptr);
 
 public slots:
-    void taiLai();
+    void reload();
 
 private:
-    QWidget* taoThe(const QString& tieuDe, const QString& icon, QLabel** giaTri);
+    QWidget* buildCard(const QString& title, const QString& icon, QLabel** value);
 
     AppServices m_services;
-    QLabel* m_hocVien = nullptr;
-    QLabel* m_lopDangHoc = nullptr;
-    QLabel* m_lopTuyenSinh = nullptr;
-    QLabel* m_doanhThu = nullptr;
-    QLabel* m_congNo = nullptr;
-    QLabel* m_buoiHoc = nullptr;
-    QLabel* m_loi = nullptr;
-    RevenueChart* m_bieuDo = nullptr;
+    QLabel* m_activeStudents = nullptr;
+    QLabel* m_activeClasses = nullptr;
+    QLabel* m_enrollingClasses = nullptr;
+    QLabel* m_revenue = nullptr;
+    QLabel* m_outstanding = nullptr;
+    QLabel* m_sessionsToday = nullptr;
+    QLabel* m_error = nullptr;
+    RevenueChart* m_chart = nullptr;
 };

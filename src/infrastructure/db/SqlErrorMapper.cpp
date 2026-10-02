@@ -1,81 +1,101 @@
 #include "infrastructure/db/SqlErrorMapper.h"
 
+#include "infrastructure/db/DbMessages.h"
+
 #include <QHash>
 #include <QRegularExpression>
 #include <QStringList>
 
-QString SqlErrorMapper::lamSachThongDiep(const QString& thongDiepGoc) {
-    // Một lỗi có thể gồm nhiều bản ghi chẩn đoán; chỉ lấy bản ghi đầu tiên có nội dung
-    static const QRegularExpression tienTo(QStringLiteral("^(\\s*\\[[^\\]]*\\])+\\s*"));
-    static const QRegularExpression maQodbc(QStringLiteral("\\s*QODBC[^:]*:.*$"));
-    // QODBC (Qt 6) nối SQLSTATE vào cuối thông điệp: "Mật khẩu ... không đúng., 37000"
-    static const QRegularExpression duoiSqlState(QStringLiteral("\\s*,\\s*[0-9A-Z]{5}(;[0-9A-Z]{5})*\\s*$"));
-    const QStringList dong = thongDiepGoc.split(QRegularExpression(QStringLiteral("[\\r\\n]+")),
-                                                Qt::SkipEmptyParts);
-    for (QString d : dong) {
-        d.remove(tienTo);
-        d.remove(maQodbc);
-        d.remove(duoiSqlState);
-        d = d.trimmed();
-        if (!d.isEmpty() && !d.startsWith(QLatin1String("The statement has been terminated")))
-            return d;
+QString SqlErrorMapper::cleanMessage(const QString& rawMessage) {
+    // One error may hold several diagnostic records; keep the first one that has content
+    static const QRegularExpression prefix(QStringLiteral("^(\\s*\\[[^\\]]*\\])+\\s*"));
+    static const QRegularExpression qodbcSuffix(QStringLiteral("\\s*QODBC[^:]*:.*$"));
+    // QODBC (Qt 6) appends the SQLSTATE to the message: "The current password is incorrect., 37000"
+    static const QRegularExpression sqlStateSuffix(
+        QStringLiteral("\\s*,\\s*[0-9A-Z]{5}(;[0-9A-Z]{5})*\\s*$"));
+    const QStringList lines =
+        rawMessage.split(QRegularExpression(QStringLiteral("[\\r\\n]+")), Qt::SkipEmptyParts);
+    for (QString line : lines) {
+        line.remove(prefix);
+        line.remove(qodbcSuffix);
+        line.remove(sqlStateSuffix);
+        line = line.trimmed();
+        if (!line.isEmpty() && !line.startsWith(QLatin1String("The statement has been terminated")))
+            return line;
     }
-    return thongDiepGoc.trimmed();
+    return rawMessage.trimmed();
 }
 
-QString SqlErrorMapper::thongBaoRangBuoc(const QString& tenRangBuoc) {
-    static const QHash<QString, QString> bang = {
-        {QStringLiteral("CK_HOCVIEN_PhuHuynh"), QStringLiteral("Học viên dưới 18 tuổi phải có thông tin phụ huynh.")},
-        {QStringLiteral("CK_HOCVIEN_LienLac"), QStringLiteral("Cần ít nhất một số điện thoại liên lạc.")},
-        {QStringLiteral("CK_HOCVIEN_SoDienThoai"), QStringLiteral("Số điện thoại chỉ gồm 9-11 chữ số.")},
-        {QStringLiteral("CK_HOCVIEN_Email"), QStringLiteral("Email không đúng định dạng.")},
-        {QStringLiteral("CK_HOCVIEN_NgaySinh"), QStringLiteral("Ngày sinh không hợp lệ (học viên từ 4 tuổi).")},
-        {QStringLiteral("CK_GHIDANH_DaDong"), QStringLiteral("Số tiền đã đóng vượt quá học phí phải đóng.")},
-        {QStringLiteral("CK_DIEM_Diem"), QStringLiteral("Điểm phải nằm trong khoảng 0 - 10.")},
-        {QStringLiteral("UQ_GHIDANH_MaHV_MaLop"), QStringLiteral("Học viên đã ghi danh lớp này.")},
-        {QStringLiteral("UX_HOCVIEN_SoDienThoai"), QStringLiteral("Số điện thoại đã được dùng cho học viên khác.")},
-        {QStringLiteral("UX_HOCVIEN_Email"), QStringLiteral("Email đã được dùng cho học viên khác.")},
-        {QStringLiteral("FK_GHIDANH_HOCVIEN"), QStringLiteral("Học viên đang có dữ liệu ghi danh, không thể xóa.")},
+QString SqlErrorMapper::constraintMessage(const QString& constraintName) {
+    // Store the source text only (QT_TRANSLATE_NOOP marks it for lupdate) and translate on lookup:
+    // a static table of already translated text would ignore later language changes.
+    static const QHash<QString, const char*> messages = {
+        {QStringLiteral("CK_STUDENT_Guardian"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "Students under 18 need guardian information.")},
+        {QStringLiteral("CK_STUDENT_Contact"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "At least one contact phone number is required.")},
+        {QStringLiteral("CK_STUDENT_Phone"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "Phone numbers contain 9-11 digits only.")},
+        {QStringLiteral("CK_STUDENT_Email"), QT_TRANSLATE_NOOP("SqlErrorMapper", "Invalid email address.")},
+        {QStringLiteral("CK_STUDENT_DateOfBirth"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper",
+                           "Invalid date of birth (students must be at least 4 years old).")},
+        {QStringLiteral("CK_ENROLLMENT_AmountPaid"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "The amount paid exceeds the tuition due.")},
+        {QStringLiteral("CK_GRADE_Score"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "Grades must be between 0 and 10.")},
+        {QStringLiteral("UQ_ENROLLMENT_StudentId_ClassId"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "The student is already enrolled in this class.")},
+        {QStringLiteral("UX_STUDENT_Phone"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "This phone number is already used by another student.")},
+        {QStringLiteral("UX_STUDENT_Email"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "This email is already used by another student.")},
+        {QStringLiteral("FK_ENROLLMENT_STUDENT"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "The student has enrollment records and cannot be deleted.")},
     };
-    return bang.value(tenRangBuoc, QStringLiteral("Dữ liệu vi phạm ràng buộc toàn vẹn: %1").arg(tenRangBuoc));
+    if (const char* source = messages.value(constraintName, nullptr))
+        return tr(source);
+    return tr("The data violates an integrity constraint: %1").arg(constraintName);
 }
 
-QString SqlErrorMapper::thongBao(const QSqlError& loi) {
-    if (!loi.isValid())
+QString SqlErrorMapper::message(const QSqlError& error) {
+    if (!error.isValid())
         return QString();
 
-    const QString goc = loi.databaseText().isEmpty() ? loi.text() : loi.databaseText();
-    const QString thongDiep = lamSachThongDiep(goc);
-    const QStringList ma = loi.nativeErrorCode().split(QLatin1Char(';'), Qt::SkipEmptyParts);
-    auto coMa = [&ma](const char* m) { return ma.contains(QLatin1String(m)); };
+    const QString raw = error.databaseText().isEmpty() ? error.text() : error.databaseText();
+    const QString cleaned = cleanMessage(raw);
+    const QStringList codes = error.nativeErrorCode().split(QLatin1Char(';'), Qt::SkipEmptyParts);
+    auto hasCode = [&codes](const char* code) { return codes.contains(QLatin1String(code)); };
 
-    if (coMa("18456") || goc.contains(QLatin1String("Login failed"), Qt::CaseInsensitive))
-        return QStringLiteral("Sai tên đăng nhập hoặc mật khẩu, hoặc tài khoản đã bị khóa.");
-    if (coMa("4060") || goc.contains(QLatin1String("Cannot open database"), Qt::CaseInsensitive))
-        return QStringLiteral("Không mở được cơ sở dữ liệu. Kiểm tra lại tên CSDL trong phần cấu hình máy chủ.");
-    if (goc.contains(QLatin1String("TCP Provider"), Qt::CaseInsensitive) ||
-        goc.contains(QLatin1String("Login timeout expired"), Qt::CaseInsensitive) ||
-        goc.contains(QLatin1String("server was not found"), Qt::CaseInsensitive) ||
-        goc.contains(QLatin1String("Named Pipes"), Qt::CaseInsensitive) ||
-        goc.contains(QLatin1String("Communication link failure"), Qt::CaseInsensitive))
-        return QStringLiteral("Không kết nối được máy chủ SQL Server.\n"
-                              "Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ SQL Server đang chạy.");
-    if (goc.contains(QLatin1String("certificate"), Qt::CaseInsensitive) ||
-        goc.contains(QLatin1String("SSL Provider"), Qt::CaseInsensitive))
-        return QStringLiteral("Lỗi chứng chỉ bảo mật của máy chủ. Hãy bật \"Tin cậy chứng chỉ máy chủ\" "
-                              "trong phần cấu hình máy chủ.");
-    if (coMa("229") || coMa("230") || coMa("262") || coMa("297") ||
-        goc.contains(QLatin1String("permission was denied"), Qt::CaseInsensitive))
-        return QStringLiteral("Bạn không có quyền thực hiện thao tác này (SQL Server từ chối).");
+    if (hasCode("18456") || raw.contains(QLatin1String("Login failed"), Qt::CaseInsensitive))
+        return tr("Wrong username or password, or the account is locked.");
+    if (hasCode("4060") || raw.contains(QLatin1String("Cannot open database"), Qt::CaseInsensitive))
+        return tr("Cannot open the database. Check the database name in the server settings.");
+    if (raw.contains(QLatin1String("TCP Provider"), Qt::CaseInsensitive) ||
+        raw.contains(QLatin1String("Login timeout expired"), Qt::CaseInsensitive) ||
+        raw.contains(QLatin1String("server was not found"), Qt::CaseInsensitive) ||
+        raw.contains(QLatin1String("Named Pipes"), Qt::CaseInsensitive) ||
+        raw.contains(QLatin1String("Communication link failure"), Qt::CaseInsensitive))
+        return tr("Cannot connect to SQL Server.\n"
+                  "Check the server address, the port (1433 by default) and that the SQL Server service is "
+                  "running.");
+    if (raw.contains(QLatin1String("certificate"), Qt::CaseInsensitive) ||
+        raw.contains(QLatin1String("SSL Provider"), Qt::CaseInsensitive))
+        return tr("The server's security certificate was rejected. Turn on \"Trust server certificate\" "
+                  "in the server settings.");
+    if (hasCode("229") || hasCode("230") || hasCode("262") || hasCode("297") ||
+        raw.contains(QLatin1String("permission was denied"), Qt::CaseInsensitive))
+        return tr("You do not have permission to perform this action (denied by SQL Server).");
 
-    if (coMa("2627") || coMa("2601") || coMa("547") || goc.contains(QLatin1String("constraint"))) {
-        static const QRegularExpression tenRangBuoc(
-            QStringLiteral("(?:constraint|index)\\s+['\"]([A-Za-z0-9_]+)['\"]"), QRegularExpression::CaseInsensitiveOption);
-        const auto m = tenRangBuoc.match(goc);
-        if (m.hasMatch())
-            return thongBaoRangBuoc(m.captured(1));
+    if (hasCode("2627") || hasCode("2601") || hasCode("547") || raw.contains(QLatin1String("constraint"))) {
+        static const QRegularExpression constraintName(
+            QStringLiteral("(?:constraint|index)\\s+['\"]([A-Za-z0-9_]+)['\"]"),
+            QRegularExpression::CaseInsensitiveOption);
+        const auto match = constraintName.match(raw);
+        if (match.hasMatch())
+            return constraintMessage(match.captured(1));
     }
 
-    // Lỗi nghiệp vụ từ THROW/RAISERROR: thông điệp đã là tiếng Việt
-    return thongDiep;
+    // Business errors from THROW/RAISERROR: written in English by the database, shown in the UI language
+    return DbMessages::translate(cleaned);
 }

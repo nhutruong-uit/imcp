@@ -2,14 +2,17 @@
 
 class QApplication;
 
-// Giao diện thống nhất trên Windows và macOS: style Fusion + bảng màu sáng + stylesheet (QSS)
+// Same look on Windows and macOS: Fusion style + light palette + style sheet (QSS)
 namespace Theme {
 void apply(QApplication& app);
 
-// Bảng màu dùng chung (đồng bộ với màu tiêu đề trong báo cáo)
+// Shared colors (matching the heading color of the report)
 inline constexpr const char* kPrimary = "#1F3864";
 inline constexpr const char* kAccent = "#2E75B6";
 inline constexpr const char* kMuted = "#64748B";
 inline constexpr const char* kDanger = "#DC2626";
 inline constexpr const char* kSuccess = "#16A34A";
+// Text colors of highlighted table cells (positive: passed/taught/active, negative: failed/cancelled/debt)
+inline constexpr const char* kPositiveText = "#15803D";
+inline constexpr const char* kNegativeText = "#DC2626";
 } // namespace Theme

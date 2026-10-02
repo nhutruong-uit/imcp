@@ -1,11 +1,11 @@
-/* ===== Giao diện chung - QLTTTA =====
-   Màu chủ đạo: #1F3864 (navy), nhấn: #2E75B6, nền: #F4F6FA */
+/* ===== Common look - QLTTTA =====
+   Primary color: #1F3864 (navy), accent: #2E75B6, background: #F4F6FA */
 
 QWidget { font-size: 13px; color: #1E293B; }
 QMainWindow, QDialog { background: #F4F6FA; }
 QToolTip { background: #1F3864; color: white; border: none; padding: 6px; }
 
-/* ---- Nhãn ---- */
+/* ---- Labels ---- */
 QLabel#PageTitle { font-size: 20px; font-weight: 600; color: #0F172A; }
 QLabel#CardTitle { font-size: 15px; font-weight: 600; color: #0F172A; }
 QLabel#Muted { color: #64748B; }
@@ -13,11 +13,11 @@ QLabel#ErrorText { color: #DC2626; background: #FEF2F2; border: 1px solid #FECAC
 QLabel#KpiValue { font-size: 22px; font-weight: 700; color: #0F172A; }
 QLabel#KpiIcon { background: #EFF6FF; border-radius: 22px; }
 
-/* ---- Thẻ (card) ---- */
+/* ---- Cards ---- */
 QFrame[card="true"] { background: white; border: 1px solid #E2E8F0; border-radius: 10px; }
 QFrame[card="true"] QLabel { border: none; background: transparent; }
 
-/* ---- Ô nhập liệu ---- */
+/* ---- Input fields ---- */
 QLineEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QPlainTextEdit, QTextEdit {
     background: white; border: 1px solid #CBD5E1; border-radius: 6px; padding: 6px 8px;
     selection-background-color: #BFDBFE; selection-color: #0F172A;
@@ -27,7 +27,7 @@ QLineEdit:read-only { background: #F1F5F9; color: #475569; }
 QComboBox::drop-down, QDateEdit::drop-down { border: none; width: 22px; }
 QComboBox QAbstractItemView { background: white; border: 1px solid #CBD5E1; selection-background-color: #DBEAFE; }
 
-/* ---- Nút ---- */
+/* ---- Buttons ---- */
 QPushButton {
     background: white; border: 1px solid #CBD5E1; border-radius: 6px; padding: 7px 14px; color: #1E293B;
 }
@@ -40,12 +40,12 @@ QPushButton[variant="primary"]:pressed { background: #1F3864; }
 QPushButton#LinkButton { border: none; background: transparent; color: #2E75B6; padding: 4px 0; text-align: left; }
 QPushButton#LinkButton:hover { text-decoration: underline; }
 
-/* ---- Nhóm ---- */
+/* ---- Group boxes ---- */
 QGroupBox { background: white; border: 1px solid #E2E8F0; border-radius: 8px; margin-top: 14px; padding: 14px 10px 8px 10px; font-weight: 600; }
 QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 4px; color: #1F3864; }
 QCheckBox { spacing: 6px; }
 
-/* ---- Bảng ---- */
+/* ---- Tables ---- */
 QTableView {
     background: white; border: 1px solid #E2E8F0; border-radius: 8px; gridline-color: #EEF2F7;
     alternate-background-color: #F8FAFC; selection-background-color: #DBEAFE; selection-color: #0F172A;
@@ -76,7 +76,7 @@ QFrame#Header { background: white; border-bottom: 1px solid #E2E8F0; }
 QLabel#HeaderTitle { font-size: 17px; font-weight: 600; color: #0F172A; }
 QLabel#RoleBadge { background: #EFF6FF; color: #1F3864; border: 1px solid #BFDBFE; border-radius: 10px; padding: 3px 10px; font-weight: 600; }
 
-/* ---- Đăng nhập ---- */
+/* ---- Login ---- */
 QFrame#BrandPanel { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1F3864, stop:1 #2E75B6); }
 QLabel#BrandTitle { color: white; font-size: 28px; font-weight: 700; }
 QLabel#BrandText { color: #DBEAFE; font-size: 14px; }

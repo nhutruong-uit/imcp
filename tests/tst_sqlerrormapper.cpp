@@ -1,48 +1,77 @@
 #include "infrastructure/db/DatabaseManager.h"
+#include "infrastructure/db/DbMessages.h"
 #include "infrastructure/db/SqlErrorMapper.h"
 
 #include <QtTest>
 
+// No translator is installed here, so the messages are in the source language (English).
+// The Vietnamese translations are checked in tst_i18n.
 class TestSqlErrorMapper : public QObject {
     Q_OBJECT
 
 private slots:
-    void boTienToOdbc() {
-        const QString goc = QStringLiteral(
-            "[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Học viên đã ghi danh lớp này.");
-        QCOMPARE(SqlErrorMapper::lamSachThongDiep(goc), QStringLiteral("Học viên đã ghi danh lớp này."));
+    void stripsOdbcPrefix() {
+        const QString raw = QStringLiteral("[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]"
+                                           "The student is already enrolled in this class.");
+        QCOMPARE(SqlErrorMapper::cleanMessage(raw),
+                 QStringLiteral("The student is already enrolled in this class."));
     }
 
-    void boDuoiSqlState() {
-        QCOMPARE(SqlErrorMapper::lamSachThongDiep(QStringLiteral("Mật khẩu hiện tại không đúng., 37000")),
-                 QStringLiteral("Mật khẩu hiện tại không đúng."));
-        QCOMPARE(SqlErrorMapper::lamSachThongDiep(
-                     QStringLiteral("[FreeTDS][SQL Server]Lớp đã đủ sĩ số., 42000;01000")),
-                 QStringLiteral("Lớp đã đủ sĩ số."));
-        // Dấu phẩy bình thường trong câu không bị cắt
-        QCOMPARE(SqlErrorMapper::lamSachThongDiep(QStringLiteral("Lớp LH0001, phòng 101 đã kín lịch.")),
-                 QStringLiteral("Lớp LH0001, phòng 101 đã kín lịch."));
+    void stripsSqlStateSuffix() {
+        QCOMPARE(SqlErrorMapper::cleanMessage(QStringLiteral("The current password is incorrect., 37000")),
+                 QStringLiteral("The current password is incorrect."));
+        QCOMPARE(SqlErrorMapper::cleanMessage(
+                     QStringLiteral("[FreeTDS][SQL Server]Class CL0001 is full., 42000;01000")),
+                 QStringLiteral("Class CL0001 is full."));
+        // A normal comma inside the sentence is not cut
+        QCOMPARE(SqlErrorMapper::cleanMessage(
+                     QStringLiteral("Schedule conflict with class CL0004 (same room D1-102).")),
+                 QStringLiteral("Schedule conflict with class CL0004 (same room D1-102)."));
     }
 
-    void loiDangNhap() {
-        const QSqlError e(QStringLiteral("QODBC: Unable to connect"),
-                          QStringLiteral("[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Login failed for user 'x'."),
-                          QSqlError::ConnectionError, QStringLiteral("18456"));
-        QVERIFY(SqlErrorMapper::thongBao(e).startsWith(QStringLiteral("Sai tên đăng nhập")));
+    // Business messages: exact text or template with values; unknown messages pass through unchanged
+    void dbMessages_matchExactTextAndTemplates() {
+        QVERIFY(DbMessages::isKnown(QStringLiteral("The current password is incorrect.")));
+        QVERIFY(DbMessages::isKnown(QStringLiteral("Class CL0003 is full.")));
+        QVERIFY(DbMessages::isKnown(QStringLiteral("Grades are still missing for 12 student(s).")));
+        QVERIFY(!DbMessages::isKnown(QStringLiteral("Class is full.")));
+        QVERIFY(!DbMessages::isKnown(QStringLiteral("The current password is incorrect. Extra")));
+        QCOMPARE(DbMessages::translate(QStringLiteral("Class CL0003 is full.")),
+                 QStringLiteral("Class CL0003 is full."));
+        QCOMPARE(DbMessages::translate(QStringLiteral("Something else.")), QStringLiteral("Something else."));
     }
 
-    void loiRangBuocCheck() {
-        const QSqlError e(QStringLiteral("QODBC: Unable to execute statement"),
-                          QStringLiteral("[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]The INSERT statement "
-                                         "conflicted with the CHECK constraint \"CK_HOCVIEN_PhuHuynh\"."),
-                          QSqlError::StatementError, QStringLiteral("547"));
-        QCOMPARE(SqlErrorMapper::thongBao(e), QStringLiteral("Học viên dưới 18 tuổi phải có thông tin phụ huynh."));
+    void businessError_goesThroughTheCatalog() {
+        const QSqlError e(
+            QStringLiteral("QODBC: Unable to execute statement"),
+            QStringLiteral("[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Class CL0008 is full."),
+            QSqlError::StatementError, QStringLiteral("50000"));
+        QCOMPARE(SqlErrorMapper::message(e), QStringLiteral("Class CL0008 is full."));
     }
 
-    void chuoiKetNoi_matKhauKyTuDacBiet() {
-        CauHinhMayChu c;
-        const QString s = DatabaseManager::chuoiKetNoi(QStringLiteral("ODBC Driver 18 for SQL Server"), c,
-                                                       QStringLiteral("gvu_lan"), QStringLiteral("a;b}c"));
+    void loginFailure() {
+        const QSqlError e(
+            QStringLiteral("QODBC: Unable to connect"),
+            QStringLiteral(
+                "[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Login failed for user 'x'."),
+            QSqlError::ConnectionError, QStringLiteral("18456"));
+        QVERIFY(SqlErrorMapper::message(e).startsWith(QStringLiteral("Wrong username or password")));
+    }
+
+    void checkConstraintViolation() {
+        const QSqlError e(
+            QStringLiteral("QODBC: Unable to execute statement"),
+            QStringLiteral("[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]The INSERT statement "
+                           "conflicted with the CHECK constraint \"CK_STUDENT_Guardian\"."),
+            QSqlError::StatementError, QStringLiteral("547"));
+        QCOMPARE(SqlErrorMapper::message(e), QStringLiteral("Students under 18 need guardian information."));
+    }
+
+    void connectionString_escapesSpecialCharacters() {
+        ServerConfig c;
+        const QString s =
+            DatabaseManager::connectionString(QStringLiteral("ODBC Driver 18 for SQL Server"), c,
+                                              QStringLiteral("gvu_lan"), QStringLiteral("a;b}c"));
         QVERIFY(s.contains(QStringLiteral("PWD={a;b}}c};")));
         QVERIFY(s.contains(QStringLiteral("TrustServerCertificate=yes")));
     }

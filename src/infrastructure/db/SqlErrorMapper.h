@@ -1,14 +1,17 @@
 #pragma once
 
+#include <QCoreApplication>
 #include <QSqlError>
 #include <QString>
 
-// Chuyển lỗi ODBC/SQL Server thành thông báo tiếng Việt dễ hiểu cho người dùng.
-// - Lỗi nghiệp vụ do THROW/RAISERROR trong thủ tục/trigger: giữ nguyên nội dung tiếng Việt
-// - Lỗi hệ thống (sai mật khẩu, mất kết nối, thiếu quyền, vi phạm ràng buộc): dịch sang câu dễ hiểu
+// Turns ODBC/SQL Server errors into user-friendly messages (in the UI language).
+// - Business errors raised by THROW/RAISERROR in procedures/triggers: written in English by the database,
+//   translated through the DbMessages catalog
+// - System errors (wrong password, lost connection, missing permission, constraint violation): translated
 class SqlErrorMapper {
+    Q_DECLARE_TR_FUNCTIONS(SqlErrorMapper)
 public:
-    static QString thongBao(const QSqlError& loi);
-    static QString lamSachThongDiep(const QString& thongDiepGoc);   // bỏ tiền tố [Microsoft][ODBC ...]
-    static QString thongBaoRangBuoc(const QString& tenRangBuoc);
+    static QString message(const QSqlError& error);
+    static QString cleanMessage(const QString& rawMessage); // strips [Microsoft][ODBC ...] prefixes
+    static QString constraintMessage(const QString& constraintName);
 };
