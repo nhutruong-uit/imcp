@@ -1,39 +1,39 @@
-P01|Giáo viên SELECT bảng HOCVIEN|Từ chối|Từ chối|ĐẠT|The SELECT permission was denied on the object 'HOCVIEN', database 'QLTTTA', schema 'dbo'.
-P02|Giáo viên SELECT view lớp/học viên của mình|Thành công|Thành công|ĐẠT|2 lớp, 14 học viên (chỉ lớp của GV0001)
-P03|Giáo viên nhập điểm lớp của giáo viên khác|Từ chối|Từ chối|ĐẠT|Bạn chỉ được nhập điểm lớp do mình phụ trách.
-P04|Kế toán thực hiện ghi danh|Từ chối|Từ chối|ĐẠT|The EXECUTE permission was denied on the object 'usp_GhiDanh', database 'QLTTTA', schema 'dbo'.
-P05|Kế toán SELECT cột GIAOVIEN.DonGiaGio|Thành công|Thành công|ĐẠT|Đọc được đơn giá 450,000
-P06|Giáo vụ SELECT cột GIAOVIEN.DonGiaGio|Từ chối|Từ chối|ĐẠT|The SELECT permission was denied on the column 'DonGiaGio' of the object 'GIAOVIEN', database 'QLTTTA', schema 'dbo'.
-P07|Giáo vụ SELECT bảng BANGLUONG|Từ chối|Từ chối|ĐẠT|The SELECT permission was denied on the object 'BANGLUONG', database 'QLTTTA', schema 'dbo'.
-P08|Quản lý DELETE bảng PHIEUTHU|Từ chối|Từ chối|ĐẠT|The DELETE permission was denied on the object 'PHIEUTHU', database 'QLTTTA', schema 'dbo'.
-P09|Giáo vụ tạo tài khoản đăng nhập|Từ chối|Từ chối|ĐẠT|The EXECUTE permission was denied on the object 'usp_TaiKhoan_Tao', database 'QLTTTA', schema 'dbo'.
-P10|Quản lý tạo tài khoản (user + role)|Thành công|Thành công|ĐẠT|Đã tạo contained user tuvan_mai thuộc rl_GiaoVu (đã hoàn tác)
-P11|Giáo vụ xem doanh thu tháng trên Dashboard|Từ chối|Từ chối|ĐẠT|usp_ThongKe_TongQuan trả DoanhThuThangNay = NULL cho vai trò GIAOVU
-P12|Đổi mật khẩu với mật khẩu hiện tại sai|Từ chối|Từ chối|ĐẠT|Mật khẩu hiện tại không đúng.
-T01|Học viên dưới 18 tuổi thiếu thông tin phụ huynh|Từ chối|Từ chối|ĐẠT|The INSERT statement conflicted with the CHECK constraint "CK_HOCVIEN_PhuHuynh". The conflict occurred in database "QLTTTA", table "dbo.HOCVIEN".
-T02|Số điện thoại sai định dạng (CHECK miền giá trị)|Từ chối|Từ chối|ĐẠT|The INSERT statement conflicted with the CHECK constraint "CK_HOCVIEN_SoDienThoai". The conflict occurred in database "QLTTTA", table "dbo.HOCVIEN", column 'SoDienThoai'.
-T03|Ghi danh lặp lại cùng một lớp|Từ chối|Từ chối|ĐẠT|Học viên đã ghi danh lớp này.
-T04|Chưa đạt khóa tiên quyết / điểm đầu vào|Từ chối|Từ chối|ĐẠT|Học viên chưa đạt điều kiện đầu vào của khóa IE-65 (cần hoàn thành khóa tiên quyết hoặc điểm kiểm tra đầu vào >= 6.50).
-T05|Học viên học 2 lớp trùng lịch|Từ chối|Từ chối|ĐẠT|Lịch học của lớp bị trùng với một lớp khác học viên đang theo học.
-T06|Thu tiền vượt học phí còn nợ|Từ chối|Từ chối|ĐẠT|Số tiền thu vượt quá học phí còn nợ của học viên.
-T07|Xóa vật lý phiếu thu|Từ chối|Từ chối|ĐẠT|Không được xóa phiếu thu. Hãy dùng chức năng Hủy phiếu thu.
-T08|Hai lớp dùng chung phòng cùng giờ|Từ chối|Từ chối|ĐẠT|Trùng lịch với lớp LH0004 (cùng phòng Q1-102).
-T09|Phòng học khác chi nhánh với lớp|Từ chối|Từ chối|ĐẠT|Phòng học phải thuộc cùng chi nhánh với lớp học.
-T10|Điểm ngoài miền giá trị 0-10|Từ chối|Từ chối|ĐẠT|The INSERT statement conflicted with the CHECK constraint "CK_DIEM_Diem". The conflict occurred in database "QLTTTA", table "dbo.DIEM", column 'Diem'.
-T11|Sửa nội dung nhật ký kiểm toán|Từ chối|Từ chối|ĐẠT|Nhật ký hệ thống chỉ được ghi thêm, không được sửa hoặc xóa.
-T12|Cấp chứng nhận cho học viên Không đạt|Từ chối|Từ chối|ĐẠT|Chỉ cấp chứng nhận cho học viên có kết quả Đạt.
-T13|Sửa thời gian buổi học đã dạy|Từ chối|Từ chối|ĐẠT|Không được thay đổi thời gian, phòng, giáo viên của buổi đã dạy.
-T14|Chuyển lớp sang khóa học khác|Từ chối|Từ chối|ĐẠT|Chỉ được chuyển sang lớp đang mở của cùng khóa học.
-T15|Ghi danh hợp lệ có khuyến mãi|Thành công|Thành công|ĐẠT|Mã GD000087, phải đóng 3,300,000 đ
-T16|fn_XepLoai: xếp loại tại các mốc 9 / 8 / 6.5 / 5 điểm|Thành công|Thành công|ĐẠT|11/11 mốc điểm (kể cả NULL) cho kết quả đúng
-T17|fn_TinhDiemTongKet: điểm theo trọng số, thiếu cột điểm thì NULL|Thành công|Thành công|ĐẠT|Khớp 22/22 lượt ghi danh; bỏ 1 cột điểm của GD000001 => NULL
-T18|fn_TyLeChuyenCan: đi trễ tính có mặt, vắng có phép không tính|Thành công|Thành công|ĐẠT|Có mặt 2 + đi trễ 1 trên 24 buổi đã dạy => 12.50% (kỳ vọng 12.50%)
-T19|fn_TinhSoTienGiam: làm tròn nghìn, không vượt học phí, hết hạn = 0|Thành công|Thành công|ĐẠT|15% x 4.250.000 = 638000; giảm 5 triệu trên học phí 3 triệu = 3000000; hết hạn = 0
-T20|Thu tiền rồi hủy phiếu: DaDong tự cập nhật, có nhật ký XML|Thành công|Thành công|ĐẠT|GD000018: đã đóng 1900000 -> 2000000 (thu 100.000) -> 1900000 (hủy); nhật ký: 1 dòng
-T21|Ghi danh vào lớp đã đủ sĩ số tối đa|Từ chối|Từ chối|ĐẠT|Lớp LH0008 đã đủ sĩ số tối đa.
-T22|usp_LopHoc_TaoBuoiHoc: sinh buổi học theo lịch tuần|Thành công|Thành công|ĐẠT|LH0008: sinh 30/30 buổi, 0 buổi sai thứ/giờ, ngày kết thúc đúng
-T23|usp_LopHoc_XetKetQua: xét Đạt theo điểm và chuyên cần, cấp chứng nhận|Thành công|Thành công|ĐẠT|LH0001: 10 Đạt, 2 Không đạt (trong đó 1 HV đủ điểm nhưng chuyên cần < 80%); 0 sai lệch chứng nhận
-T24|usp_BangLuong_Chot: số buổi, số giờ, thưởng, tổng lương|Thành công|Thành công|ĐẠT|Tháng 9/2026: 5 giáo viên, 0 dòng lệch so với BUOIHOC
-T25|Chốt lương cho tháng trong tương lai|Từ chối|Từ chối|ĐẠT|Không thể chốt lương cho tháng trong tương lai.
-T26|Xuất/nhập học viên bằng XML, bỏ qua bản ghi trùng|Thành công|Thành công|ĐẠT|Xuất 72/72 học viên; nhập 1 dòng, bỏ qua 1 dòng trùng SĐT
-T27|Đề cương khóa học sai cấu trúc XML Schema|Từ chối|Từ chối|ĐẠT|XML Validation: Invalid content. Expected element(s): 'GiaoTrinh'. Found: element 'PhanTuKhongCoTrongSchema' instead. Location: /*:DeCuong[1]/*:PhanTuKhongCoTrongSchema[1].
+P01|Teacher SELECTs the STUDENT table|Rejected|Rejected|PASSED|The SELECT permission was denied on the object 'STUDENT', database 'QLTTTA', schema 'dbo'.
+P02|Teacher SELECTs the views of their classes/students|Succeeded|Succeeded|PASSED|2 classes, 14 students (only the classes of TE0001)
+P03|Teacher grades a class of another teacher|Rejected|Rejected|PASSED|You can only enter grades for classes you teach.
+P04|Accountant enrolls a student|Rejected|Rejected|PASSED|The EXECUTE permission was denied on the object 'usp_Enrollment_Create', database 'QLTTTA', schema 'dbo'.
+P05|Accountant SELECTs the TEACHER.HourlyRate column|Succeeded|Succeeded|PASSED|Read hourly rate 450,000
+P06|Academic staff SELECT the TEACHER.HourlyRate column|Rejected|Rejected|PASSED|The SELECT permission was denied on the column 'HourlyRate' of the object 'TEACHER', database 'QLTTTA', schema 'dbo'.
+P07|Academic staff SELECT the PAYROLL table|Rejected|Rejected|PASSED|The SELECT permission was denied on the object 'PAYROLL', database 'QLTTTA', schema 'dbo'.
+P08|Manager DELETEs from the RECEIPT table|Rejected|Rejected|PASSED|The DELETE permission was denied on the object 'RECEIPT', database 'QLTTTA', schema 'dbo'.
+P09|Academic staff create a sign-in account|Rejected|Rejected|PASSED|The EXECUTE permission was denied on the object 'usp_Account_Create', database 'QLTTTA', schema 'dbo'.
+P10|Manager creates an account (user + role)|Succeeded|Succeeded|PASSED|Created the contained user tuvan_mai in rl_AcademicStaff (rolled back)
+P11|Academic staff see the monthly revenue on the Dashboard|Rejected|Rejected|PASSED|usp_Dashboard_Stats returns RevenueThisMonth = NULL for the ACADEMIC_STAFF role
+P12|Password change with a wrong current password|Rejected|Rejected|PASSED|The current password is incorrect.
+T01|Student under 18 without guardian details|Rejected|Rejected|PASSED|The INSERT statement conflicted with the CHECK constraint "CK_STUDENT_Guardian". The conflict occurred in database "QLTTTA", table "dbo.STUDENT".
+T02|Invalid phone number format (domain CHECK)|Rejected|Rejected|PASSED|The INSERT statement conflicted with the CHECK constraint "CK_STUDENT_Phone". The conflict occurred in database "QLTTTA", table "dbo.STUDENT", column 'Phone'.
+T03|Enrolling twice in the same class|Rejected|Rejected|PASSED|The student is already enrolled in this class.
+T04|Prerequisite course / placement score not met|Rejected|Rejected|PASSED|The student does not meet the entry requirement of course IE-65 (complete the prerequisite course or score at least 6.50 in the placement test).
+T05|A student in 2 classes with clashing schedules|Rejected|Rejected|PASSED|The class schedule clashes with another class the student is taking.
+T06|Payment above the outstanding tuition|Rejected|Rejected|PASSED|The amount exceeds the tuition the student still owes.
+T07|Physically deleting a receipt|Rejected|Rejected|PASSED|Receipts cannot be deleted. Use the Cancel receipt function instead.
+T08|Two classes in the same room at the same time|Rejected|Rejected|PASSED|Schedule conflict with class CL0004 (same room D1-102).
+T09|Room of another branch than the class|Rejected|Rejected|PASSED|The room must belong to the same branch as the class.
+T10|Score outside the 0-10 domain|Rejected|Rejected|PASSED|The INSERT statement conflicted with the CHECK constraint "CK_GRADE_Score". The conflict occurred in database "QLTTTA", table "dbo.GRADE", column 'Score'.
+T11|Changing the audit log|Rejected|Rejected|PASSED|The audit log is append-only; it cannot be changed or deleted.
+T12|Certificate for a student who failed|Rejected|Rejected|PASSED|Certificates are only issued to students who passed.
+T13|Changing the time of a taught session|Rejected|Rejected|PASSED|The date, time, room and teacher of a taught session cannot be changed.
+T14|Transfer to a class of another course|Rejected|Rejected|PASSED|A student can only be transferred to an open class of the same course.
+T15|Valid enrollment with a promotion|Succeeded|Succeeded|PASSED|ID EN000087, tuition due 3,300,000 VND
+T16|fn_Classification: thresholds at 9 / 8 / 6.5 / 5|Succeeded|Succeeded|PASSED|11/11 grades (NULL included) classified correctly
+T17|fn_FinalGrade: weighted grade, NULL when a score is missing|Succeeded|Succeeded|PASSED|22/22 enrollments match; one score of EN000001 removed => NULL
+T18|fn_AttendanceRate: late counts as present, excused absence does not|Succeeded|Succeeded|PASSED|2 present + 1 late out of 24 taught sessions => 12.50% (expected 12.50%)
+T19|fn_DiscountAmount: rounded to thousands, capped at the tuition, 0 when expired|Succeeded|Succeeded|PASSED|15% x 4,250,000 = 638000; 5 million off a 3 million tuition = 3000000; expired = 0
+T20|Payment then cancellation: AmountPaid updated, XML audit row|Succeeded|Succeeded|PASSED|EN000018: paid 1900000 -> 2000000 (paid 100,000) -> 1900000 (cancelled); audit: 1 row(s)
+T21|Enrolling in a full class|Rejected|Rejected|PASSED|Class CL0008 is full.
+T22|usp_Class_GenerateSessions: sessions follow the weekly schedule|Succeeded|Succeeded|PASSED|CL0008: 30/30 sessions, 0 on a wrong weekday/time, end date correct
+T23|usp_Class_EvaluateResults: pass on grade and attendance, certificates|Succeeded|Succeeded|PASSED|CL0001: 10 passed, 2 failed (1 with a passing grade but attendance < 80%); 0 certificate mismatch(es)
+T24|usp_Payroll_Finalize: sessions, hours, bonus, total pay|Succeeded|Succeeded|PASSED|Month 9/2026: 5 teachers, 0 row(s) differing from CLASS_SESSION
+T25|Finalizing the payroll of a future month|Rejected|Rejected|PASSED|Payroll cannot be finalized for a future month.
+T26|Student XML export/import, duplicates skipped|Succeeded|Succeeded|PASSED|Exported 72/72 students; imported 1 row(s), skipped 1 duplicate phone row(s)
+T27|Course syllabus that violates the XML schema|Rejected|Rejected|PASSED|XML Validation: Invalid content. Expected element(s): 'Textbook'. Found: element 'ElementNotInSchema' instead. Location: /*:Syllabus[1]/*:ElementNotInSchema[1].

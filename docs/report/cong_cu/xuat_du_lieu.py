@@ -4,7 +4,7 @@
   schema.json            từ điển dữ liệu: bảng, cột, kiểu, khóa, CHECK, UNIQUE, DEFAULT, số dòng
   ket_qua_truy_van.json  kết quả các truy vấn minh họa (Chương 4, 5) + "doi_tuong": số lượng bảng,
                          hàm, view, thủ tục, trigger, ràng buộc... (các con số trong báo cáo đọc từ đây)
-  kiem_thu.txt           kết quả database/12_kiem_thu.sql - CHỈ ghi khi tất cả ca kiểm thử đạt
+  kiem_thu.txt           kết quả database/12_tests.sql - CHỈ ghi khi tất cả ca kiểm thử đạt (PASSED)
 
 Cách dùng (mật khẩu sa đặt trong biến SQL_PASSWORD, không truyền trên dòng lệnh):
   SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" \\
@@ -27,44 +27,51 @@ DATA = ROOT / "docs" / "report" / "data"
 
 # Truy vấn minh họa dùng trong báo cáo (khóa = tên mục mà noidung/*.py đọc qua chung.ket_qua())
 TRUY_VAN = {
-    "tong_quan": "EXEC dbo.usp_ThongKe_TongQuan",
-    "doanh_thu_ct": """SELECT ct.TenCT, COUNT(DISTINCT gd.MaHV) AS SoHocVien, SUM(pt.SoTien) AS DoanhThu
-        FROM dbo.PHIEUTHU pt JOIN dbo.GHIDANH gd ON gd.MaGD=pt.MaGD JOIN dbo.LOPHOC l ON l.MaLop=gd.MaLop
-        JOIN dbo.KHOAHOC k ON k.MaKH=l.MaKH JOIN dbo.CHUONGTRINH ct ON ct.MaCT=k.MaCT
-        WHERE pt.TrangThai=N'Hợp lệ' GROUP BY ct.TenCT HAVING SUM(pt.SoTien) > 50000000 ORDER BY DoanhThu DESC""",
-    "top3": """WITH XepHang AS (SELECT gd.MaLop, hv.HoTen, gd.DiemTongKet,
-            DENSE_RANK() OVER (PARTITION BY gd.MaLop ORDER BY gd.DiemTongKet DESC) AS Hang
-            FROM dbo.GHIDANH gd JOIN dbo.HOCVIEN hv ON hv.MaHV=gd.MaHV WHERE gd.DiemTongKet IS NOT NULL)
-        SELECT MaLop, Hang, HoTen, DiemTongKet FROM XepHang WHERE Hang<=3 ORDER BY MaLop, Hang""",
-    "lo_trinh": """WITH LoTrinh AS (SELECT MaKH, TenKH, MaKHTienQuyet, 0 AS Cap FROM dbo.KHOAHOC WHERE MaKH='IE-65'
-            UNION ALL SELECT k.MaKH, k.TenKH, k.MaKHTienQuyet, lt.Cap+1 FROM dbo.KHOAHOC k
-            JOIN LoTrinh lt ON k.MaKH=lt.MaKHTienQuyet)
-        SELECT Cap, MaKH, TenKH FROM LoTrinh ORDER BY Cap DESC""",
-    "pivot": """SELECT TenCT, ISNULL([CN01],0) AS Quan1, ISNULL([CN02],0) AS ThuDuc
-        FROM (SELECT ct.TenCT, l.MaCN, gd.MaHV FROM dbo.GHIDANH gd JOIN dbo.LOPHOC l ON l.MaLop=gd.MaLop
-              JOIN dbo.KHOAHOC k ON k.MaKH=l.MaKH JOIN dbo.CHUONGTRINH ct ON ct.MaCT=k.MaCT) src
-        PIVOT (COUNT(MaHV) FOR MaCN IN ([CN01],[CN02])) pv""",
-    "ielts8": """SELECT MaGV, HoTen, HoSoXML.value('(/HoSo/ChungChi[@Loai = "IELTS"]/@Diem)[1]', 'DECIMAL(3,1)') AS IELTS
-        FROM dbo.GIAOVIEN WHERE HoSoXML.exist('/HoSo/ChungChi[@Loai = "IELTS" and @Diem >= 8.0]') = 1""",
-    "nodes": """SELECT TOP 8 gv.MaGV, gv.HoTen, c.value('@Loai','NVARCHAR(30)') AS ChungChi,
-            c.value('@Diem','DECIMAL(5,1)') AS Diem, c.value('@Nam','INT') AS Nam
-        FROM dbo.GIAOVIEN gv CROSS APPLY gv.HoSoXML.nodes('/HoSo/ChungChi') AS T(c) ORDER BY gv.MaGV, Nam""",
-    "nhat_quan": """SELECT MaKH, SoBuoi, NoiDungXML.value('sum(/DeCuong/Unit/@SoBuoi)','INT') AS TongBuoiDeCuong
-        FROM dbo.KHOAHOC WHERE NoiDungXML IS NOT NULL""",
-    "de_cuong": "EXEC dbo.usp_KhoaHoc_DeCuong @MaKH='IE-55'",
-    "ky_nang": "EXEC dbo.usp_KhoaHoc_TimTheoKyNang @KyNang=N'Speaking'",
-    "ket_qua_lop1": """SELECT MaHV, HoTen, DiemTongKet, XepLoai, TyLeChuyenCan, KetQua FROM dbo.vw_KetQuaHocTap
-        WHERE MaLop='LH0001' ORDER BY DiemTongKet DESC""",
-    "luong": """SELECT TOP 6 bl.Nam, bl.Thang, gv.HoTen, bl.SoBuoi, bl.SoGio, bl.DonGiaGio, bl.Thuong, bl.TongLuong
-        FROM dbo.BANGLUONG bl JOIN dbo.GIAOVIEN gv ON gv.MaGV=bl.MaGV
-        ORDER BY bl.Nam DESC, bl.Thang DESC, bl.TongLuong DESC""",
-    "cong_no_hv": "SELECT * FROM dbo.fn_CongNoHocVien('HV00028')",
-    "doanh_thu_thang": """SELECT Thang, SoPhieu, DoanhThu FROM dbo.fn_DoanhThuTheoThang(YEAR(GETDATE()), NULL)
-        WHERE Thang BETWEEN 3 AND 10""",
-    "nhat_ky": """SELECT TOP 3 CONVERT(VARCHAR(16), ThoiGian, 120) AS ThoiGian, NguoiThucHien, BangDuLieu, HanhDong,
-            KhoaChinh, CAST(DuLieuMoi AS NVARCHAR(200)) AS DuLieuMoi
-        FROM dbo.NHATKYHETHONG WHERE BangDuLieu=N'PHIEUTHU' ORDER BY MaNK DESC""",
-    "so_dong": """SELECT t.name AS Bang, SUM(p.rows) AS SoDong FROM sys.tables t
+    "tong_quan": "EXEC dbo.usp_Dashboard_Stats",
+    "doanh_thu_ct": """SELECT pg.ProgramName, COUNT(DISTINCT en.StudentId) AS StudentCount, SUM(rc.Amount) AS Revenue
+        FROM dbo.RECEIPT rc JOIN dbo.ENROLLMENT en ON en.EnrollmentId=rc.EnrollmentId
+        JOIN dbo.CLASS cl ON cl.ClassId=en.ClassId JOIN dbo.COURSE co ON co.CourseId=cl.CourseId
+        JOIN dbo.PROGRAM pg ON pg.ProgramId=co.ProgramId
+        WHERE rc.Status=N'Valid' GROUP BY pg.ProgramName HAVING SUM(rc.Amount) > 50000000 ORDER BY Revenue DESC""",
+    "top3": """WITH Ranking AS (SELECT en.ClassId, st.FullName, en.FinalGrade,
+            DENSE_RANK() OVER (PARTITION BY en.ClassId ORDER BY en.FinalGrade DESC) AS Rank
+            FROM dbo.ENROLLMENT en JOIN dbo.STUDENT st ON st.StudentId=en.StudentId WHERE en.FinalGrade IS NOT NULL)
+        SELECT ClassId, Rank, FullName, FinalGrade FROM Ranking WHERE Rank<=3 ORDER BY ClassId, Rank""",
+    "lo_trinh": """WITH Path AS (SELECT CourseId, CourseName, PrerequisiteCourseId, 0 AS Depth FROM dbo.COURSE
+            WHERE CourseId='IE-65'
+            UNION ALL SELECT co.CourseId, co.CourseName, co.PrerequisiteCourseId, p.Depth+1 FROM dbo.COURSE co
+            JOIN Path p ON co.CourseId=p.PrerequisiteCourseId)
+        SELECT Depth, CourseId, CourseName FROM Path ORDER BY Depth DESC""",
+    "pivot": """SELECT ProgramName, ISNULL([BR01],0) AS District1, ISNULL([BR02],0) AS ThuDuc
+        FROM (SELECT pg.ProgramName, cl.BranchId, en.StudentId FROM dbo.ENROLLMENT en
+              JOIN dbo.CLASS cl ON cl.ClassId=en.ClassId JOIN dbo.COURSE co ON co.CourseId=cl.CourseId
+              JOIN dbo.PROGRAM pg ON pg.ProgramId=co.ProgramId) src
+        PIVOT (COUNT(StudentId) FOR BranchId IN ([BR01],[BR02])) pv""",
+    "ielts8": """SELECT TeacherId, FullName,
+            ProfileXml.value('(/Profile/Certificate[@Type = "IELTS"]/@Score)[1]', 'DECIMAL(3,1)') AS IELTS
+        FROM dbo.TEACHER WHERE ProfileXml.exist('/Profile/Certificate[@Type = "IELTS" and @Score >= 8.0]') = 1""",
+    "nodes": """SELECT TOP 8 te.TeacherId, te.FullName, c.value('@Type','NVARCHAR(30)') AS Certificate,
+            c.value('@Score','DECIMAL(5,1)') AS Score, c.value('@Year','INT') AS Year
+        FROM dbo.TEACHER te CROSS APPLY te.ProfileXml.nodes('/Profile/Certificate') AS T(c)
+        ORDER BY te.TeacherId, Year""",
+    "nhat_quan": """SELECT CourseId, SessionCount,
+            SyllabusXml.value('sum(/Syllabus/Unit/@Sessions)','INT') AS SyllabusSessions
+        FROM dbo.COURSE WHERE SyllabusXml IS NOT NULL""",
+    "de_cuong": "EXEC dbo.usp_Course_Syllabus @CourseId='IE-55'",
+    "ky_nang": "EXEC dbo.usp_Course_FindBySkill @Skill=N'Speaking'",
+    "ket_qua_lop1": """SELECT StudentId, StudentName, FinalGrade, Classification, AttendanceRate, Result
+        FROM dbo.vw_LearningResults WHERE ClassId='CL0001' ORDER BY FinalGrade DESC""",
+    "luong": """SELECT TOP 6 py.Year, py.Month, te.FullName, py.SessionCount, py.Hours, py.HourlyRate, py.Bonus,
+            py.TotalPay
+        FROM dbo.PAYROLL py JOIN dbo.TEACHER te ON te.TeacherId=py.TeacherId
+        ORDER BY py.Year DESC, py.Month DESC, py.TotalPay DESC""",
+    "cong_no_hv": "SELECT * FROM dbo.fn_StudentBalance('ST00028')",
+    "doanh_thu_thang": """SELECT Month, ReceiptCount, Revenue FROM dbo.fn_MonthlyRevenue(YEAR(GETDATE()), NULL)
+        WHERE Month BETWEEN 3 AND 10""",
+    "nhat_ky": """SELECT TOP 3 CONVERT(VARCHAR(16), LoggedAt, 120) AS LoggedAt, PerformedBy, TableName, Action,
+            RecordKey, CAST(NewData AS NVARCHAR(200)) AS NewData
+        FROM dbo.AUDIT_LOG WHERE TableName=N'RECEIPT' ORDER BY LogId DESC""",
+    "so_dong": """SELECT t.name AS TableName, SUM(p.rows) AS RecordCount FROM sys.tables t
         JOIN sys.partitions p ON p.object_id=t.object_id AND p.index_id IN (0,1) GROUP BY t.name ORDER BY t.name""",
     # Số lượng đối tượng CSDL - báo cáo đọc qua chung.doi_tuong(), không ghi cứng con số trong văn bản
     "doi_tuong": """SELECT
@@ -173,14 +180,14 @@ def xuat_truy_van(kn):
 
 
 def xuat_kiem_thu(kn):
-    ma, out = kn.chay(ROOT / "database" / "12_kiem_thu.sql", "-b", "-W", "-s", "|")
+    ma, out = kn.chay(ROOT / "database" / "12_tests.sql", "-b", "-W", "-s", "|")
     ca = sorted(d for d in out.splitlines() if re.match(r"^[TP]\d{2}\|", d))
-    dat = [d for d in ca if "|ĐẠT|" in d]
+    dat = [d for d in ca if "|PASSED|" in d]
     if ma != 0 or not ca or len(dat) != len(ca):
-        print("\n".join(d for d in ca if "|ĐẠT|" not in d) or out[-2000:])
+        print("\n".join(d for d in ca if "|PASSED|" not in d) or out[-2000:])
         sys.exit(f"Kiểm thử CSDL KHÔNG đạt ({len(dat)}/{len(ca)}) - không ghi kiem_thu.txt. Sửa lỗi trước.")
     (DATA / "kiem_thu.txt").write_text("\n".join(ca) + "\n", encoding="utf-8")
-    print(f"kiem_thu.txt: {len(dat)}/{len(ca)} ca ĐẠT")
+    print(f"kiem_thu.txt: {len(dat)}/{len(ca)} ca PASSED")
 
 
 def main():

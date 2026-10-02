@@ -1,12 +1,12 @@
 {
  "tong_quan": {
   "cot": [
-   "HocVienDangHoc",
-   "LopDangHoc",
-   "LopTuyenSinh",
-   "DoanhThuThangNay",
-   "TongCongNo",
-   "BuoiHocHomNay"
+   "ActiveStudents",
+   "ActiveClasses",
+   "EnrollingClasses",
+   "RevenueThisMonth",
+   "TotalOutstanding",
+   "SessionsToday"
   ],
   "dong": [
    [
@@ -21,28 +21,28 @@
  },
  "doanh_thu_ct": {
   "cot": [
-   "TenCT",
-   "SoHocVien",
-   "DoanhThu"
+   "ProgramName",
+   "StudentCount",
+   "Revenue"
   ],
   "dong": [
    [
-    "Luyện thi IELTS",
+    "IELTS Preparation",
     "25",
     "214964000"
    ],
    [
-    "Tiếng Anh giao tiếp",
+    "English for Communication",
     "14",
     "72370000"
    ],
    [
-    "Tiếng Anh thiếu nhi",
+    "English for Kids",
     "12",
     "61900000"
    ],
    [
-    "Luyện thi TOEIC",
+    "TOEIC Preparation",
     "14",
     "51000000"
    ]
@@ -50,44 +50,44 @@
  },
  "top3": {
   "cot": [
-   "MaLop",
-   "Hang",
-   "HoTen",
-   "DiemTongKet"
+   "ClassId",
+   "Rank",
+   "FullName",
+   "FinalGrade"
   ],
   "dong": [
    [
-    "LH0001",
+    "CL0001",
     "1",
     "Vũ Thảo Nguyên",
     "8.73"
    ],
    [
-    "LH0001",
+    "CL0001",
     "2",
     "Trần Thị Bích Ngọc",
     "8.07"
    ],
    [
-    "LH0001",
+    "CL0001",
     "3",
     "Phạm Minh Châu",
     "7.81"
    ],
    [
-    "LH0002",
+    "CL0002",
     "1",
     "Phan Văn Lợi",
     "9.43"
    ],
    [
-    "LH0002",
+    "CL0002",
     "2",
     "Mai Đức Thắng",
     "9.09"
    ],
    [
-    "LH0002",
+    "CL0002",
     "3",
     "Trịnh Thu Trang",
     "8.69"
@@ -96,9 +96,9 @@
  },
  "lo_trinh": {
   "cot": [
-   "Cap",
-   "MaKH",
-   "TenKH"
+   "Depth",
+   "CourseId",
+   "CourseName"
   ],
   "dong": [
    [
@@ -120,52 +120,52 @@
  },
  "pivot": {
   "cot": [
-   "TenCT",
-   "Quan1",
+   "ProgramName",
+   "District1",
    "ThuDuc"
   ],
   "dong": [
    [
-    "Luyện thi IELTS",
-    "26",
-    "8"
-   ],
-   [
-    "Luyện thi TOEIC",
-    "12",
-    "3"
-   ],
-   [
-    "Tiếng Anh giao tiếp",
+    "English for Communication",
     "4",
     "19"
    ],
    [
-    "Tiếng Anh thiếu nhi",
+    "English for Kids",
     "12",
     "0"
+   ],
+   [
+    "IELTS Preparation",
+    "26",
+    "8"
+   ],
+   [
+    "TOEIC Preparation",
+    "12",
+    "3"
    ]
   ]
  },
  "ielts8": {
   "cot": [
-   "MaGV",
-   "HoTen",
+   "TeacherId",
+   "FullName",
    "IELTS"
   ],
   "dong": [
    [
-    "GV0002",
+    "TE0002",
     "Nguyễn Hoàng Anh",
     "8.5"
    ],
    [
-    "GV0003",
+    "TE0003",
     "Trần Thị Hoa",
     "8.0"
    ],
    [
-    "GV0008",
+    "TE0008",
     "Huỳnh Minh Thư",
     "8.0"
    ]
@@ -173,64 +173,64 @@
  },
  "nodes": {
   "cot": [
-   "MaGV",
-   "HoTen",
-   "ChungChi",
-   "Diem",
-   "Nam"
+   "TeacherId",
+   "FullName",
+   "Certificate",
+   "Score",
+   "Year"
   ],
   "dong": [
    [
-    "GV0001",
+    "TE0001",
     "John Smith",
     "CELTA",
     "NULL",
     "2014"
    ],
    [
-    "GV0001",
+    "TE0001",
     "John Smith",
     "IELTS Examiner",
     "NULL",
     "2019"
    ],
    [
-    "GV0002",
+    "TE0002",
     "Nguyễn Hoàng Anh",
     "TESOL",
     "NULL",
     "2019"
    ],
    [
-    "GV0002",
+    "TE0002",
     "Nguyễn Hoàng Anh",
     "IELTS",
     "8.5",
     "2023"
    ],
    [
-    "GV0003",
+    "TE0003",
     "Trần Thị Hoa",
     "TESOL",
     "NULL",
     "2021"
    ],
    [
-    "GV0003",
+    "TE0003",
     "Trần Thị Hoa",
     "IELTS",
     "8.0",
     "2022"
    ],
    [
-    "GV0004",
+    "TE0004",
     "Emily Johnson",
     "TESOL",
     "NULL",
     "2017"
    ],
    [
-    "GV0005",
+    "TE0005",
     "Lê Quốc Bảo",
     "IELTS",
     "7.5",
@@ -240,13 +240,13 @@
  },
  "nhat_quan": {
   "cot": [
-   "MaKH",
-   "SoBuoi",
-   "TongBuoiDeCuong"
+   "CourseId",
+   "SessionCount",
+   "SyllabusSessions"
   ],
   "dong": [
    [
-    "GT-A1",
+    "CM-A1",
     "20",
     "20"
    ],
@@ -275,9 +275,9 @@
  "de_cuong": {
   "cot": [
    "Unit",
-   "TenUnit",
-   "SoBuoi",
-   "KyNang"
+   "Title",
+   "Sessions",
+   "Skills"
   ],
   "dong": [
    [
@@ -294,13 +294,13 @@
    ],
    [
     "3",
-    "Writing Task 1: Biểu đồ",
+    "Writing Task 1: Charts",
     "6",
     "Writing"
    ],
    [
     "4",
-    "Writing Task 2: Nghị luận",
+    "Writing Task 2: Argumentative essays",
     "6",
     "Writing , Grammar"
    ],
@@ -314,16 +314,16 @@
  },
  "ky_nang": {
   "cot": [
-   "MaKH",
-   "TenKH",
-   "CapDo",
-   "GiaoTrinh",
-   "SoUnit"
+   "CourseId",
+   "CourseName",
+   "Level",
+   "Textbook",
+   "UnitCount"
   ],
   "dong": [
    [
-    "GT-A1",
-    "Giao tiếp Cơ bản",
+    "CM-A1",
+    "Communication Elementary",
     "A1",
     "English File Beginner",
     "4"
@@ -353,122 +353,122 @@
  },
  "ket_qua_lop1": {
   "cot": [
-   "MaHV",
-   "HoTen",
-   "DiemTongKet",
-   "XepLoai",
-   "TyLeChuyenCan",
-   "KetQua"
+   "StudentId",
+   "StudentName",
+   "FinalGrade",
+   "Classification",
+   "AttendanceRate",
+   "Result"
   ],
   "dong": [
    [
-    "HV00006",
+    "ST00006",
     "Vũ Thảo Nguyên",
     "8.73",
-    "Giỏi",
-    "95.83",
-    "Đạt"
+    "Very good",
+    "91.67",
+    "Passed"
    ],
    [
-    "HV00002",
+    "ST00002",
     "Trần Thị Bích Ngọc",
     "8.07",
-    "Giỏi",
-    "95.83",
-    "Đạt"
+    "Very good",
+    "100.00",
+    "Passed"
    ],
    [
-    "HV00004",
+    "ST00004",
     "Phạm Minh Châu",
     "7.81",
-    "Khá",
+    "Good",
     "95.83",
-    "Đạt"
+    "Passed"
    ],
    [
-    "HV00001",
+    "ST00001",
     "Nguyễn Văn An",
     "7.71",
-    "Khá",
+    "Good",
     "95.83",
-    "Đạt"
+    "Passed"
    ],
    [
-    "HV00005",
+    "ST00005",
     "Hoàng Gia Huy",
     "7.49",
-    "Khá",
-    "66.67",
-    "Không đạt"
+    "Good",
+    "58.33",
+    "Failed"
    ],
    [
-    "HV00003",
+    "ST00003",
     "Lê Hoàng Phúc",
     "7.43",
-    "Khá",
-    "100.00",
-    "Đạt"
+    "Good",
+    "95.83",
+    "Passed"
    ],
    [
-    "HV00009",
+    "ST00009",
     "Đỗ Thành Đạt",
     "7.27",
-    "Khá",
+    "Good",
     "95.83",
-    "Đạt"
+    "Passed"
    ],
    [
-    "HV00008",
+    "ST00008",
     "Bùi Ngọc Ánh",
     "6.91",
-    "Khá",
-    "95.83",
-    "Đạt"
+    "Good",
+    "100.00",
+    "Passed"
    ],
    [
-    "HV00007",
+    "ST00007",
     "Đặng Quốc Khánh",
     "6.59",
-    "Khá",
+    "Good",
     "95.83",
-    "Đạt"
+    "Passed"
    ],
    [
-    "HV00010",
+    "ST00010",
     "Ngô Khánh Linh",
     "6.23",
-    "Trung bình",
-    "95.83",
-    "Đạt"
+    "Average",
+    "91.67",
+    "Passed"
    ],
    [
-    "HV00012",
+    "ST00012",
     "Lý Mỹ Duyên",
     "6.07",
-    "Trung bình",
-    "95.83",
-    "Đạt"
+    "Average",
+    "91.67",
+    "Passed"
    ],
    [
-    "HV00011",
+    "ST00011",
     "Dương Tuấn Kiệt",
     "4.51",
-    "Không đạt",
-    "91.67",
-    "Không đạt"
+    "Failed",
+    "100.00",
+    "Failed"
    ]
   ]
  },
  "luong": {
   "cot": [
-   "Nam",
-   "Thang",
-   "HoTen",
-   "SoBuoi",
-   "SoGio",
-   "DonGiaGio",
-   "Thuong",
-   "TongLuong"
+   "Year",
+   "Month",
+   "FullName",
+   "SessionCount",
+   "Hours",
+   "HourlyRate",
+   "Bonus",
+   "TotalPay"
   ],
   "dong": [
    [
@@ -535,18 +535,18 @@
  },
  "cong_no_hv": {
   "cot": [
-   "MaGD",
-   "MaLop",
-   "TenLop",
-   "HocPhiPhaiDong",
-   "DaDong",
-   "ConNo"
+   "EnrollmentId",
+   "ClassId",
+   "ClassName",
+   "TuitionDue",
+   "AmountPaid",
+   "Balance"
   ],
   "dong": [
    [
-    "GD000024",
-    "LH0004",
-    "TOEIC 450+ K01",
+    "EN000024",
+    "CL0004",
+    "TOEIC 450+ #1",
     "4500000",
     "2250000",
     "2250000"
@@ -555,9 +555,9 @@
  },
  "doanh_thu_thang": {
   "cot": [
-   "Thang",
-   "SoPhieu",
-   "DoanhThu"
+   "Month",
+   "ReceiptCount",
+   "Revenue"
   ],
   "dong": [
    [
@@ -582,18 +582,18 @@
    ],
    [
     "7",
-    "25",
-    "139350000"
+    "26",
+    "141950000"
    ],
    [
     "8",
-    "27",
-    "99150000"
+    "25",
+    "94400000"
    ],
    [
     "9",
-    "12",
-    "44714000"
+    "13",
+    "46864000"
    ],
    [
     "10",
@@ -604,129 +604,129 @@
  },
  "nhat_ky": {
   "cot": [
-   "ThoiGian",
-   "NguoiThucHien",
-   "BangDuLieu",
-   "HanhDong",
-   "KhoaChinh",
-   "DuLieuMoi"
+   "LoggedAt",
+   "PerformedBy",
+   "TableName",
+   "Action",
+   "RecordKey",
+   "NewData"
   ],
   "dong": [
    [
-    "2026-10-02 00:14",
+    "2026-10-02 02:49",
     "sa",
-    "PHIEUTHU",
+    "RECEIPT",
     "INSERT",
-    "PT000081",
-    "<PhieuThu><MaGD>GD000003</MaGD><SoTien>3250000</SoTien><HinhThuc>Chuyển khoản</HinhThuc><TrangThai>Hợp lệ</TrangThai></PhieuThu>"
+    "RC000081",
+    "<Receipt><EnrollmentId>EN000003</EnrollmentId><Amount>3250000</Amount><PaymentMethod>Bank transfer</PaymentMethod><Status>Valid</Status></Receipt>"
    ],
    [
-    "2026-10-02 00:14",
+    "2026-10-02 02:49",
     "sa",
-    "PHIEUTHU",
+    "RECEIPT",
     "INSERT",
-    "PT000082",
-    "<PhieuThu><MaGD>GD000006</MaGD><SoTien>3250000</SoTien><HinhThuc>Chuyển khoản</HinhThuc><TrangThai>Hợp lệ</TrangThai></PhieuThu>"
+    "RC000082",
+    "<Receipt><EnrollmentId>EN000006</EnrollmentId><Amount>3250000</Amount><PaymentMethod>Bank transfer</PaymentMethod><Status>Valid</Status></Receipt>"
    ],
    [
-    "2026-10-02 00:14",
+    "2026-10-02 02:49",
     "sa",
-    "PHIEUTHU",
+    "RECEIPT",
     "INSERT",
-    "PT000083",
-    "<PhieuThu><MaGD>GD000009</MaGD><SoTien>3250000</SoTien><HinhThuc>Chuyển khoản</HinhThuc><TrangThai>Hợp lệ</TrangThai></PhieuThu>"
+    "RC000083",
+    "<Receipt><EnrollmentId>EN000009</EnrollmentId><Amount>3250000</Amount><PaymentMethod>Bank transfer</PaymentMethod><Status>Valid</Status></Receipt>"
    ]
   ]
  },
  "so_dong": {
   "cot": [
-   "Bang",
-   "SoDong"
+   "TableName",
+   "RecordCount"
   ],
   "dong": [
    [
-    "BANGLUONG",
+    "ACCOUNT",
     "9"
    ],
    [
-    "BUOIHOC",
-    "248"
-   ],
-   [
-    "CHINHANH",
-    "2"
-   ],
-   [
-    "CHUNGCHI",
-    "19"
-   ],
-   [
-    "CHUONGTRINH",
-    "4"
-   ],
-   [
-    "DIEM",
-    "138"
-   ],
-   [
-    "DIEMDANH",
+    "ATTENDANCE",
     "1392"
    ],
    [
-    "GHIDANH",
-    "84"
-   ],
-   [
-    "GIAOVIEN",
-    "8"
-   ],
-   [
-    "HOCVIEN",
-    "72"
-   ],
-   [
-    "KHOAHOC",
-    "9"
-   ],
-   [
-    "KHUYENMAI",
-    "3"
-   ],
-   [
-    "KIEMTRADAUVAO",
-    "44"
-   ],
-   [
-    "LICHHOC",
-    "24"
-   ],
-   [
-    "LOPHOC",
-    "10"
-   ],
-   [
-    "NHANVIEN",
-    "6"
-   ],
-   [
-    "NHATKYHETHONG",
+    "AUDIT_LOG",
     "235"
    ],
    [
-    "PHIEUTHU",
-    "97"
+    "BRANCH",
+    "2"
    ],
    [
-    "PHONGHOC",
-    "8"
+    "CERTIFICATE",
+    "19"
    ],
    [
-    "TAIKHOAN",
+    "CLASS",
+    "10"
+   ],
+   [
+    "CLASS_SCHEDULE",
+    "24"
+   ],
+   [
+    "CLASS_SESSION",
+    "248"
+   ],
+   [
+    "COURSE",
     "9"
    ],
    [
-    "THANHPHANDIEM",
+    "EMPLOYEE",
+    "6"
+   ],
+   [
+    "ENROLLMENT",
+    "84"
+   ],
+   [
+    "GRADE",
+    "138"
+   ],
+   [
+    "GRADE_COMPONENT",
     "27"
+   ],
+   [
+    "PAYROLL",
+    "9"
+   ],
+   [
+    "PLACEMENT_TEST",
+    "44"
+   ],
+   [
+    "PROGRAM",
+    "4"
+   ],
+   [
+    "PROMOTION",
+    "3"
+   ],
+   [
+    "RECEIPT",
+    "97"
+   ],
+   [
+    "ROOM",
+    "8"
+   ],
+   [
+    "STUDENT",
+    "72"
+   ],
+   [
+    "TEACHER",
+    "8"
    ]
   ]
  },
