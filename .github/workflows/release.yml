@@ -22,7 +22,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Cài Qt, ODBC, FreeTDS, Ninja
         run: brew install qt qt-unixodbc unixodbc freetds ninja
       - name: Đóng gói .dmg
@@ -37,7 +37,7 @@ jobs:
     name: Đóng gói Windows
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Cài Qt 6.8 LTS + MinGW + Ninja
         uses: jurplel/install-qt-action@v4
         with:
@@ -70,7 +70,7 @@ jobs:
     needs: [macos, windows]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
         with:
           path: dist
