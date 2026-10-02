@@ -4,55 +4,55 @@ digraph CD {
   node  [shape=plain, fontname="Arial", fontsize=12];
   edge  [fontname="Arial", fontsize=11, color="#334155"];
 
-  NGUOI [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
-    <TR><TD BGCOLOR="#1F3864"><FONT COLOR="white"><I><B>NGUOI</B></I> (trừu tượng)</FONT></TD></TR>
-    <TR><TD ALIGN="LEFT"># hoTen: string<BR ALIGN="LEFT"/># ngaySinh: date<BR ALIGN="LEFT"/># gioiTinh: string<BR ALIGN="LEFT"/># soDienThoai: string<BR ALIGN="LEFT"/># email: string<BR ALIGN="LEFT"/></TD></TR>
-    <TR><TD ALIGN="LEFT">+ tuoi(ngay): int<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
-  HOCVIEN [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
-    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>HOCVIEN</B></FONT></TD></TR>
-    <TR><TD ALIGN="LEFT">- maHV: string<BR ALIGN="LEFT"/>- tenPhuHuynh: string<BR ALIGN="LEFT"/>- sdtPhuHuynh: string<BR ALIGN="LEFT"/>- trangThai: string<BR ALIGN="LEFT"/></TD></TR>
-    <TR><TD ALIGN="LEFT">+ ghiDanh(lop)<BR ALIGN="LEFT"/>+ congNo(): money<BR ALIGN="LEFT"/>+ canPhuHuynh(): bool<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
-  GIAOVIEN [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
-    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>GIAOVIEN</B></FONT></TD></TR>
-    <TR><TD ALIGN="LEFT">- maGV: string<BR ALIGN="LEFT"/>- loaiGV: string<BR ALIGN="LEFT"/>- donGiaGio: money<BR ALIGN="LEFT"/>- hoSo: XML<BR ALIGN="LEFT"/></TD></TR>
-    <TR><TD ALIGN="LEFT">+ lichDay(tu, den)<BR ALIGN="LEFT"/>+ tinhLuong(thang, nam)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
-  NHANVIEN [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
-    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>NHANVIEN</B></FONT></TD></TR>
-    <TR><TD ALIGN="LEFT">- maNV: string<BR ALIGN="LEFT"/>- chucVu: string<BR ALIGN="LEFT"/>- luongCoBan: money<BR ALIGN="LEFT"/></TD></TR>
-    <TR><TD ALIGN="LEFT">+ lapPhieuThu(...)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
-  LOPHOC [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
-    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>LOPHOC</B></FONT></TD></TR>
-    <TR><TD ALIGN="LEFT">- maLop: string<BR ALIGN="LEFT"/>- ngayKhaiGiang: date<BR ALIGN="LEFT"/>- siSoToiDa: int<BR ALIGN="LEFT"/>- lichHoc: set(LichHoc)<BR ALIGN="LEFT"/></TD></TR>
-    <TR><TD ALIGN="LEFT">+ taoBuoiHoc()<BR ALIGN="LEFT"/>+ xetKetQua()<BR ALIGN="LEFT"/>+ siSoHienTai(): int<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
-  KHOAHOC [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
-    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>KHOAHOC</B></FONT></TD></TR>
-    <TR><TD ALIGN="LEFT">- maKH: string<BR ALIGN="LEFT"/>- capDo: string<BR ALIGN="LEFT"/>- hocPhi: money<BR ALIGN="LEFT"/>- deCuong: XML<BR ALIGN="LEFT"/>- tienQuyet: KHOAHOC [0..1]<BR ALIGN="LEFT"/>- thanhPhanDiem: set(tuple(ten, trongSo))<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
-  GHIDANH [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#EEF2FF" COLOR="#1F3864">
-    <TR><TD BGCOLOR="#4F46E5"><FONT COLOR="white"><B>GHIDANH</B> (lớp liên kết)</FONT></TD></TR>
-    <TR><TD ALIGN="LEFT">- maGD: string<BR ALIGN="LEFT"/>- hocPhiPhaiDong: money<BR ALIGN="LEFT"/>- /daDong: money<BR ALIGN="LEFT"/>- ketQua: string<BR ALIGN="LEFT"/></TD></TR>
-    <TR><TD ALIGN="LEFT">+ thuHocPhi(soTien)<BR ALIGN="LEFT"/>+ diemTongKet(): decimal<BR ALIGN="LEFT"/>+ chuyenLop(lopMoi)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
-  PHIEUTHU [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
-    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>PHIEUTHU</B></FONT></TD></TR>
-    <TR><TD ALIGN="LEFT">- maPT, ngayThu, soTien, hinhThuc<BR ALIGN="LEFT"/></TD></TR>
-    <TR><TD ALIGN="LEFT">+ huy(lyDo)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
-  BUOIHOC [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
-    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>BUOIHOC</B></FONT></TD></TR>
-    <TR><TD ALIGN="LEFT">- stt, ngayHoc, gio, trangThai<BR ALIGN="LEFT"/>- diemDanh: set(tuple(hocVien, trangThai))<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
-  CHINHANH [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
-    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>CHINHANH</B></FONT></TD></TR>
-    <TR><TD ALIGN="LEFT">- maCN, tenCN, diaChi<BR ALIGN="LEFT"/>- phongHoc: set(PhongHoc)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  PERSON [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
+    <TR><TD BGCOLOR="#1F3864"><FONT COLOR="white"><I><B>Person</B></I> (trừu tượng)</FONT></TD></TR>
+    <TR><TD ALIGN="LEFT"># fullName: string<BR ALIGN="LEFT"/># dateOfBirth: date<BR ALIGN="LEFT"/># gender: string<BR ALIGN="LEFT"/># phone: string<BR ALIGN="LEFT"/># email: string<BR ALIGN="LEFT"/></TD></TR>
+    <TR><TD ALIGN="LEFT">+ age(date): int<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  STUDENT [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
+    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>Student</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">- studentId: string<BR ALIGN="LEFT"/>- guardianName: string<BR ALIGN="LEFT"/>- guardianPhone: string<BR ALIGN="LEFT"/>- status: string<BR ALIGN="LEFT"/></TD></TR>
+    <TR><TD ALIGN="LEFT">+ enroll(class)<BR ALIGN="LEFT"/>+ balance(): money<BR ALIGN="LEFT"/>+ needsGuardian(): bool<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  TEACHER [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
+    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>Teacher</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">- teacherId: string<BR ALIGN="LEFT"/>- teacherType: string<BR ALIGN="LEFT"/>- hourlyRate: money<BR ALIGN="LEFT"/>- profile: XML<BR ALIGN="LEFT"/></TD></TR>
+    <TR><TD ALIGN="LEFT">+ schedule(from, to)<BR ALIGN="LEFT"/>+ pay(month, year)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  EMPLOYEE [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
+    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>Employee</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">- employeeId: string<BR ALIGN="LEFT"/>- position: string<BR ALIGN="LEFT"/>- baseSalary: money<BR ALIGN="LEFT"/></TD></TR>
+    <TR><TD ALIGN="LEFT">+ issueReceipt(...)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  CLASS [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
+    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>Class</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">- classId: string<BR ALIGN="LEFT"/>- startDate: date<BR ALIGN="LEFT"/>- maxStudents: int<BR ALIGN="LEFT"/>- schedule: set(tuple(weekday, startTime, endTime))<BR ALIGN="LEFT"/></TD></TR>
+    <TR><TD ALIGN="LEFT">+ generateSessions()<BR ALIGN="LEFT"/>+ evaluateResults()<BR ALIGN="LEFT"/>+ enrolledCount(): int<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  COURSE [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
+    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>Course</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">- courseId: string<BR ALIGN="LEFT"/>- level: string<BR ALIGN="LEFT"/>- tuition: money<BR ALIGN="LEFT"/>- syllabus: XML<BR ALIGN="LEFT"/>- prerequisite: Course [0..1]<BR ALIGN="LEFT"/>- gradeComponents: set(tuple(name, weight))<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  ENROLLMENT [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#EEF2FF" COLOR="#1F3864">
+    <TR><TD BGCOLOR="#4F46E5"><FONT COLOR="white"><B>Enrollment</B> (lớp liên kết)</FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">- enrollmentId: string<BR ALIGN="LEFT"/>- tuitionDue: money<BR ALIGN="LEFT"/>- /amountPaid: money<BR ALIGN="LEFT"/>- result: string<BR ALIGN="LEFT"/></TD></TR>
+    <TR><TD ALIGN="LEFT">+ pay(amount)<BR ALIGN="LEFT"/>+ finalGrade(): decimal<BR ALIGN="LEFT"/>+ transfer(newClass)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  RECEIPT [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
+    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>Receipt</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">- receiptId, paidAt, amount, paymentMethod<BR ALIGN="LEFT"/></TD></TR>
+    <TR><TD ALIGN="LEFT">+ cancel(reason)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  CLASS_SESSION [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
+    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>ClassSession</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">- sessionNo, sessionDate, time, status<BR ALIGN="LEFT"/>- attendance: set(tuple(student, status))<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  BRANCH [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" BGCOLOR="#F8FAFC" COLOR="#1F3864">
+    <TR><TD BGCOLOR="#2E75B6"><FONT COLOR="white"><B>Branch</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">- branchId, branchName, address<BR ALIGN="LEFT"/>- rooms: set(Room)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
 
   // Kế thừa (tổng quát hóa)
-  HOCVIEN -> NGUOI [arrowhead=empty, arrowsize=1.3];
-  GIAOVIEN -> NGUOI [arrowhead=empty, arrowsize=1.3];
-  NHANVIEN -> NGUOI [arrowhead=empty, arrowsize=1.3];
+  STUDENT -> PERSON [arrowhead=empty, arrowsize=1.3];
+  TEACHER -> PERSON [arrowhead=empty, arrowsize=1.3];
+  EMPLOYEE -> PERSON [arrowhead=empty, arrowsize=1.3];
 
   // Kết hợp với bản số UML
-  GHIDANH -> HOCVIEN [arrowhead=none, taillabel="0..*", headlabel="1"];
-  GHIDANH -> LOPHOC [arrowhead=none, taillabel="0..*", headlabel="1"];
-  PHIEUTHU -> GHIDANH [arrowhead=odiamond, taillabel="0..*", headlabel="1"];
-  LOPHOC -> KHOAHOC [arrowhead=none, taillabel="0..*", headlabel="1"];
-  LOPHOC -> GIAOVIEN [arrowhead=none, taillabel="0..*", headlabel="1"];
-  BUOIHOC -> LOPHOC [arrowhead=diamond, taillabel="1..*", headlabel="1"];
-  LOPHOC -> CHINHANH [arrowhead=none, taillabel="0..*", headlabel="1"];
+  ENROLLMENT -> STUDENT [arrowhead=none, taillabel="0..*", headlabel="1"];
+  ENROLLMENT -> CLASS [arrowhead=none, taillabel="0..*", headlabel="1"];
+  RECEIPT -> ENROLLMENT [arrowhead=odiamond, taillabel="0..*", headlabel="1"];
+  CLASS -> COURSE [arrowhead=none, taillabel="0..*", headlabel="1"];
+  CLASS -> TEACHER [arrowhead=none, taillabel="0..*", headlabel="1"];
+  CLASS_SESSION -> CLASS [arrowhead=diamond, taillabel="1..*", headlabel="1"];
+  CLASS -> BRANCH [arrowhead=none, taillabel="0..*", headlabel="1"];
 }

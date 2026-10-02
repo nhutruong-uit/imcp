@@ -5,10 +5,10 @@ digraph ARCH {
   edge  [color="#1F3864", penwidth=1.4, fontname="Arial", fontsize=10];
   APP [label="app - composition root\nmain.cpp, AppContainer (khởi tạo & nối dây)", fillcolor="#E2E8F0"];
   subgraph cluster_outer { label="Tầng ngoài - chi tiết kỹ thuật"; style="rounded,dashed"; color="#94A3B8"; fontsize=11;
-    P [label="presentation (Qt Widgets)\nLoginDialog · MainWindow · HocVienPage\nDanhSachPage · DashboardPage · form .ui\nTableExporter (PDF/CSV)", fillcolor="#DBEAFE"];
-    I [label="infrastructure (Qt SQL / ODBC)\nDatabaseManager · Sql*Repository\nSqlAuthGateway · SqlErrorMapper\nQSettingsCauHinhStore", fillcolor="#DBEAFE"]; }
-  A [label="application - use case\nAuthService · HocVienService · ThongKeService\nDanhSachService · PhanQuyen\nPorts: IHocVienRepository, IAuthGateway, ...", fillcolor="#C7D2FE"];
-  D [label="domain - nghiệp vụ thuần\nHocVien::kiemTra() · TaiKhoan · VaiTro\nThongKe · Result<T>", fillcolor="#A5B4FC"];
+    P [label="presentation (Qt Widgets)\nLoginDialog · MainWindow · StudentPage\nListPage · DashboardPage · form .ui\nI18n · Labels · Columns · DbValues · TableExporter", fillcolor="#DBEAFE"];
+    I [label="infrastructure (Qt SQL / ODBC)\nDatabaseManager · Sql*Repository\nSqlAuthGateway · SqlErrorMapper · DbMessages\nQSettingsStore", fillcolor="#DBEAFE"]; }
+  A [label="application - use case\nAuthService · StudentService · StatisticsService\nListService · LanguageService · Permissions\nPorts: IStudentRepository, IAuthGateway, ...", fillcolor="#C7D2FE"];
+  D [label="domain - nghiệp vụ thuần\nStudent::validate() · Account · Role\nDashboardStats · Result<T>", fillcolor="#A5B4FC"];
   DB [label="SQL Server - QLTTTA\nthủ tục · view · trigger · role", shape=cylinder, fillcolor="#FEF3C7", color="#B45309"];
   APP -> P; APP -> I;
   P -> A [label=" gọi use case"]; I -> A [label=" hiện thực port", style=dashed, arrowhead=empty];

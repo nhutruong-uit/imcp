@@ -6,14 +6,14 @@ digraph SEC {
   subgraph cluster_u { label="Contained users"; color="#94A3B8"; style=rounded;
     node [fillcolor="#F1F5F9"]; u1 [label="ql_quan"]; u2 [label="gvu_lan, gvu_ha"]; u3 [label="kt_minh, kt_tung"]; u4 [label="gv_john, gv_hoa..."]; }
   subgraph cluster_r { label="Database roles"; color="#94A3B8"; style=rounded;
-    node [fillcolor="#C7D2FE"]; r1 [label="rl_QuanLy\n(+db_datareader)"]; r2 [label="rl_GiaoVu"]; r3 [label="rl_KeToan"]; r4 [label="rl_GiaoVien"]; }
+    node [fillcolor="#C7D2FE"]; r1 [label="rl_Manager\n(+db_datareader)"]; r2 [label="rl_AcademicStaff"]; r3 [label="rl_Accountant"]; r4 [label="rl_Teacher"]; }
   subgraph cluster_o { label="Đối tượng được GRANT (owner = dbo)"; color="#94A3B8"; style=rounded;
-    node [fillcolor="#DBEAFE"]; o1 [label="usp_* (EXECUTE)"]; o2 [label="vw_HocVien_TongQuan,\nvw_LopHoc_ChiTiet, vw_CongNo"]; o3 [label="vw_GV_LopCuaToi,\nvw_GV_HocVienCuaToi...\n(lọc theo USER_NAME())"]; }
+    node [fillcolor="#DBEAFE"]; o1 [label="usp_* (EXECUTE)"]; o2 [label="vw_StudentOverview,\nvw_ClassDetails, vw_OutstandingTuition"]; o3 [label="vw_Teacher_MyClasses,\nvw_Teacher_MyStudents...\n(lọc theo USER_NAME())"]; }
   subgraph cluster_t { label="Bảng gốc (không GRANT cho role nghiệp vụ)"; color="#94A3B8"; style=rounded;
-    node [fillcolor="#FEF3C7"]; t1 [label="HOCVIEN, GHIDANH, LOPHOC,\nPHIEUTHU, DIEM, BANGLUONG..."]; }
+    node [fillcolor="#FEF3C7"]; t1 [label="STUDENT, ENROLLMENT, CLASS,\nRECEIPT, GRADE, PAYROLL..."]; }
   u1 -> r1; u2 -> r2; u3 -> r3; u4 -> r4;
-  r1 -> o1; r1 -> o2; r2 -> o1 [label="usp_HocVien_*, usp_GhiDanh..."]; r2 -> o2; r3 -> o1 [label="usp_PhieuThu_*"]; r3 -> o2;
-  r4 -> o3; r4 -> o1 [label="usp_DiemDanh_Luu, usp_Diem_Luu"];
+  r1 -> o1; r1 -> o2; r2 -> o1 [label="usp_Student_*, usp_Enrollment_Create..."]; r2 -> o2; r3 -> o1 [label="usp_Receipt_*"]; r3 -> o2;
+  r4 -> o3; r4 -> o1 [label="usp_Attendance_Save, usp_Grade_Save"];
   o1 -> t1 [label="ownership chaining\n(không kiểm tra quyền bảng)", color="#16A34A", fontcolor="#15803D"];
   o2 -> t1 [color="#16A34A"]; o3 -> t1 [color="#16A34A"];
   r4 -> t1 [label="DENY SELECT", color="#DC2626", fontcolor="#DC2626", style=dashed];

@@ -1,104 +1,58 @@
 [
  {
-  "bang": "BANGLUONG",
+  "bang": "ACCOUNT",
   "cot": [
    {
     "stt": 1,
-    "cot": "MaBL",
-    "kieu": "int",
+    "cot": "Username",
+    "kieu": "nvarchar(50)",
     "cho_null": false,
-    "identity_": true,
+    "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": true
    },
    {
     "stt": 2,
-    "cot": "MaGV",
-    "kieu": "varchar(10)",
+    "cot": "Role",
+    "kieu": "varchar(20)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "GIAOVIEN"
+    "khoa_chinh": false
    },
    {
     "stt": 3,
-    "cot": "Thang",
-    "kieu": "tinyint",
-    "cho_null": false,
+    "cot": "EmployeeId",
+    "kieu": "varchar(10)",
+    "cho_null": true,
     "identity_": false,
     "tinh_toan": false,
-    "khoa_chinh": false
+    "khoa_chinh": false,
+    "tham_chieu": "EMPLOYEE"
    },
    {
     "stt": 4,
-    "cot": "Nam",
-    "kieu": "smallint",
-    "cho_null": false,
+    "cot": "TeacherId",
+    "kieu": "varchar(10)",
+    "cho_null": true,
     "identity_": false,
     "tinh_toan": false,
-    "khoa_chinh": false
+    "khoa_chinh": false,
+    "tham_chieu": "TEACHER"
    },
    {
     "stt": 5,
-    "cot": "SoBuoi",
-    "kieu": "int",
+    "cot": "Status",
+    "kieu": "nvarchar(20)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
-    "khoa_chinh": false
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Active')"
    },
    {
     "stt": 6,
-    "cot": "SoGio",
-    "kieu": "decimal(6,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 7,
-    "cot": "DonGiaGio",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 8,
-    "cot": "Thuong",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "((0))"
-   },
-   {
-    "stt": 9,
-    "cot": "KhauTru",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "((0))"
-   },
-   {
-    "stt": 10,
-    "cot": "TongLuong",
-    "kieu": "decimal(16,0)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": true,
-    "khoa_chinh": false,
-    "cong_thuc": "((CONVERT([decimal](14,0),[SoGio]*[DonGiaGio])+[Thuong])-[KhauTru])"
-   },
-   {
-    "stt": 11,
-    "cot": "NgayChot",
+    "cot": "CreatedAt",
     "kieu": "datetime",
     "cho_null": false,
     "identity_": false,
@@ -107,48 +61,89 @@
     "mac_dinh": "(getdate())"
    },
    {
-    "stt": 12,
-    "cot": "TrangThai",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
+    "stt": 7,
+    "cot": "LastLoginAt",
+    "kieu": "datetime",
+    "cho_null": true,
     "identity_": false,
     "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Đã chốt')"
+    "khoa_chinh": false
    }
   ],
   "check_": [
    {
-    "ten": "CK_BANGLUONG_Nam",
-    "dinh_nghia": "([Nam]>=(2020))"
+    "ten": "CK_ACCOUNT_Owner",
+    "dinh_nghia": "([Role]='TEACHER' AND [TeacherId] IS NOT NULL AND [EmployeeId] IS NULL OR [Role]<>'TEACHER' AND [EmployeeId] IS NOT NULL AND [TeacherId] IS NULL)"
    },
    {
-    "ten": "CK_BANGLUONG_SoLieu",
-    "dinh_nghia": "([SoBuoi]>=(0) AND [SoGio]>=(0) AND [Thuong]>=(0) AND [KhauTru]>=(0))"
+    "ten": "CK_ACCOUNT_Role",
+    "dinh_nghia": "([Role]='TEACHER' OR [Role]='ACCOUNTANT' OR [Role]='ACADEMIC_STAFF' OR [Role]='MANAGER')"
    },
    {
-    "ten": "CK_BANGLUONG_Thang",
-    "dinh_nghia": "([Thang]>=(1) AND [Thang]<=(12))"
-   },
-   {
-    "ten": "CK_BANGLUONG_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Đã chi trả' OR [TrangThai]=N'Đã chốt')"
-   }
-  ],
-  "unique_": [
-   {
-    "ten": "UQ_BANGLUONG_MaGV_Thang_Nam"
+    "ten": "CK_ACCOUNT_Status",
+    "dinh_nghia": "([Status]=N'Locked' OR [Status]=N'Active')"
    }
   ],
   "so_dong": 9
  },
  {
-  "bang": "BUOIHOC",
+  "bang": "ATTENDANCE",
   "cot": [
    {
     "stt": 1,
-    "cot": "MaBuoi",
+    "cot": "SessionId",
     "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "tham_chieu": "CLASS_SESSION"
+   },
+   {
+    "stt": 2,
+    "cot": "EnrollmentId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "tham_chieu": "ENROLLMENT"
+   },
+   {
+    "stt": 3,
+    "cot": "Status",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Present')"
+   },
+   {
+    "stt": 4,
+    "cot": "Notes",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_ATTENDANCE_Status",
+    "dinh_nghia": "([Status]=N'Unexcused absence' OR [Status]=N'Excused absence' OR [Status]=N'Late' OR [Status]=N'Present')"
+   }
+  ],
+  "so_dong": 1392
+ },
+ {
+  "bang": "AUDIT_LOG",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "LogId",
+    "kieu": "bigint",
     "cho_null": false,
     "identity_": true,
     "tinh_toan": false,
@@ -156,27 +151,28 @@
    },
    {
     "stt": 2,
-    "cot": "MaLop",
-    "kieu": "varchar(10)",
+    "cot": "LoggedAt",
+    "kieu": "datetime",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "tham_chieu": "LOPHOC"
+    "mac_dinh": "(getdate())"
    },
    {
     "stt": 3,
-    "cot": "STT",
-    "kieu": "int",
+    "cot": "PerformedBy",
+    "kieu": "nvarchar(128)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
-    "khoa_chinh": false
+    "khoa_chinh": false,
+    "mac_dinh": "(original_login())"
    },
    {
     "stt": 4,
-    "cot": "NgayHoc",
-    "kieu": "date",
+    "cot": "TableName",
+    "kieu": "nvarchar(50)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
@@ -184,8 +180,8 @@
    },
    {
     "stt": 5,
-    "cot": "GioBatDau",
-    "kieu": "time(0)",
+    "cot": "Action",
+    "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
@@ -193,8 +189,8 @@
    },
    {
     "stt": 6,
-    "cot": "GioKetThuc",
-    "kieu": "time(0)",
+    "cot": "RecordKey",
+    "kieu": "nvarchar(100)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
@@ -202,71 +198,37 @@
    },
    {
     "stt": 7,
-    "cot": "MaPhong",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "PHONGHOC"
-   },
-   {
-    "stt": 8,
-    "cot": "MaGV",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "GIAOVIEN"
-   },
-   {
-    "stt": 9,
-    "cot": "NoiDung",
-    "kieu": "nvarchar(200)",
+    "cot": "OldData",
+    "kieu": "xml",
     "cho_null": true,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false
    },
    {
-    "stt": 10,
-    "cot": "TrangThai",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
+    "stt": 8,
+    "cot": "NewData",
+    "kieu": "xml",
+    "cho_null": true,
     "identity_": false,
     "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Chưa dạy')"
+    "khoa_chinh": false
    }
   ],
   "check_": [
    {
-    "ten": "CK_BUOIHOC_Gio",
-    "dinh_nghia": "([GioKetThuc]>[GioBatDau])"
-   },
-   {
-    "ten": "CK_BUOIHOC_STT",
-    "dinh_nghia": "([STT]>=(1))"
-   },
-   {
-    "ten": "CK_BUOIHOC_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Hủy' OR [TrangThai]=N'Đã dạy' OR [TrangThai]=N'Chưa dạy')"
+    "ten": "CK_AUDIT_LOG_Action",
+    "dinh_nghia": "([Action]='DELETE' OR [Action]='UPDATE' OR [Action]='INSERT')"
    }
   ],
-  "unique_": [
-   {
-    "ten": "UQ_BUOIHOC_MaLop_STT"
-   }
-  ],
-  "so_dong": 248
+  "so_dong": 235
  },
  {
-  "bang": "CHINHANH",
+  "bang": "BRANCH",
   "cot": [
    {
     "stt": 1,
-    "cot": "MaCN",
+    "cot": "BranchId",
     "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
@@ -275,7 +237,7 @@
    },
    {
     "stt": 2,
-    "cot": "TenCN",
+    "cot": "BranchName",
     "kieu": "nvarchar(100)",
     "cho_null": false,
     "identity_": false,
@@ -284,7 +246,7 @@
    },
    {
     "stt": 3,
-    "cot": "DiaChi",
+    "cot": "Address",
     "kieu": "nvarchar(200)",
     "cho_null": false,
     "identity_": false,
@@ -293,7 +255,7 @@
    },
    {
     "stt": 4,
-    "cot": "SoDienThoai",
+    "cot": "Phone",
     "kieu": "varchar(15)",
     "cho_null": true,
     "identity_": false,
@@ -311,7 +273,7 @@
    },
    {
     "stt": 6,
-    "cot": "NgayThanhLap",
+    "cot": "FoundedOn",
     "kieu": "date",
     "cho_null": true,
     "identity_": false,
@@ -320,62 +282,62 @@
    },
    {
     "stt": 7,
-    "cot": "TrangThai",
+    "cot": "Status",
     "kieu": "nvarchar(20)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "mac_dinh": "(N'Hoạt động')"
+    "mac_dinh": "(N'Active')"
    }
   ],
   "check_": [
    {
-    "ten": "CK_CHINHANH_Email",
+    "ten": "CK_BRANCH_Email",
     "dinh_nghia": "([Email] like '%_@_%._%')"
    },
    {
-    "ten": "CK_CHINHANH_SoDienThoai",
-    "dinh_nghia": "(NOT [SoDienThoai] like '%[^0-9]%' AND (len([SoDienThoai])>=(9) AND len([SoDienThoai])<=(11)))"
+    "ten": "CK_BRANCH_Phone",
+    "dinh_nghia": "(NOT [Phone] like '%[^0-9]%' AND (len([Phone])>=(9) AND len([Phone])<=(11)))"
    },
    {
-    "ten": "CK_CHINHANH_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Tạm ngưng' OR [TrangThai]=N'Hoạt động')"
+    "ten": "CK_BRANCH_Status",
+    "dinh_nghia": "([Status]=N'Suspended' OR [Status]=N'Active')"
    }
   ],
   "unique_": [
    {
-    "ten": "UQ_CHINHANH_TenCN"
+    "ten": "UQ_BRANCH_BranchName"
    }
   ],
   "so_dong": 2
  },
  {
-  "bang": "CHUNGCHI",
+  "bang": "CERTIFICATE",
   "cot": [
    {
     "stt": 1,
-    "cot": "MaCC",
+    "cot": "CertificateId",
     "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": true,
-    "mac_dinh": "('CC'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_CHUNGCHI]),(5)))"
+    "mac_dinh": "('CE'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_CERTIFICATE]),(5)))"
    },
    {
     "stt": 2,
-    "cot": "MaGD",
+    "cot": "EnrollmentId",
     "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "tham_chieu": "GHIDANH"
+    "tham_chieu": "ENROLLMENT"
    },
    {
     "stt": 3,
-    "cot": "SoHieu",
+    "cot": "SerialNumber",
     "kieu": "varchar(20)",
     "cho_null": false,
     "identity_": false,
@@ -384,7 +346,7 @@
    },
    {
     "stt": 4,
-    "cot": "NgayCap",
+    "cot": "IssuedOn",
     "kieu": "date",
     "cho_null": false,
     "identity_": false,
@@ -394,7 +356,7 @@
    },
    {
     "stt": 5,
-    "cot": "DiemTongKet",
+    "cot": "FinalGrade",
     "kieu": "decimal(4,2)",
     "cho_null": false,
     "identity_": false,
@@ -403,7 +365,7 @@
    },
    {
     "stt": 6,
-    "cot": "XepLoai",
+    "cot": "Classification",
     "kieu": "nvarchar(20)",
     "cho_null": false,
     "identity_": false,
@@ -413,39 +375,40 @@
   ],
   "check_": [
    {
-    "ten": "CK_CHUNGCHI_DiemTongKet",
-    "dinh_nghia": "([DiemTongKet]>=(5) AND [DiemTongKet]<=(10))"
+    "ten": "CK_CERTIFICATE_Classification",
+    "dinh_nghia": "([Classification]=N'Average' OR [Classification]=N'Good' OR [Classification]=N'Very good' OR [Classification]=N'Excellent')"
    },
    {
-    "ten": "CK_CHUNGCHI_XepLoai",
-    "dinh_nghia": "([XepLoai]=N'Trung bình' OR [XepLoai]=N'Khá' OR [XepLoai]=N'Giỏi' OR [XepLoai]=N'Xuất sắc')"
+    "ten": "CK_CERTIFICATE_FinalGrade",
+    "dinh_nghia": "([FinalGrade]>=(5) AND [FinalGrade]<=(10))"
    }
   ],
   "unique_": [
    {
-    "ten": "UQ_CHUNGCHI_SoHieu"
+    "ten": "UQ_CERTIFICATE_SerialNumber"
    },
    {
-    "ten": "UQ_CHUNGCHI_MaGD"
+    "ten": "UQ_CERTIFICATE_EnrollmentId"
    }
   ],
   "so_dong": 19
  },
  {
-  "bang": "CHUONGTRINH",
+  "bang": "CLASS",
   "cot": [
    {
     "stt": 1,
-    "cot": "MaCT",
+    "cot": "ClassId",
     "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
-    "khoa_chinh": true
+    "khoa_chinh": true,
+    "mac_dinh": "('CL'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_CLASS]),(4)))"
    },
    {
     "stt": 2,
-    "cot": "TenCT",
+    "cot": "ClassName",
     "kieu": "nvarchar(100)",
     "cho_null": false,
     "identity_": false,
@@ -454,1108 +417,47 @@
    },
    {
     "stt": 3,
-    "cot": "DoiTuong",
-    "kieu": "nvarchar(100)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 4,
-    "cot": "MoTa",
-    "kieu": "nvarchar(500)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   }
-  ],
-  "unique_": [
-   {
-    "ten": "UQ_CHUONGTRINH_TenCT"
-   }
-  ],
-  "so_dong": 4
- },
- {
-  "bang": "DIEM",
-  "cot": [
-   {
-    "stt": 1,
-    "cot": "MaGD",
+    "cot": "CourseId",
     "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
-    "khoa_chinh": true,
-    "tham_chieu": "GHIDANH"
-   },
-   {
-    "stt": 2,
-    "cot": "MaTP",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "tham_chieu": "THANHPHANDIEM"
-   },
-   {
-    "stt": 3,
-    "cot": "Diem",
-    "kieu": "decimal(4,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "khoa_chinh": false,
+    "tham_chieu": "COURSE"
    },
    {
     "stt": 4,
-    "cot": "NgayNhap",
-    "kieu": "datetime",
+    "cot": "BranchId",
+    "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "mac_dinh": "(getdate())"
+    "tham_chieu": "BRANCH"
    },
    {
     "stt": 5,
-    "cot": "NguoiNhap",
-    "kieu": "nvarchar(128)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(original_login())"
-   }
-  ],
-  "check_": [
-   {
-    "ten": "CK_DIEM_Diem",
-    "dinh_nghia": "([Diem]>=(0) AND [Diem]<=(10))"
-   }
-  ],
-  "so_dong": 138
- },
- {
-  "bang": "DIEMDANH",
-  "cot": [
-   {
-    "stt": 1,
-    "cot": "MaBuoi",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "tham_chieu": "BUOIHOC"
-   },
-   {
-    "stt": 2,
-    "cot": "MaGD",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "tham_chieu": "GHIDANH"
-   },
-   {
-    "stt": 3,
-    "cot": "TrangThai",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Có mặt')"
-   },
-   {
-    "stt": 4,
-    "cot": "GhiChu",
-    "kieu": "nvarchar(200)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   }
-  ],
-  "check_": [
-   {
-    "ten": "CK_DIEMDANH_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Vắng không phép' OR [TrangThai]=N'Vắng có phép' OR [TrangThai]=N'Đi trễ' OR [TrangThai]=N'Có mặt')"
-   }
-  ],
-  "so_dong": 1392
- },
- {
-  "bang": "GHIDANH",
-  "cot": [
-   {
-    "stt": 1,
-    "cot": "MaGD",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('GD'+right('000000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_GHIDANH]),(6)))"
-   },
-   {
-    "stt": 2,
-    "cot": "MaHV",
+    "cot": "TeacherId",
     "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "tham_chieu": "HOCVIEN"
-   },
-   {
-    "stt": 3,
-    "cot": "MaLop",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "LOPHOC"
-   },
-   {
-    "stt": 4,
-    "cot": "NgayGhiDanh",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(CONVERT([date],getdate()))"
-   },
-   {
-    "stt": 5,
-    "cot": "HocPhiGoc",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
+    "tham_chieu": "TEACHER"
    },
    {
     "stt": 6,
-    "cot": "MaKM",
+    "cot": "RoomId",
     "kieu": "varchar(10)",
-    "cho_null": true,
+    "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "tham_chieu": "KHUYENMAI"
+    "tham_chieu": "ROOM"
    },
    {
     "stt": 7,
-    "cot": "SoTienGiam",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "((0))"
-   },
-   {
-    "stt": 8,
-    "cot": "HocPhiPhaiDong",
-    "kieu": "decimal(13,0)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": true,
-    "khoa_chinh": false,
-    "cong_thuc": "([HocPhiGoc]-[SoTienGiam])"
-   },
-   {
-    "stt": 9,
-    "cot": "DaDong",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "((0))"
-   },
-   {
-    "stt": 10,
-    "cot": "TrangThai",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Đang học')"
-   },
-   {
-    "stt": 11,
-    "cot": "DiemTongKet",
-    "kieu": "decimal(4,2)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 12,
-    "cot": "KetQua",
-    "kieu": "nvarchar(20)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 13,
-    "cot": "MaNVGhiDanh",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "NHANVIEN"
-   }
-  ],
-  "check_": [
-   {
-    "ten": "CK_GHIDANH_DaDong",
-    "dinh_nghia": "([DaDong]>=(0) AND [DaDong]<=([HocPhiGoc]-[SoTienGiam]))"
-   },
-   {
-    "ten": "CK_GHIDANH_DiemTongKet",
-    "dinh_nghia": "([DiemTongKet]>=(0) AND [DiemTongKet]<=(10))"
-   },
-   {
-    "ten": "CK_GHIDANH_HocPhiGoc",
-    "dinh_nghia": "([HocPhiGoc]>=(0))"
-   },
-   {
-    "ten": "CK_GHIDANH_KetQua",
-    "dinh_nghia": "([KetQua]=N'Không đạt' OR [KetQua]=N'Đạt')"
-   },
-   {
-    "ten": "CK_GHIDANH_SoTienGiam",
-    "dinh_nghia": "([SoTienGiam]>=(0) AND [SoTienGiam]<=[HocPhiGoc])"
-   },
-   {
-    "ten": "CK_GHIDANH_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Hoàn thành' OR [TrangThai]=N'Đã nghỉ' OR [TrangThai]=N'Bảo lưu' OR [TrangThai]=N'Đang học')"
-   }
-  ],
-  "unique_": [
-   {
-    "ten": "UQ_GHIDANH_MaHV_MaLop"
-   }
-  ],
-  "so_dong": 84
- },
- {
-  "bang": "GIAOVIEN",
-  "cot": [
-   {
-    "stt": 1,
-    "cot": "MaGV",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('GV'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_GIAOVIEN]),(4)))"
-   },
-   {
-    "stt": 2,
-    "cot": "HoTen",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 3,
-    "cot": "NgaySinh",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 4,
-    "cot": "GioiTinh",
-    "kieu": "nvarchar(5)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 5,
-    "cot": "QuocTich",
-    "kieu": "nvarchar(50)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Việt Nam')"
-   },
-   {
-    "stt": 6,
-    "cot": "SoDienThoai",
-    "kieu": "varchar(15)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 7,
-    "cot": "Email",
-    "kieu": "varchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 8,
-    "cot": "TrinhDo",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 9,
-    "cot": "LoaiGV",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 10,
-    "cot": "DonGiaGio",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 11,
-    "cot": "HoSoXML",
-    "kieu": "xml",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 12,
-    "cot": "MaCN",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "CHINHANH"
-   },
-   {
-    "stt": 13,
-    "cot": "NgayVaoLam",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(CONVERT([date],getdate()))"
-   },
-   {
-    "stt": 14,
-    "cot": "TrangThai",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Đang dạy')"
-   }
-  ],
-  "check_": [
-   {
-    "ten": "CK_GIAOVIEN_BanNgu",
-    "dinh_nghia": "([LoaiGV]=N'Việt Nam' OR [QuocTich]<>N'Việt Nam')"
-   },
-   {
-    "ten": "CK_GIAOVIEN_DonGiaGio",
-    "dinh_nghia": "([DonGiaGio]>(0))"
-   },
-   {
-    "ten": "CK_GIAOVIEN_Email",
-    "dinh_nghia": "([Email] like '%_@_%._%')"
-   },
-   {
-    "ten": "CK_GIAOVIEN_GioiTinh",
-    "dinh_nghia": "([GioiTinh]=N'Khác' OR [GioiTinh]=N'Nữ' OR [GioiTinh]=N'Nam')"
-   },
-   {
-    "ten": "CK_GIAOVIEN_LoaiGV",
-    "dinh_nghia": "([LoaiGV]=N'Bản ngữ' OR [LoaiGV]=N'Việt Nam')"
-   },
-   {
-    "ten": "CK_GIAOVIEN_SoDienThoai",
-    "dinh_nghia": "(NOT [SoDienThoai] like '%[^0-9]%' AND (len([SoDienThoai])>=(9) AND len([SoDienThoai])<=(11)))"
-   },
-   {
-    "ten": "CK_GIAOVIEN_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Đã nghỉ' OR [TrangThai]=N'Tạm nghỉ' OR [TrangThai]=N'Đang dạy')"
-   },
-   {
-    "ten": "CK_GIAOVIEN_TrinhDo",
-    "dinh_nghia": "([TrinhDo]=N'Tiến sĩ' OR [TrinhDo]=N'Thạc sĩ' OR [TrinhDo]=N'Cử nhân')"
-   }
-  ],
-  "unique_": [
-   {
-    "ten": "UQ_GIAOVIEN_Email"
-   },
-   {
-    "ten": "UQ_GIAOVIEN_SoDienThoai"
-   }
-  ],
-  "so_dong": 8
- },
- {
-  "bang": "HOCVIEN",
-  "cot": [
-   {
-    "stt": 1,
-    "cot": "MaHV",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('HV'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_HOCVIEN]),(5)))"
-   },
-   {
-    "stt": 2,
-    "cot": "HoTen",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 3,
-    "cot": "NgaySinh",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 4,
-    "cot": "GioiTinh",
-    "kieu": "nvarchar(5)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 5,
-    "cot": "SoDienThoai",
-    "kieu": "varchar(15)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 6,
-    "cot": "Email",
-    "kieu": "varchar(100)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 7,
-    "cot": "DiaChi",
-    "kieu": "nvarchar(200)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 8,
-    "cot": "NgheNghiep",
-    "kieu": "nvarchar(50)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 9,
-    "cot": "TenPhuHuynh",
-    "kieu": "nvarchar(100)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 10,
-    "cot": "SDTPhuHuynh",
-    "kieu": "varchar(15)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 11,
-    "cot": "MaCN",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "CHINHANH"
-   },
-   {
-    "stt": 12,
-    "cot": "NgayDangKy",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(CONVERT([date],getdate()))"
-   },
-   {
-    "stt": 13,
-    "cot": "TrangThai",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Tiềm năng')"
-   },
-   {
-    "stt": 14,
-    "cot": "GhiChu",
-    "kieu": "nvarchar(500)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   }
-  ],
-  "check_": [
-   {
-    "ten": "CK_HOCVIEN_Email",
-    "dinh_nghia": "([Email] like '%_@_%._%')"
-   },
-   {
-    "ten": "CK_HOCVIEN_GioiTinh",
-    "dinh_nghia": "([GioiTinh]=N'Khác' OR [GioiTinh]=N'Nữ' OR [GioiTinh]=N'Nam')"
-   },
-   {
-    "ten": "CK_HOCVIEN_LienLac",
-    "dinh_nghia": "([SoDienThoai] IS NOT NULL OR [SDTPhuHuynh] IS NOT NULL)"
-   },
-   {
-    "ten": "CK_HOCVIEN_NgaySinh",
-    "dinh_nghia": "([NgaySinh]>'19300101' AND dateadd(year,(4),[NgaySinh])<=[NgayDangKy])"
-   },
-   {
-    "ten": "CK_HOCVIEN_PhuHuynh",
-    "dinh_nghia": "(dateadd(year,(18),[NgaySinh])<=[NgayDangKy] OR [TenPhuHuynh] IS NOT NULL AND [SDTPhuHuynh] IS NOT NULL)"
-   },
-   {
-    "ten": "CK_HOCVIEN_SDTPhuHuynh",
-    "dinh_nghia": "(NOT [SDTPhuHuynh] like '%[^0-9]%' AND (len([SDTPhuHuynh])>=(9) AND len([SDTPhuHuynh])<=(11)))"
-   },
-   {
-    "ten": "CK_HOCVIEN_SoDienThoai",
-    "dinh_nghia": "(NOT [SoDienThoai] like '%[^0-9]%' AND (len([SoDienThoai])>=(9) AND len([SoDienThoai])<=(11)))"
-   },
-   {
-    "ten": "CK_HOCVIEN_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Ngừng học' OR [TrangThai]=N'Bảo lưu' OR [TrangThai]=N'Đang học' OR [TrangThai]=N'Tiềm năng')"
-   }
-  ],
-  "so_dong": 72
- },
- {
-  "bang": "KHOAHOC",
-  "cot": [
-   {
-    "stt": 1,
-    "cot": "MaKH",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true
-   },
-   {
-    "stt": 2,
-    "cot": "MaCT",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "CHUONGTRINH"
-   },
-   {
-    "stt": 3,
-    "cot": "TenKH",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 4,
-    "cot": "CapDo",
-    "kieu": "varchar(2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 5,
-    "cot": "SoBuoi",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 6,
-    "cot": "ThoiLuongBuoi",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "((90))"
-   },
-   {
-    "stt": 7,
-    "cot": "HocPhi",
-    "kieu": "decimal(12,0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 8,
-    "cot": "DiemDauVaoToiThieu",
-    "kieu": "decimal(4,2)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 9,
-    "cot": "MaKHTienQuyet",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "KHOAHOC"
-   },
-   {
-    "stt": 10,
-    "cot": "NoiDungXML",
-    "kieu": "xml",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 11,
-    "cot": "TrangThai",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Đang mở')"
-   }
-  ],
-  "check_": [
-   {
-    "ten": "CK_KHOAHOC_CapDo",
-    "dinh_nghia": "([CapDo]='C2' OR [CapDo]='C1' OR [CapDo]='B2' OR [CapDo]='B1' OR [CapDo]='A2' OR [CapDo]='A1')"
-   },
-   {
-    "ten": "CK_KHOAHOC_DiemDauVao",
-    "dinh_nghia": "([DiemDauVaoToiThieu]>=(0) AND [DiemDauVaoToiThieu]<=(10))"
-   },
-   {
-    "ten": "CK_KHOAHOC_HocPhi",
-    "dinh_nghia": "([HocPhi]>=(0))"
-   },
-   {
-    "ten": "CK_KHOAHOC_SoBuoi",
-    "dinh_nghia": "([SoBuoi]>=(1) AND [SoBuoi]<=(200))"
-   },
-   {
-    "ten": "CK_KHOAHOC_ThoiLuongBuoi",
-    "dinh_nghia": "([ThoiLuongBuoi]>=(30) AND [ThoiLuongBuoi]<=(240))"
-   },
-   {
-    "ten": "CK_KHOAHOC_TienQuyet",
-    "dinh_nghia": "([MaKHTienQuyet]<>[MaKH])"
-   },
-   {
-    "ten": "CK_KHOAHOC_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Ngừng mở' OR [TrangThai]=N'Đang mở')"
-   }
-  ],
-  "unique_": [
-   {
-    "ten": "UQ_KHOAHOC_TenKH"
-   }
-  ],
-  "so_dong": 9
- },
- {
-  "bang": "KHUYENMAI",
-  "cot": [
-   {
-    "stt": 1,
-    "cot": "MaKM",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true
-   },
-   {
-    "stt": 2,
-    "cot": "TenKM",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 3,
-    "cot": "LoaiGiam",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 4,
-    "cot": "GiaTri",
-    "kieu": "decimal(12,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 5,
-    "cot": "NgayBatDau",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 6,
-    "cot": "NgayKetThuc",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   }
-  ],
-  "check_": [
-   {
-    "ten": "CK_KHUYENMAI_GiaTri",
-    "dinh_nghia": "([GiaTri]>(0) AND ([LoaiGiam]<>'PHANTRAM' OR [GiaTri]<=(50)))"
-   },
-   {
-    "ten": "CK_KHUYENMAI_LoaiGiam",
-    "dinh_nghia": "([LoaiGiam]='SOTIEN' OR [LoaiGiam]='PHANTRAM')"
-   },
-   {
-    "ten": "CK_KHUYENMAI_Ngay",
-    "dinh_nghia": "([NgayKetThuc]>=[NgayBatDau])"
-   }
-  ],
-  "so_dong": 3
- },
- {
-  "bang": "KIEMTRADAUVAO",
-  "cot": [
-   {
-    "stt": 1,
-    "cot": "MaKT",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('KT'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_KIEMTRA]),(5)))"
-   },
-   {
-    "stt": 2,
-    "cot": "MaHV",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "HOCVIEN"
-   },
-   {
-    "stt": 3,
-    "cot": "NgayKiemTra",
-    "kieu": "date",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(CONVERT([date],getdate()))"
-   },
-   {
-    "stt": 4,
-    "cot": "DiemNghe",
-    "kieu": "decimal(4,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 5,
-    "cot": "DiemNoi",
-    "kieu": "decimal(4,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 6,
-    "cot": "DiemDoc",
-    "kieu": "decimal(4,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 7,
-    "cot": "DiemViet",
-    "kieu": "decimal(4,2)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 8,
-    "cot": "DiemTong",
-    "kieu": "decimal(4,2)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": true,
-    "khoa_chinh": false,
-    "cong_thuc": "(CONVERT([decimal](4,2),((([DiemNghe]+[DiemNoi])+[DiemDoc])+[DiemViet])/(4)))"
-   },
-   {
-    "stt": 9,
-    "cot": "MaKHDeXuat",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "KHOAHOC"
-   },
-   {
-    "stt": 10,
-    "cot": "MaGVCham",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "GIAOVIEN"
-   },
-   {
-    "stt": 11,
-    "cot": "GhiChu",
-    "kieu": "nvarchar(200)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   }
-  ],
-  "check_": [
-   {
-    "ten": "CK_KIEMTRADAUVAO_Diem",
-    "dinh_nghia": "([DiemNghe]>=(0) AND [DiemNghe]<=(10) AND ([DiemNoi]>=(0) AND [DiemNoi]<=(10)) AND ([DiemDoc]>=(0) AND [DiemDoc]<=(10)) AND ([DiemViet]>=(0) AND [DiemViet]<=(10)))"
-   }
-  ],
-  "so_dong": 44
- },
- {
-  "bang": "LICHHOC",
-  "cot": [
-   {
-    "stt": 1,
-    "cot": "MaLop",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "tham_chieu": "LOPHOC"
-   },
-   {
-    "stt": 2,
-    "cot": "Thu",
-    "kieu": "tinyint",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true
-   },
-   {
-    "stt": 3,
-    "cot": "GioBatDau",
-    "kieu": "time(0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 4,
-    "cot": "GioKetThuc",
-    "kieu": "time(0)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   }
-  ],
-  "check_": [
-   {
-    "ten": "CK_LICHHOC_Gio",
-    "dinh_nghia": "([GioKetThuc]>[GioBatDau] AND [GioBatDau]>='07:00' AND [GioKetThuc]<='22:00')"
-   },
-   {
-    "ten": "CK_LICHHOC_Thu",
-    "dinh_nghia": "([Thu]>=(2) AND [Thu]<=(8))"
-   }
-  ],
-  "so_dong": 24
- },
- {
-  "bang": "LOPHOC",
-  "cot": [
-   {
-    "stt": 1,
-    "cot": "MaLop",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true,
-    "mac_dinh": "('LH'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_LOPHOC]),(4)))"
-   },
-   {
-    "stt": 2,
-    "cot": "TenLop",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 3,
-    "cot": "MaKH",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "KHOAHOC"
-   },
-   {
-    "stt": 4,
-    "cot": "MaCN",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "CHINHANH"
-   },
-   {
-    "stt": 5,
-    "cot": "MaGV",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "GIAOVIEN"
-   },
-   {
-    "stt": 6,
-    "cot": "MaPhong",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "PHONGHOC"
-   },
-   {
-    "stt": 7,
-    "cot": "NgayKhaiGiang",
+    "cot": "StartDate",
     "kieu": "date",
     "cho_null": false,
     "identity_": false,
@@ -1564,7 +466,7 @@
    },
    {
     "stt": 8,
-    "cot": "NgayKetThuc",
+    "cot": "EndDate",
     "kieu": "date",
     "cho_null": true,
     "identity_": false,
@@ -1573,7 +475,7 @@
    },
    {
     "stt": 9,
-    "cot": "SiSoToiDa",
+    "cot": "MaxStudents",
     "kieu": "int",
     "cho_null": false,
     "identity_": false,
@@ -1583,7 +485,7 @@
    },
    {
     "stt": 10,
-    "cot": "HocPhi",
+    "cot": "Tuition",
     "kieu": "decimal(12,0)",
     "cho_null": false,
     "identity_": false,
@@ -1592,51 +494,367 @@
    },
    {
     "stt": 11,
-    "cot": "TrangThai",
+    "cot": "Status",
     "kieu": "nvarchar(20)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "mac_dinh": "(N'Đang tuyển sinh')"
+    "mac_dinh": "(N'Enrolling')"
    }
   ],
   "check_": [
    {
-    "ten": "CK_LOPHOC_HocPhi",
-    "dinh_nghia": "([HocPhi]>=(0))"
+    "ten": "CK_CLASS_Dates",
+    "dinh_nghia": "([EndDate] IS NULL OR [EndDate]>=[StartDate])"
    },
    {
-    "ten": "CK_LOPHOC_Ngay",
-    "dinh_nghia": "([NgayKetThuc] IS NULL OR [NgayKetThuc]>=[NgayKhaiGiang])"
+    "ten": "CK_CLASS_MaxStudents",
+    "dinh_nghia": "([MaxStudents]>=(1) AND [MaxStudents]<=(50))"
    },
    {
-    "ten": "CK_LOPHOC_SiSoToiDa",
-    "dinh_nghia": "([SiSoToiDa]>=(1) AND [SiSoToiDa]<=(50))"
+    "ten": "CK_CLASS_Status",
+    "dinh_nghia": "([Status]=N'Cancelled' OR [Status]=N'Finished' OR [Status]=N'In progress' OR [Status]=N'Enrolling')"
    },
    {
-    "ten": "CK_LOPHOC_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Đã hủy' OR [TrangThai]=N'Đã kết thúc' OR [TrangThai]=N'Đang học' OR [TrangThai]=N'Đang tuyển sinh')"
+    "ten": "CK_CLASS_Tuition",
+    "dinh_nghia": "([Tuition]>=(0))"
    }
   ],
   "so_dong": 10
  },
  {
-  "bang": "NHANVIEN",
+  "bang": "CLASS_SCHEDULE",
   "cot": [
    {
     "stt": 1,
-    "cot": "MaNV",
+    "cot": "ClassId",
     "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": true,
-    "mac_dinh": "('NV'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_NHANVIEN]),(4)))"
+    "tham_chieu": "CLASS"
    },
    {
     "stt": 2,
-    "cot": "HoTen",
+    "cot": "Weekday",
+    "kieu": "tinyint",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 3,
+    "cot": "StartTime",
+    "kieu": "time(0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "EndTime",
+    "kieu": "time(0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_CLASS_SCHEDULE_Time",
+    "dinh_nghia": "([EndTime]>[StartTime] AND [StartTime]>='07:00' AND [EndTime]<='22:00')"
+   },
+   {
+    "ten": "CK_CLASS_SCHEDULE_Weekday",
+    "dinh_nghia": "([Weekday]>=(1) AND [Weekday]<=(7))"
+   }
+  ],
+  "so_dong": 24
+ },
+ {
+  "bang": "CLASS_SESSION",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "SessionId",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": true,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "ClassId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "CLASS"
+   },
+   {
+    "stt": 3,
+    "cot": "SessionNo",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "SessionDate",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "StartTime",
+    "kieu": "time(0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "EndTime",
+    "kieu": "time(0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "RoomId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "ROOM"
+   },
+   {
+    "stt": 8,
+    "cot": "TeacherId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "TEACHER"
+   },
+   {
+    "stt": 9,
+    "cot": "Description",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 10,
+    "cot": "Status",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Scheduled')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_CLASS_SESSION_SessionNo",
+    "dinh_nghia": "([SessionNo]>=(1))"
+   },
+   {
+    "ten": "CK_CLASS_SESSION_Status",
+    "dinh_nghia": "([Status]=N'Cancelled' OR [Status]=N'Taught' OR [Status]=N'Scheduled')"
+   },
+   {
+    "ten": "CK_CLASS_SESSION_Time",
+    "dinh_nghia": "([EndTime]>[StartTime])"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_CLASS_SESSION_ClassId_SessionNo"
+   }
+  ],
+  "so_dong": 248
+ },
+ {
+  "bang": "COURSE",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "CourseId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "ProgramId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "PROGRAM"
+   },
+   {
+    "stt": 3,
+    "cot": "CourseName",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "Level",
+    "kieu": "varchar(2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "SessionCount",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "SessionMinutes",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "((90))"
+   },
+   {
+    "stt": 7,
+    "cot": "Tuition",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "MinPlacementScore",
+    "kieu": "decimal(4,2)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 9,
+    "cot": "PrerequisiteCourseId",
+    "kieu": "varchar(10)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "COURSE"
+   },
+   {
+    "stt": 10,
+    "cot": "SyllabusXml",
+    "kieu": "xml",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 11,
+    "cot": "Status",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Open')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_COURSE_Level",
+    "dinh_nghia": "([Level]='C2' OR [Level]='C1' OR [Level]='B2' OR [Level]='B1' OR [Level]='A2' OR [Level]='A1')"
+   },
+   {
+    "ten": "CK_COURSE_MinPlacementScore",
+    "dinh_nghia": "([MinPlacementScore]>=(0) AND [MinPlacementScore]<=(10))"
+   },
+   {
+    "ten": "CK_COURSE_Prerequisite",
+    "dinh_nghia": "([PrerequisiteCourseId]<>[CourseId])"
+   },
+   {
+    "ten": "CK_COURSE_SessionCount",
+    "dinh_nghia": "([SessionCount]>=(1) AND [SessionCount]<=(200))"
+   },
+   {
+    "ten": "CK_COURSE_SessionMinutes",
+    "dinh_nghia": "([SessionMinutes]>=(30) AND [SessionMinutes]<=(240))"
+   },
+   {
+    "ten": "CK_COURSE_Status",
+    "dinh_nghia": "([Status]=N'Discontinued' OR [Status]=N'Open')"
+   },
+   {
+    "ten": "CK_COURSE_Tuition",
+    "dinh_nghia": "([Tuition]>=(0))"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_COURSE_CourseName"
+   }
+  ],
+  "so_dong": 9
+ },
+ {
+  "bang": "EMPLOYEE",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "EmployeeId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('EM'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_EMPLOYEE]),(4)))"
+   },
+   {
+    "stt": 2,
+    "cot": "FullName",
     "kieu": "nvarchar(100)",
     "cho_null": false,
     "identity_": false,
@@ -1645,7 +863,7 @@
    },
    {
     "stt": 3,
-    "cot": "NgaySinh",
+    "cot": "DateOfBirth",
     "kieu": "date",
     "cho_null": false,
     "identity_": false,
@@ -1654,8 +872,8 @@
    },
    {
     "stt": 4,
-    "cot": "GioiTinh",
-    "kieu": "nvarchar(5)",
+    "cot": "Gender",
+    "kieu": "nvarchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
@@ -1663,7 +881,7 @@
    },
    {
     "stt": 5,
-    "cot": "SoDienThoai",
+    "cot": "Phone",
     "kieu": "varchar(15)",
     "cho_null": false,
     "identity_": false,
@@ -1681,7 +899,7 @@
    },
    {
     "stt": 7,
-    "cot": "DiaChi",
+    "cot": "Address",
     "kieu": "nvarchar(200)",
     "cho_null": true,
     "identity_": false,
@@ -1690,7 +908,7 @@
    },
    {
     "stt": 8,
-    "cot": "ChucVu",
+    "cot": "Position",
     "kieu": "nvarchar(30)",
     "cho_null": false,
     "identity_": false,
@@ -1699,17 +917,17 @@
    },
    {
     "stt": 9,
-    "cot": "MaCN",
+    "cot": "BranchId",
     "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "tham_chieu": "CHINHANH"
+    "tham_chieu": "BRANCH"
    },
    {
     "stt": 10,
-    "cot": "NgayVaoLam",
+    "cot": "HireDate",
     "kieu": "date",
     "cho_null": false,
     "identity_": false,
@@ -1719,7 +937,7 @@
    },
    {
     "stt": 11,
-    "cot": "LuongCoBan",
+    "cot": "BaseSalary",
     "kieu": "decimal(12,0)",
     "cho_null": false,
     "identity_": false,
@@ -1729,174 +947,98 @@
    },
    {
     "stt": 12,
-    "cot": "TrangThai",
+    "cot": "Status",
     "kieu": "nvarchar(20)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "mac_dinh": "(N'Đang làm')"
+    "mac_dinh": "(N'Working')"
    }
   ],
   "check_": [
    {
-    "ten": "CK_NHANVIEN_ChucVu",
-    "dinh_nghia": "([ChucVu]=N'Tư vấn' OR [ChucVu]=N'Kế toán' OR [ChucVu]=N'Giáo vụ' OR [ChucVu]=N'Quản lý')"
+    "ten": "CK_EMPLOYEE_Age",
+    "dinh_nghia": "(dateadd(year,(18),[DateOfBirth])<=[HireDate])"
    },
    {
-    "ten": "CK_NHANVIEN_Email",
+    "ten": "CK_EMPLOYEE_BaseSalary",
+    "dinh_nghia": "([BaseSalary]>=(0))"
+   },
+   {
+    "ten": "CK_EMPLOYEE_Email",
     "dinh_nghia": "([Email] like '%_@_%._%')"
    },
    {
-    "ten": "CK_NHANVIEN_GioiTinh",
-    "dinh_nghia": "([GioiTinh]=N'Khác' OR [GioiTinh]=N'Nữ' OR [GioiTinh]=N'Nam')"
+    "ten": "CK_EMPLOYEE_Gender",
+    "dinh_nghia": "([Gender]=N'Other' OR [Gender]=N'Female' OR [Gender]=N'Male')"
    },
    {
-    "ten": "CK_NHANVIEN_LuongCoBan",
-    "dinh_nghia": "([LuongCoBan]>=(0))"
+    "ten": "CK_EMPLOYEE_Phone",
+    "dinh_nghia": "(NOT [Phone] like '%[^0-9]%' AND (len([Phone])>=(9) AND len([Phone])<=(11)))"
    },
    {
-    "ten": "CK_NHANVIEN_SoDienThoai",
-    "dinh_nghia": "(NOT [SoDienThoai] like '%[^0-9]%' AND (len([SoDienThoai])>=(9) AND len([SoDienThoai])<=(11)))"
+    "ten": "CK_EMPLOYEE_Position",
+    "dinh_nghia": "([Position]=N'Consultant' OR [Position]=N'Accountant' OR [Position]=N'Academic staff' OR [Position]=N'Manager')"
    },
    {
-    "ten": "CK_NHANVIEN_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Đã nghỉ' OR [TrangThai]=N'Đang làm')"
-   },
-   {
-    "ten": "CK_NHANVIEN_Tuoi",
-    "dinh_nghia": "(dateadd(year,(18),[NgaySinh])<=[NgayVaoLam])"
+    "ten": "CK_EMPLOYEE_Status",
+    "dinh_nghia": "([Status]=N'Left' OR [Status]=N'Working')"
    }
   ],
   "unique_": [
    {
-    "ten": "UQ_NHANVIEN_SoDienThoai"
+    "ten": "UQ_EMPLOYEE_Phone"
    }
   ],
   "so_dong": 6
  },
  {
-  "bang": "NHATKYHETHONG",
+  "bang": "ENROLLMENT",
   "cot": [
    {
     "stt": 1,
-    "cot": "MaNK",
-    "kieu": "bigint",
-    "cho_null": false,
-    "identity_": true,
-    "tinh_toan": false,
-    "khoa_chinh": true
-   },
-   {
-    "stt": 2,
-    "cot": "ThoiGian",
-    "kieu": "datetime",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(getdate())"
-   },
-   {
-    "stt": 3,
-    "cot": "NguoiThucHien",
-    "kieu": "nvarchar(128)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(original_login())"
-   },
-   {
-    "stt": 4,
-    "cot": "BangDuLieu",
-    "kieu": "nvarchar(50)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 5,
-    "cot": "HanhDong",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 6,
-    "cot": "KhoaChinh",
-    "kieu": "nvarchar(100)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 7,
-    "cot": "DuLieuCu",
-    "kieu": "xml",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 8,
-    "cot": "DuLieuMoi",
-    "kieu": "xml",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   }
-  ],
-  "check_": [
-   {
-    "ten": "CK_NHATKYHETHONG_HanhDong",
-    "dinh_nghia": "([HanhDong]='DELETE' OR [HanhDong]='UPDATE' OR [HanhDong]='INSERT')"
-   }
-  ],
-  "so_dong": 235
- },
- {
-  "bang": "PHIEUTHU",
-  "cot": [
-   {
-    "stt": 1,
-    "cot": "MaPT",
+    "cot": "EnrollmentId",
     "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": true,
-    "mac_dinh": "('PT'+right('000000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_PHIEUTHU]),(6)))"
+    "mac_dinh": "('EN'+right('000000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_ENROLLMENT]),(6)))"
    },
    {
     "stt": 2,
-    "cot": "MaGD",
+    "cot": "StudentId",
     "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "tham_chieu": "GHIDANH"
+    "tham_chieu": "STUDENT"
    },
    {
     "stt": 3,
-    "cot": "NgayThu",
-    "kieu": "datetime",
+    "cot": "ClassId",
+    "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "mac_dinh": "(getdate())"
+    "tham_chieu": "CLASS"
    },
    {
     "stt": 4,
-    "cot": "SoTien",
+    "cot": "EnrolledOn",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(CONVERT([date],getdate()))"
+   },
+   {
+    "stt": 5,
+    "cot": "BaseTuition",
     "kieu": "decimal(12,0)",
     "cho_null": false,
     "identity_": false,
@@ -1904,210 +1046,152 @@
     "khoa_chinh": false
    },
    {
-    "stt": 5,
-    "cot": "HinhThuc",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Tiền mặt')"
-   },
-   {
     "stt": 6,
-    "cot": "MaNVThu",
+    "cot": "PromotionId",
     "kieu": "varchar(10)",
-    "cho_null": false,
+    "cho_null": true,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "tham_chieu": "NHANVIEN"
+    "tham_chieu": "PROMOTION"
    },
    {
     "stt": 7,
-    "cot": "NoiDung",
-    "kieu": "nvarchar(200)",
-    "cho_null": true,
+    "cot": "DiscountAmount",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
-    "khoa_chinh": false
+    "khoa_chinh": false,
+    "mac_dinh": "((0))"
    },
    {
     "stt": 8,
-    "cot": "TrangThai",
+    "cot": "TuitionDue",
+    "kieu": "decimal(13,0)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": true,
+    "khoa_chinh": false,
+    "cong_thuc": "([BaseTuition]-[DiscountAmount])"
+   },
+   {
+    "stt": 9,
+    "cot": "AmountPaid",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "((0))"
+   },
+   {
+    "stt": 10,
+    "cot": "Status",
     "kieu": "nvarchar(20)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "mac_dinh": "(N'Hợp lệ')"
+    "mac_dinh": "(N'Studying')"
    },
    {
-    "stt": 9,
-    "cot": "LyDoHuy",
-    "kieu": "nvarchar(200)",
+    "stt": 11,
+    "cot": "FinalGrade",
+    "kieu": "decimal(4,2)",
     "cho_null": true,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false
-   }
-  ],
-  "check_": [
-   {
-    "ten": "CK_PHIEUTHU_HinhThuc",
-    "dinh_nghia": "([HinhThuc]=N'Thẻ' OR [HinhThuc]=N'Chuyển khoản' OR [HinhThuc]=N'Tiền mặt')"
    },
    {
-    "ten": "CK_PHIEUTHU_LyDoHuy",
-    "dinh_nghia": "([TrangThai]=N'Hợp lệ' OR [LyDoHuy] IS NOT NULL)"
-   },
-   {
-    "ten": "CK_PHIEUTHU_SoTien",
-    "dinh_nghia": "([SoTien]>(0))"
-   },
-   {
-    "ten": "CK_PHIEUTHU_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Đã hủy' OR [TrangThai]=N'Hợp lệ')"
-   }
-  ],
-  "so_dong": 97
- },
- {
-  "bang": "PHONGHOC",
-  "cot": [
-   {
-    "stt": 1,
-    "cot": "MaPhong",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": true
-   },
-   {
-    "stt": 2,
-    "cot": "MaCN",
-    "kieu": "varchar(10)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "CHINHANH"
-   },
-   {
-    "stt": 3,
-    "cot": "TenPhong",
-    "kieu": "nvarchar(50)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 4,
-    "cot": "SucChua",
-    "kieu": "int",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false
-   },
-   {
-    "stt": 5,
-    "cot": "LoaiPhong",
-    "kieu": "nvarchar(30)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Lý thuyết')"
-   },
-   {
-    "stt": 6,
-    "cot": "TrangThai",
+    "stt": 12,
+    "cot": "Result",
     "kieu": "nvarchar(20)",
-    "cho_null": false,
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 13,
+    "cot": "EnrolledByEmployeeId",
+    "kieu": "varchar(10)",
+    "cho_null": true,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "mac_dinh": "(N'Sẵn sàng')"
+    "tham_chieu": "EMPLOYEE"
    }
   ],
   "check_": [
    {
-    "ten": "CK_PHONGHOC_LoaiPhong",
-    "dinh_nghia": "([LoaiPhong]=N'Đa năng' OR [LoaiPhong]=N'Phòng Lab' OR [LoaiPhong]=N'Lý thuyết')"
+    "ten": "CK_ENROLLMENT_AmountPaid",
+    "dinh_nghia": "([AmountPaid]>=(0) AND [AmountPaid]<=([BaseTuition]-[DiscountAmount]))"
    },
    {
-    "ten": "CK_PHONGHOC_SucChua",
-    "dinh_nghia": "([SucChua]>=(1) AND [SucChua]<=(100))"
+    "ten": "CK_ENROLLMENT_BaseTuition",
+    "dinh_nghia": "([BaseTuition]>=(0))"
    },
    {
-    "ten": "CK_PHONGHOC_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Bảo trì' OR [TrangThai]=N'Sẵn sàng')"
+    "ten": "CK_ENROLLMENT_DiscountAmount",
+    "dinh_nghia": "([DiscountAmount]>=(0) AND [DiscountAmount]<=[BaseTuition])"
+   },
+   {
+    "ten": "CK_ENROLLMENT_FinalGrade",
+    "dinh_nghia": "([FinalGrade]>=(0) AND [FinalGrade]<=(10))"
+   },
+   {
+    "ten": "CK_ENROLLMENT_Result",
+    "dinh_nghia": "([Result]=N'Failed' OR [Result]=N'Passed')"
+   },
+   {
+    "ten": "CK_ENROLLMENT_Status",
+    "dinh_nghia": "([Status]=N'Completed' OR [Status]=N'Left' OR [Status]=N'On hold' OR [Status]=N'Studying')"
    }
   ],
   "unique_": [
    {
-    "ten": "UQ_PHONGHOC_MaCN_TenPhong"
+    "ten": "UQ_ENROLLMENT_StudentId_ClassId"
    }
   ],
-  "so_dong": 8
+  "so_dong": 84
  },
  {
-  "bang": "TAIKHOAN",
+  "bang": "GRADE",
   "cot": [
    {
     "stt": 1,
-    "cot": "TenDangNhap",
-    "kieu": "nvarchar(50)",
+    "cot": "EnrollmentId",
+    "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
-    "khoa_chinh": true
+    "khoa_chinh": true,
+    "tham_chieu": "ENROLLMENT"
    },
    {
     "stt": 2,
-    "cot": "VaiTro",
-    "kieu": "varchar(20)",
+    "cot": "ComponentId",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "tham_chieu": "GRADE_COMPONENT"
+   },
+   {
+    "stt": 3,
+    "cot": "Score",
+    "kieu": "decimal(4,2)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false
    },
    {
-    "stt": 3,
-    "cot": "MaNV",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "NHANVIEN"
-   },
-   {
     "stt": 4,
-    "cot": "MaGV",
-    "kieu": "varchar(10)",
-    "cho_null": true,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "tham_chieu": "GIAOVIEN"
-   },
-   {
-    "stt": 5,
-    "cot": "TrangThai",
-    "kieu": "nvarchar(20)",
-    "cho_null": false,
-    "identity_": false,
-    "tinh_toan": false,
-    "khoa_chinh": false,
-    "mac_dinh": "(N'Hoạt động')"
-   },
-   {
-    "stt": 6,
-    "cot": "NgayTao",
+    "cot": "EnteredAt",
     "kieu": "datetime",
     "cho_null": false,
     "identity_": false,
@@ -2116,37 +1200,30 @@
     "mac_dinh": "(getdate())"
    },
    {
-    "stt": 7,
-    "cot": "LanDangNhapCuoi",
-    "kieu": "datetime",
-    "cho_null": true,
+    "stt": 5,
+    "cot": "EnteredBy",
+    "kieu": "nvarchar(128)",
+    "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
-    "khoa_chinh": false
+    "khoa_chinh": false,
+    "mac_dinh": "(original_login())"
    }
   ],
   "check_": [
    {
-    "ten": "CK_TAIKHOAN_DoiTuong",
-    "dinh_nghia": "([VaiTro]='GIAOVIEN' AND [MaGV] IS NOT NULL AND [MaNV] IS NULL OR [VaiTro]<>'GIAOVIEN' AND [MaNV] IS NOT NULL AND [MaGV] IS NULL)"
-   },
-   {
-    "ten": "CK_TAIKHOAN_TrangThai",
-    "dinh_nghia": "([TrangThai]=N'Đã khóa' OR [TrangThai]=N'Hoạt động')"
-   },
-   {
-    "ten": "CK_TAIKHOAN_VaiTro",
-    "dinh_nghia": "([VaiTro]='GIAOVIEN' OR [VaiTro]='KETOAN' OR [VaiTro]='GIAOVU' OR [VaiTro]='QUANLY')"
+    "ten": "CK_GRADE_Score",
+    "dinh_nghia": "([Score]>=(0) AND [Score]<=(10))"
    }
   ],
-  "so_dong": 9
+  "so_dong": 138
  },
  {
-  "bang": "THANHPHANDIEM",
+  "bang": "GRADE_COMPONENT",
   "cot": [
    {
     "stt": 1,
-    "cot": "MaTP",
+    "cot": "ComponentId",
     "kieu": "int",
     "cho_null": false,
     "identity_": true,
@@ -2155,17 +1232,17 @@
    },
    {
     "stt": 2,
-    "cot": "MaKH",
+    "cot": "CourseId",
     "kieu": "varchar(10)",
     "cho_null": false,
     "identity_": false,
     "tinh_toan": false,
     "khoa_chinh": false,
-    "tham_chieu": "KHOAHOC"
+    "tham_chieu": "COURSE"
    },
    {
     "stt": 3,
-    "cot": "TenTP",
+    "cot": "ComponentName",
     "kieu": "nvarchar(50)",
     "cho_null": false,
     "identity_": false,
@@ -2174,7 +1251,7 @@
    },
    {
     "stt": 4,
-    "cot": "TrongSo",
+    "cot": "Weight",
     "kieu": "decimal(5,2)",
     "cho_null": false,
     "identity_": false,
@@ -2184,15 +1261,938 @@
   ],
   "check_": [
    {
-    "ten": "CK_THANHPHANDIEM_TrongSo",
-    "dinh_nghia": "([TrongSo]>(0) AND [TrongSo]<=(100))"
+    "ten": "CK_GRADE_COMPONENT_Weight",
+    "dinh_nghia": "([Weight]>(0) AND [Weight]<=(100))"
    }
   ],
   "unique_": [
    {
-    "ten": "UQ_THANHPHANDIEM_MaKH_TenTP"
+    "ten": "UQ_GRADE_COMPONENT_CourseId_ComponentName"
    }
   ],
   "so_dong": 27
+ },
+ {
+  "bang": "PAYROLL",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "PayrollId",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": true,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "TeacherId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "TEACHER"
+   },
+   {
+    "stt": 3,
+    "cot": "Month",
+    "kieu": "tinyint",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "Year",
+    "kieu": "smallint",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "SessionCount",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "Hours",
+    "kieu": "decimal(6,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "HourlyRate",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "Bonus",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "((0))"
+   },
+   {
+    "stt": 9,
+    "cot": "Deduction",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "((0))"
+   },
+   {
+    "stt": 10,
+    "cot": "TotalPay",
+    "kieu": "decimal(16,0)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": true,
+    "khoa_chinh": false,
+    "cong_thuc": "((CONVERT([decimal](14,0),[Hours]*[HourlyRate])+[Bonus])-[Deduction])"
+   },
+   {
+    "stt": 11,
+    "cot": "FinalizedAt",
+    "kieu": "datetime",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(getdate())"
+   },
+   {
+    "stt": 12,
+    "cot": "Status",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Finalized')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_PAYROLL_Figures",
+    "dinh_nghia": "([SessionCount]>=(0) AND [Hours]>=(0) AND [Bonus]>=(0) AND [Deduction]>=(0))"
+   },
+   {
+    "ten": "CK_PAYROLL_Month",
+    "dinh_nghia": "([Month]>=(1) AND [Month]<=(12))"
+   },
+   {
+    "ten": "CK_PAYROLL_Status",
+    "dinh_nghia": "([Status]=N'Paid' OR [Status]=N'Finalized')"
+   },
+   {
+    "ten": "CK_PAYROLL_Year",
+    "dinh_nghia": "([Year]>=(2020))"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_PAYROLL_TeacherId_Month_Year"
+   }
+  ],
+  "so_dong": 9
+ },
+ {
+  "bang": "PLACEMENT_TEST",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "TestId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('PT'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_PLACEMENT_TEST]),(5)))"
+   },
+   {
+    "stt": 2,
+    "cot": "StudentId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "STUDENT"
+   },
+   {
+    "stt": 3,
+    "cot": "TestDate",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(CONVERT([date],getdate()))"
+   },
+   {
+    "stt": 4,
+    "cot": "ListeningScore",
+    "kieu": "decimal(4,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "SpeakingScore",
+    "kieu": "decimal(4,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "ReadingScore",
+    "kieu": "decimal(4,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "WritingScore",
+    "kieu": "decimal(4,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "OverallScore",
+    "kieu": "decimal(4,2)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": true,
+    "khoa_chinh": false,
+    "cong_thuc": "(CONVERT([decimal](4,2),((([ListeningScore]+[SpeakingScore])+[ReadingScore])+[WritingScore])/(4)))"
+   },
+   {
+    "stt": 9,
+    "cot": "RecommendedCourseId",
+    "kieu": "varchar(10)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "COURSE"
+   },
+   {
+    "stt": 10,
+    "cot": "GradedByTeacherId",
+    "kieu": "varchar(10)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "TEACHER"
+   },
+   {
+    "stt": 11,
+    "cot": "Notes",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_PLACEMENT_TEST_Scores",
+    "dinh_nghia": "([ListeningScore]>=(0) AND [ListeningScore]<=(10) AND ([SpeakingScore]>=(0) AND [SpeakingScore]<=(10)) AND ([ReadingScore]>=(0) AND [ReadingScore]<=(10)) AND ([WritingScore]>=(0) AND [WritingScore]<=(10)))"
+   }
+  ],
+  "so_dong": 44
+ },
+ {
+  "bang": "PROGRAM",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "ProgramId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "ProgramName",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 3,
+    "cot": "TargetLearners",
+    "kieu": "nvarchar(100)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "Description",
+    "kieu": "nvarchar(500)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_PROGRAM_ProgramName"
+   }
+  ],
+  "so_dong": 4
+ },
+ {
+  "bang": "PROMOTION",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "PromotionId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "PromotionName",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 3,
+    "cot": "DiscountType",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "DiscountValue",
+    "kieu": "decimal(12,2)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "StartDate",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "EndDate",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_PROMOTION_Dates",
+    "dinh_nghia": "([EndDate]>=[StartDate])"
+   },
+   {
+    "ten": "CK_PROMOTION_DiscountType",
+    "dinh_nghia": "([DiscountType]='AMOUNT' OR [DiscountType]='PERCENT')"
+   },
+   {
+    "ten": "CK_PROMOTION_DiscountValue",
+    "dinh_nghia": "([DiscountValue]>(0) AND ([DiscountType]<>'PERCENT' OR [DiscountValue]<=(50)))"
+   }
+  ],
+  "so_dong": 3
+ },
+ {
+  "bang": "RECEIPT",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "ReceiptId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('RC'+right('000000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_RECEIPT]),(6)))"
+   },
+   {
+    "stt": 2,
+    "cot": "EnrollmentId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "ENROLLMENT"
+   },
+   {
+    "stt": 3,
+    "cot": "PaidAt",
+    "kieu": "datetime",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(getdate())"
+   },
+   {
+    "stt": 4,
+    "cot": "Amount",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "PaymentMethod",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Cash')"
+   },
+   {
+    "stt": 6,
+    "cot": "CollectedByEmployeeId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "EMPLOYEE"
+   },
+   {
+    "stt": 7,
+    "cot": "Description",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "Status",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Valid')"
+   },
+   {
+    "stt": 9,
+    "cot": "CancelReason",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_RECEIPT_Amount",
+    "dinh_nghia": "([Amount]>(0))"
+   },
+   {
+    "ten": "CK_RECEIPT_CancelReason",
+    "dinh_nghia": "([Status]=N'Valid' OR [CancelReason] IS NOT NULL)"
+   },
+   {
+    "ten": "CK_RECEIPT_PaymentMethod",
+    "dinh_nghia": "([PaymentMethod]=N'Card' OR [PaymentMethod]=N'Bank transfer' OR [PaymentMethod]=N'Cash')"
+   },
+   {
+    "ten": "CK_RECEIPT_Status",
+    "dinh_nghia": "([Status]=N'Cancelled' OR [Status]=N'Valid')"
+   }
+  ],
+  "so_dong": 97
+ },
+ {
+  "bang": "ROOM",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "RoomId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true
+   },
+   {
+    "stt": 2,
+    "cot": "BranchId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "BRANCH"
+   },
+   {
+    "stt": 3,
+    "cot": "RoomName",
+    "kieu": "nvarchar(50)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "Capacity",
+    "kieu": "int",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "RoomType",
+    "kieu": "nvarchar(30)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Lecture')"
+   },
+   {
+    "stt": 6,
+    "cot": "Status",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Available')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_ROOM_Capacity",
+    "dinh_nghia": "([Capacity]>=(1) AND [Capacity]<=(100))"
+   },
+   {
+    "ten": "CK_ROOM_RoomType",
+    "dinh_nghia": "([RoomType]=N'Multi-purpose' OR [RoomType]=N'Lab' OR [RoomType]=N'Lecture')"
+   },
+   {
+    "ten": "CK_ROOM_Status",
+    "dinh_nghia": "([Status]=N'Maintenance' OR [Status]=N'Available')"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_ROOM_BranchId_RoomName"
+   }
+  ],
+  "so_dong": 8
+ },
+ {
+  "bang": "STUDENT",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "StudentId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('ST'+right('00000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_STUDENT]),(5)))"
+   },
+   {
+    "stt": 2,
+    "cot": "FullName",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 3,
+    "cot": "DateOfBirth",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "Gender",
+    "kieu": "nvarchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "Phone",
+    "kieu": "varchar(15)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 6,
+    "cot": "Email",
+    "kieu": "varchar(100)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "Address",
+    "kieu": "nvarchar(200)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "Occupation",
+    "kieu": "nvarchar(50)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 9,
+    "cot": "GuardianName",
+    "kieu": "nvarchar(100)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 10,
+    "cot": "GuardianPhone",
+    "kieu": "varchar(15)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 11,
+    "cot": "BranchId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "BRANCH"
+   },
+   {
+    "stt": 12,
+    "cot": "RegisteredOn",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(CONVERT([date],getdate()))"
+   },
+   {
+    "stt": 13,
+    "cot": "Status",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Prospective')"
+   },
+   {
+    "stt": 14,
+    "cot": "Notes",
+    "kieu": "nvarchar(500)",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_STUDENT_Contact",
+    "dinh_nghia": "([Phone] IS NOT NULL OR [GuardianPhone] IS NOT NULL)"
+   },
+   {
+    "ten": "CK_STUDENT_DateOfBirth",
+    "dinh_nghia": "([DateOfBirth]>'19300101' AND dateadd(year,(4),[DateOfBirth])<=[RegisteredOn])"
+   },
+   {
+    "ten": "CK_STUDENT_Email",
+    "dinh_nghia": "([Email] like '%_@_%._%')"
+   },
+   {
+    "ten": "CK_STUDENT_Gender",
+    "dinh_nghia": "([Gender]=N'Other' OR [Gender]=N'Female' OR [Gender]=N'Male')"
+   },
+   {
+    "ten": "CK_STUDENT_Guardian",
+    "dinh_nghia": "(dateadd(year,(18),[DateOfBirth])<=[RegisteredOn] OR [GuardianName] IS NOT NULL AND [GuardianPhone] IS NOT NULL)"
+   },
+   {
+    "ten": "CK_STUDENT_GuardianPhone",
+    "dinh_nghia": "(NOT [GuardianPhone] like '%[^0-9]%' AND (len([GuardianPhone])>=(9) AND len([GuardianPhone])<=(11)))"
+   },
+   {
+    "ten": "CK_STUDENT_Phone",
+    "dinh_nghia": "(NOT [Phone] like '%[^0-9]%' AND (len([Phone])>=(9) AND len([Phone])<=(11)))"
+   },
+   {
+    "ten": "CK_STUDENT_Status",
+    "dinh_nghia": "([Status]=N'Dropped out' OR [Status]=N'On hold' OR [Status]=N'Studying' OR [Status]=N'Prospective')"
+   }
+  ],
+  "so_dong": 72
+ },
+ {
+  "bang": "TEACHER",
+  "cot": [
+   {
+    "stt": 1,
+    "cot": "TeacherId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": true,
+    "mac_dinh": "('TE'+right('0000'+CONVERT([varchar](10),NEXT VALUE FOR [dbo].[seq_TEACHER]),(4)))"
+   },
+   {
+    "stt": 2,
+    "cot": "FullName",
+    "kieu": "nvarchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 3,
+    "cot": "DateOfBirth",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 4,
+    "cot": "Gender",
+    "kieu": "nvarchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 5,
+    "cot": "Nationality",
+    "kieu": "nvarchar(50)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Vietnam')"
+   },
+   {
+    "stt": 6,
+    "cot": "Phone",
+    "kieu": "varchar(15)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 7,
+    "cot": "Email",
+    "kieu": "varchar(100)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 8,
+    "cot": "Degree",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 9,
+    "cot": "TeacherType",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 10,
+    "cot": "HourlyRate",
+    "kieu": "decimal(12,0)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 11,
+    "cot": "ProfileXml",
+    "kieu": "xml",
+    "cho_null": true,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false
+   },
+   {
+    "stt": 12,
+    "cot": "BranchId",
+    "kieu": "varchar(10)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "tham_chieu": "BRANCH"
+   },
+   {
+    "stt": 13,
+    "cot": "HireDate",
+    "kieu": "date",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(CONVERT([date],getdate()))"
+   },
+   {
+    "stt": 14,
+    "cot": "Status",
+    "kieu": "nvarchar(20)",
+    "cho_null": false,
+    "identity_": false,
+    "tinh_toan": false,
+    "khoa_chinh": false,
+    "mac_dinh": "(N'Teaching')"
+   }
+  ],
+  "check_": [
+   {
+    "ten": "CK_TEACHER_Degree",
+    "dinh_nghia": "([Degree]=N'PhD' OR [Degree]=N'Master' OR [Degree]=N'Bachelor')"
+   },
+   {
+    "ten": "CK_TEACHER_Email",
+    "dinh_nghia": "([Email] like '%_@_%._%')"
+   },
+   {
+    "ten": "CK_TEACHER_Gender",
+    "dinh_nghia": "([Gender]=N'Other' OR [Gender]=N'Female' OR [Gender]=N'Male')"
+   },
+   {
+    "ten": "CK_TEACHER_HourlyRate",
+    "dinh_nghia": "([HourlyRate]>(0))"
+   },
+   {
+    "ten": "CK_TEACHER_Native",
+    "dinh_nghia": "([TeacherType]=N'Vietnamese' OR [Nationality]<>N'Vietnam')"
+   },
+   {
+    "ten": "CK_TEACHER_Phone",
+    "dinh_nghia": "(NOT [Phone] like '%[^0-9]%' AND (len([Phone])>=(9) AND len([Phone])<=(11)))"
+   },
+   {
+    "ten": "CK_TEACHER_Status",
+    "dinh_nghia": "([Status]=N'Left' OR [Status]=N'On leave' OR [Status]=N'Teaching')"
+   },
+   {
+    "ten": "CK_TEACHER_TeacherType",
+    "dinh_nghia": "([TeacherType]=N'Native' OR [TeacherType]=N'Vietnamese')"
+   }
+  ],
+  "unique_": [
+   {
+    "ten": "UQ_TEACHER_Email"
+   },
+   {
+    "ten": "UQ_TEACHER_Phone"
+   }
+  ],
+  "so_dong": 8
  }
 ]

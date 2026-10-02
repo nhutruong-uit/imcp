@@ -50,7 +50,12 @@ def doi_tuong():
     return d
 
 
+# Kỳ vọng / thực tế trong bảng kết quả của 12_tests.sql (tiếng Anh) -> nhãn tiếng Việt cho báo cáo
+KET_QUA_VI = {"Rejected": "Từ chối", "Succeeded": "Thành công", "Wrong result": "Sai kết quả", "Error": "Lỗi"}
+
+
 def kiem_thu():
+    """Các dòng TestId|Description|Expected|Actual|Verdict|Message của 12_tests.sql (Verdict = PASSED/FAILED)."""
     rows = []
     for line in (DATA / "kiem_thu.txt").read_text(encoding="utf-8").splitlines():
         parts = line.split("|")
