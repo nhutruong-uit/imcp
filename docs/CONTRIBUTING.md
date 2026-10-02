@@ -12,7 +12,10 @@ docs/<ten-ngan>
 - PR vào `develop`: CI (`ci.yml`) phải xanh trên **cả macOS và Windows**.
 - PR `develop → main` = phát hành: `release.yml` đóng gói `.exe`/`.zip`/`.dmg` và tạo Release `vX.Y.Z-build.N`.
   Trước khi phát hành, tăng `project(VERSION ...)` trong `CMakeLists.txt` nếu có tính năng mới.
-- Nên bật *Settings > Branches > Branch protection* cho `develop`, `main`: bắt buộc PR + CI xanh.
+- Đã bật *Branch protection* cho `develop`, `main`: bắt buộc PR, CI xanh trên cả 2 job (macOS, Windows),
+  nhánh phải cập nhật theo base trước khi merge; áp dụng cả admin, cấm force push và xóa nhánh.
+  Không bắt buộc người duyệt (nhóm trưởng tự merge được khi CI xanh).
+- Tiêu đề + mô tả PR viết **bằng tiếng Anh** (commit message vẫn tiếng Việt). Dùng Claude Code: gõ `/create-pr`.
   (Repo private cần GitHub Pro — sinh viên đăng ký miễn phí qua GitHub Student Developer Pack.)
 
 ## Thành viên không lập trình đóng góp thế nào?
