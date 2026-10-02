@@ -1,5 +1,5 @@
 """Chương 4 - Cài đặt và xử lý thông tin trên CSDL."""
-from noidung.chung import SQL, ket_qua, kiem_thu, schema
+from noidung.chung import SQL, doi_tuong, ket_qua, kiem_thu, schema
 from report_lib import sql_block, sql_object
 
 
@@ -29,14 +29,15 @@ def chuong4(r):
     r.p("CSDL được cài đặt bằng các script T-SQL đánh số, chạy tuần tự bằng SSMS hoặc tự động bằng "
         "`scripts/db_init.sh` (macOS/Linux, Docker) và `scripts/db_init.ps1` (Windows). Mọi script tương thích SQL "
         "Server 2012 trở lên (không dùng `CREATE OR ALTER`, `STRING_AGG`, `TRIM`, JSON).")
+    dt = doi_tuong()
     r.table(["File", "Nội dung", "Số đối tượng"], [
         ["00_create_database.sql", "Bật contained database authentication, tạo CSDL CONTAINMENT = PARTIAL, collation Vietnamese_CI_AS, RECOVERY FULL", "1 CSDL"],
-        ["01_tables.sql", "SEQUENCE, XML Schema Collection, bảng, khóa, CHECK, UNIQUE, DEFAULT, chỉ mục", "21 bảng, 8 sequence, 182 ràng buộc"],
-        ["02_functions.sql", "Hàm scalar, inline TVF, multi-statement TVF", "13 hàm"],
-        ["03_views.sql", "View tổng hợp và view bảo mật cho giáo viên", "13 view"],
-        ["04_procedures.sql", "Thủ tục nghiệp vụ, báo cáo, XML, tài khoản, sao lưu", "38 thủ tục"],
-        ["05_triggers.sql", "Trigger ràng buộc và nhật ký kiểm toán", "13 trigger"],
-        ["06_security.sql", "Role, GRANT/DENY (mức đối tượng, mức cột)", "4 role"],
+        ["01_tables.sql", "SEQUENCE, XML Schema Collection, bảng, khóa, CHECK, UNIQUE, DEFAULT, chỉ mục", f"{dt['SoBang']} bảng, {dt['SoSequence']} sequence, {dt['SoRangBuoc']} ràng buộc"],
+        ["02_functions.sql", "Hàm scalar, inline TVF, multi-statement TVF", f"{dt['SoHam']} hàm"],
+        ["03_views.sql", "View tổng hợp và view bảo mật cho giáo viên", f"{dt['SoView']} view"],
+        ["04_procedures.sql", "Thủ tục nghiệp vụ, báo cáo, XML, tài khoản, sao lưu", f"{dt['SoThuTuc']} thủ tục"],
+        ["05_triggers.sql", "Trigger ràng buộc và nhật ký kiểm toán", f"{dt['SoTrigger']} trigger"],
+        ["06_security.sql", "Role, GRANT/DENY (mức đối tượng, mức cột)", f"{dt['SoRole']} role"],
         ["07_seed_data.sql", "Dữ liệu mẫu nạp qua thủ tục, ngày tháng tương đối theo ngày chạy", "≈ 2.400 dòng"],
         ["08 - 12_*.sql", "Truy vấn minh họa, backup/restore, import/export, CSDL phân tán, kiểm thử", "-"],
     ], widths_cm=[3.8, 9.0, 3.2], caption="Cấu trúc các script cài đặt CSDL", size=9.5)
@@ -88,7 +89,7 @@ def chuong4(r):
 
     # ------------------------------------------------------------------ 4.4
     r.h2("4.4. Stored procedure")
-    r.p("Toàn bộ thao tác ghi dữ liệu của ứng dụng đi qua **38 thủ tục** (tiền tố `usp_`; không dùng `sp_` vì SQL "
+    r.p(f"Toàn bộ thao tác ghi dữ liệu của ứng dụng đi qua **{doi_tuong()['SoThuTuc']} thủ tục** (tiền tố `usp_`; không dùng `sp_` vì SQL "
         "Server luôn tìm thủ tục `sp_` trong CSDL master trước). Cách làm này tập trung quy tắc nghiệp vụ tại CSDL, "
         "phân quyền bằng `GRANT EXECUTE` thay vì cấp quyền trên bảng, và giảm lưu lượng mạng.")
     r.table(["Nhóm", "Thủ tục", "Kỹ thuật nổi bật"], [

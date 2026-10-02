@@ -13,9 +13,9 @@
     "69",
     "5",
     "3",
-    "5000000",
-    "67386000",
-    "1"
+    "7150000",
+    "65236000",
+    "2"
    ]
   ]
  },
@@ -34,7 +34,7 @@
    [
     "Tiếng Anh giao tiếp",
     "14",
-    "70220000"
+    "72370000"
    ],
    [
     "Tiếng Anh thiếu nhi",
@@ -597,8 +597,8 @@
    ],
    [
     "10",
-    "5",
-    "5000000"
+    "6",
+    "7150000"
    ]
   ]
  },
@@ -613,7 +613,7 @@
   ],
   "dong": [
    [
-    "2026-10-01 17:06",
+    "2026-10-02 00:14",
     "sa",
     "PHIEUTHU",
     "INSERT",
@@ -621,7 +621,7 @@
     "<PhieuThu><MaGD>GD000003</MaGD><SoTien>3250000</SoTien><HinhThuc>Chuyển khoản</HinhThuc><TrangThai>Hợp lệ</TrangThai></PhieuThu>"
    ],
    [
-    "2026-10-01 17:06",
+    "2026-10-02 00:14",
     "sa",
     "PHIEUTHU",
     "INSERT",
@@ -629,7 +629,7 @@
     "<PhieuThu><MaGD>GD000006</MaGD><SoTien>3250000</SoTien><HinhThuc>Chuyển khoản</HinhThuc><TrangThai>Hợp lệ</TrangThai></PhieuThu>"
    ],
    [
-    "2026-10-01 17:06",
+    "2026-10-02 00:14",
     "sa",
     "PHIEUTHU",
     "INSERT",
@@ -670,7 +670,7 @@
    ],
    [
     "DIEMDANH",
-    "1380"
+    "1392"
    ],
    [
     "GHIDANH",
@@ -710,11 +710,11 @@
    ],
    [
     "NHATKYHETHONG",
-    "234"
+    "235"
    ],
    [
     "PHIEUTHU",
-    "96"
+    "97"
    ],
    [
     "PHONGHOC",
@@ -727,6 +727,40 @@
    [
     "THANHPHANDIEM",
     "27"
+   ]
+  ]
+ },
+ "doi_tuong": {
+  "cot": [
+   "SoBang",
+   "SoSequence",
+   "SoXmlSchema",
+   "SoHam",
+   "SoView",
+   "SoThuTuc",
+   "SoTrigger",
+   "SoRole",
+   "SoCheck",
+   "SoDefault",
+   "SoFK",
+   "SoPK",
+   "SoUnique"
+  ],
+  "dong": [
+   [
+    "21",
+    "8",
+    "1",
+    "13",
+    "13",
+    "38",
+    "13",
+    "4",
+    "72",
+    "44",
+    "32",
+    "21",
+    "13"
    ]
   ]
  }

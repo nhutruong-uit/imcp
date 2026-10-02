@@ -42,6 +42,14 @@ def ket_qua():
     return json.loads((DATA / "ket_qua_truy_van.json").read_text(encoding="utf-8"))
 
 
+def doi_tuong():
+    """Số lượng đối tượng CSDL đếm từ CSDL thật (cong_cu/xuat_du_lieu.py) - dùng thay cho con số ghi cứng."""
+    k = ket_qua()["doi_tuong"]
+    d = {cot: int(gt) for cot, gt in zip(k["cot"], k["dong"][0])}
+    d["SoRangBuoc"] = d["SoCheck"] + d["SoDefault"] + d["SoFK"] + d["SoPK"] + d["SoUnique"]
+    return d
+
+
 def kiem_thu():
     rows = []
     for line in (DATA / "kiem_thu.txt").read_text(encoding="utf-8").splitlines():
