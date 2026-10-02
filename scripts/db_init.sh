@@ -26,7 +26,7 @@ run_sql() {
   local file="$1" db="$2"
   if [[ -n "$CONTAINER" ]]; then
     docker cp "$DB_DIR/$file" "$CONTAINER:/tmp/$file" >/dev/null
-    docker exec -e SQLCMDPASSWORD="$SQL_PASSWORD" "$CONTAINER" \
+    SQLCMDPASSWORD="$SQL_PASSWORD" docker exec -e SQLCMDPASSWORD "$CONTAINER" \
       /opt/mssql-tools18/bin/sqlcmd -S localhost -U "$SQL_USER" -C -I -b -f 65001 -d "$db" -i "/tmp/$file"
   else
     SQLCMDPASSWORD="$SQL_PASSWORD" sqlcmd -S "$SQL_SERVER" -U "$SQL_USER" -C -I -b -f 65001 -d "$db" -i "$DB_DIR/$file"

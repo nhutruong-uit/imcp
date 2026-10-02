@@ -15,6 +15,8 @@ cmake --preset macos-debug && cmake --build --preset macos-debug && ctest --pres
 
 # CHẠY TOÀN BỘ KIỂM THỬ (bắt buộc trước khi tạo PR): db_init -> 12_kiem_thu.sql -> build -> unit + e2e
 SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker sql2022
+# Bản PowerShell (Windows; trên macOS chạy được bằng pwsh): giữ hai bản .sh/.ps1 cùng các bước khi sửa
+SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" pwsh -File scripts/test_all.ps1 -Docker sql2022
 
 # Chỉ kiểm thử end-to-end qua giao diện với CSDL thật (9 kịch bản; tự SKIP nếu thiếu biến môi trường)
 QLTTTA_E2E_PASSWORD='Demo@2026' ctest --preset macos-debug -R e2e --output-on-failure
