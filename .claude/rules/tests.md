@@ -8,9 +8,9 @@ paths:
 
 ## Names and structure of C++ tests (Qt Test)
 - Test function names: `subject_condition_expectedResult` - e.g. `addStudent_invalid_doesNotCallRepository`.
-- Unit tests (`tst_domain`, `tst_application`, `tst_sqlerrormapper`, `tst_i18n`): no database needed; use cases are
-  tested with **fake repositories** written in the test file (reference: `FakeStudentRepository` in
-  `tst_application.cpp`).
+- Unit tests (`tst_domain`, `tst_application`, `tst_sqlerrormapper`, `tst_sqlhelpers`, `tst_i18n`): no database
+  needed; use cases are tested with **fake repositories** written in the test file (reference:
+  `FakeStudentRepository` in `tst_application.cpp`).
 - New test for an existing suite: add a private slot to the right file. New suite:
   `qlttta_add_test(tst_xxx <libraries>)` in `tests/CMakeLists.txt`.
 - No translator is installed in unit tests, so messages are in English (the source language); Vietnamese texts are

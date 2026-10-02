@@ -35,9 +35,12 @@ in `docs/ARCHITECTURE.md`.
 
 ## Code patterns
 - Errors go through `Result<T>`/`VoidResult`, never exceptions across layers:
-  `if (!q.exec()) return Result<QString>::failure(errorOf(q));`
-- Procedures with OUTPUT: batch `SET NOCOUNT ON; DECLARE @x ...; EXEC ... @Out = @x OUTPUT; SELECT @x;`,
-  `?` parameters + `addBindValue`, NULL via `SqlHelpers::stringOrNull`. Never concatenate values into SQL.
+  `if (!execPrepared(q, m_db, sql, {a, b})) return Result<QString>::failure(errorOf(q));`
+- Statements with values: `?` markers + `SqlHelpers::execPrepared(q, m_db, sql, {values})` - never
+  `q.prepare`/`addBindValue`/`exec` directly: with FreeTDS (the driver of the macOS .dmg) Qt sends text parameters as
+  `VARCHAR`, and `execPrepared` keeps them Unicode (`withUnicodeText`). NULL via `SqlHelpers::stringOrNull`.
+  Never concatenate values into SQL.
+- Procedures with OUTPUT: batch `SET NOCOUNT ON; DECLARE @x ...; EXEC ... @Out = @x OUTPUT; SELECT @x;`.
 - Money/dates: `Format::money`, `Format::date` (they follow the UI language through the default `QLocale`).
 - Dialogs: `UiHelpers::showError`, `UiHelpers::confirm`; buttons: `UiHelpers::primaryButton/secondaryButton`.
 - Colors and fonts only in `Theme`/the style sheet - no hard-coded colors in pages (charts excepted).

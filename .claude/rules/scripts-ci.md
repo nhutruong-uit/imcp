@@ -28,8 +28,9 @@ paths:
 - The `Full tests (Linux + SQL Server)` job runs SQL Server 2022 Developer in Docker and installs Microsoft ODBC
   Driver 18 (`msodbcsql18`), both with `ACCEPT_EULA=Y`: the repository owner accepted these two licenses for CI
   (development/test use only) on 2026-10-02. Do not add other components that need their own Microsoft EULA (e.g.
-  `mssql-tools18`) without asking - sqlcmd runs inside the SQL Server container (`test_all --docker`). FreeTDS is not
-  used there: Qt's ODBC plugin disables Unicode for FreeTDS, so strings would be sent as `varchar` (code page 1258).
+  `mssql-tools18`) without asking - sqlcmd runs inside the SQL Server container (`test_all --docker`). The suite
+  runs with ODBC Driver 18; the end-to-end test then runs again through FreeTDS (`tdsodbc`, the driver of the macOS
+  .dmg), which guards the Unicode workaround of `SqlHelpers::execPrepared`.
   The sa password is random for every run (masked); never commit one.
 - That job runs `test_all.sh` and then `test_all.ps1` (pwsh) against the same server, so both versions must keep
   working on Linux too (`linux-debug` preset).
