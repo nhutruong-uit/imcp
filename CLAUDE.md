@@ -63,7 +63,7 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
 - Chỉ `main` bật branch protection (bắt buộc PR + CI xanh trên macOS và Windows + nhánh cập nhật theo base,
   áp dụng cả admin). `develop` không khóa.
 - Commit message tiếng Việt dạng `feat(scope): ...`, `fix(db): ...`.
-- **PR (tiêu đề + mô tả) viết bằng tiếng Anh**: dùng skill `/create-pr` (`.claude/skills/create-pr/SKILL.md`),
+- **PR (tiêu đề + mô tả) viết bằng tiếng Anh**: dùng skill `/imcp-create-pr` (`.claude/skills/imcp-create-pr/SKILL.md`),
   skill chạy `test_all` trước rồi mới tạo PR.
 - Không commit mật khẩu thật, `.env`, thư mục `build/`, `dist/`.
 
