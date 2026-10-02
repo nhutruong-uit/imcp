@@ -113,9 +113,11 @@ run `usp_Account_RecordLogin` and `usp_Account_ChangePassword`, and read the cat
 | Distributed database | Horizontal fragmentation by branch, replicated catalog tables, distributed view, completeness/disjointness check | `11_distributed_demo.sql` |
 | Object-oriented DB, NoSQL | Model conversion and comparison | report Ch.7 |
 | Automated database tests | 39 cases: `T01`-`T27` (integrity constraints and business rules, functions, triggers, cursors, XML) and `P01`-`P12` (permissions, via `EXECUTE AS USER`); each case runs in a transaction that is rolled back | `12_tests.sql` |
+| Automated server-level tests | 18 cases `S01`-`S18`: backup chain + restore into a new database (contained users sign in to the copy), `usp_Backup`, BULK INSERT of the sample CSV, fragmentation/replication/partition elimination/linked server for `11_distributed_demo.sql`, account lockout with real sign-ins through a loopback linked server | `13_server_tests.sql` |
 
 `db_init` runs scripts `00`-`07` (create database, tables, functions, views, procedures, triggers, security, seed
-data). Scripts `08`-`11` are demonstrations to run by hand; `12` is the automated test suite (see
+data). Scripts `08`-`11` are demonstrations to run by hand; `12` and `13` are the automated test suites (`13` runs
+`11` itself and needs the sqlcmd variables set by `scripts/test_all`, see
 [SETUP.md](SETUP.md#running-the-full-test-suite-with-one-command-before-every-pr)).
 
 ## 6. Main business rules (guaranteed by the database)

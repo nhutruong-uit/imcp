@@ -14,7 +14,8 @@ SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/db_in
 # Build + test (macOS). If CMake reports a broken compiler: add -DCMAKE_OSX_SYSROOT=<Xcode SDK>
 cmake --preset macos-debug && cmake --build --preset macos-debug && ctest --preset macos-debug
 
-# FULL TEST SUITE (required before a PR): db_init -> 12_tests.sql -> build -> unit + e2e
+# FULL TEST SUITE (required before a PR): db_init -> 12_tests.sql -> 13_server_tests.sql -> build -> unit + e2e
+# (CI runs the same suite on Linux - job "Full tests (Linux + SQL Server)")
 SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker sql2022
 # PowerShell version (Windows; runs on macOS with pwsh): keep the .sh/.ps1 versions doing the same steps
 SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" pwsh -File scripts/test_all.ps1 -Docker sql2022
@@ -69,10 +70,11 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
 - Triggers must handle **sets** (several rows in inserted/deleted).
 - New object → GRANT to the roles in `06_security.sql`; business roles have no rights on base tables.
 - The application never INSERTs/UPDATEs tables directly: every write goes through a procedure.
-- After a change: run `scripts/test_all.sh` (re-runs `db_init` from scratch + `12_tests.sql`), try it with a demo
-  account.
+- After a change: run `scripts/test_all.sh` (re-runs `db_init` from scratch + `12_tests.sql` + `13_server_tests.sql`),
+  try it with a demo account.
 - New business rule/constraint/permission → add a test case to `12_tests.sql` **and** register its code + message
-  pattern in table `#Expected` (a "Rejected" case must be rejected for the right reason). Do not change the
+  pattern in table `#Expected` (a "Rejected" case must be rejected for the right reason); features that need
+  server-level operations (backup, BULK INSERT, distributed, sign-in/lockout) go to `13_server_tests.sql` (`Sxx`). Do not change the
   expectation of an existing case to make the tests green unless the specification really changed - then say so in
   the PR.
 
@@ -97,8 +99,8 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
 ### Git
 - The default branch on GitHub is `develop`. Work on `feature/...` branches, PR into `develop`; never push directly
   to `main`.
-- Only `main` has branch protection (PR required + green CI on macOS and Windows + branch up to date with its base,
-  applies to admins too). `develop` is not locked.
+- Only `main` has branch protection (PR required + green CI on macOS, Windows and the Linux full tests + branch up to
+  date with its base, applies to admins too). `develop` is not locked.
 - Commit messages in English (Conventional Commits): `feat(students): ...`, `fix(db): ...`. No AI attribution
   lines in commits or PRs (no `Co-Authored-By: Claude ...`, no "Generated with Claude Code").
 - **PRs (title + description) are written in English**: use the `/imcp-create-pr` skill

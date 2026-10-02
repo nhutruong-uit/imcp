@@ -16,13 +16,19 @@ paths:
   `$ErrorActionPreference = "Stop"`, check `$LASTEXITCODE` after external commands; check the syntax with the
   `pwsh` parser before committing.
 - Script comments and messages are English. `test_all` parses the `Verdict` column (`PASSED`/`FAILED`) of the
-  summary table printed by `database/12_tests.sql`.
+  summary tables printed by `database/12_tests.sql` and `database/13_server_tests.sql` (case codes `Txx`/`Pxx`/`Sxx`).
 - Passwords only travel through environment variables (`SQL_PASSWORD`, `SQLCMDPASSWORD`;
   `docker exec -e SQLCMDPASSWORD` without a value) - never on the command line, never printed in logs; restore the
   environment afterwards.
 - CI (`.github/workflows/ci.yml`) runs only on a merge into `develop`, on PRs into `main` (required by branch
-  protection) and manually. Keep the two job names `macOS (Apple Silicon)` and `Windows (Qt + MinGW)`: renaming a job
-  requires updating the required checks of `main`, otherwise every PR into `main` gets stuck.
+  protection) and manually. Keep the three job names `macOS (Apple Silicon)`, `Windows (Qt + MinGW)` and
+  `Full tests (Linux + SQL Server)`: renaming a job requires updating the required checks of `main`, otherwise every
+  PR into `main` gets stuck.
 - Do not add `paths-ignore` to the `pull_request` trigger of `main` (the required checks would never run).
-- CI has no SQL Server and never accepts Microsoft's EULA on the user's behalf; database/e2e tests run locally through
-  `test_all`.
+- The `Full tests (Linux + SQL Server)` job runs SQL Server 2022 Developer in Docker with `ACCEPT_EULA=Y`: the
+  repository owner accepted that license for CI (development/test use only) on 2026-10-02. Do not add other
+  components that need their own Microsoft EULA (e.g. `msodbcsql18`/`mssql-tools18` from apt) without asking - on
+  Linux the application uses FreeTDS (`QLTTTA_ODBC_DRIVER`) and sqlcmd runs inside the SQL Server container
+  (`test_all --docker`). The sa password is random for every run (masked); never commit one.
+- That job runs `test_all.sh` and then `test_all.ps1` (pwsh) against the same server, so both versions must keep
+  working on Linux too (`linux-debug` preset).

@@ -2,6 +2,7 @@
 paths:
   - "tests/**"
   - "database/12_tests.sql"
+  - "database/13_server_tests.sql"
 ---
 # Testing rules
 
@@ -51,8 +52,19 @@ END CATCH;
 GO
 ```
 
+## Server-level tests (`database/13_server_tests.sql`)
+- For what cannot run inside `BEGIN TRAN ... ROLLBACK`: backup/restore, BULK INSERT, the distributed database
+  (`:r 11_distributed_demo.sql`), real sign-ins (account lockout). Case codes `Sxx`, registered in `#Expected` like in
+  `12_tests.sql`, same summary table and `THROW 50099`.
+- Real sign-ins go through the loopback linked servers `QLTTTA_T_LINK_*` (`#usp_SignIn`) as the temporary account
+  `t_lockout` - never lock or change a demo account.
+- Every scratch object is named `QLTTTA_T_...`/`t_...` and removed by `#usp_Cleanup` (run at the start and at the end).
+  Paths come from `SERVERPROPERTY(...)` and the sqlcmd variables `DatabaseDir`/`CsvPath` (set by `test_all`), so the
+  script runs on Linux/Docker and on Windows.
+
 ## Before saying "done"
-- Run `scripts/test_all.sh` (or at least `ctest --preset ...` + `12_tests.sql`) and paste the real result.
+- Run `scripts/test_all.sh` (or at least `ctest --preset ...` + `12_tests.sql` + `13_server_tests.sql`) and paste the
+  real result.
 - Suspect a "falsely green" test: break one line of code/SQL on purpose, the test must turn red, then revert.
 - Do not delete or loosen the expectation of an existing test unless the specification really changed - say why in the
   report/PR.

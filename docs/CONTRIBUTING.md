@@ -10,15 +10,15 @@ docs/<short-name>               CI runs after the merge)
 
 - `develop` is the default branch on GitHub. Work on a `feature/...`, `fix/...` or `docs/...` branch and open a Pull
   Request into `develop`; **never push directly** to `main`.
-- **CI** (`ci.yml`, build + unit tests on macOS and Windows) runs when something is merged into `develop`, on every PR
-  into `main`, and when started by hand (`gh workflow run CI --ref <branch>` or *Actions > CI > Run workflow*).
-  Pushes to work branches and PRs into `develop` do **not** run CI: run `scripts/test_all` locally before merging
-  (see the checklist below). CI has no SQL Server, so the database test suite and the end-to-end GUI test only run
-  through `test_all` (see [SETUP.md](SETUP.md)).
+- **CI** (`ci.yml`: build + unit tests on macOS and Windows, plus the full `test_all` suite - database, server-level,
+  unit and end-to-end tests - on Linux against SQL Server in Docker) runs when something is merged into `develop`, on
+  every PR into `main`, and when started by hand (`gh workflow run CI --ref <branch>` or *Actions > CI > Run
+  workflow*). Pushes to work branches and PRs into `develop` do **not** run CI: run `scripts/test_all` locally before
+  merging (see the checklist below and [SETUP.md](SETUP.md)).
 - PR `develop → main` = release: `release.yml` packages `.exe` / `.zip` / `.dmg` and creates a Release tagged
   `vX.Y.Z-build.N`. Before releasing, bump `project(VERSION ...)` in `CMakeLists.txt` if there are new features.
-- *Branch protection* is enabled for `main` only: a PR is required, both CI jobs (`macOS (Apple Silicon)`,
-  `Windows (Qt + MinGW)`) must be green and the branch must be up to date with `main` before merging. It also applies
+- *Branch protection* is enabled for `main` only: a PR is required, the three CI jobs (`macOS (Apple Silicon)`,
+  `Windows (Qt + MinGW)`, `Full tests (Linux + SQL Server)`) must be green and the branch must be up to date with `main` before merging. It also applies
   to admins; force pushes and branch deletion are blocked. No reviewer is required (the team lead can merge once CI is
   green). `develop` is not locked, but the team still works through PRs.
 - PR title, description and commit messages are written **in English**. With Claude Code: type
