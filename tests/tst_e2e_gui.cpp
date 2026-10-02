@@ -257,6 +257,22 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(table->model()->rowCount(), 0, 3000);
     }
 
+    // Search with a tone mark that code page 1258 has no precomposed letter for ("ồ"): the keyword must reach
+    // SQL Server as Unicode with every ODBC driver (through FreeTDS it used to arrive as VARCHAR => no match)
+    void academicStaff_searchWithToneMarks_findsStudent() {
+        QVERIFY(login(QStringLiteral("gvu_lan"), m_password));
+        MainWindow w(m_app->services());
+        w.show();
+        w.openFeature(Feature::Students);
+        QTableView* table = nullptr;
+        QTRY_VERIFY((table = visibleTable(w, QStringLiteral("studentTable"))) != nullptr);
+        auto* search = w.findChild<QLineEdit*>(QStringLiteral("searchEdit"));
+        QVERIFY(search);
+        typeText(search, QStringLiteral("Hồ Minh Quân"));
+        QTRY_COMPARE_WITH_TIMEOUT(table->model()->rowCount(), 1, 3000);
+        QCOMPARE(table->model()->index(0, 0).data().toString(), QStringLiteral("ST00054"));
+    }
+
     void teacher_seesOnlyOwnClasses() {
         QVERIFY(login(QStringLiteral("gv_john"), m_password));
         MainWindow w(m_app->services());

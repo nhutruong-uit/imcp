@@ -16,6 +16,7 @@ endfunction()
 qlttta_add_test(tst_domain qlttta_domain)
 qlttta_add_test(tst_application qlttta_application)
 qlttta_add_test(tst_sqlerrormapper qlttta_infrastructure)
+qlttta_add_test(tst_sqlhelpers qlttta_infrastructure)
 
 # Translations: English source strings, Vietnamese .ts/.qm, labels of database values and messages
 qlttta_add_test(tst_i18n qlttta_presentation qlttta_infrastructure)

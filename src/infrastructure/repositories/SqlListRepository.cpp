@@ -94,11 +94,7 @@ SqlListRepository::SqlListRepository(DatabaseManager& db) : m_db(db) {}
 Result<TableData> SqlListRepository::fetch(ListKind kind) {
     const ListQuery lq = queryFor(kind);
     QSqlQuery q = makeQuery(m_db.db());
-    if (!q.prepare(lq.sql))
-        return Result<TableData>::failure(errorOf(q));
-    for (const QVariant& v : lq.parameters)
-        q.addBindValue(v);
-    if (!q.exec())
+    if (!execPrepared(q, m_db, lq.sql, lq.parameters))
         return Result<TableData>::failure(errorOf(q));
 
     TableData table;

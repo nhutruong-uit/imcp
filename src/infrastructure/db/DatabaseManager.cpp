@@ -67,9 +67,13 @@ QStringList DatabaseManager::candidateDrivers() {
     return drivers;
 }
 
+bool DatabaseManager::isFreeTds(const QString& driver) {
+    return driver.contains(QLatin1String("tdsodbc")); // libtdsodbc.so, the name Qt checks too
+}
+
 QString DatabaseManager::connectionString(const QString& driver, const ServerConfig& config,
                                           const QString& username, const QString& password) {
-    if (driver.contains(QLatin1String("tdsodbc"))) {
+    if (isFreeTds(driver)) {
         // FreeTDS: separate server and port, TDS protocol 7.4 (SQL Server 2012+), encryption required
         QString host = config.host.trimmed();
         QString port = QStringLiteral("1433");
