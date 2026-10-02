@@ -1,4 +1,8 @@
-# CLAUDE.md - guide for Claude Code in the QLTTTA repo
+# AGENTS.md - guide for coding agents in the QLTTTA repo
+
+Project instructions for AI coding agents. Claude Code (v2.1.277 or later) reads this file directly at the start of
+every session, together with `.claude/rules/`. Do not add a `CLAUDE.md` or `CLAUDE.local.md` next to it: Claude Code
+then reads those instead and skips this file.
 
 IE103 course project (Information Management, UIT): an English-center management application. The grading focus
 is the **SQL Server database**; the Qt application is the presentation part (menus/forms/reports). Team members must

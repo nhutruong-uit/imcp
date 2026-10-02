@@ -2,11 +2,11 @@
 paths:
   - "docs/*.md"
   - "README.md"
-  - "CLAUDE.md"
+  - "AGENTS.md"
   - ".claude/**/*.md"
   - ".github/*.md"
 ---
-# Rules for the repository docs (docs/*.md, README, CLAUDE.md, rules and skills)
+# Rules for the repository docs (docs/*.md, README, AGENTS.md, rules and skills)
 
 The report (`docs/report/`) has its own rules (`05-report.md`). Everything here is **English**.
 
@@ -15,14 +15,14 @@ The report (`docs/report/`) has its own rules (`05-report.md`). Everything here 
 |---|---|
 | Database object, constraint, test case, demo script | `docs/DATABASE.md` (feature table, numbers) |
 | Layer, pattern, driver behavior, new module recipe | `docs/ARCHITECTURE.md` |
-| Command, environment variable, tool to install, test step, CI job | `docs/SETUP.md` (+ `CLAUDE.md` "Common commands") |
+| Command, environment variable, tool to install, test step, CI job | `docs/SETUP.md` (+ `AGENTS.md` "Common commands") |
 | Team workflow, branches, PR checklist, required checks | `docs/CONTRIBUTING.md` (+ `.github/pull_request_template.md`) |
 | Repository layout | `README.md` |
-| A convention | the numbered rule of its area in `.claude/rules/` - never only in `CLAUDE.md` |
+| A convention | the numbered rule of its area in `.claude/rules/` - never only in `AGENTS.md` |
 
 ## One fact in one place
-- `CLAUDE.md` keeps the cross-cutting rules and pointers; the details live in the numbered rule files. When a fact
-  must appear in several files (e.g. a command in `SETUP.md` and `CLAUDE.md`), change every copy in the same commit.
+- `AGENTS.md` keeps the cross-cutting rules and pointers; the details live in the numbered rule files. When a fact
+  must appear in several files (e.g. a command in `SETUP.md` and `AGENTS.md`), change every copy in the same commit.
 - Rule files are numbered in reading order (`00-` always applies, the others have `paths:` frontmatter). Mark a rule
   that a test or script checks with ✔ and name the check, so the reader knows it is enforced.
 - ✔ Numbers about the database (procedures, triggers, views, functions, constraints, test cases, the

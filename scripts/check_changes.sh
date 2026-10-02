@@ -58,7 +58,7 @@ for c in $(git rev-list --no-merges "$BASE_COMMIT..HEAD"); do
     fail "$SHORT: the subject is longer than 100 characters"
   fi
   if git log -1 --format=%B "$c" | grep -qiE 'Co-Authored-By:.*(Claude|anthropic)|Generated with .*Claude'; then
-    fail "$SHORT: remove the AI attribution line (team rule, see CLAUDE.md)"
+    fail "$SHORT: remove the AI attribution line (team rule, see AGENTS.md)"
   fi
 done
 echo "  commits: $COMMITS checked"
