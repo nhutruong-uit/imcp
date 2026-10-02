@@ -1,11 +1,11 @@
-﻿# Khởi tạo CSDL QLTTTA (Windows, hoặc macOS/Linux có PowerShell 7): chạy lần lượt database\00..07 bằng sqlcmd.
+﻿# Initializes the QLTTTA database (Windows, or macOS/Linux with PowerShell 7): runs database\00..07 with sqlcmd.
 #
-# Cách dùng (PowerShell):
+# Usage (PowerShell):
 #   .\scripts\db_init.ps1                                   # Windows Authentication, server "localhost"
 #   .\scripts\db_init.ps1 -Server "localhost\SQLEXPRESS"    # SQL Server Express
-#   .\scripts\db_init.ps1 -User sa -Password "<mật khẩu>"   # SQL Server Authentication
-#   .\scripts\db_init.ps1 -Docker sql2022                   # sqlcmd trong container Docker (mật khẩu sa: $env:SQL_PASSWORD)
-# Mật khẩu có thể đặt trong biến môi trường SQL_PASSWORD thay cho -Password (không lộ trên dòng lệnh).
+#   .\scripts\db_init.ps1 -User sa -Password "<password>"   # SQL Server Authentication
+#   .\scripts\db_init.ps1 -Docker sql2022                   # sqlcmd inside a Docker container (sa password: $env:SQL_PASSWORD)
+# The password can be given in the SQL_PASSWORD environment variable instead of -Password (keeps it off the command line).
 param(
     [string]$Server = "localhost",
     [string]$User = "",
@@ -18,11 +18,11 @@ $files = @("00_create_database.sql", "01_tables.sql", "02_functions.sql", "03_vi
            "04_procedures.sql", "05_triggers.sql", "06_security.sql", "07_seed_data.sql")
 if (-not $Password -and $env:SQL_PASSWORD) { $Password = $env:SQL_PASSWORD }
 if ($Docker -and -not $User) { $User = "sa" }
-if ($User -and -not $Password) { throw "Thiếu mật khẩu: dùng -Password hoặc biến môi trường SQL_PASSWORD." }
+if ($User -and -not $Password) { throw "Missing password: use -Password or the SQL_PASSWORD environment variable." }
 
-$matKhauCu = $env:SQLCMDPASSWORD
+$previousPassword = $env:SQLCMDPASSWORD
 try {
-    if ($User) { $env:SQLCMDPASSWORD = $Password }   # sqlcmd đọc mật khẩu từ biến này
+    if ($User) { $env:SQLCMDPASSWORD = $Password }   # sqlcmd reads the password from this variable
     foreach ($f in $files) {
         $db = if ($f -like "00_*") { "master" } else { "QLTTTA" }
         Write-Host ">> $f"
@@ -35,9 +35,9 @@ try {
             if ($User) { $sqlArgs += @("-U", $User) } else { $sqlArgs += "-E" }
             & sqlcmd @sqlArgs
         }
-        if ($LASTEXITCODE -ne 0) { throw "Lỗi khi chạy $f" }
+        if ($LASTEXITCODE -ne 0) { throw "Error while running $f" }
     }
 } finally {
-    $env:SQLCMDPASSWORD = $matKhauCu   # không để mật khẩu sa lại trong phiên PowerShell
+    $env:SQLCMDPASSWORD = $previousPassword   # never leave the sa password in the PowerShell session
 }
-Write-Host "Hoàn tất. CSDL QLTTTA đã sẵn sàng (tài khoản demo: xem docs\SETUP.md)."
+Write-Host "Done. The QLTTTA database is ready (demo accounts: see docs\SETUP.md)."
