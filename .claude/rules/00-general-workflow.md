@@ -11,7 +11,7 @@ kind of report**, so the team lead can merge it without rework and everyone can 
    - C++: the Students module (`Student` → `IStudentRepository` → `StudentService` → `SqlStudentRepository` →
      `StudentPage`)
    - Tests: `tests/tst_application.cpp` (fake repository), `tests/tst_e2e_gui.cpp`, `tests/tst_i18n.cpp`,
-     `database/12_tests.sql`
+     `database/12_tests.sql`, `database/13_server_tests.sql` (server-level)
 2. **Follow the reference**: same naming, same file layout, same error handling. Do not invent a new style when a
    reference exists.
 3. **Smallest scope**: change only what was asked. Do not rename/move files, reformat whole files or fix unrelated

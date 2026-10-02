@@ -38,7 +38,7 @@ accountant, teacher).
 
 ```
 database/            SQL Server scripts: 00 create DB ... 07 seed data, 08-11 demos (queries / backup / import / distributed),
-                     12 test suite, samples/ (CSV for BULK INSERT)
+                     12-13 test suites (13 = server level), samples/ (CSV for BULK INSERT)
 src/domain/          Entities + business rules (no dependency on the database or the UI)
 src/application/     Use cases (services), ports (repository interfaces), role/menu permission matrix
 src/infrastructure/  ODBC connection, repositories that call stored procedures, settings storage

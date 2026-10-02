@@ -73,7 +73,7 @@ using this template and dropping empty sections:
 - **Docs / Report**: <...>
 
 ## Testing
-- `scripts/test_all.sh`: <result, e.g. "all passed - DB 39/39 cases, unit + end-to-end">
+- `scripts/test_all.sh`: <result, e.g. "all passed - DB 57/57 cases (12_tests + 13_server_tests), unit + end-to-end">
 - Manual: <roles/screens checked with demo accounts, if any>
 - Not tested: <be explicit, e.g. Windows-only paths>
 
@@ -105,8 +105,8 @@ After creating:
 - In the Claude desktop app: call the `ccd_pr` tools (`get_status`; `bind_pr` if it is not bound), read the CI
   result once and offer Auto-fix. Elsewhere: `gh pr checks <url>` once. Do not poll CI in a loop and never
   enable auto-merge unless the user asks.
-- Only `main` is protected: a PR plus green CI on `macOS (Apple Silicon)` and `Windows (Qt + MinGW)`, with the
-  branch up to date with `main`; 0 approvals are required, so the author can merge once CI is green.
+- Only `main` is protected: a PR plus green CI on `macOS (Apple Silicon)`, `Windows (Qt + MinGW)` and
+  `Full tests (Linux + SQL Server)`, with the branch up to date with `main`; 0 approvals are required, so the author can merge once CI is green.
   `develop` is the default branch on GitHub and is not protected, so `gh pr create` targets it by default.
 - Reply to the user in Vietnamese with the PR link (`[owner/repo#N](url)`), the test result and anything
   that still needs their decision.

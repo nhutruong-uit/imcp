@@ -1,14 +1,18 @@
 ﻿# Runs the WHOLE test suite and stops at the first failing step (before creating a PR) - PowerShell version of test_all.sh:
 #   1. Re-initialize the QLTTTA database from scratch (scripts\db_init.ps1) => always the same seed data
 #   2. Database tests: database\12_tests.sql (constraints, business rules, functions/triggers/cursors, XML, permissions)
-#   3. Build the application + unit tests + end-to-end GUI tests against the real database (ctest)
+#   3. Server-level tests: database\13_server_tests.sql (backup/restore, BULK INSERT, distributed database,
+#      account lockout with real sign-ins) - needs sysadmin and the MSOLEDBSQL provider (SQL Server 2019+)
+#   4. Build the application + unit tests + end-to-end GUI tests against the real database (ctest)
 #
 # Usage (PowerShell, in the repo folder):
 #   .\scripts\test_all.ps1                                   # Windows Authentication, server "localhost"
 #   .\scripts\test_all.ps1 -Server "localhost\SQLEXPRESS"    # SQL Server Express
 #   .\scripts\test_all.ps1 -User sa -Password "<password>"   # SQL Server Authentication
 #   .\scripts\test_all.ps1 -Docker sql2022                   # SQL Server in Docker (sa password: $env:SQL_PASSWORD)
-#   add -NoInit to skip step 1; -Preset selects the CMake preset (default windows-debug / macos-debug)
+#   add -NoInit to skip step 1; -Preset selects the CMake preset (default windows-debug / macos-debug / linux-debug)
+#   Without -Docker the SQL Server service reads the sample CSV (BULK INSERT) from a copy in %ProgramData%\QLTTTA
+#   (/tmp on macOS/Linux); $env:SQL_CSV_PATH overrides it with the file's path on the SQL Server machine.
 # Windows: needs $env:QT_ROOT_DIR and MinGW/Ninja/CMake on PATH as described in docs\SETUP.md.
 # Demo account password for the end-to-end tests: $env:QLTTTA_E2E_PASSWORD (default as in docs\SETUP.md).
 param(
@@ -24,7 +28,7 @@ $ErrorActionPreference = "Stop"
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-if (-not $Preset) { $Preset = if ($IsMacOS) { "macos-debug" } else { "windows-debug" } }
+if (-not $Preset) { $Preset = if ($IsMacOS) { "macos-debug" } elseif ($IsLinux) { "linux-debug" } else { "windows-debug" } }
 if (-not $Password -and $env:SQL_PASSWORD) { $Password = $env:SQL_PASSWORD }
 if ($Docker -and -not $User) { $User = "sa" }
 if ($User -and -not $Password) { throw "Missing password: use -Password or the SQL_PASSWORD environment variable." }
@@ -44,38 +48,66 @@ try {
 
     # 1. Re-initialize the database
     if (-not $NoInit) {
-        Step "1/3 Re-initialize the database"
+        Step "1/4 Re-initialize the database"
         & (Join-Path $PSScriptRoot "db_init.ps1") -Server $Server -User $User -Password $Password -Docker $Docker
     }
 
-    # 2. Database tests (the script THROWs when a case fails => sqlcmd -b returns an error code)
-    Step "2/3 Database tests (database/12_tests.sql)"
-    $sqlFile = Join-Path $root "database/12_tests.sql"
-    $dbLog = Join-Path $results "database_tests.txt"
-    if ($User) { $env:SQLCMDPASSWORD = $Password }
-    if ($Docker) {
-        docker cp $sqlFile "${Docker}:/tmp/12_tests.sql" | Out-Null
-        $lines = docker exec -e SQLCMDPASSWORD $Docker /opt/mssql-tools18/bin/sqlcmd `
-            -S localhost -U $User -C -I -b -f 65001 -d QLTTTA -W -s "|" -i /tmp/12_tests.sql
-    } else {
-        $sqlArgs = @("-S", $Server, "-d", "QLTTTA", "-C", "-I", "-b", "-f", "65001", "-W", "-s", "|", "-i", $sqlFile)
-        if ($User) { $sqlArgs += @("-U", $User) } else { $sqlArgs += "-E" }
-        $lines = & sqlcmd @sqlArgs
-    }
-    $dbExit = $LASTEXITCODE
-    $lines | Out-File -FilePath $dbLog -Encoding utf8
-    # Verdict column of the summary table of 12_tests.sql: PASSED / FAILED
-    $cases = @($lines | Where-Object { $_ -match '^[TP]\d{2}\|' })
-    $passed = @($cases | Where-Object { $_ -match '\|PASSED\|' })
-    Write-Host "Result: $($passed.Count)/$($cases.Count) cases passed (details: build/test-results/database_tests.txt)"
-    if ($dbExit -ne 0) {
-        $cases | Where-Object { $_ -notmatch '\|PASSED\|' } | ForEach-Object { Write-Host $_ }
-        if ($cases.Count -eq 0) { $lines | Select-Object -Last 20 | ForEach-Object { Write-Host $_ } }
-        throw "FAILED: some database test cases failed."
+    # Runs a test script of database\ into build/test-results\<log> (extra = extra sqlcmd arguments) and stops
+    # the suite when a case fails (the script THROWs => sqlcmd -b returns an error code)
+    $dbPassed = 0
+    $dbTotal = 0
+    function Invoke-DbTests([string]$file, [string]$logName, [string[]]$extra) {
+        $log = Join-Path $results $logName
+        if ($User) { $env:SQLCMDPASSWORD = $Password }
+        if ($Docker) {
+            docker cp (Join-Path $root "database/$file") "${Docker}:/tmp/$file" | Out-Null
+            $lines = docker exec -e SQLCMDPASSWORD $Docker /opt/mssql-tools18/bin/sqlcmd `
+                -S localhost -U $User -C -I -b -f 65001 -d QLTTTA -W -s "|" @extra -i "/tmp/$file"
+        } else {
+            $sqlArgs = @("-S", $Server, "-d", "QLTTTA", "-C", "-I", "-b", "-f", "65001", "-W", "-s", "|") + $extra +
+                       @("-i", (Join-Path $root "database/$file"))
+            if ($User) { $sqlArgs += @("-U", $User) } else { $sqlArgs += "-E" }
+            $lines = & sqlcmd @sqlArgs
+        }
+        $exitCode = $LASTEXITCODE
+        $lines | Out-File -FilePath $log -Encoding utf8
+        # Verdict column of the summary table: PASSED / FAILED (case codes Txx, Pxx, Sxx)
+        $cases = @($lines | Where-Object { $_ -match '^[TPS]\d{2}\|' })
+        $passed = @($cases | Where-Object { $_ -match '\|PASSED\|' })
+        Write-Host "Result: $($passed.Count)/$($cases.Count) cases passed (details: build/test-results/$logName)"
+        if ($exitCode -ne 0) {
+            $cases | Where-Object { $_ -notmatch '\|PASSED\|' } | ForEach-Object { Write-Host $_ }
+            if ($cases.Count -eq 0) { $lines | Select-Object -Last 20 | ForEach-Object { Write-Host $_ } }
+            throw "FAILED: some test cases of database/$file failed."
+        }
+        $script:dbPassed += $passed.Count
+        $script:dbTotal += $cases.Count
     }
 
-    # 3. Build + unit tests + end-to-end
-    Step "3/3 Build, unit tests and GUI tests (ctest)"
+    # 2. Database tests
+    Step "2/4 Database tests (database/12_tests.sql)"
+    Invoke-DbTests "12_tests.sql" "database_tests.txt" @()
+
+    # 3. Server-level tests: 13_server_tests.sql includes 11_distributed_demo.sql (:r, read by sqlcmd) and
+    #    BULK INSERTs the sample CSV (read by the SQL Server service, so the file must be on the server machine)
+    Step "3/4 Server-level tests (database/13_server_tests.sql)"
+    if ($Docker) {
+        docker cp (Join-Path $root "database/11_distributed_demo.sql") "${Docker}:/tmp/11_distributed_demo.sql" | Out-Null
+        docker cp (Join-Path $root "database/samples/student_import.csv") "${Docker}:/tmp/student_import.csv" | Out-Null
+        Invoke-DbTests "13_server_tests.sql" "server_tests.txt" @("-v", "DatabaseDir=/tmp", "CsvPath=/tmp/student_import.csv")
+    } else {
+        $csvPath = $env:SQL_CSV_PATH
+        if (-not $csvPath) {
+            $csvDir = if ($IsMacOS -or $IsLinux) { "/tmp" } else { Join-Path $env:ProgramData "QLTTTA" }
+            New-Item -ItemType Directory -Force -Path $csvDir | Out-Null
+            $csvPath = Join-Path $csvDir "student_import.csv"
+            Copy-Item (Join-Path $root "database/samples/student_import.csv") $csvPath -Force
+        }
+        Invoke-DbTests "13_server_tests.sql" "server_tests.txt" @("-v", "DatabaseDir=$(Join-Path $root 'database')", "CsvPath=$csvPath")
+    }
+
+    # 4. Build + unit tests + end-to-end
+    Step "4/4 Build, unit tests and GUI tests (ctest)"
     $configureLog = Join-Path $results "cmake_configure.log"
     $cmakeArgs = @("--preset", $Preset)
     if ($env:EXTRA_CMAKE_ARGS) { $cmakeArgs += ($env:EXTRA_CMAKE_ARGS -split ' ') }
@@ -92,7 +124,7 @@ try {
         throw "FAILED: some tests were skipped - check the database connection / QLTTTA_E2E_PASSWORD."
     }
     Write-Host ""
-    Write-Host "ALL TESTS PASSED: database $($passed.Count)/$($cases.Count) cases, unit tests + end-to-end GUI tests passed."
+    Write-Host "ALL TESTS PASSED: database $dbPassed/$dbTotal cases (12_tests + 13_server_tests), unit tests + end-to-end GUI tests passed."
 } finally {
     foreach ($name in $previousEnv.Keys) { [Environment]::SetEnvironmentVariable($name, $previousEnv[$name]) }
 }

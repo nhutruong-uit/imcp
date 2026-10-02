@@ -73,8 +73,8 @@ A procedure with a single write statement needs no TRY/TRANSACTION (like `usp_St
 | B. Classes, schedules, sessions | 50010-50019 | | F. Payroll | 50050-50059 |
 | C. Enrollment, class transfer | 50020-50029 | | I. Accounts | 50060-50069 |
 | D. Receipts | 50030-50039 | | I7. Backup | 50070-50079 |
-New group: use the next free block (50080...). `50099` is reserved for `12_tests.sql`. Triggers use
-`RAISERROR (N'...', 16, 1); ROLLBACK TRANSACTION;`. Numbers in use:
+New group: use the next free block (50080...). `50099` is reserved for the test scripts (`12_tests.sql`,
+`13_server_tests.sql`). Triggers use `RAISERROR (N'...', 16, 1); ROLLBACK TRANSACTION;`. Numbers in use:
 `grep -o "THROW 50[0-9]*" database/04_procedures.sql | sort -u`.
 
 ## Trigger template (always handle a SET of rows)
@@ -99,7 +99,8 @@ Forbidden: `SELECT @x = Col FROM inserted` (reads a single row only), cursors in
 
 ## Mandatory when adding/changing an object
 1. `GRANT` to the right roles in `06_security.sql` (business roles have no rights on base tables).
-2. A test case in `12_tests.sql` + its code and message pattern registered in `#Expected` (see `tests.md`).
+2. A test case in `12_tests.sql` + its code and message pattern registered in `#Expected` (see `tests.md`); features
+   that need server-level operations (backup, BULK INSERT, distributed, sign-in/lockout) go to `13_server_tests.sql`.
    New business messages: register them in `DbMessages.cpp` and translate them (see "Language and naming").
 3. Re-run everything: `scripts/test_all.sh` (includes `db_init` from scratch) - not only the file you changed.
 4. If the number of objects or content quoted in the report changes: run `/imcp-update-report`.
