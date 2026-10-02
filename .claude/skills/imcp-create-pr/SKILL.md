@@ -5,13 +5,13 @@ description: Create (or update) a GitHub pull request for the QLTTTA repo with a
 
 # Create a pull request (QLTTTA)
 
-<!-- Ghi chú cho nhóm: skill này tạo PR với tiêu đề + mô tả TIẾNG ANH. Commit message vẫn viết tiếng Việt
-     theo CLAUDE.md. Trả lời người dùng (trong chat) bằng tiếng Việt như bình thường. -->
+<!-- Note for the team: this skill writes the PR title + description in ENGLISH, like the commit messages
+     (see CLAUDE.md). Reply to the user (in the chat) in Vietnamese as usual. -->
 
-PR title and body are **always in English**. Commit messages stay in Vietnamese (see `CLAUDE.md`), so
-translate their meaning; never paste Vietnamese commit messages into the PR as-is. Keep identifiers exactly as
-they are in code (`usp_GhiDanh`, `HocVienService::themMoi`, table names) in backticks. A Vietnamese UI string
-may be quoted when it matters, followed by an English gloss: "Không có quyền" (no permission).
+PR title and body are **always in English**. Older commits may still have Vietnamese messages: translate their
+meaning, never paste them into the PR as-is. Keep identifiers exactly as they are in code
+(`usp_Enrollment_Create`, `StudentService::add`, table names) in backticks. A Vietnamese UI string may be quoted
+when it matters, followed by an English gloss: "Không có quyền" (no permission).
 Talk to the user in Vietnamese.
 
 ## 1. Preconditions
@@ -21,7 +21,7 @@ Talk to the user in Vietnamese.
 2. Current branch must be a work branch (`feature/...`, `fix/...`, `docs/...`). If it is `develop` or `main`,
    stop and create a `feature/...` branch from the current state first (`main` is protected and rejects direct
    pushes; `develop` is not protected, but the team still works through PRs).
-3. Uncommitted changes: show `git status --short` and ask whether to commit them (Vietnamese message,
+3. Uncommitted changes: show `git status --short` and ask whether to commit them (English message,
    `type(scope): ...`) or leave them out. Never commit `.env`, `build/`, `dist/` or real passwords.
 4. Base branch: `develop` unless the user passed another one. `main` is only for release PRs from `develop`
    (then also check `project(VERSION ...)` in `CMakeLists.txt` was bumped; merging to `main` runs `release.yml`).
@@ -35,7 +35,7 @@ SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/test_
 ```
 - Container may be `imcp-mssql` instead of `sql2022` (`docker ps`). Never print the SA password.
 - Windows: `.\scripts\test_all.ps1` (see `docs/SETUP.md`).
-- Keep the final summary line (`TẤT CẢ KIỂM THỬ ĐẠT: CSDL x/y ca ...`) and report it in English in the PR.
+- Keep the final summary line (`ALL TESTS PASSED: database x/y cases, ...`) and report it in the PR.
 - If a step fails: **stop**, show the failure to the user, do not open the PR unless they explicitly ask for a
   draft PR - and then say in the PR body exactly what fails.
 - If SQL Server is not available, say so; write "not run" in the Testing section. Never claim tests passed
@@ -68,7 +68,7 @@ using this template and dropping empty sections:
 ## Changes
 - **Database**: <tables/constraints/procedures/triggers/permissions touched; note if `db_init` must be re-run>
 - **Application**: <layer + class, user-visible effect>
-- **Tests**: <new/updated DB cases (T../P..), unit tests, e2e scenarios>
+- **Tests**: <new/updated DB cases (T../P..), unit tests, e2e scenarios, translations (`tst_i18n`)>
 - **Build / CI**: <...>
 - **Docs / Report**: <...>
 

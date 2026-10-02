@@ -1,82 +1,98 @@
-# Hướng dẫn cài đặt môi trường
+# Environment setup guide
 
-Có 3 mức sử dụng, chọn mức phù hợp:
+There are three levels of use; pick the one that fits you:
 
-| Mức | Ai | Cần cài |
+| Level | Who | What to install |
 |---|---|---|
-| A. Chạy thử / chấm bài | Giảng viên, thành viên không lập trình | SQL Server + file cài QLTTTA (GitHub Releases) |
-| B. Làm việc với CSDL | Mọi thành viên (trình bày phần CSDL) | SQL Server + SSMS hoặc VS Code (extension mssql) |
-| C. Phát triển ứng dụng | Nhóm trưởng (+ Claude Code) | Mức B + Qt 6, CMake, Ninja, ODBC driver |
+| A. Try it out / grading | Instructor, non-programming members | SQL Server + the QLTTTA installer (GitHub Releases) |
+| B. Work with the database | Every member (presenting the database part) | SQL Server + SSMS or VS Code (mssql extension) |
+| C. Develop the application | Team lead (+ Claude Code) | Level B + Qt 6, CMake, Ninja, an ODBC driver |
 
 ---
 
-## 1. SQL Server và khởi tạo CSDL (bắt buộc với mọi mức)
+## 1. SQL Server and database initialization (required for every level)
 
 ### Windows
-1. Cài **SQL Server 2022 Developer** hoặc **Express** (miễn phí) và **SSMS**.
-2. Khởi tạo CSDL, chọn một trong hai cách:
-   - PowerShell tại thư mục repo: `.\scripts\db_init.ps1` (Windows Authentication), hoặc
-     `.\scripts\db_init.ps1 -Server "localhost\SQLEXPRESS"` nếu dùng bản Express.
-   - Hoặc mở SSMS, chạy lần lượt `database/00_create_database.sql` → `07_seed_data.sql`
-     (bật *Query > SQLCMD Mode* không bắt buộc).
+1. Install **SQL Server 2022 Developer** or **Express** (free) and **SSMS**.
+2. Initialize the database in one of two ways:
+   - PowerShell in the repo folder: `.\scripts\db_init.ps1` (Windows Authentication), or
+     `.\scripts\db_init.ps1 -Server "localhost\SQLEXPRESS"` for the Express edition. SQL Server authentication:
+     `-User sa -Password "<password>"` (or set `$env:SQL_PASSWORD`); sqlcmd inside a Docker container: `-Docker sql2022`.
+   - Or open SSMS and run `database/00_create_database.sql` → `07_seed_data.sql` in order
+     (SQLCMD Mode under *Query > SQLCMD Mode* is not required).
 
 ### macOS (Apple Silicon) / Linux
-SQL Server chạy trong Docker:
-1. Cài Docker Desktop, bật *Settings > General > Use Rosetta for x86_64/amd64 emulation*.
-2. Tạo file `.env` ở thư mục gốc repo: `MSSQL_SA_PASSWORD=<mật khẩu mạnh>`, rồi `docker compose up -d`
-   (lệnh này đồng nghĩa bạn chấp nhận điều khoản SQL Server Developer Edition).
-3. Khởi tạo CSDL (dùng sqlcmd có sẵn trong container):
+SQL Server runs in Docker:
+1. Install Docker Desktop and enable *Settings > General > Use Rosetta for x86_64/amd64 emulation*.
+2. Create a `.env` file in the repo root: `MSSQL_SA_PASSWORD=<strong password>`, then run `docker compose up -d`
+   (this means you accept the SQL Server Developer Edition license terms). The container is named `imcp-mssql` and is
+   set to the Vietnam time zone.
+3. Initialize the database (uses the `sqlcmd` that is already inside the container):
    ```bash
-   SQL_PASSWORD='<mật khẩu sa>' ./scripts/db_init.sh --docker imcp-mssql
+   SQL_PASSWORD='<sa password>' ./scripts/db_init.sh --docker imcp-mssql
    ```
-4. Xem/chạy SQL: VS Code + extension **SQL Server (mssql)**, kết nối `localhost,1433`, user `sa`.
+   Without Docker, drop `--docker ...` to use a `sqlcmd` installed on your machine (`SQL_SERVER` defaults to
+   `localhost,1433`, `SQL_USER` to `sa`). In the examples elsewhere, `sql2022` is simply the name of another local
+   container; use whatever name `docker ps` shows.
+4. To view/run SQL: VS Code + the **SQL Server (mssql)** extension, connect to `localhost,1433` as user `sa`.
 
-> Script tương thích SQL Server **2012 trở lên** (không dùng `CREATE OR ALTER`, `STRING_AGG`...).
-> Dữ liệu mẫu tính ngày **tương đối theo ngày chạy**, nên chạy lại `db_init` trước buổi báo cáo
-> để có lớp đang học, doanh thu tháng hiện tại...
+> The scripts are compatible with SQL Server **2012 and later** (no `CREATE OR ALTER`, `STRING_AGG`, ...).
+> Seed data uses dates **relative to the day you run it**, so re-run `db_init` before a demo to get classes in
+> progress, revenue for the current month, etc.
 
-### Tài khoản demo (mật khẩu chung: `Demo@2026`)
+### Demo accounts (shared password: `Demo@2026`)
 
-| Tên đăng nhập | Vai trò | Thấy được |
+| Username | Role | Can see |
 |---|---|---|
-| `ql_quan` | Quản lý | Toàn bộ: học viên, lớp, công nợ, doanh thu, lương, tài khoản |
-| `gvu_lan` | Giáo vụ (CN Quận 1) | Học viên, lớp, lịch học, kết quả, công nợ (không xem lương/doanh thu) |
-| `gvu_ha` | Giáo vụ (CN Thủ Đức) | như trên |
-| `kt_minh` | Kế toán | Học viên (chỉ xem), công nợ, doanh thu, lương |
-| `kt_tung` | Kế toán | như trên |
-| `gv_john`, `gv_hoanganh`, `gv_hoa`, `gv_bao` | Giáo viên | Chỉ lớp, lịch dạy, lương của chính mình |
+| `ql_quan` | Manager | Everything: students, classes, balances, revenue, payroll, accounts |
+| `gvu_lan` | Academic staff (Quận 1 branch) | Students, classes, schedule, results, balances (no payroll/revenue) |
+| `gvu_ha` | Academic staff (Thủ Đức branch) | Same as above |
+| `kt_minh` | Accountant | Students (read-only), balances, revenue, payroll |
+| `kt_tung` | Accountant | Same as above |
+| `gv_john`, `gv_hoanganh`, `gv_hoa`, `gv_bao` | Teacher | Only their own classes, teaching schedule and pay |
 
-Đây là **user của SQL Server** (contained database user) nên cũng đăng nhập được bằng SSMS
-(chọn *Options > Connection Properties > Connect to database: QLTTTA*) để minh họa phân quyền.
-Đổi mật khẩu ngay nếu triển khai thật.
+These are real **SQL Server users** (contained database users), so you can also sign in with SSMS
+(*Options > Connection Properties > Connect to database: QLTTTA*) to demonstrate authorization.
+Change the passwords immediately if you ever deploy this for real. What each role may do in the database is
+summarized in [DATABASE.md](DATABASE.md#4-roles-and-permissions).
 
 ---
 
-## 2. Chạy ứng dụng từ file cài (mức A)
+## 2. Running the application from the installer (level A)
 
-Tải file trong mục **Releases** của repo (giảng viên được mời làm collaborator để tải):
+Download the files from the repo's **Releases** page (the instructor is invited as a collaborator so they can download):
 
-- **Windows**: `QLTTTA-x.y.z-windows-x64-setup.exe` (không cần quyền admin) hoặc bản `portable.zip`.
-  SmartScreen cảnh báo → *More info* → *Run anyway*.
-- **macOS (Apple Silicon)**: mở `.dmg`, kéo `QLTTTA.app` vào Applications. Lần đầu mở bị chặn →
-  *System Settings > Privacy & Security > Open Anyway* (hoặc `xattr -dr com.apple.quarantine /Applications/QLTTTA.app`).
-  Bản macOS đã kèm driver FreeTDS, không cần cài thêm.
+- **Windows**: `QLTTTA-x.y.z-windows-x64-setup.exe` (no administrator rights needed) or the `portable.zip`.
+  If SmartScreen warns you: *More info* → *Run anyway* (the app is not commercially code-signed).
+- **macOS 12+ (Apple Silicon)**: open the `.dmg` and drag `QLTTTA.app` into Applications. The first launch is blocked →
+  *System Settings > Privacy & Security > Open Anyway* (or `xattr -dr com.apple.quarantine /Applications/QLTTTA.app`).
+  The macOS build bundles the FreeTDS driver, so nothing else needs to be installed.
 
-Màn hình đăng nhập → *Cấu hình máy chủ*: `localhost,1433` (Docker) hoặc `localhost` / `TEN-MAY\SQLEXPRESS` (Windows), CSDL `QLTTTA`.
+On the login screen open **Server settings** ("Cấu hình máy chủ" in Vietnamese) and enter `localhost,1433` (Docker)
+or `localhost` / `PC-NAME\SQLEXPRESS` (Windows), database `QLTTTA`. The *Trust server certificate* option is on by
+default because the Docker image uses a self-signed certificate; turn it off if your server has a certificate from
+a trusted CA.
 
-Kiểm tra kết nối không cần giao diện (chẩn đoán lỗi):
+**Language:** the UI is available in Vietnamese (default) and English. Pick it in the language box at the bottom of
+the login screen or in the header of the main window; the screen is rebuilt immediately (you stay logged in) and the
+choice is remembered for the next start. Data stored in the database (names, branch names, business error messages
+written by the database) is not translated.
+
+Connection check without the GUI (for diagnosing errors; `QLTTTA_SERVER` is optional and overrides the saved server):
 ```bash
 QLTTTA_USER=ql_quan QLTTTA_PASSWORD='Demo@2026' /Applications/QLTTTA.app/Contents/MacOS/QLTTTA --check-connection
 ```
+It prints `OK: <full name> (<role>)` and exits with code 0, or `ERROR: <message>` and exits with code 1 (in the
+language chosen last in the app).
 
 ---
 
-## 3. Môi trường phát triển (mức C)
+## 3. Development environment (level C)
 
 ### macOS
 ```bash
 brew install qt qt-unixodbc unixodbc freetds cmake ninja
-# Driver Microsoft (tùy chọn, ứng dụng dùng FreeTDS nếu không có). Bạn sẽ được hỏi đồng ý EULA:
+# Microsoft driver (optional; the app uses FreeTDS when it is missing). You will be asked to accept the EULA:
 brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
 brew install msodbcsql18
 
@@ -85,64 +101,99 @@ cmake --build --preset macos-debug
 ctest --preset macos-debug
 open build/macos-debug/src/app/QLTTTA.app
 ```
-Mở bằng **Qt Creator** (*File > Open File or Project > CMakeLists.txt*) hoặc VS Code (extension CMake Tools).
+Open the project with **Qt Creator** (*File > Open File or Project > CMakeLists.txt*) or VS Code (CMake Tools extension).
 
 ### Windows
-1. Cài **Qt Online Installer** (cần tài khoản Qt miễn phí), chọn:
+1. Install the **Qt Online Installer** (a free Qt account is required) and select:
    *Qt 6.8.x > MinGW 64-bit*, *Developer and Designer Tools > MinGW 13.1 64-bit, CMake, Ninja*, *Qt Creator*.
-2. Mở Qt Creator → *Open Project* → chọn `CMakeLists.txt` → chọn kit *Desktop Qt 6.8.x MinGW 64-bit* → Run.
-3. Dòng lệnh (PowerShell, đã thêm `C:\Qt\Tools\mingw1310_64\bin`, `C:\Qt\Tools\Ninja`, `C:\Qt\Tools\CMake_64\bin` vào PATH):
+2. Open Qt Creator → *Open Project* → choose `CMakeLists.txt` → choose the kit *Desktop Qt 6.8.x MinGW 64-bit* → Run.
+3. Command line (PowerShell, with `C:\Qt\Tools\mingw1310_64\bin`, `C:\Qt\Tools\Ninja` and `C:\Qt\Tools\CMake_64\bin` on PATH):
    ```powershell
    $env:QT_ROOT_DIR = "C:\Qt\6.8.3\mingw_64"
    cmake --preset windows-debug; cmake --build --preset windows-debug; ctest --preset windows-debug
    ```
 
-### Chạy toàn bộ kiểm thử bằng một lệnh (trước mỗi PR)
+Requirements: C++17 compiler, Qt ≥ 6.7 with the Qt SQL, Qt SVG and Qt Linguist tools modules (all included in
+Homebrew `qt` and in the default Qt installer components; CI uses Qt 6.8 LTS + MinGW on Windows and Homebrew Qt on
+macOS), CMake ≥ 3.25 for the presets.
+
+### Running the full test suite with one command (before every PR)
 ```bash
-SQL_PASSWORD='<mật khẩu sa>' ./scripts/test_all.sh --docker sql2022   # hoặc bỏ --docker nếu có sqlcmd trên máy
+SQL_PASSWORD='<sa password>' ./scripts/test_all.sh --docker sql2022   # or drop --docker if sqlcmd is installed locally
 ```
-Lần lượt: khởi tạo lại CSDL → `database/12_kiem_thu.sql` (39 ca: ràng buộc, nghiệp vụ, hàm/trigger/cursor, XML,
-phân quyền) → build → unit test → end-to-end qua giao diện. Bước nào hỏng thì dừng ngay, mã thoát khác 0;
-chi tiết ở `build/test-results/`. Thêm `--no-init` để bỏ qua bước khởi tạo lại CSDL.
-Windows (PowerShell, đã đặt `QT_ROOT_DIR` và PATH như mục 3):
+It runs, in order: re-initialize the database → `database/12_tests.sql` (39 cases: constraints, business rules,
+functions/triggers/cursors, XML, authorization) → build → unit tests → end-to-end GUI tests. It stops at the first
+failing step and exits with a non-zero code; details are written to `build/test-results/`. Add `--no-init` to skip the
+database re-initialization. Optional environment variables: `SQL_SERVER`, `SQL_USER`, `QLTTTA_E2E_PASSWORD` (demo
+account password, defaults to the one above), `PRESET` (CMake preset, default `macos-debug`) and `EXTRA_CMAKE_ARGS`.
+A skipped end-to-end test counts as a failure, so a missing password or an unreachable database cannot pass silently.
+The last line is `ALL TESTS PASSED: database 39/39 cases, unit tests + end-to-end GUI tests passed.`
+
+On Windows (PowerShell, with `QT_ROOT_DIR` and PATH set as in section 3):
 ```powershell
 .\scripts\test_all.ps1                                  # Windows Authentication, server "localhost"
-.\scripts\test_all.ps1 -Server "localhost\SQLEXPRESS"   # bản Express
-.\scripts\test_all.ps1 -Docker sql2022                  # SQL Server trong Docker, mật khẩu sa trong $env:SQL_PASSWORD
+.\scripts\test_all.ps1 -Server "localhost\SQLEXPRESS"   # Express edition
+.\scripts\test_all.ps1 -Docker sql2022                  # SQL Server in Docker, sa password in $env:SQL_PASSWORD
 ```
-Chỉ kiểm thử phần CSDL (không cần Qt): mở `database/12_kiem_thu.sql` trong SSMS, cuối file không có lỗi `50099` là đạt.
+(`-User/-Password`, `-NoInit` and `-Preset` are also available. On macOS the same script runs with `pwsh`.)
 
-### Kiểm thử end-to-end qua giao diện (cần CSDL đã nạp dữ liệu mẫu)
-Bài test `tests/tst_e2e_gui.cpp` gõ phím, bấm nút trên các màn hình thật với CSDL thật: đăng nhập, mỗi vai trò mở
-mọi chức năng được phép, thêm/sửa/xóa học viên, lọc nhanh và dòng tổng, xuất PDF/CSV, đổi mật khẩu;
-dữ liệu thay đổi trong lúc test được trả lại như cũ. Không đặt mật khẩu thì test tự SKIP (CI).
+To test only the database (no Qt needed): open `database/12_tests.sql` in SSMS; it passes when the script finishes
+without error `50099` (the `Verdict` column of the summary shows `PASSED`/`FAILED` per case).
+
+> GitHub Actions (`ci.yml`) only builds and runs the unit tests (including the translation check `tst_i18n`), and only
+> when something is merged into `develop`, on PRs into `main`, or when started by hand
+> (`gh workflow run CI --ref <branch>`). It has no SQL Server, so the database test suite and the end-to-end test
+> (recorded as *Skipped*) run only through `test_all`. This is why the PR checklist asks you to paste the `test_all`
+> result.
+
+### End-to-end GUI tests (need a database loaded with the seed data)
+`tests/tst_e2e_gui.cpp` types and clicks on the real screens against the real database: login, every role opening
+every feature it is allowed to use, adding/editing/deleting a student, quick filter and the totals row, PDF/CSV export,
+changing the password and switching the UI to English and back; data changed during the test is restored. The scenarios
+run in Vietnamese. Without a password the test is skipped (as on CI).
 ```bash
 QLTTTA_E2E_PASSWORD='Demo@2026' ctest --preset macos-debug -R e2e --output-on-failure
 ```
+`QLTTTA_SERVER` selects another SQL Server (default `localhost,1433`).
 
-### Đóng gói file cài trên máy cá nhân
+### Building installers on your own machine
 - macOS: `./scripts/package-macos.sh` → `dist/QLTTTA-x.y.z-macos-arm64.dmg`
-- Windows: cài thêm Inno Setup 6, chạy `.\scripts\package-windows.ps1` → `dist\...-setup.exe` và `...-portable.zip`
+- Windows: additionally install Inno Setup 6 and run `.\scripts\package-windows.ps1` → `dist\...-setup.exe` and `...-portable.zip`
 
-CI tự làm việc này khi merge vào `main` (xem [CONTRIBUTING.md](CONTRIBUTING.md)).
+CI does the same when something is merged into `main` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
-### Chụp ảnh màn hình cho báo cáo
+### Taking screenshots for the report
 ```bash
 cmake --preset macos-debug -DQLTTTA_BUILD_TOOLS=ON && cmake --build --preset macos-debug
 QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' ./build/macos-debug/tools/qlttta_screenshots
-# ảnh lưu ở docs/report/images/screens
+# images are saved to docs/report/images/screens
 ```
+Optional: `QLTTTA_SHOT_USERS` (comma-separated accounts), `QLTTTA_SHOT_DIR` (output folder), `QLTTTA_SERVER`,
+`QLTTTA_SHOT_LANG` (`vi` by default - the report needs Vietnamese screenshots; with `en` the images go to
+`build/screenshots/en` unless `QLTTTA_SHOT_DIR` is set, so the report images are never overwritten). File names are
+fixed and do not depend on the UI language: `login.png`, `<account>_<feature>.png` (e.g. `gvu_lan_students.png`),
+`<account>_student_form.png`.
+
+### Translations (multi-language UI)
+UI strings are written in English inside `tr("...")`; the Vietnamese texts live in
+`resources/translations/qlttta_vi.ts` and are compiled into the app at build time. After adding or changing a string:
+```bash
+cmake --build --preset macos-debug --target update_translations   # lupdate: adds the new strings to the .ts file
+```
+Then translate the new entries with **Qt Linguist** (`open -a Linguist resources/translations/qlttta_vi.ts` on macOS,
+or from the Qt installation on Windows) or directly in the XML, and rebuild. `ctest -R tst_i18n` fails while an entry
+is unfinished. Details: [ARCHITECTURE.md](ARCHITECTURE.md#5-multi-language-ui-english--vietnamese).
 
 ---
 
-## 4. Xử lý sự cố thường gặp
+## 4. Troubleshooting
 
-| Hiện tượng | Cách xử lý |
+| Symptom | Fix |
 |---|---|
-| `SSL Provider: OpenSSL library could not be loaded` (driver Microsoft trên macOS) | Driver tìm OpenSSL ở `/opt/homebrew/opt/openssl`: `ln -s openssl@3 /opt/homebrew/opt/openssl` |
-| CMake báo trình biên dịch "broken", lỗi `tapi ... unknown architecture arm64e` | SDK của Command Line Tools mới hơn Xcode. Thêm `-DCMAKE_OSX_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk` khi configure (hoặc `EXTRA_CMAKE_ARGS` cho script đóng gói) |
-| Ứng dụng báo "Không kết nối được máy chủ" | Kiểm tra container/dịch vụ SQL Server, cổng 1433, tường lửa; Windows Express dùng `localhost\SQLEXPRESS` và bật TCP/IP trong SQL Server Configuration Manager |
-| "Sai tên đăng nhập..." khi đăng nhập bằng SSMS với user demo | Phải chọn database `QLTTTA` trong Connection Properties (user nằm trong CSDL, không phải login cấp server) |
-| `EXECUTE permission was denied on fn_...` trên SQL Server 2019+ | Chạy lại `00_create_database.sql` (đã tắt Scalar UDF Inlining) hoặc `ALTER DATABASE SCOPED CONFIGURATION SET TSQL_SCALAR_UDF_INLINING = OFF` |
-| Dashboard "Buổi học hôm nay", ngày tạo tài khoản... lệch 1 ngày / 7 giờ (SQL Server trong Docker) | Container chạy giờ UTC. `docker-compose.yml` đã đặt `TZ=Asia/Ho_Chi_Minh`; container tạo bằng `docker run` thì thêm `-e TZ=Asia/Ho_Chi_Minh` (phải tạo lại container), rồi chạy lại `db_init` |
-| Font tiếng Việt lỗi trong script khi chạy sqlcmd | Thêm `-f 65001` (UTF-8) và `-I` (QUOTED_IDENTIFIER) như trong `scripts/db_init` |
+| `SSL Provider: OpenSSL library could not be loaded` (Microsoft driver on macOS) | The driver looks for OpenSSL in `/opt/homebrew/opt/openssl`: `ln -s openssl@3 /opt/homebrew/opt/openssl` |
+| CMake reports the compiler is "broken", error `tapi ... unknown architecture arm64e` | The Command Line Tools SDK is newer than Xcode's. Add `-DCMAKE_OSX_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk` when configuring (or `EXTRA_CMAKE_ARGS` for the scripts) |
+| The app says "Cannot connect to SQL Server" ("Không kết nối được máy chủ SQL Server") | Check the SQL Server container/service, port 1433 and the firewall; on Windows Express use `localhost\SQLEXPRESS` and enable TCP/IP in SQL Server Configuration Manager |
+| `Login failed for user '...'` when signing in to SSMS as a demo user (the app shows "Wrong username or password, or the account is locked") | Select the `QLTTTA` database in Connection Properties (the user lives inside the database; it is not a server-level login) |
+| `EXECUTE permission was denied on fn_...` on SQL Server 2019+ | Re-run `00_create_database.sql` (it turns off Scalar UDF Inlining) or run `ALTER DATABASE SCOPED CONFIGURATION SET TSQL_SCALAR_UDF_INLINING = OFF` |
+| Dashboard "today's sessions", account creation dates, ... are off by one day / 7 hours (SQL Server in Docker) | The container runs on UTC. `docker-compose.yml` sets `TZ=Asia/Ho_Chi_Minh`; for a container created with `docker run` add `-e TZ=Asia/Ho_Chi_Minh` (the container must be recreated), then re-run `db_init` |
+| Vietnamese text is garbled in scripts run with sqlcmd | Add `-f 65001` (UTF-8) and `-I` (QUOTED_IDENTIFIER), as `scripts/db_init` does |

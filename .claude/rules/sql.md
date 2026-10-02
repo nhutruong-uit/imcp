@@ -2,37 +2,56 @@
 paths:
   - "database/**/*.sql"
 ---
-# Quy tắc viết T-SQL (database/)
+# T-SQL rules (database/)
 
-Bổ sung cho mục "CSDL" trong `CLAUDE.md` (SQL Server 2012+, mẫu DROP/GO, THROW 5xxxx, trigger tập hợp, GRANT).
+Complements the "Database" section of `CLAUDE.md` (SQL Server 2012+, DROP/GO pattern, THROW 5xxxx, set-based
+triggers, GRANT).
 
-## Định dạng
-- Từ khóa **VIẾT HOA** (`SELECT`, `JOIN`, `BEGIN TRY`), thụt lề **4 dấu cách**, mỗi câu lệnh kết thúc bằng `;`.
-- Luôn ghi schema: `dbo.HOCVIEN`, `dbo.usp_GhiDanh`. Chuỗi tiếng Việt luôn có tiền tố `N'...'`.
-- Tham số căn cột như mẫu `usp_HocVien_Them`; tham số tùy chọn có `= NULL` ở cuối dòng.
-- Mỗi đối tượng mở đầu bằng **một dòng chú thích có mã mục** theo nhóm trong file:
-  `/* C4. usp_GhiDanh_HuyLop: hủy ghi danh, hoàn tiền nếu chưa học buổi nào */`.
-- Không dùng `SELECT *` trong thủ tục/view (trừ truy vấn minh họa); không dùng `sp_` làm tiền tố.
+## Language and naming (English)
+- Everything is **English**: tables in UPPER_SNAKE_CASE (`STUDENT`, `CLASS_SESSION`), columns in PascalCase
+  (`StudentId`, `EnrolledOn`), procedures `usp_<Entity>_<Verb>` (`usp_Student_Add`, `usp_Enrollment_Create`),
+  functions `fn_` (`fn_FinalGrade`), views `vw_` (`vw_ClassDetails`, teacher views `vw_Teacher_My...`), triggers
+  `trg_<TABLE>_<Purpose>` (`trg_RECEIPT_UpdateAmountPaid`), roles `rl_` (`rl_AcademicStaff`), comments in English.
+  Constraints: `PK_<TABLE>`, `FK_<CHILD>_<PARENT>`, `CK_<TABLE>_<Column>`, `UQ_`, `DF_`, filtered unique indexes `UX_`.
+- Stored values are English text with the `N'...'` prefix (`N'Studying'`, `N'Bank transfer'`); codes without
+  diacritics or spaces stay `VARCHAR` without `N` (`'MANAGER'`, `'PERCENT'`). Weekdays are ISO numbers
+  (1 = Monday ... 7 = Sunday, `fn_Weekday`). People's names and addresses in the demo data stay Vietnamese
+  (the database collation is `Vietnamese_CI_AS`).
+- Business messages are English sentences (`THROW 50022, N'The student is already enrolled in this class.', 1;`).
+  The application shows them in the UI language, so every new message is added to `kTemplates` in
+  `src/infrastructure/db/DbMessages.cpp` (a message built from values becomes a template with `%1`, `%2`; keep each
+  fixed part in one `N'...'` literal) and translated in `qlttta_vi.ts`. `tst_i18n` fails on an unregistered message.
+- A new enumerated value displayed in the UI (new value in a `CHECK ... IN (...)`) needs an entry in `kEntries`
+  (`src/presentation/common/DbValues.cpp`) and a Vietnamese translation (`tst_i18n` checks both); a new column shown
+  in a list needs an entry in `kCatalog` (`src/presentation/common/Columns.cpp`).
 
-## Mẫu thủ tục ghi dữ liệu nhiều bước
+## Format
+- Keywords in **UPPERCASE** (`SELECT`, `JOIN`, `BEGIN TRY`), **4-space** indentation, every statement ends with `;`.
+- Always qualify the schema: `dbo.STUDENT`, `dbo.usp_Enrollment_Create`. Text values always use the `N'...'` prefix.
+- Align parameters as in `usp_Student_Add`; optional parameters end with `= NULL`.
+- Every object starts with **one comment line with its section code** (the groups of the file):
+  `/* C5. usp_Enrollment_Cancel: cancel an enrollment, refund it when no session was attended */`.
+- No `SELECT *` in procedures/views (demo queries excepted); never the `sp_` prefix.
+
+## Template of a multi-step write procedure
 ```sql
-/* C4. usp_Xxx_Yyy: <mô tả một dòng> */
-IF OBJECT_ID(N'dbo.usp_Xxx_Yyy', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Xxx_Yyy;
+/* C5. usp_Entity_Verb: <one-line description> */
+IF OBJECT_ID(N'dbo.usp_Entity_Verb', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Entity_Verb;
 GO
-CREATE PROCEDURE dbo.usp_Xxx_Yyy
-    @MaA     VARCHAR(10),
-    @GhiChu  NVARCHAR(200) = NULL,
-    @MaMoi   VARCHAR(10)   OUTPUT
+CREATE PROCEDURE dbo.usp_Entity_Verb
+    @EntityId  VARCHAR(10),
+    @Notes     NVARCHAR(200) = NULL,
+    @NewId     VARCHAR(10)   OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    -- 1. Kiểm tra nghiệp vụ trước, báo lỗi tiếng Việt (mã theo dải của nhóm, xem bảng dưới)
-    IF NOT EXISTS (SELECT 1 FROM dbo.BANG_A WHERE MaA = @MaA)
-        THROW 50024, N'Không tìm thấy ...', 1;
+    -- 1. Check the business rules first; English message (number from the group's range, see below)
+    IF NOT EXISTS (SELECT 1 FROM dbo.ENTITY WHERE EntityId = @EntityId)
+        THROW 50028, N'Entity not found.', 1;
 
-    -- 2. Ghi dữ liệu trong giao dịch
+    -- 2. Write the data in a transaction
     BEGIN TRY
         BEGIN TRANSACTION;
         ...
@@ -45,40 +64,42 @@ BEGIN
 END;
 GO
 ```
-Thủ tục một câu lệnh ghi thì không cần TRY/TRANSACTION (như `usp_HocVien_Them`).
+A procedure with a single write statement needs no TRY/TRANSACTION (like `usp_Student_Add`).
 
-## Dải mã lỗi THROW (mỗi nhóm thủ tục một chục số - chọn số chưa dùng trong dải)
-| Nhóm (mục trong 04_procedures.sql) | Dải | | Nhóm | Dải |
+## THROW error-number ranges (one block of ten per procedure group - pick an unused number in the range)
+| Group (section of 04_procedures.sql) | Range | | Group | Range |
 |---|---|---|---|---|
-| A. Học viên | 50001-50009 | | E. Điểm danh, điểm, xét kết quả | 50040-50049 |
-| B. Lớp học, lịch, buổi học | 50010-50019 | | F. Lương | 50050-50059 |
-| C. Ghi danh, chuyển lớp | 50020-50029 | | I. Tài khoản | 50060-50069 |
-| D. Phiếu thu | 50030-50039 | | I7. Sao lưu | 50070-50079 |
-Nhóm mới: dùng dải chục kế tiếp chưa có (50080...). `50099` dành cho `12_kiem_thu.sql`. Trigger dùng
-`RAISERROR (N'...', 16, 1); ROLLBACK TRANSACTION;`. Tra số đã dùng: `grep -o "THROW 50[0-9]*" database/04_procedures.sql | sort -u`.
+| A. Students | 50001-50009 | | E. Attendance, grades, results | 50040-50049 |
+| B. Classes, schedules, sessions | 50010-50019 | | F. Payroll | 50050-50059 |
+| C. Enrollment, class transfer | 50020-50029 | | I. Accounts | 50060-50069 |
+| D. Receipts | 50030-50039 | | I7. Backup | 50070-50079 |
+New group: use the next free block (50080...). `50099` is reserved for `12_tests.sql`. Triggers use
+`RAISERROR (N'...', 16, 1); ROLLBACK TRANSACTION;`. Numbers in use:
+`grep -o "THROW 50[0-9]*" database/04_procedures.sql | sort -u`.
 
-## Mẫu trigger (luôn xử lý TẬP HỢP dòng)
+## Trigger template (always handle a SET of rows)
 ```sql
-CREATE TRIGGER dbo.trg_BANG_MucDich
-ON dbo.BANG
+CREATE TRIGGER dbo.trg_TABLE_Purpose
+ON dbo.TABLE_NAME
 AFTER INSERT, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF NOT UPDATE(CotLienQuan) RETURN;          -- bỏ qua khi cột liên quan không đổi
-    IF EXISTS (SELECT 1 FROM inserted i JOIN ... WHERE <vi phạm>)   -- join với inserted, KHÔNG dùng biến đơn
+    IF NOT UPDATE(RelatedColumn) RETURN;         -- skip when the related column did not change
+    IF EXISTS (SELECT 1 FROM inserted i JOIN ... WHERE <violation>)   -- join with inserted, NEVER a scalar variable
     BEGIN
-        RAISERROR (N'<thông báo tiếng Việt>.', 16, 1);
+        RAISERROR (N'<English message>.', 16, 1);
         ROLLBACK TRANSACTION;
         RETURN;
     END;
 END;
 GO
 ```
-Cấm: `SELECT @x = Cot FROM inserted` (chỉ lấy được 1 dòng), cursor trong trigger.
+Forbidden: `SELECT @x = Col FROM inserted` (reads a single row only), cursors inside triggers.
 
-## Bắt buộc khi thêm/sửa đối tượng
-1. `GRANT` cho đúng role trong `06_security.sql` (role nghiệp vụ không có quyền trên bảng gốc).
-2. Ca kiểm thử trong `12_kiem_thu.sql` + đăng ký mã ca và mẫu thông báo trong `#MongDoi` (xem `tests.md`).
-3. Chạy lại toàn bộ: `scripts/test_all.sh` (gồm `db_init` từ đầu) - không chỉ chạy riêng file vừa sửa.
-4. Nếu đổi số lượng đối tượng/nội dung được trích trong báo cáo: chạy `/imcp-update-report`.
+## Mandatory when adding/changing an object
+1. `GRANT` to the right roles in `06_security.sql` (business roles have no rights on base tables).
+2. A test case in `12_tests.sql` + its code and message pattern registered in `#Expected` (see `tests.md`).
+   New business messages: register them in `DbMessages.cpp` and translate them (see "Language and naming").
+3. Re-run everything: `scripts/test_all.sh` (includes `db_init` from scratch) - not only the file you changed.
+4. If the number of objects or content quoted in the report changes: run `/imcp-update-report`.
