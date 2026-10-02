@@ -1,5 +1,5 @@
-# Công cụ cho lập trình viên: tự đăng nhập bằng tài khoản demo và chụp ảnh các màn hình
-# (dùng để kiểm tra giao diện với CSDL thật và lấy hình minh họa cho báo cáo).
+# Developer tool: logs in with the demo accounts and takes screenshots of every screen
+# (visual check against the real database and figures for the report).
 qt_add_executable(qlttta_screenshots
     screenshot_tool.cpp
     ${PROJECT_SOURCE_DIR}/src/app/AppContainer.cpp

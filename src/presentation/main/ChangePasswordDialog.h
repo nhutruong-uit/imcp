@@ -12,12 +12,12 @@ public:
     explicit ChangePasswordDialog(AuthService& auth, QWidget* parent = nullptr);
 
 private slots:
-    void luu();
+    void save();
 
 private:
     AuthService& m_auth;
-    QLineEdit* m_cu = nullptr;
-    QLineEdit* m_moi = nullptr;
-    QLineEdit* m_nhapLai = nullptr;
-    QLabel* m_loi = nullptr;
+    QLineEdit* m_current = nullptr;
+    QLineEdit* m_new = nullptr;
+    QLineEdit* m_confirmation = nullptr;
+    QLabel* m_error = nullptr;
 };

@@ -1,6 +1,9 @@
 #include "presentation/common/TableDataModel.h"
 
+#include "presentation/common/Columns.h"
+#include "presentation/common/DbValues.h"
 #include "presentation/common/Format.h"
+#include "presentation/common/Theme.h"
 
 #include <QColor>
 
@@ -23,39 +26,49 @@ int TableDataModel::columnCount(const QModelIndex& parent) const {
 QVariant TableDataModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid() || index.row() >= m_data.rows.size())
         return {};
-    const QVariantList& dong = m_data.rows.at(index.row());
-    if (index.column() >= dong.size())
+    const QVariantList& row = m_data.rows.at(index.row());
+    if (index.column() >= row.size())
         return {};
-    const QVariant& v = dong.at(index.column());
-    const QString tieuDe = m_data.columns.value(index.column());
+    const QVariant& value = row.at(index.column());
+    const QString key = m_data.columns.value(index.column());
 
     switch (role) {
     case Qt::DisplayRole:
-        return Format::oBang(v, tieuDe);
+        return Format::cell(value, key);
     case Qt::UserRole:
-        return v;
+        return value;
     case Qt::TextAlignmentRole: {
-        const int t = v.metaType().id();
-        const bool laSo = t == QMetaType::Double || t == QMetaType::Int || t == QMetaType::LongLong ||
-                          t == QMetaType::Float || t == QMetaType::UInt || t == QMetaType::ULongLong;
-        return QVariant::fromValue(Qt::AlignVCenter | (laSo ? Qt::AlignRight : Qt::AlignLeft));
+        const int t = value.metaType().id();
+        const bool isNumber = t == QMetaType::Double || t == QMetaType::Int || t == QMetaType::LongLong ||
+                              t == QMetaType::Float || t == QMetaType::UInt || t == QMetaType::ULongLong;
+        return QVariant::fromValue(Qt::AlignVCenter | (isNumber ? Qt::AlignRight : Qt::AlignLeft));
     }
-    case Qt::ForegroundRole: {
-        const QString s = v.toString();
-        if (s == QStringLiteral("Không đạt") || s == QStringLiteral("Đã hủy") || s == QStringLiteral("Đã khóa") ||
-            (tieuDe == QStringLiteral("Còn nợ") && v.toDouble() > 0))
-            return QColor(0xDC, 0x26, 0x26);
-        if (s == QStringLiteral("Đạt") || s == QStringLiteral("Đã dạy") || s == QStringLiteral("Hoạt động"))
-            return QColor(0x15, 0x80, 0x3D);
+    case Qt::ForegroundRole:
+        // Decided from the column key and the STORED value, never from the displayed (translated) text
+        if (Columns::isDebt(key))
+            return value.toDouble() > 0 ? QVariant(QColor(Theme::kNegativeText)) : QVariant();
+        if (!Columns::isEnumerated(key))
+            return {}; // free text (names...) is never highlighted, even if it looks like a status
+        switch (DbValues::tone(value.toString())) {
+        case DbValues::Tone::Positive:
+            return QColor(Theme::kPositiveText);
+        case DbValues::Tone::Negative:
+            return QColor(Theme::kNegativeText);
+        case DbValues::Tone::Neutral:
+            break;
+        }
         return {};
-    }
     default:
         return {};
     }
 }
 
 QVariant TableDataModel::headerData(int section, Qt::Orientation orientation, int role) const {
-    if (role == Qt::DisplayRole && orientation == Qt::Horizontal)
-        return m_data.columns.value(section);
+    if (orientation == Qt::Horizontal) {
+        if (role == Qt::DisplayRole)
+            return Columns::title(m_data.columns.value(section));
+        if (role == Columns::KeyRole)
+            return m_data.columns.value(section);
+    }
     return QAbstractTableModel::headerData(section, orientation, role);
 }

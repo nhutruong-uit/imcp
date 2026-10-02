@@ -1,16 +1,16 @@
 #pragma once
 
 #include "domain/common/Result.h"
-#include "domain/entities/CauHinhMayChu.h"
-#include "domain/entities/TaiKhoan.h"
+#include "domain/entities/Account.h"
+#include "domain/entities/ServerConfig.h"
 
-// Cổng xác thực: hiện thực ở tầng infrastructure bằng cách mở kết nối SQL Server
-// với chính tên đăng nhập/mật khẩu người dùng (xác thực do DBMS đảm nhiệm).
+// Authentication gateway: implemented in the infrastructure layer by opening a SQL Server connection with the
+// user's own username/password (the DBMS performs the authentication).
 class IAuthGateway {
 public:
     virtual ~IAuthGateway() = default;
-    virtual Result<TaiKhoan> dangNhap(const CauHinhMayChu& cauHinh, const QString& tenDangNhap,
-                                      const QString& matKhau) = 0;
-    virtual void dangXuat() = 0;
-    virtual VoidResult doiMatKhau(const QString& matKhauCu, const QString& matKhauMoi) = 0;
+    virtual Result<Account> login(const ServerConfig& config, const QString& username,
+                                  const QString& password) = 0;
+    virtual void logout() = 0;
+    virtual VoidResult changePassword(const QString& oldPassword, const QString& newPassword) = 0;
 };

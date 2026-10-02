@@ -18,93 +18,92 @@ DashboardPage::DashboardPage(AppServices services, QWidget* parent) : QWidget(pa
     v->setContentsMargins(24, 20, 24, 20);
     v->setSpacing(16);
 
-    auto* dau = new QHBoxLayout;
-    const QLocale vi(QLocale::Vietnamese, QLocale::Vietnam);
-    auto* chao = new QLabel(QStringLiteral("Xin chào, %1").arg(m_services.auth.taiKhoan().hoTen), this);
-    chao->setObjectName(QStringLiteral("PageTitle"));
-    auto* ngay = new QLabel(vi.toString(QDate::currentDate(), QStringLiteral("dddd, dd/MM/yyyy")), this);
-    ngay->setObjectName(QStringLiteral("Muted"));
-    auto* nutTai = UiHelpers::nutPhu(QStringLiteral("Làm mới"), QStringLiteral("refresh"), this);
-    auto* cotChao = new QVBoxLayout;
-    cotChao->addWidget(chao);
-    cotChao->addWidget(ngay);
-    dau->addLayout(cotChao, 1);
-    dau->addWidget(nutTai, 0, Qt::AlignTop);
-    v->addLayout(dau);
+    auto* top = new QHBoxLayout;
+    auto* greeting = new QLabel(tr("Hello, %1").arg(m_services.auth.account().fullName), this);
+    greeting->setObjectName(QStringLiteral("PageTitle"));
+    // Weekday name in the UI language (default QLocale set by I18n)
+    auto* today =
+        new QLabel(QLocale().toString(QDate::currentDate(), QStringLiteral("dddd, dd/MM/yyyy")), this);
+    today->setObjectName(QStringLiteral("Muted"));
+    auto* refreshButton = UiHelpers::secondaryButton(tr("Refresh"), QStringLiteral("refresh"), this);
+    auto* greetingColumn = new QVBoxLayout;
+    greetingColumn->addWidget(greeting);
+    greetingColumn->addWidget(today);
+    top->addLayout(greetingColumn, 1);
+    top->addWidget(refreshButton, 0, Qt::AlignTop);
+    v->addLayout(top);
 
-    auto* luoi = new QGridLayout;
-    luoi->setSpacing(16);
-    luoi->addWidget(taoThe(QStringLiteral("Học viên đang học"), QStringLiteral("users"), &m_hocVien), 0, 0);
-    luoi->addWidget(taoThe(QStringLiteral("Lớp đang học"), QStringLiteral("book"), &m_lopDangHoc), 0, 1);
-    luoi->addWidget(taoThe(QStringLiteral("Lớp đang tuyển sinh"), QStringLiteral("award"), &m_lopTuyenSinh), 0, 2);
-    luoi->addWidget(taoThe(QStringLiteral("Doanh thu tháng này"), QStringLiteral("chart"), &m_doanhThu), 1, 0);
-    luoi->addWidget(taoThe(QStringLiteral("Tổng công nợ học phí"), QStringLiteral("wallet"), &m_congNo), 1, 1);
-    luoi->addWidget(taoThe(QStringLiteral("Buổi học hôm nay"), QStringLiteral("calendar"), &m_buoiHoc), 1, 2);
-    m_doanhThu->setProperty("vaiTro", QStringLiteral("kpiDoanhThu"));
-    v->addLayout(luoi);
+    auto* grid = new QGridLayout;
+    grid->setSpacing(16);
+    grid->addWidget(buildCard(tr("Active students"), QStringLiteral("users"), &m_activeStudents), 0, 0);
+    grid->addWidget(buildCard(tr("Active classes"), QStringLiteral("book"), &m_activeClasses), 0, 1);
+    grid->addWidget(buildCard(tr("Classes enrolling"), QStringLiteral("award"), &m_enrollingClasses), 0, 2);
+    grid->addWidget(buildCard(tr("Revenue this month"), QStringLiteral("chart"), &m_revenue), 1, 0);
+    grid->addWidget(buildCard(tr("Outstanding tuition"), QStringLiteral("wallet"), &m_outstanding), 1, 1);
+    grid->addWidget(buildCard(tr("Sessions today"), QStringLiteral("calendar"), &m_sessionsToday), 1, 2);
+    m_revenue->setProperty("testId", QStringLiteral("revenueKpi"));
+    v->addLayout(grid);
 
-    auto* theBieuDo = UiHelpers::theCard(this);
-    auto* vb = new QVBoxLayout(theBieuDo);
-    vb->setContentsMargins(20, 16, 20, 16);
-    auto* tieuDeBD = new QLabel(QStringLiteral("Doanh thu theo tháng - năm %1").arg(QDate::currentDate().year()),
-                                theBieuDo);
-    tieuDeBD->setObjectName(QStringLiteral("CardTitle"));
-    m_bieuDo = new RevenueChart(theBieuDo);
-    vb->addWidget(tieuDeBD);
-    vb->addWidget(m_bieuDo, 1);
-    v->addWidget(theBieuDo, 1);
+    auto* chartCard = UiHelpers::card(this);
+    auto* cv = new QVBoxLayout(chartCard);
+    cv->setContentsMargins(20, 16, 20, 16);
+    auto* chartTitle = new QLabel(tr("Monthly revenue - %1").arg(QDate::currentDate().year()), chartCard);
+    chartTitle->setObjectName(QStringLiteral("CardTitle"));
+    m_chart = new RevenueChart(chartCard);
+    cv->addWidget(chartTitle);
+    cv->addWidget(m_chart, 1);
+    v->addWidget(chartCard, 1);
 
-    m_loi = new QLabel(this);
-    m_loi->setObjectName(QStringLiteral("ErrorText"));
-    m_loi->hide();
-    v->addWidget(m_loi);
+    m_error = new QLabel(this);
+    m_error->setObjectName(QStringLiteral("ErrorText"));
+    m_error->hide();
+    v->addWidget(m_error);
 
-    connect(nutTai, &QPushButton::clicked, this, &DashboardPage::taiLai);
-    taiLai();
+    connect(refreshButton, &QPushButton::clicked, this, &DashboardPage::reload);
+    reload();
 }
 
-QWidget* DashboardPage::taoThe(const QString& tieuDe, const QString& icon, QLabel** giaTri) {
-    auto* the = UiHelpers::theCard(this);
-    auto* h = new QHBoxLayout(the);
+QWidget* DashboardPage::buildCard(const QString& title, const QString& icon, QLabel** value) {
+    auto* card = UiHelpers::card(this);
+    auto* h = new QHBoxLayout(card);
     h->setContentsMargins(18, 16, 18, 16);
-    auto* bieuTuong = new QLabel(the);
-    bieuTuong->setObjectName(QStringLiteral("KpiIcon"));
-    bieuTuong->setPixmap(Icons::pixmap(icon, QStringLiteral("#2E75B6"), 24));
-    bieuTuong->setFixedSize(44, 44);
-    bieuTuong->setAlignment(Qt::AlignCenter);
-    auto* cot = new QVBoxLayout;
-    auto* nhan = new QLabel(tieuDe, the);
-    nhan->setObjectName(QStringLiteral("Muted"));
-    *giaTri = new QLabel(QStringLiteral("—"), the);
-    (*giaTri)->setObjectName(QStringLiteral("KpiValue"));
-    cot->addWidget(nhan);
-    cot->addWidget(*giaTri);
-    h->addWidget(bieuTuong);
+    auto* iconLabel = new QLabel(card);
+    iconLabel->setObjectName(QStringLiteral("KpiIcon"));
+    iconLabel->setPixmap(Icons::pixmap(icon, QStringLiteral("#2E75B6"), 24));
+    iconLabel->setFixedSize(44, 44);
+    iconLabel->setAlignment(Qt::AlignCenter);
+    auto* column = new QVBoxLayout;
+    auto* titleLabel = new QLabel(title, card);
+    titleLabel->setObjectName(QStringLiteral("Muted"));
+    *value = new QLabel(QStringLiteral("—"), card);
+    (*value)->setObjectName(QStringLiteral("KpiValue"));
+    column->addWidget(titleLabel);
+    column->addWidget(*value);
+    h->addWidget(iconLabel);
     h->addSpacing(8);
-    h->addLayout(cot, 1);
-    return the;
+    h->addLayout(column, 1);
+    return card;
 }
 
-void DashboardPage::taiLai() {
-    const auto tk = m_services.thongKe.tongQuan();
-    if (tk.ok()) {
-        const auto& s = tk.value();
-        m_hocVien->setText(QString::number(s.hocVienDangHoc));
-        m_lopDangHoc->setText(QString::number(s.lopDangHoc));
-        m_lopTuyenSinh->setText(QString::number(s.lopTuyenSinh));
-        m_doanhThu->setText(s.doanhThuThangNay ? Format::tien(*s.doanhThuThangNay)
-                                               : QStringLiteral("Không có quyền"));
-        m_congNo->setText(Format::tien(s.tongCongNo));
-        m_buoiHoc->setText(QString::number(s.buoiHocHomNay));
-        m_loi->hide();
+void DashboardPage::reload() {
+    const auto stats = m_services.statistics.dashboard();
+    if (stats.ok()) {
+        const auto& s = stats.value();
+        m_activeStudents->setText(QString::number(s.activeStudents));
+        m_activeClasses->setText(QString::number(s.activeClasses));
+        m_enrollingClasses->setText(QString::number(s.enrollingClasses));
+        m_revenue->setText(s.revenueThisMonth ? Format::money(*s.revenueThisMonth) : tr("No permission"));
+        m_outstanding->setText(Format::money(s.outstandingTuition));
+        m_sessionsToday->setText(QString::number(s.sessionsToday));
+        m_error->hide();
     } else {
-        m_loi->setText(tk.error());
-        m_loi->show();
+        m_error->setText(stats.error());
+        m_error->show();
     }
 
-    const auto dt = m_services.thongKe.doanhThuTheoThang(QDate::currentDate().year());
-    if (dt.ok())
-        m_bieuDo->setDuLieu(dt.value());
+    const auto revenue = m_services.statistics.monthlyRevenue(QDate::currentDate().year());
+    if (revenue.ok())
+        m_chart->setData(revenue.value());
     else
-        m_bieuDo->setThongBao(QStringLiteral("Không có quyền xem doanh thu hoặc chưa có dữ liệu."));
+        m_chart->setMessage(tr("No permission to view revenue, or no data yet."));
 }

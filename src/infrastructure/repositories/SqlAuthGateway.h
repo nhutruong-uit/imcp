@@ -3,15 +3,18 @@
 #include "application/ports/IAuthGateway.h"
 #include "infrastructure/db/DatabaseManager.h"
 
-// Đăng nhập = mở kết nối SQL Server bằng tài khoản người dùng (contained database user),
-// sau đó đọc vai trò từ dbo.usp_TaiKhoan_GhiNhanDangNhap.
+#include <QCoreApplication>
+
+// Login = open a SQL Server connection with the user's account (contained database user),
+// then read the role through dbo.usp_Account_RecordLogin.
 class SqlAuthGateway : public IAuthGateway {
+    Q_DECLARE_TR_FUNCTIONS(SqlAuthGateway)
 public:
     explicit SqlAuthGateway(DatabaseManager& db);
-    Result<TaiKhoan> dangNhap(const CauHinhMayChu& cauHinh, const QString& tenDangNhap,
-                              const QString& matKhau) override;
-    void dangXuat() override;
-    VoidResult doiMatKhau(const QString& matKhauCu, const QString& matKhauMoi) override;
+    Result<Account> login(const ServerConfig& config, const QString& username,
+                          const QString& password) override;
+    void logout() override;
+    VoidResult changePassword(const QString& oldPassword, const QString& newPassword) override;
 
 private:
     DatabaseManager& m_db;
