@@ -55,10 +55,9 @@ void SqlAuthGateway::logout() {
 
 VoidResult SqlAuthGateway::changePassword(const QString& oldPassword, const QString& newPassword) {
     QSqlQuery q = makeQuery(m_db.db());
-    q.prepare(QStringLiteral("EXEC dbo.usp_Account_ChangePassword @OldPassword = ?, @NewPassword = ?"));
-    q.addBindValue(oldPassword);
-    q.addBindValue(newPassword);
-    if (!q.exec())
+    if (!execPrepared(
+            q, m_db, QStringLiteral("EXEC dbo.usp_Account_ChangePassword @OldPassword = ?, @NewPassword = ?"),
+            {oldPassword, newPassword}))
         return VoidResult::failure(errorOf(q));
     return VoidResult::success();
 }

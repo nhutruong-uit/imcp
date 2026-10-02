@@ -1,5 +1,6 @@
 #pragma once
 
+#include "infrastructure/db/DatabaseManager.h"
 #include "infrastructure/db/SqlErrorMapper.h"
 
 #include <QDate>
@@ -31,5 +32,24 @@ inline QSqlQuery makeQuery(const QSqlDatabase& db) {
 inline QString errorOf(const QSqlQuery& q) {
     return SqlErrorMapper::message(q.lastError());
 }
+
+// SQL text with '?' markers and the values for them, in order
+struct BoundStatement {
+    QString sql;
+    QVariantList values;
+};
+
+// FreeTDS workaround: Qt's ODBC plugin turns Unicode off for FreeTDS, so a QString parameter reaches SQL
+// Server as VARCHAR and is converted through the database code page (Vietnamese_CI_AS = 1258): accents get
+// decomposed and other characters become '?'. Every text value with a non-ASCII character is therefore sent
+// as its UTF-16LE bytes and turned back into NVARCHAR on the server, in a variable that replaces its marker:
+//   DECLARE @UnicodeText1 NVARCHAR(MAX) = CAST(CAST(? AS VARBINARY(MAX)) AS NVARCHAR(MAX));
+//   EXEC dbo.usp_X @A = @UnicodeText1
+// The value is still a parameter (never pasted into the SQL text). Other values and NULLs are left unchanged;
+// markers inside string literals, quoted identifiers and comments are ignored.
+BoundStatement withUnicodeText(const QString& sql, const QVariantList& values);
+
+// Prepares sql, binds values and executes it (through withUnicodeText when the connection uses FreeTDS)
+bool execPrepared(QSqlQuery& q, const DatabaseManager& db, const QString& sql, const QVariantList& values);
 
 } // namespace SqlHelpers

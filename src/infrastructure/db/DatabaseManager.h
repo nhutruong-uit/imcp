@@ -23,11 +23,14 @@ public:
     bool isOpen() const;
     QSqlDatabase db() const;
     QString activeDriver() const { return m_driver; }
+    // FreeTDS: Qt's ODBC plugin turns Unicode off for this driver, see SqlHelpers::execPrepared
+    bool usesFreeTds() const { return isFreeTds(m_driver); }
 
     // Exposed for tests and diagnostics
     static QString connectionString(const QString& driver, const ServerConfig& config,
                                     const QString& username, const QString& password);
     static QStringList candidateDrivers();
+    static bool isFreeTds(const QString& driver);
 
 private:
     QString m_driver;

@@ -106,7 +106,8 @@ the Students module (`Student*`).
 3. **application**: port `src/application/ports/IEnrollmentRepository.h`, use case
    `src/application/services/EnrollmentService.{h,cpp}`; register both in `src/application/CMakeLists.txt`.
 4. **infrastructure**: `SqlEnrollmentRepository.{h,cpp}` calling the procedures (template: `SqlStudentRepository.cpp`;
-   for OUTPUT parameters use the batch `SET NOCOUNT ON; DECLARE ...; EXEC ... OUTPUT; SELECT ...`, and pass NULLs with
+   run every statement with values through `SqlHelpers::execPrepared(q, m_db, sql, {values})`; for OUTPUT parameters
+   use the batch `SET NOCOUNT ON; DECLARE ...; EXEC ... OUTPUT; SELECT ...`, and pass NULLs with
    `SqlHelpers::stringOrNull`). Add the files to `src/infrastructure/CMakeLists.txt`.
 5. **presentation**: an `EnrollmentPage` and a `.ui` form (open it in Qt Designer) in `src/presentation/enrollments/`;
    template: `students/`. Every user-visible string goes through `tr()` (section 5).
@@ -172,6 +173,15 @@ which helps when diagnosing.
 | Windows | ODBC Driver 18 → ODBC Driver 17 → "SQL Server" (the legacy driver built into Windows) |
 | macOS (.dmg build) | bundled FreeTDS → ODBC Driver 18/17 (if installed) |
 | macOS (development) | ODBC Driver 18/17 → Homebrew FreeTDS |
+
+**FreeTDS and Unicode.** Qt's ODBC plugin turns Unicode off when the driver is FreeTDS, so a `QString` parameter
+reaches SQL Server as `VARCHAR` and is converted through the database code page (`Vietnamese_CI_AS` = 1258): accents
+of letters such as "ồ", "ễ" are stored decomposed (and a search for them finds nothing), other characters become `?`.
+`SqlHelpers::execPrepared` therefore sends, on a FreeTDS connection only, every text value with a non-ASCII character
+as its UTF-16LE bytes and turns it back into `NVARCHAR` on the server
+(`DECLARE @UnicodeText1 NVARCHAR(MAX) = CAST(CAST(? AS VARBINARY(MAX)) AS NVARCHAR(MAX))`) - the value stays a
+parameter. Reading is not affected (FreeTDS converts results to UTF-8, `ClientCharset=UTF-8`). CI runs the end-to-end
+test through both ODBC Driver 18 and FreeTDS.
 
 If SQL Server answers with a login failure (wrong password, or the database cannot be opened) the search stops
 immediately because another driver would fail the same way. Other errors (missing driver, TLS, network) make it try

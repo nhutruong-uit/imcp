@@ -89,7 +89,8 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
   (by column key), stored database values → `DbValues`. Logic never depends on displayed (translated) text.
   Domain/application keep codes only; their user messages use `tr()` (Qt Core).
 - Procedures with OUTPUT parameters: batch `SET NOCOUNT ON; DECLARE @x ...; EXEC ... @Out = @x OUTPUT; SELECT @x;`.
-  NULLs are passed with `SqlHelpers::stringOrNull`.
+  Values go through `SqlHelpers::execPrepared(q, m_db, sql, {values})` (keeps text Unicode with FreeTDS); NULLs
+  are passed with `SqlHelpers::stringOrNull`.
 - A new use case needs a unit test in `tests/` with a fake repository; a new screen must be opened by the e2e test
   (`everyRole_opensEveryFeature_withData` covers every feature in `Permissions`); new UI strings must be translated
   (`tst_i18n` fails on unfinished entries).

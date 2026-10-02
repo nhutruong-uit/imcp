@@ -92,16 +92,15 @@ jobs:
             -e ACCEPT_EULA=Y -e MSSQL_PID=Developer -e MSSQL_SA_PASSWORD \
             mcr.microsoft.com/mssql/server:2022-latest
 
-      - name: Install Microsoft ODBC Driver 18, Ninja
+      - name: Install Microsoft ODBC Driver 18, FreeTDS, Ninja
         # ACCEPT_EULA=Y: the repository owner accepted the Microsoft ODBC Driver 18 license for this CI job too.
-        # Not FreeTDS: Qt's ODBC plugin disables Unicode for FreeTDS, so strings would reach SQL Server as varchar
-        # and Vietnamese text would be converted through code page 1258 (decomposed accents).
+        # FreeTDS (open source) is the driver bundled in the macOS .dmg: the end-to-end test runs through it as well.
         run: |
           curl -sSL -o /tmp/packages-microsoft-prod.deb \
             https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb
           sudo dpkg -i /tmp/packages-microsoft-prod.deb
           sudo apt-get update -qq
-          sudo ACCEPT_EULA=Y apt-get install -y -qq msodbcsql18 ninja-build
+          sudo ACCEPT_EULA=Y apt-get install -y -qq msodbcsql18 tdsodbc ninja-build
 
       - name: Install Qt 6.8 LTS
         uses: jurplel/install-qt-action@v4
@@ -129,6 +128,17 @@ jobs:
         # Keeps the .sh and .ps1 versions doing the same steps (the build is incremental, so this is quick)
         shell: pwsh
         run: ./scripts/test_all.ps1 -Docker qlttta-mssql
+
+      - name: End-to-end GUI tests again through FreeTDS
+        # Qt's ODBC plugin turns Unicode off for FreeTDS: SqlHelpers::execPrepared must keep Vietnamese text intact
+        env:
+          QLTTTA_ODBC_DRIVER: /usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so
+          QLTTTA_E2E_PASSWORD: Demo@2026 # demo accounts (docs/SETUP.md), not a real password
+        run: |
+          ctest --preset linux-debug -R e2e --output-on-failure --output-junit "$PWD/build/test-results/ctest-freetds.xml"
+          if grep -q 'status="notrun"\|<skipped' build/test-results/ctest-freetds.xml; then
+            echo "FAILED: the end-to-end test was skipped." >&2; exit 1
+          fi
 
       - name: Upload the test results
         if: always()

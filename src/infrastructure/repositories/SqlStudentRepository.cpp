@@ -8,11 +8,9 @@ SqlStudentRepository::SqlStudentRepository(DatabaseManager& db) : m_db(db) {}
 
 Result<QList<Student>> SqlStudentRepository::search(const StudentFilter& filter) {
     QSqlQuery q = makeQuery(m_db.db());
-    q.prepare(QStringLiteral("EXEC dbo.usp_Student_Search @Keyword = ?, @BranchId = ?, @Status = ?"));
-    q.addBindValue(stringOrNull(filter.keyword));
-    q.addBindValue(stringOrNull(filter.branchId));
-    q.addBindValue(stringOrNull(filter.status));
-    if (!q.exec())
+    if (!execPrepared(
+            q, m_db, QStringLiteral("EXEC dbo.usp_Student_Search @Keyword = ?, @BranchId = ?, @Status = ?"),
+            {stringOrNull(filter.keyword), stringOrNull(filter.branchId), stringOrNull(filter.status)}))
         return Result<QList<Student>>::failure(errorOf(q));
 
     // Columns: StudentId, FullName, DateOfBirth, Gender, Phone, Email, GuardianName, GuardianPhone,
@@ -41,9 +39,7 @@ Result<QList<Student>> SqlStudentRepository::search(const StudentFilter& filter)
 
 Result<Student> SqlStudentRepository::findById(const QString& id) {
     QSqlQuery q = makeQuery(m_db.db());
-    q.prepare(QStringLiteral("EXEC dbo.usp_Student_Details @StudentId = ?"));
-    q.addBindValue(id);
-    if (!q.exec())
+    if (!execPrepared(q, m_db, QStringLiteral("EXEC dbo.usp_Student_Details @StudentId = ?"), {id}))
         return Result<Student>::failure(errorOf(q));
     if (!q.next())
         return Result<Student>::failure(tr("Student %1 was not found.").arg(id));
@@ -71,23 +67,15 @@ Result<Student> SqlStudentRepository::findById(const QString& id) {
 Result<QString> SqlStudentRepository::add(const Student& s) {
     // Procedure with an OUTPUT parameter: call it in a batch that SELECTs the value (most reliable with ODBC)
     QSqlQuery q = makeQuery(m_db.db());
-    q.prepare(QStringLiteral(
+    const QString sql = QStringLiteral(
         "SET NOCOUNT ON; DECLARE @NewId VARCHAR(10); "
         "EXEC dbo.usp_Student_Add @FullName = ?, @DateOfBirth = ?, @Gender = ?, @Phone = ?, @Email = ?, "
         "@Address = ?, @Occupation = ?, @GuardianName = ?, @GuardianPhone = ?, @BranchId = ?, @Notes = ?, "
-        "@StudentId = @NewId OUTPUT; SELECT @NewId;"));
-    q.addBindValue(s.fullName);
-    q.addBindValue(s.dateOfBirth);
-    q.addBindValue(s.gender);
-    q.addBindValue(stringOrNull(s.phone));
-    q.addBindValue(stringOrNull(s.email));
-    q.addBindValue(stringOrNull(s.address));
-    q.addBindValue(stringOrNull(s.occupation));
-    q.addBindValue(stringOrNull(s.guardianName));
-    q.addBindValue(stringOrNull(s.guardianPhone));
-    q.addBindValue(s.branchId);
-    q.addBindValue(stringOrNull(s.notes));
-    if (!q.exec())
+        "@StudentId = @NewId OUTPUT; SELECT @NewId;");
+    if (!execPrepared(q, m_db, sql,
+                      {s.fullName, s.dateOfBirth, s.gender, stringOrNull(s.phone), stringOrNull(s.email),
+                       stringOrNull(s.address), stringOrNull(s.occupation), stringOrNull(s.guardianName),
+                       stringOrNull(s.guardianPhone), s.branchId, stringOrNull(s.notes)}))
         return Result<QString>::failure(errorOf(q));
     if (!q.next())
         return Result<QString>::failure(tr("The new student ID was not returned."));
@@ -96,33 +84,22 @@ Result<QString> SqlStudentRepository::add(const Student& s) {
 
 VoidResult SqlStudentRepository::update(const Student& s) {
     QSqlQuery q = makeQuery(m_db.db());
-    q.prepare(QStringLiteral(
+    const QString sql = QStringLiteral(
         "EXEC dbo.usp_Student_Update @StudentId = ?, @FullName = ?, @DateOfBirth = ?, @Gender = ?, "
         "@Phone = ?, @Email = ?, @Address = ?, @Occupation = ?, @GuardianName = ?, @GuardianPhone = ?, "
-        "@BranchId = ?, @Status = ?, @Notes = ?"));
-    q.addBindValue(s.id);
-    q.addBindValue(s.fullName);
-    q.addBindValue(s.dateOfBirth);
-    q.addBindValue(s.gender);
-    q.addBindValue(stringOrNull(s.phone));
-    q.addBindValue(stringOrNull(s.email));
-    q.addBindValue(stringOrNull(s.address));
-    q.addBindValue(stringOrNull(s.occupation));
-    q.addBindValue(stringOrNull(s.guardianName));
-    q.addBindValue(stringOrNull(s.guardianPhone));
-    q.addBindValue(s.branchId);
-    q.addBindValue(s.status);
-    q.addBindValue(stringOrNull(s.notes));
-    if (!q.exec())
+        "@BranchId = ?, @Status = ?, @Notes = ?");
+    if (!execPrepared(q, m_db, sql,
+                      {s.id, s.fullName, s.dateOfBirth, s.gender, stringOrNull(s.phone),
+                       stringOrNull(s.email), stringOrNull(s.address), stringOrNull(s.occupation),
+                       stringOrNull(s.guardianName), stringOrNull(s.guardianPhone), s.branchId, s.status,
+                       stringOrNull(s.notes)}))
         return VoidResult::failure(errorOf(q));
     return VoidResult::success();
 }
 
 VoidResult SqlStudentRepository::remove(const QString& id) {
     QSqlQuery q = makeQuery(m_db.db());
-    q.prepare(QStringLiteral("EXEC dbo.usp_Student_Delete @StudentId = ?"));
-    q.addBindValue(id);
-    if (!q.exec())
+    if (!execPrepared(q, m_db, QStringLiteral("EXEC dbo.usp_Student_Delete @StudentId = ?"), {id}))
         return VoidResult::failure(errorOf(q));
     return VoidResult::success();
 }

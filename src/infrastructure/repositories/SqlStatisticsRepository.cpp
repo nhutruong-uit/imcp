@@ -25,9 +25,10 @@ Result<DashboardStats> SqlStatisticsRepository::dashboard() {
 
 Result<QList<MonthlyRevenue>> SqlStatisticsRepository::monthlyRevenue(int year) {
     QSqlQuery q = makeQuery(m_db.db());
-    q.prepare(QStringLiteral("SELECT Month, Revenue FROM dbo.fn_MonthlyRevenue(?, NULL) ORDER BY Month"));
-    q.addBindValue(year);
-    if (!q.exec())
+    if (!execPrepared(
+            q, m_db,
+            QStringLiteral("SELECT Month, Revenue FROM dbo.fn_MonthlyRevenue(?, NULL) ORDER BY Month"),
+            {year}))
         return Result<QList<MonthlyRevenue>>::failure(errorOf(q));
     QList<MonthlyRevenue> months;
     while (q.next())

@@ -8,6 +8,7 @@ add_library(qlttta_infrastructure STATIC
     db/SqlErrorMapper.h
     db/SqlErrorMapper.cpp
     db/SqlHelpers.h
+    db/SqlHelpers.cpp
     config/QSettingsStore.h
     config/QSettingsStore.cpp
     repositories/SqlAuthGateway.h
