@@ -3,7 +3,12 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key>
-    <string>vi</string>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>vi</string>
+    </array>
     <key>CFBundleExecutable</key>
     <string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
     <key>CFBundleIconFile</key>
@@ -15,7 +20,7 @@
     <key>CFBundleName</key>
     <string>${MACOSX_BUNDLE_BUNDLE_NAME}</string>
     <key>CFBundleDisplayName</key>
-    <string>QLTTTA - Quản lý Trung tâm Tiếng Anh</string>
+    <string>QLTTTA - English Center Management</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

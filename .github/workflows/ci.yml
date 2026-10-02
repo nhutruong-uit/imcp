@@ -1,9 +1,10 @@
-# CI: build + unit test trên macOS và Windows. Chỉ chạy khi:
-#   - merge vào develop (GitHub tạo sự kiện push lên develop; push thẳng develop cũng chạy);
-#   - mở/cập nhật PR vào main: BẮT BUỘC, branch protection của main đòi 2 job này xanh mới cho merge;
-#   - chạy tay cho nhánh bất kỳ: gh workflow run CI --ref <nhánh>  (hoặc tab Actions > CI > Run workflow).
-# Push lên feature/fix và PR vào develop KHÔNG tự chạy CI: chạy scripts/test_all.sh trên máy trước khi merge.
-# Merge vào main chạy release.yml (đóng gói), không chạy lại CI vì PR vào main đã chạy.
+# CI: build + unit tests (incl. translations) on macOS and Windows. Runs only:
+#   - when something is merged into develop (GitHub raises a push to develop; a direct push to develop also runs);
+#   - when a PR into main is opened/updated: REQUIRED, main's branch protection needs both jobs green to merge;
+#   - manually for any branch: gh workflow run CI --ref <branch>  (or Actions tab > CI > Run workflow).
+# Pushes to feature/fix branches and PRs into develop do NOT run CI: run scripts/test_all.sh locally before merging.
+# A merge into main runs release.yml (packaging); CI does not run again because the PR into main already ran it.
+# Keep the job names: they are the required status checks of main.
 name: CI
 
 on:
@@ -27,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Cài Qt, ODBC, Ninja (Homebrew)
+      - name: Install Qt, ODBC, Ninja (Homebrew)
         run: brew install qt qt-unixodbc unixodbc ninja
 
       - name: Configure
@@ -37,7 +38,7 @@ jobs:
         run: cmake --build --preset macos-debug
 
       - name: Unit test
-        # -V: in kết quả từng hàm test (PASS/SKIP) để thấy rõ trên log CI; e2e cần CSDL nên được ghi Skipped
+        # -V: prints every test function (PASS/SKIP) in the CI log; e2e needs a database so it is Skipped
         run: ctest --preset macos-debug --output-on-failure -V
 
   windows:
@@ -46,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Cài Qt 6.8 LTS + MinGW + Ninja
+      - name: Install Qt 6.8 LTS + MinGW + Ninja
         uses: jurplel/install-qt-action@v4
         with:
           version: "6.8.3"
@@ -54,7 +55,7 @@ jobs:
           tools: "tools_mingw1310 tools_ninja"
           cache: true
 
-      - name: Thêm MinGW và Ninja vào PATH
+      - name: Add MinGW and Ninja to PATH
         shell: pwsh
         run: |
           "$env:IQTA_TOOLS\mingw1310_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
@@ -67,5 +68,5 @@ jobs:
         run: cmake --build --preset windows-debug
 
       - name: Unit test
-        # -V: in kết quả từng hàm test (PASS/SKIP) để thấy rõ trên log CI; e2e cần CSDL nên được ghi Skipped
+        # -V: prints every test function (PASS/SKIP) in the CI log; e2e needs a database so it is Skipped
         run: ctest --preset windows-debug --output-on-failure -V

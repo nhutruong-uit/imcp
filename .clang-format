@@ -1,4 +1,4 @@
-# Định dạng mã C++ thống nhất (Qt Creator / VS Code tự đọc file này)
+# Shared C++ formatting (Qt Creator / VS Code read this file automatically)
 BasedOnStyle: LLVM
 IndentWidth: 4
 ColumnLimit: 110

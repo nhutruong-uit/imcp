@@ -1,5 +1,5 @@
-# Release: khi merge vào main -> đóng gói bản cài macOS (.dmg) + Windows (setup.exe, .zip portable)
-# và tạo GitHub Release đính kèm file cài. Phiên bản lấy từ project(VERSION ...) trong CMakeLists.txt.
+# Release: on a merge into main -> build the macOS (.dmg) + Windows (setup.exe, portable .zip) installers
+# and create a GitHub Release with them attached. The version comes from project(VERSION ...) in CMakeLists.txt.
 name: Release
 
 on:
@@ -16,16 +16,16 @@ concurrency:
 
 jobs:
   macos:
-    name: Đóng gói macOS
+    name: Package macOS
     runs-on: macos-latest
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
     steps:
       - uses: actions/checkout@v5
-      - name: Cài Qt, ODBC, FreeTDS, Ninja
+      - name: Install Qt, ODBC, FreeTDS, Ninja
         run: brew install qt qt-unixodbc unixodbc freetds ninja
-      - name: Đóng gói .dmg
+      - name: Build the .dmg
         run: ./scripts/package-macos.sh
       - uses: actions/upload-artifact@v4
         with:
@@ -34,27 +34,27 @@ jobs:
           if-no-files-found: error
 
   windows:
-    name: Đóng gói Windows
+    name: Package Windows
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Cài Qt 6.8 LTS + MinGW + Ninja
+      - name: Install Qt 6.8 LTS + MinGW + Ninja
         uses: jurplel/install-qt-action@v4
         with:
           version: "6.8.3"
           arch: "win64_mingw"
           tools: "tools_mingw1310 tools_ninja"
           cache: true
-      - name: Thêm MinGW và Ninja vào PATH
+      - name: Add MinGW and Ninja to PATH
         shell: pwsh
         run: |
           "$env:IQTA_TOOLS\mingw1310_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
           "$env:IQTA_TOOLS\Ninja" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
-      - name: Cài Inno Setup (nếu runner chưa có)
+      - name: Install Inno Setup (if the runner lacks it)
         shell: pwsh
         run: |
           if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup --no-progress -y }
-      - name: Đóng gói setup.exe + zip
+      - name: Build setup.exe + zip
         shell: pwsh
         run: ./scripts/package-windows.ps1
       - uses: actions/upload-artifact@v4
@@ -66,7 +66,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Tạo GitHub Release
+    name: Create the GitHub Release
     needs: [macos, windows]
     runs-on: ubuntu-latest
     steps:
@@ -75,22 +75,22 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-      - name: Tạo release
+      - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=$(sed -n 's/^ *VERSION \([0-9][0-9.]*\).*/\1/p' CMakeLists.txt | head -1)
           TAG="v${VERSION}-build.${GITHUB_RUN_NUMBER}"
           cat > notes.md <<EOF
-          Bản cài tự động từ commit ${GITHUB_SHA::7} trên nhánh main.
+          Installers built automatically from commit ${GITHUB_SHA::7} on main.
 
-          | Hệ điều hành | File |
+          | Operating system | File |
           |---|---|
-          | Windows 10/11 (x64) | \`QLTTTA-${VERSION}-windows-x64-setup.exe\` (cài đặt) hoặc \`...-portable.zip\` (giải nén là chạy) |
+          | Windows 10/11 (x64) | \`QLTTTA-${VERSION}-windows-x64-setup.exe\` (installer) or \`...-portable.zip\` (unzip and run) |
           | macOS 12+ (Apple Silicon) | \`QLTTTA-${VERSION}-macos-arm64.dmg\` |
 
-          Cần SQL Server có CSDL QLTTTA (khởi tạo bằng \`scripts/db_init\`). Hướng dẫn mở ứng dụng lần đầu
-          và tài khoản demo: xem \`docs/SETUP.md\`.
+          Requires a SQL Server with the QLTTTA database (initialized with \`scripts/db_init\`). The UI is available
+          in Vietnamese and English. First launch and demo accounts: see \`docs/SETUP.md\`.
           EOF
           gh release create "$TAG" dist/* --title "QLTTTA ${VERSION} (build ${GITHUB_RUN_NUMBER})" \
             --notes-file notes.md --target "$GITHUB_SHA"

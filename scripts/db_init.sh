@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Khởi tạo CSDL QLTTTA (macOS / Linux): chạy lần lượt database/00..07.
+# Initializes the QLTTTA database (macOS / Linux): runs database/00..07 in order.
 #
-# Cách dùng:
-#   SQL_PASSWORD='<mật khẩu sa>' ./scripts/db_init.sh                  # dùng sqlcmd trên máy
-#   SQL_PASSWORD='<mật khẩu sa>' ./scripts/db_init.sh --docker sql2022  # dùng sqlcmd trong container
+# Usage:
+#   SQL_PASSWORD='<sa password>' ./scripts/db_init.sh                  # sqlcmd installed on this machine
+#   SQL_PASSWORD='<sa password>' ./scripts/db_init.sh --docker sql2022  # sqlcmd inside the container
 #
-# Biến môi trường: SQL_SERVER (mặc định localhost,1433), SQL_USER (mặc định sa), SQL_PASSWORD (bắt buộc)
+# Environment: SQL_SERVER (default localhost,1433), SQL_USER (default sa), SQL_PASSWORD (required)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -15,9 +15,9 @@ SQL_USER="${SQL_USER:-sa}"
 CONTAINER=""
 
 if [[ "${1:-}" == "--docker" ]]; then
-  CONTAINER="${2:?Thiếu tên container, ví dụ: --docker sql2022}"
+  CONTAINER="${2:?Missing container name, e.g. --docker sql2022}"
 fi
-: "${SQL_PASSWORD:?Hãy đặt biến SQL_PASSWORD (mật khẩu tài khoản sa)}"
+: "${SQL_PASSWORD:?Set SQL_PASSWORD (password of the sa account)}"
 
 FILES=(00_create_database.sql 01_tables.sql 02_functions.sql 03_views.sql
        04_procedures.sql 05_triggers.sql 06_security.sql 07_seed_data.sql)
@@ -39,4 +39,4 @@ for f in "${FILES[@]}"; do
   echo ">> $f"
   run_sql "$f" "$db"
 done
-echo "Hoàn tất. CSDL QLTTTA đã sẵn sàng (tài khoản demo: xem docs/SETUP.md)."
+echo "Done. The QLTTTA database is ready (demo accounts: see docs/SETUP.md)."
