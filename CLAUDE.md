@@ -59,8 +59,11 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
 - C++17, Qt ≥ 6.5 (CI Windows dùng Qt 6.8 LTS + MinGW, macOS dùng Qt Homebrew).
 
 ### Git
-- Làm trên nhánh `feature/...`, PR vào `develop`; không push thẳng `develop`/`main`.
+- Làm trên nhánh `feature/...`, PR vào `develop`; không push thẳng `develop`/`main` (branch protection đã chặn:
+  bắt buộc PR + CI xanh trên macOS và Windows + nhánh cập nhật theo base, áp dụng cả admin).
 - Commit message tiếng Việt dạng `feat(scope): ...`, `fix(db): ...`.
+- **PR (tiêu đề + mô tả) viết bằng tiếng Anh**: dùng skill `/create-pr` (`.claude/skills/create-pr/SKILL.md`),
+  skill chạy `test_all` trước rồi mới tạo PR.
 - Không commit mật khẩu thật, `.env`, thư mục `build/`, `dist/`.
 
 ## Tài khoản demo

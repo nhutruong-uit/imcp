@@ -1,0 +1,107 @@
+---
+name: create-pr
+description: Create (or update) a GitHub pull request for the QLTTTA repo with an English title and description, after running the full test suite. Use when the user asks to open/create/update a PR ("tạo PR", "mở pull request", "/create-pr"), or when work on a feature branch is ready for review. Optional arguments - base branch (default develop), "draft".
+---
+
+# Create a pull request (QLTTTA)
+
+<!-- Ghi chú cho nhóm: skill này tạo PR với tiêu đề + mô tả TIẾNG ANH. Commit message vẫn viết tiếng Việt
+     theo CLAUDE.md. Trả lời người dùng (trong chat) bằng tiếng Việt như bình thường. -->
+
+PR title and body are **always in English**. Commit messages stay in Vietnamese (see `CLAUDE.md`), so
+translate their meaning; never paste Vietnamese commit messages into the PR as-is. Keep identifiers exactly as
+they are in code (`usp_GhiDanh`, `HocVienService::themMoi`, table names) in backticks. A Vietnamese UI string
+may be quoted when it matters, followed by an English gloss: "Không có quyền" (no permission).
+Talk to the user in Vietnamese.
+
+## 1. Preconditions
+
+1. `gh auth status` must show a logged-in account. If not, ask the user to run
+   `gh auth login --web --git-protocol https` themselves (never handle tokens or passwords).
+2. Current branch must be a work branch (`feature/...`, `fix/...`, `docs/...`). If it is `develop` or `main`,
+   stop: create a `feature/...` branch from the current state first (direct pushes are blocked by branch protection).
+3. Uncommitted changes: show `git status --short` and ask whether to commit them (Vietnamese message,
+   `type(scope): ...`) or leave them out. Never commit `.env`, `build/`, `dist/` or real passwords.
+4. Base branch: `develop` unless the user passed another one. `main` is only for release PRs from `develop`
+   (then also check `project(VERSION ...)` in `CMakeLists.txt` was bumped; merging to `main` runs `release.yml`).
+5. If a PR already exists for this branch (`gh pr view --json url,state`), update it with `gh pr edit`
+   instead of creating a second one.
+
+## 2. Run the full test suite (required by the PR checklist)
+
+```bash
+SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker sql2022
+```
+- Container may be `imcp-mssql` instead of `sql2022` (`docker ps`). Never print the SA password.
+- Windows: `.\scripts\test_all.ps1` (see `docs/SETUP.md`).
+- Keep the final summary line (`TẤT CẢ KIỂM THỬ ĐẠT: CSDL x/y ca ...`) and report it in English in the PR.
+- If a step fails: **stop**, show the failure to the user, do not open the PR unless they explicitly ask for a
+  draft PR - and then say in the PR body exactly what fails.
+- If SQL Server is not available, say so; write "not run" in the Testing section. Never claim tests passed
+  when they did not run.
+
+## 3. Collect what changed
+
+```bash
+git fetch -q origin
+git log --oneline origin/<base>..HEAD
+git diff --stat origin/<base>..HEAD
+git diff origin/<base>..HEAD -- database/ src/ tests/ scripts/ .github/   # read the real changes
+```
+Summarize from the diff, not only from commit titles. Group by layer: database, application (domain /
+application / infrastructure / presentation), tests, build/CI, docs/report.
+
+## 4. Write the PR
+
+**Title**: English, imperative, max ~72 characters, Conventional Commits style:
+`<type>(<scope>): <summary>` - e.g. `fix(db): hide monthly revenue from academic staff`,
+`test: add one-command full test suite`. Types: feat, fix, test, docs, ci, refactor, chore.
+
+**Body**: write it to a temporary file (avoids shell quoting problems with backticks and Vietnamese text),
+using this template and dropping empty sections:
+
+```markdown
+## Summary
+<2-4 sentences: what changed and why.>
+
+## Changes
+- **Database**: <tables/constraints/procedures/triggers/permissions touched; note if `db_init` must be re-run>
+- **Application**: <layer + class, user-visible effect>
+- **Tests**: <new/updated DB cases (T../P..), unit tests, e2e scenarios>
+- **Build / CI**: <...>
+- **Docs / Report**: <...>
+
+## Testing
+- `scripts/test_all.sh`: <result, e.g. "all passed - DB 39/39 cases, unit + end-to-end">
+- Manual: <roles/screens checked with demo accounts, if any>
+- Not tested: <be explicit, e.g. Windows-only paths>
+
+## Notes for reviewers
+- <migration steps, breaking changes, follow-ups>
+- <which team member owns this area and should be able to explain it in the oral defense, if relevant>
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+```
+
+Rules for the content:
+- No secrets: no SA password, no `.env` content, no tokens. Demo account names are fine.
+- Be factual: only list tests that actually ran, with their real result.
+- Mention database changes prominently - the database is the grading focus of the course.
+
+## 5. Create / update and follow up
+
+```bash
+BODY="$(mktemp)"          # write the body here with the Write tool or a heredoc
+git push -u origin HEAD   # make sure the branch is on GitHub
+gh pr create --base <base> --head "$(git branch --show-current)" --title "<title>" --body-file "$BODY" [--draft]
+# existing PR: gh pr edit <number> --title "<title>" --body-file "$BODY"
+```
+After creating:
+- In the Claude desktop app: call the `ccd_pr` tools (`get_status`; `bind_pr` if it is not bound), read the CI
+  result once and offer Auto-fix. Elsewhere: `gh pr checks <url>` once. Do not poll CI in a loop and never
+  enable auto-merge unless the user asks.
+- Branch protection on `develop`/`main` requires a PR plus green CI on `macOS (Apple Silicon)` and
+  `Windows (Qt + MinGW)`, with the branch up to date with its base. 0 approvals are required, so the author
+  can merge once CI is green.
+- Reply to the user in Vietnamese with the PR link (`[owner/repo#N](url)`), the test result and anything
+  that still needs their decision.
