@@ -588,7 +588,7 @@
     "dinh_nghia": "([TrangThai]=N'Vắng không phép' OR [TrangThai]=N'Vắng có phép' OR [TrangThai]=N'Đi trễ' OR [TrangThai]=N'Có mặt')"
    }
   ],
-  "so_dong": 1380
+  "so_dong": 1392
  },
  {
   "bang": "GHIDANH",
@@ -1859,7 +1859,7 @@
     "dinh_nghia": "([HanhDong]='DELETE' OR [HanhDong]='UPDATE' OR [HanhDong]='INSERT')"
    }
   ],
-  "so_dong": 234
+  "so_dong": 235
  },
  {
   "bang": "PHIEUTHU",
@@ -1970,7 +1970,7 @@
     "dinh_nghia": "([TrangThai]=N'Đã hủy' OR [TrangThai]=N'Hợp lệ')"
    }
   ],
-  "so_dong": 96
+  "so_dong": 97
  },
  {
   "bang": "PHONGHOC",

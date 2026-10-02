@@ -1,5 +1,5 @@
 """Chương 6 - Trình bày thông tin (ứng dụng); Chương 7 - CSDL tiên tiến; Chương 8 - Tổng kết; tài liệu, phụ lục."""
-from noidung.chung import IMG, SQL, kiem_thu
+from noidung.chung import IMG, SQL, doi_tuong, kiem_thu
 from report_lib import sql_block
 
 SCR = IMG / "screens"
@@ -214,7 +214,8 @@ def chuong8(r):
     dat = len([k for k in kiem_thu() if k[4] == "ĐẠT"])
     r.table(["Hạng mục", "Kết quả"], [
         ["Phân tích, thiết kế", "Use case, DFD mức 0-1, ERD (Chen) 21 thực thể, CD có kế thừa, lược đồ quan hệ đạt BCNF, từ điển dữ liệu"],
-        ["Cài đặt CSDL", "21 bảng, 182 ràng buộc khai báo, 8 sequence, 1 XML Schema, 13 hàm, 13 view, 38 thủ tục, 13 trigger, 4 role"],
+        ["Cài đặt CSDL", "{SoBang} bảng, {SoRangBuoc} ràng buộc khai báo, {SoSequence} sequence, {SoXmlSchema} XML Schema, "
+                         "{SoHam} hàm, {SoView} view, {SoThuTuc} thủ tục, {SoTrigger} trigger, {SoRole} role".format(**doi_tuong())],
         ["Xử lý thông tin", "Truy vấn SQL (chia, đệ quy, cửa sổ, PIVOT), XPath/XQuery đủ 5 phương thức, cursor, giao dịch"],
         ["An ninh", "Contained user, phân quyền mức đối tượng và mức cột, view bảo mật, nhật ký XML, backup Full/Diff/Log"],
         ["Kiểm thử", f"{dat}/{len(kiem_thu())} ca kiểm thử CSDL đạt; 3 bộ unit test; 9/9 kịch bản end-to-end qua giao diện"],

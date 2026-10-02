@@ -24,7 +24,7 @@ T11|Sửa nội dung nhật ký kiểm toán|Từ chối|Từ chối|ĐẠT|Nh�
 T12|Cấp chứng nhận cho học viên Không đạt|Từ chối|Từ chối|ĐẠT|Chỉ cấp chứng nhận cho học viên có kết quả Đạt.
 T13|Sửa thời gian buổi học đã dạy|Từ chối|Từ chối|ĐẠT|Không được thay đổi thời gian, phòng, giáo viên của buổi đã dạy.
 T14|Chuyển lớp sang khóa học khác|Từ chối|Từ chối|ĐẠT|Chỉ được chuyển sang lớp đang mở của cùng khóa học.
-T15|Ghi danh hợp lệ có khuyến mãi|Thành công|Thành công|ĐẠT|Mã GD000085, phải đóng 3,300,000 đ
+T15|Ghi danh hợp lệ có khuyến mãi|Thành công|Thành công|ĐẠT|Mã GD000087, phải đóng 3,300,000 đ
 T16|fn_XepLoai: xếp loại tại các mốc 9 / 8 / 6.5 / 5 điểm|Thành công|Thành công|ĐẠT|11/11 mốc điểm (kể cả NULL) cho kết quả đúng
 T17|fn_TinhDiemTongKet: điểm theo trọng số, thiếu cột điểm thì NULL|Thành công|Thành công|ĐẠT|Khớp 22/22 lượt ghi danh; bỏ 1 cột điểm của GD000001 => NULL
 T18|fn_TyLeChuyenCan: đi trễ tính có mặt, vắng có phép không tính|Thành công|Thành công|ĐẠT|Có mặt 2 + đi trễ 1 trên 24 buổi đã dạy => 12.50% (kỳ vọng 12.50%)

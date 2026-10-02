@@ -24,10 +24,22 @@ QLTTTA_E2E_PASSWORD='Demo@2026' ctest --preset macos-debug -R e2e --output-on-fa
 # Kiểm tra kết nối/đăng nhập không cần giao diện
 QLTTTA_USER=ql_quan QLTTTA_PASSWORD='Demo@2026' build/macos-debug/src/app/QLTTTA.app/Contents/MacOS/QLTTTA --check-connection
 
+# Cập nhật báo cáo (hoặc gõ /imcp-update-report): dữ liệu thật -> docx -> PDF (macOS + Word) -> kiểm tra
+SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" python3 docs/report/cong_cu/xuat_du_lieu.py --docker sql2022
+python3 docs/report/build_report.py && ./docs/report/cong_cu/xuat_pdf.sh
+swift docs/report/cong_cu/kiem_tra_pdf.swift kiemtra docs/report/BaoCao_DoAn_IE103_Nhom1.pdf
+
 # Chụp màn hình (kiểm tra giao diện với dữ liệu thật)
 cmake --preset macos-debug -DQLTTTA_BUILD_TOOLS=ON && cmake --build --preset macos-debug
 QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/tools/qlttta_screenshots
 ```
+
+## Quy tắc chi tiết và skill dùng chung
+- `.claude/rules/`: quy trình chung + **mẫu báo cáo kết quả** (`00-quy-trinh-chung.md`, luôn áp dụng) và quy tắc theo
+  loại file - `sql.md` (database/), `cpp-qt.md` (src/), `tests.md`, `scripts-ci.md`, `report.md`. Mọi thành viên
+  dùng Claude Code đều theo đúng các file này để code sinh ra cùng format, cùng cách báo kết quả.
+- Skill: `/imcp-create-pr` (tạo/cập nhật PR tiếng Anh sau khi chạy `test_all`), `/imcp-update-report` (cập nhật
+  báo cáo: dữ liệu từ CSDL, ảnh màn hình, sơ đồ, docx, PDF, kiểm tra).
 
 ## Quy tắc bắt buộc
 

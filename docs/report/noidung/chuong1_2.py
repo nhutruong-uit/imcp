@@ -1,5 +1,5 @@
 """Chương 1 - Tổng quan; Chương 2 - Phân tích yêu cầu."""
-from noidung.chung import IMG, THANH_VIEN
+from noidung.chung import IMG, THANH_VIEN, doi_tuong
 
 
 def chuong1(r):
@@ -98,7 +98,7 @@ def chuong2(r):
     r.table(["Bước", "Trong hệ thống QLTTTA", "Công cụ/đối tượng hiện thực"], [
         ["Thu thập", "Phiếu đăng ký học viên, bài kiểm tra đầu vào, phiếu thu, điểm danh, điểm số",
          "Form nhập liệu, thủ tục usp_*_Them, nhập XML/CSV"],
-        ["Tổ chức", "Mô hình hóa thành 21 bảng quan hệ, dữ liệu bán cấu trúc lưu dạng XML",
+        ["Tổ chức", f"Mô hình hóa thành {doi_tuong()['SoBang']} bảng quan hệ, dữ liệu bán cấu trúc lưu dạng XML",
          "ERD, CD, mô hình quan hệ 3NF, XML Schema"],
         ["Xử lý / Chuyển đổi", "Tính học phí sau khuyến mãi, công nợ, điểm tổng kết, chuyên cần, lương; "
          "chuyển quan hệ ↔ XML", "Function, trigger, cursor, FOR XML, XQuery"],
