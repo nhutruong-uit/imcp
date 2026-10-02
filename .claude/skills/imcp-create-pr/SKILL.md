@@ -1,6 +1,6 @@
 ---
-name: create-pr
-description: Create (or update) a GitHub pull request for the QLTTTA repo with an English title and description, after running the full test suite. Use when the user asks to open/create/update a PR ("tạo PR", "mở pull request", "/create-pr"), or when work on a feature branch is ready for review. Optional arguments - base branch (default develop), "draft".
+name: imcp-create-pr
+description: Create (or update) a GitHub pull request for the QLTTTA repo with an English title and description, after running the full test suite. Use when the user asks to open/create/update a PR ("tạo PR", "mở pull request", "/imcp-create-pr"), or when work on a feature branch is ready for review. Optional arguments - base branch (default develop), "draft".
 ---
 
 # Create a pull request (QLTTTA)
