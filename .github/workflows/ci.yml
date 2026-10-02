@@ -1,6 +1,8 @@
-# CI: build + unit tests (incl. translations) on macOS and Windows. Runs only:
+# CI: build + unit tests (incl. translations) on macOS and Windows, plus the FULL test suite on Linux
+# (scripts/test_all.sh and scripts/test_all.ps1 against SQL Server 2022 in Docker: database tests, server-level
+# tests, unit tests and end-to-end GUI tests). Runs only:
 #   - when something is merged into develop (GitHub raises a push to develop; a direct push to develop also runs);
-#   - when a PR into main is opened/updated: REQUIRED, main's branch protection needs both jobs green to merge;
+#   - when a PR into main is opened/updated: REQUIRED, main's branch protection needs the three jobs green to merge;
 #   - manually for any branch: gh workflow run CI --ref <branch>  (or Actions tab > CI > Run workflow).
 # Pushes to feature/fix branches and PRs into develop do NOT run CI: run scripts/test_all.sh locally before merging.
 # A merge into main runs release.yml (packaging); CI does not run again because the PR into main already ran it.
@@ -70,3 +72,68 @@ jobs:
       - name: Unit test
         # -V: prints every test function (PASS/SKIP) in the CI log; e2e needs a database so it is Skipped
         run: ctest --preset windows-debug --output-on-failure -V
+
+  full-tests:
+    name: Full tests (Linux + SQL Server)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Start SQL Server 2022 Developer (Docker)
+        # ACCEPT_EULA=Y: the repository owner accepted the SQL Server Developer Edition license for this CI job
+        # (development/test use only). The sa password is random for every run and masked in the log.
+        run: |
+          MSSQL_SA_PASSWORD="Ci-$(openssl rand -hex 16)-Aa1"
+          echo "::add-mask::$MSSQL_SA_PASSWORD"
+          echo "SQL_PASSWORD=$MSSQL_SA_PASSWORD" >> "$GITHUB_ENV"
+          export MSSQL_SA_PASSWORD
+          docker run -d --name qlttta-mssql -p 1433:1433 \
+            -e ACCEPT_EULA=Y -e MSSQL_PID=Developer -e MSSQL_SA_PASSWORD \
+            mcr.microsoft.com/mssql/server:2022-latest
+
+      - name: Install Microsoft ODBC Driver 18, Ninja
+        # ACCEPT_EULA=Y: the repository owner accepted the Microsoft ODBC Driver 18 license for this CI job too.
+        # Not FreeTDS: Qt's ODBC plugin disables Unicode for FreeTDS, so strings would reach SQL Server as varchar
+        # and Vietnamese text would be converted through code page 1258 (decomposed accents).
+        run: |
+          curl -sSL -o /tmp/packages-microsoft-prod.deb \
+            https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb
+          sudo dpkg -i /tmp/packages-microsoft-prod.deb
+          sudo apt-get update -qq
+          sudo ACCEPT_EULA=Y apt-get install -y -qq msodbcsql18 ninja-build
+
+      - name: Install Qt 6.8 LTS
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          arch: "linux_gcc_64"
+          cache: true
+
+      - name: Wait for SQL Server
+        run: |
+          for _ in $(seq 1 60); do
+            if SQLCMDPASSWORD="$SQL_PASSWORD" docker exec -e SQLCMDPASSWORD qlttta-mssql \
+                 /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -Q "SELECT 1" > /dev/null 2>&1; then
+              echo "SQL Server is ready"; exit 0
+            fi
+            sleep 2
+          done
+          docker logs qlttta-mssql | tail -30
+          exit 1
+
+      - name: Full test suite (scripts/test_all.sh)
+        run: ./scripts/test_all.sh --docker qlttta-mssql
+
+      - name: Full test suite again with the PowerShell version (scripts/test_all.ps1)
+        # Keeps the .sh and .ps1 versions doing the same steps (the build is incremental, so this is quick)
+        shell: pwsh
+        run: ./scripts/test_all.ps1 -Docker qlttta-mssql
+
+      - name: Upload the test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-test-results
+          path: build/test-results/
+          if-no-files-found: ignore

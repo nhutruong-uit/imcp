@@ -25,10 +25,11 @@ paths:
   `Full tests (Linux + SQL Server)`: renaming a job requires updating the required checks of `main`, otherwise every
   PR into `main` gets stuck.
 - Do not add `paths-ignore` to the `pull_request` trigger of `main` (the required checks would never run).
-- The `Full tests (Linux + SQL Server)` job runs SQL Server 2022 Developer in Docker with `ACCEPT_EULA=Y`: the
-  repository owner accepted that license for CI (development/test use only) on 2026-10-02. Do not add other
-  components that need their own Microsoft EULA (e.g. `msodbcsql18`/`mssql-tools18` from apt) without asking - on
-  Linux the application uses FreeTDS (`QLTTTA_ODBC_DRIVER`) and sqlcmd runs inside the SQL Server container
-  (`test_all --docker`). The sa password is random for every run (masked); never commit one.
+- The `Full tests (Linux + SQL Server)` job runs SQL Server 2022 Developer in Docker and installs Microsoft ODBC
+  Driver 18 (`msodbcsql18`), both with `ACCEPT_EULA=Y`: the repository owner accepted these two licenses for CI
+  (development/test use only) on 2026-10-02. Do not add other components that need their own Microsoft EULA (e.g.
+  `mssql-tools18`) without asking - sqlcmd runs inside the SQL Server container (`test_all --docker`). FreeTDS is not
+  used there: Qt's ODBC plugin disables Unicode for FreeTDS, so strings would be sent as `varchar` (code page 1258).
+  The sa password is random for every run (masked); never commit one.
 - That job runs `test_all.sh` and then `test_all.ps1` (pwsh) against the same server, so both versions must keep
   working on Linux too (`linux-debug` preset).

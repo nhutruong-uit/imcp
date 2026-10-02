@@ -155,7 +155,8 @@ without error `50099` (the `Verdict` column of the summary shows `PASSED`/`FAILE
 > (`gh workflow run CI --ref <branch>`). The macOS and Windows jobs build and run the unit tests (including the
 > translation check `tst_i18n`; the end-to-end test is recorded as *Skipped* there). The job
 > **Full tests (Linux + SQL Server)** starts SQL Server 2022 Developer in Docker and runs `test_all.sh` and then
-> `test_all.ps1`, i.e. the whole suite above including the end-to-end GUI test (Qt 6.8 + FreeTDS on Ubuntu). PRs into
+> `test_all.ps1`, i.e. the whole suite above including the end-to-end GUI test (Qt 6.8 + Microsoft ODBC Driver 18 on
+> Ubuntu). PRs into
 > `develop` do not trigger CI, which is why the PR checklist still asks you to paste the local `test_all` result.
 
 ### End-to-end GUI tests (need a database loaded with the seed data)
