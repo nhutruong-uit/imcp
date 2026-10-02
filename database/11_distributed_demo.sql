@@ -1,67 +1,69 @@
 /* =====================================================================
-   File   : 11_distributed_demo.sql - Minh họa CSDL PHÂN TÁN theo chi nhánh
-   Ý tưởng (Chương 5 - CSDL phân tán):
-     - Phân mảnh NGANG CHÍNH bảng HOCVIEN theo MaCN: mỗi chi nhánh giữ
-       học viên của mình tại "trạm" (site) riêng.
-     - Phân mảnh NGANG DẪN XUẤT: GHIDANH/PHIEUTHU đi theo lớp của chi nhánh.
-     - NHÂN BẢN (replication) bảng danh mục ít thay đổi: CHUONGTRINH, KHOAHOC.
-     - Trong suốt phân tán: view gộp UNION ALL (distributed partitioned view),
-       CHECK (MaCN = ...) giúp bộ tối ưu chỉ đọc đúng mảnh cần thiết.
-   Demo trên 1 máy chủ bằng 2 CSDL; thực tế mỗi CSDL nằm trên 1 server,
-   view tham chiếu qua Linked Server: [SRV_TD].QLTTTA_CN02.dbo.HOCVIEN
+   File   : 11_distributed_demo.sql - DISTRIBUTED database demo per branch
+   Idea (Chapter 5 - distributed databases):
+     - PRIMARY HORIZONTAL fragmentation of STUDENT by BranchId: every branch
+       keeps its own students at its own site.
+     - DERIVED HORIZONTAL fragmentation: ENROLLMENT/RECEIPT follow the class of the branch.
+     - REPLICATION of rarely changing catalogs: PROGRAM, COURSE.
+     - Distribution transparency: a UNION ALL view (distributed partitioned view);
+       CHECK (BranchId = ...) lets the optimizer read only the fragments it needs.
+   The demo uses 2 databases on 1 server; in production each database lives on its
+   own server and the view goes through a Linked Server: [SRV_TD].QLTTTA_BR02.dbo.STUDENT
    ===================================================================== */
 USE master;
 GO
-IF DB_ID(N'QLTTTA_CN01') IS NOT NULL BEGIN ALTER DATABASE QLTTTA_CN01 SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE QLTTTA_CN01; END;
-IF DB_ID(N'QLTTTA_CN02') IS NOT NULL BEGIN ALTER DATABASE QLTTTA_CN02 SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE QLTTTA_CN02; END;
-CREATE DATABASE QLTTTA_CN01 COLLATE Vietnamese_CI_AS;
-CREATE DATABASE QLTTTA_CN02 COLLATE Vietnamese_CI_AS;
+IF DB_ID(N'QLTTTA_BR01') IS NOT NULL BEGIN ALTER DATABASE QLTTTA_BR01 SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE QLTTTA_BR01; END;
+IF DB_ID(N'QLTTTA_BR02') IS NOT NULL BEGIN ALTER DATABASE QLTTTA_BR02 SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE QLTTTA_BR02; END;
+CREATE DATABASE QLTTTA_BR01 COLLATE Vietnamese_CI_AS;
+CREATE DATABASE QLTTTA_BR02 COLLATE Vietnamese_CI_AS;
 GO
 
-/* 1. Mảnh HOCVIEN_CN01 = σ(MaCN = 'CN01')(HOCVIEN) tại trạm Quận 1 */
-USE QLTTTA_CN01;
+/* 1. Fragment STUDENT_BR01 = σ(BranchId = 'BR01')(STUDENT) at the District 1 site */
+USE QLTTTA_BR01;
 GO
-CREATE TABLE dbo.HOCVIEN (
-    MaHV VARCHAR(10) NOT NULL PRIMARY KEY, HoTen NVARCHAR(100) NOT NULL, NgaySinh DATE NOT NULL,
-    SoDienThoai VARCHAR(15) NULL, TrangThai NVARCHAR(20) NOT NULL,
-    MaCN VARCHAR(10) NOT NULL CONSTRAINT CK_HOCVIEN_MaCN CHECK (MaCN = 'CN01'));
-INSERT INTO dbo.HOCVIEN SELECT MaHV, HoTen, NgaySinh, SoDienThoai, TrangThai, MaCN FROM QLTTTA.dbo.HOCVIEN WHERE MaCN = 'CN01';
--- Nhân bản danh mục khóa học tại mọi trạm
-SELECT MaKH, TenKH, CapDo, HocPhi INTO dbo.KHOAHOC FROM QLTTTA.dbo.KHOAHOC;
-GO
-
-/* 2. Mảnh HOCVIEN_CN02 = σ(MaCN = 'CN02')(HOCVIEN) tại trạm Thủ Đức */
-USE QLTTTA_CN02;
-GO
-CREATE TABLE dbo.HOCVIEN (
-    MaHV VARCHAR(10) NOT NULL PRIMARY KEY, HoTen NVARCHAR(100) NOT NULL, NgaySinh DATE NOT NULL,
-    SoDienThoai VARCHAR(15) NULL, TrangThai NVARCHAR(20) NOT NULL,
-    MaCN VARCHAR(10) NOT NULL CONSTRAINT CK_HOCVIEN_MaCN CHECK (MaCN = 'CN02'));
-INSERT INTO dbo.HOCVIEN SELECT MaHV, HoTen, NgaySinh, SoDienThoai, TrangThai, MaCN FROM QLTTTA.dbo.HOCVIEN WHERE MaCN = 'CN02';
-SELECT MaKH, TenKH, CapDo, HocPhi INTO dbo.KHOAHOC FROM QLTTTA.dbo.KHOAHOC;
+CREATE TABLE dbo.STUDENT (
+    StudentId VARCHAR(10) NOT NULL PRIMARY KEY, FullName NVARCHAR(100) NOT NULL, DateOfBirth DATE NOT NULL,
+    Phone VARCHAR(15) NULL, Status NVARCHAR(20) NOT NULL,
+    BranchId VARCHAR(10) NOT NULL CONSTRAINT CK_STUDENT_BranchId CHECK (BranchId = 'BR01'));
+INSERT INTO dbo.STUDENT
+SELECT StudentId, FullName, DateOfBirth, Phone, Status, BranchId FROM QLTTTA.dbo.STUDENT WHERE BranchId = 'BR01';
+-- The course catalog is replicated at every site
+SELECT CourseId, CourseName, Level, Tuition INTO dbo.COURSE FROM QLTTTA.dbo.COURSE;
 GO
 
-/* 3. Trạm trung tâm: view phân tán gộp các mảnh (tái thiết HOCVIEN = CN01 ∪ CN02) */
-USE QLTTTA_CN01;
+/* 2. Fragment STUDENT_BR02 = σ(BranchId = 'BR02')(STUDENT) at the Thu Duc site */
+USE QLTTTA_BR02;
 GO
-CREATE VIEW dbo.vw_HocVien_ToanHeThong
+CREATE TABLE dbo.STUDENT (
+    StudentId VARCHAR(10) NOT NULL PRIMARY KEY, FullName NVARCHAR(100) NOT NULL, DateOfBirth DATE NOT NULL,
+    Phone VARCHAR(15) NULL, Status NVARCHAR(20) NOT NULL,
+    BranchId VARCHAR(10) NOT NULL CONSTRAINT CK_STUDENT_BranchId CHECK (BranchId = 'BR02'));
+INSERT INTO dbo.STUDENT
+SELECT StudentId, FullName, DateOfBirth, Phone, Status, BranchId FROM QLTTTA.dbo.STUDENT WHERE BranchId = 'BR02';
+SELECT CourseId, CourseName, Level, Tuition INTO dbo.COURSE FROM QLTTTA.dbo.COURSE;
+GO
+
+/* 3. Central site: a distributed view over the fragments (reconstructs STUDENT = BR01 ∪ BR02) */
+USE QLTTTA_BR01;
+GO
+CREATE VIEW dbo.vw_Student_AllBranches
 AS
-SELECT MaHV, HoTen, NgaySinh, SoDienThoai, TrangThai, MaCN FROM QLTTTA_CN01.dbo.HOCVIEN
+SELECT StudentId, FullName, DateOfBirth, Phone, Status, BranchId FROM QLTTTA_BR01.dbo.STUDENT
 UNION ALL
-SELECT MaHV, HoTen, NgaySinh, SoDienThoai, TrangThai, MaCN FROM QLTTTA_CN02.dbo.HOCVIEN;
+SELECT StudentId, FullName, DateOfBirth, Phone, Status, BranchId FROM QLTTTA_BR02.dbo.STUDENT;
 GO
 
-/* 4. Kiểm tra tính đúng đắn của phân mảnh:
-      - Đầy đủ (completeness): tổng số dòng các mảnh = bảng gốc
-      - Tách biệt (disjointness): không MaHV nào nằm ở 2 mảnh
-      - Tái thiết (reconstruction): UNION ALL các mảnh = bảng gốc */
-SELECT (SELECT COUNT(*) FROM QLTTTA.dbo.HOCVIEN) AS BangGoc,
-       (SELECT COUNT(*) FROM QLTTTA_CN01.dbo.HOCVIEN) AS ManhCN01,
-       (SELECT COUNT(*) FROM QLTTTA_CN02.dbo.HOCVIEN) AS ManhCN02,
-       (SELECT COUNT(*) FROM dbo.vw_HocVien_ToanHeThong) AS TaiThiet,
-       (SELECT COUNT(*) FROM QLTTTA_CN01.dbo.HOCVIEN a JOIN QLTTTA_CN02.dbo.HOCVIEN b ON a.MaHV = b.MaHV) AS TrungLap;
+/* 4. Correctness of the fragmentation:
+      - Completeness: the fragments together hold every row of the original table
+      - Disjointness: no StudentId is in 2 fragments
+      - Reconstruction: UNION ALL of the fragments = the original table */
+SELECT (SELECT COUNT(*) FROM QLTTTA.dbo.STUDENT) AS OriginalTable,
+       (SELECT COUNT(*) FROM QLTTTA_BR01.dbo.STUDENT) AS FragmentBR01,
+       (SELECT COUNT(*) FROM QLTTTA_BR02.dbo.STUDENT) AS FragmentBR02,
+       (SELECT COUNT(*) FROM dbo.vw_Student_AllBranches) AS Reconstructed,
+       (SELECT COUNT(*) FROM QLTTTA_BR01.dbo.STUDENT a JOIN QLTTTA_BR02.dbo.STUDENT b ON a.StudentId = b.StudentId) AS Overlap;
 
-/* 5. Truy vấn có điều kiện MaCN: xem Execution Plan (Ctrl+M trong SSMS) sẽ thấy
-      chỉ mảnh CN02 được quét nhờ CHECK constraint (partition elimination). */
-SELECT MaHV, HoTen FROM dbo.vw_HocVien_ToanHeThong WHERE MaCN = 'CN02';
+/* 5. A query filtered by BranchId: the Execution Plan (Ctrl+M in SSMS) shows that only
+      the BR02 fragment is scanned, thanks to the CHECK constraint (partition elimination). */
+SELECT StudentId, FullName FROM dbo.vw_Student_AllBranches WHERE BranchId = 'BR02';
 GO

@@ -1,11 +1,11 @@
 /* =====================================================================
-   File   : 10_import_export.sql - Nhập / xuất dữ liệu
-   Các cách được minh họa:
-     1. Xuất XML bằng FOR XML (thủ tục usp_HocVien_XuatXML)
-     2. Nhập XML bằng .nodes() (thủ tục usp_HocVien_NhapXML)
-     3. BULK INSERT từ file CSV
-     4. bcp / sqlcmd (dòng lệnh) - xuất CSV
-     5. Ứng dụng Qt: xuất Excel/CSV/PDF từ màn hình danh sách & báo cáo
+   File   : 10_import_export.sql - Data import / export
+   The approaches shown:
+     1. XML export with FOR XML (procedure usp_Student_ExportXml)
+     2. XML import with .nodes() (procedure usp_Student_ImportXml)
+     3. BULK INSERT from a CSV file
+     4. bcp / sqlcmd (command line) - CSV export
+     5. Qt application: Excel/CSV/PDF export from the list and report screens
    ===================================================================== */
 USE QLTTTA;
 GO
@@ -13,57 +13,59 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
-/* 1. XUẤT XML: danh sách học viên chi nhánh Thủ Đức */
-EXEC dbo.usp_HocVien_XuatXML @MaCN = 'CN02';
+/* 1. XML EXPORT: students of the Thu Duc branch */
+EXEC dbo.usp_Student_ExportXml @BranchId = 'BR02';
 GO
 
-/* 2. NHẬP XML: dữ liệu từ hệ thống khác / file xuất ở trên (trong giao dịch demo rồi hoàn tác) */
+/* 2. XML IMPORT: data from another system / the export above (inside a demo transaction, then rolled back) */
 BEGIN TRANSACTION;
-EXEC dbo.usp_HocVien_NhapXML @MaCN = 'CN02', @DuLieu = N'
-<DanhSachHocVien>
-  <HocVien><HoTen>Phạm Gia Hân</HoTen><NgaySinh>2001-04-12</NgaySinh><GioiTinh>Nữ</GioiTinh>
-           <SoDienThoai>0909555001</SoDienThoai><Email>han.pg@gmail.com</Email></HocVien>
-  <HocVien><HoTen>Trần Quốc Việt</HoTen><NgaySinh>1999-09-02</NgaySinh><GioiTinh>Nam</GioiTinh>
-           <SoDienThoai>0909555002</SoDienThoai></HocVien>
-  <HocVien><HoTen>Nguyễn Văn An (trùng SĐT - bị bỏ qua)</HoTen><NgaySinh>2004-03-12</NgaySinh>
-           <SoDienThoai>0901000001</SoDienThoai></HocVien>
-</DanhSachHocVien>';
-SELECT TOP (3) MaHV, HoTen, SoDienThoai FROM dbo.HOCVIEN ORDER BY MaHV DESC;
+EXEC dbo.usp_Student_ImportXml @BranchId = 'BR02', @Data = N'
+<Students>
+  <Student><FullName>Phạm Gia Hân</FullName><DateOfBirth>2001-04-12</DateOfBirth><Gender>Female</Gender>
+           <Phone>0909555001</Phone><Email>han.pg@gmail.com</Email></Student>
+  <Student><FullName>Trần Quốc Việt</FullName><DateOfBirth>1999-09-02</DateOfBirth><Gender>Male</Gender>
+           <Phone>0909555002</Phone></Student>
+  <Student><FullName>Nguyễn Văn An (duplicate phone - skipped)</FullName><DateOfBirth>2004-03-12</DateOfBirth>
+           <Phone>0901000001</Phone></Student>
+</Students>';
+SELECT TOP (3) StudentId, FullName, Phone FROM dbo.STUDENT ORDER BY StudentId DESC;
 ROLLBACK TRANSACTION;
 GO
 
-/* 3. BULK INSERT từ CSV Unicode (UTF-16 LE, có dòng tiêu đề) vào bảng tạm rồi đưa vào HOCVIEN.
-      DATAFILETYPE = 'widechar' đọc đúng tiếng Việt trên cả Windows lẫn Linux, mọi phiên bản.
-      (Excel: File > Save As > "Unicode Text"; hoặc chuyển UTF-8 sang UTF-16 bằng Notepad++/iconv)
-      File mẫu: database/samples/hocvien_import.csv (chép vào máy chủ SQL trước khi chạy:
-      docker cp database/samples/hocvien_import.csv <container>:/var/opt/mssql/data/) */
-IF OBJECT_ID('tempdb..#HocVienCSV') IS NOT NULL DROP TABLE #HocVienCSV;
-CREATE TABLE #HocVienCSV (
-    HoTen NVARCHAR(100), NgaySinh DATE, GioiTinh NVARCHAR(5), SoDienThoai VARCHAR(15), Email VARCHAR(100), MaCN VARCHAR(10));
+/* 3. BULK INSERT from a Unicode CSV (UTF-16 LE, with a header row) into a temporary table, then into STUDENT.
+      DATAFILETYPE = 'widechar' reads Vietnamese text correctly on Windows and Linux, in every version.
+      (Excel: File > Save As > "Unicode Text"; or convert UTF-8 to UTF-16 with Notepad++/iconv)
+      Sample file: database/samples/student_import.csv (copy it to the SQL Server machine first:
+      docker cp database/samples/student_import.csv <container>:/var/opt/mssql/data/) */
+IF OBJECT_ID('tempdb..#StudentCsv') IS NOT NULL DROP TABLE #StudentCsv;
+CREATE TABLE #StudentCsv (
+    FullName NVARCHAR(100), DateOfBirth DATE, Gender NVARCHAR(10), Phone VARCHAR(15), Email VARCHAR(100),
+    BranchId VARCHAR(10));
 
 BEGIN TRY
-    BULK INSERT #HocVienCSV
-    FROM '/var/opt/mssql/data/hocvien_import.csv'        -- Windows: 'C:\Data\hocvien_import.csv'
+    BULK INSERT #StudentCsv
+    FROM '/var/opt/mssql/data/student_import.csv'        -- Windows: 'C:\Data\student_import.csv'
     WITH (DATAFILETYPE = 'widechar', FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK);
 
-    SELECT HoTen, NgaySinh, GioiTinh, SoDienThoai, NULLIF(Email, '') AS Email, MaCN FROM #HocVienCSV;
-    -- Đưa vào bảng chính qua thủ tục để kiểm tra nghiệp vụ (ở đây chỉ minh họa nên không commit):
-    -- INSERT INTO dbo.HOCVIEN (HoTen, NgaySinh, GioiTinh, SoDienThoai, Email, MaCN) SELECT ... FROM #HocVienCSV;
+    SELECT FullName, DateOfBirth, Gender, Phone, NULLIF(Email, '') AS Email, BranchId FROM #StudentCsv;
+    -- Load into the main table through the procedure so the business rules apply (demo only, not committed):
+    -- INSERT INTO dbo.STUDENT (FullName, DateOfBirth, Gender, Phone, Email, BranchId) SELECT ... FROM #StudentCsv;
 END TRY
 BEGIN CATCH
-    PRINT N'Chưa có file CSV trên máy chủ SQL: ' + ERROR_MESSAGE();
+    PRINT N'The CSV file is not on the SQL Server machine yet: ' + ERROR_MESSAGE();
 END CATCH;
 GO
 
-/* 4. Dòng lệnh (chạy trong terminal, không chạy trong SSMS):
+/* 4. Command line (run in a terminal, not in SSMS):
 
-   -- Xuất bảng công nợ ra CSV bằng sqlcmd
-   sqlcmd -S localhost -d QLTTTA -U kt_minh -P "<mật khẩu>" -C -s"," -W -f 65001 \
-          -Q "SET NOCOUNT ON; SELECT MaGD, HoTen, TenLop, ConNo FROM dbo.vw_CongNo" -o congno.csv
+   -- Export the outstanding tuition to CSV with sqlcmd
+   sqlcmd -S localhost -d QLTTTA -U kt_minh -P "<password>" -C -s"," -W -f 65001 \
+          -Q "SET NOCOUNT ON; SELECT EnrollmentId, StudentName, ClassName, Balance FROM dbo.vw_OutstandingTuition" \
+          -o outstanding.csv
 
-   -- Xuất/nhập nhanh cả bảng bằng bcp (định dạng ký tự Unicode -w)
-   bcp QLTTTA.dbo.KHOAHOC out khoahoc.dat -S localhost -U sa -P "<mật khẩu>" -w -u
-   bcp QLTTTA.dbo.KHOAHOC_COPY in khoahoc.dat -S localhost -U sa -P "<mật khẩu>" -w -u
+   -- Fast export/import of a whole table with bcp (Unicode character format -w)
+   bcp QLTTTA.dbo.COURSE out course.dat -S localhost -U sa -P "<password>" -w -u
+   bcp QLTTTA.dbo.COURSE_COPY in course.dat -S localhost -U sa -P "<password>" -w -u
 
-   -- SSMS: chuột phải CSDL > Tasks > Import Data / Export Data (Import/Export Wizard)
+   -- SSMS: right-click the database > Tasks > Import Data / Export Data (Import/Export Wizard)
 */

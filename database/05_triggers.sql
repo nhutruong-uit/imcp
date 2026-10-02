@@ -1,9 +1,9 @@
 /* =====================================================================
-   File   : 05_triggers.sql - Trigger
-   Dùng trigger cho các ràng buộc toàn vẹn mà CHECK/FOREIGN KEY không diễn
-   đạt được (ràng buộc liên quan hệ, liên bộ, thuộc tính dẫn xuất) và cho
-   nhật ký kiểm toán. Tất cả trigger xử lý theo TẬP HỢP (nhiều dòng trong
-   inserted/deleted), không giả định chỉ có 1 dòng.
+   File   : 05_triggers.sql - Triggers
+   Triggers enforce the integrity rules that CHECK/FOREIGN KEY cannot
+   express (rules spanning several tables or rows, derived attributes)
+   and write the audit trail. Every trigger works on SETS of rows
+   (several rows in inserted/deleted), never assuming a single row.
    ===================================================================== */
 USE QLTTTA;
 GO
@@ -11,57 +11,57 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
-/* T1. trg_LOPHOC_KiemTraPhong (liên quan hệ LOPHOC - PHONGHOC)
-       - Phòng học phải thuộc cùng chi nhánh với lớp
-       - Sĩ số tối đa của lớp không vượt sức chứa phòng */
-IF OBJECT_ID(N'dbo.trg_LOPHOC_KiemTraPhong', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_LOPHOC_KiemTraPhong;
+/* T1. trg_CLASS_CheckRoom (rule across CLASS - ROOM)
+       - The room must belong to the same branch as the class
+       - The class capacity cannot exceed the room capacity */
+IF OBJECT_ID(N'dbo.trg_CLASS_CheckRoom', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_CLASS_CheckRoom;
 GO
-CREATE TRIGGER dbo.trg_LOPHOC_KiemTraPhong
-ON dbo.LOPHOC
+CREATE TRIGGER dbo.trg_CLASS_CheckRoom
+ON dbo.CLASS
 AFTER INSERT, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.PHONGHOC p ON p.MaPhong = i.MaPhong WHERE p.MaCN <> i.MaCN)
+    IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.ROOM rm ON rm.RoomId = i.RoomId WHERE rm.BranchId <> i.BranchId)
     BEGIN
-        RAISERROR (N'Phòng học phải thuộc cùng chi nhánh với lớp học.', 16, 1);
+        RAISERROR (N'The room must belong to the same branch as the class.', 16, 1);
         ROLLBACK TRANSACTION;
         RETURN;
     END;
-    IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.PHONGHOC p ON p.MaPhong = i.MaPhong WHERE i.SiSoToiDa > p.SucChua)
+    IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.ROOM rm ON rm.RoomId = i.RoomId WHERE i.MaxStudents > rm.Capacity)
     BEGIN
-        RAISERROR (N'Sĩ số tối đa của lớp vượt quá sức chứa của phòng học.', 16, 1);
+        RAISERROR (N'The maximum class size exceeds the capacity of the room.', 16, 1);
         ROLLBACK TRANSACTION;
         RETURN;
     END;
 END;
 GO
 
-/* T2. trg_LICHHOC_KiemTraTrungLich (liên bộ, liên quan hệ)
-       Hai lớp còn hoạt động, thời gian học giao nhau, cùng thứ, giờ chồng lấn
-       thì không được dùng chung phòng hoặc chung giáo viên. */
-IF OBJECT_ID(N'dbo.trg_LICHHOC_KiemTraTrungLich', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_LICHHOC_KiemTraTrungLich;
+/* T2. trg_CLASS_SCHEDULE_CheckConflict (rule across rows and tables)
+       Two active classes whose periods overlap, on the same weekday with overlapping
+       hours, cannot share the same room or the same teacher. */
+IF OBJECT_ID(N'dbo.trg_CLASS_SCHEDULE_CheckConflict', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_CLASS_SCHEDULE_CheckConflict;
 GO
-CREATE TRIGGER dbo.trg_LICHHOC_KiemTraTrungLich
-ON dbo.LICHHOC
+CREATE TRIGGER dbo.trg_CLASS_SCHEDULE_CheckConflict
+ON dbo.CLASS_SCHEDULE
 AFTER INSERT, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @Msg NVARCHAR(400);
 
-    SELECT TOP (1) @Msg = N'Trùng lịch với lớp ' + l2.MaLop + N' ('
-           + CASE WHEN l1.MaPhong = l2.MaPhong THEN N'cùng phòng ' + l1.MaPhong ELSE N'cùng giáo viên ' + l1.MaGV END
+    SELECT TOP (1) @Msg = N'Schedule conflict with class ' + c2.ClassId
+           + CASE WHEN c1.RoomId = c2.RoomId THEN N' (same room ' + c1.RoomId ELSE N' (same teacher ' + c1.TeacherId END
            + N').'
     FROM inserted i
-    JOIN dbo.LOPHOC l1  ON l1.MaLop = i.MaLop
-    JOIN dbo.LICHHOC lh ON lh.Thu = i.Thu AND lh.MaLop <> i.MaLop
-                       AND lh.GioBatDau < i.GioKetThuc AND i.GioBatDau < lh.GioKetThuc
-    JOIN dbo.LOPHOC l2  ON l2.MaLop = lh.MaLop
-    WHERE l2.TrangThai IN (N'Đang tuyển sinh', N'Đang học')
-      AND (l1.MaPhong = l2.MaPhong OR l1.MaGV = l2.MaGV)
-      AND l2.NgayKhaiGiang <= ISNULL(l1.NgayKetThuc, DATEADD(MONTH, 6, l1.NgayKhaiGiang))
-      AND l1.NgayKhaiGiang <= ISNULL(l2.NgayKetThuc, DATEADD(MONTH, 6, l2.NgayKhaiGiang));
+    JOIN dbo.CLASS c1           ON c1.ClassId = i.ClassId
+    JOIN dbo.CLASS_SCHEDULE cs  ON cs.Weekday = i.Weekday AND cs.ClassId <> i.ClassId
+                               AND cs.StartTime < i.EndTime AND i.StartTime < cs.EndTime
+    JOIN dbo.CLASS c2           ON c2.ClassId = cs.ClassId
+    WHERE c2.Status IN (N'Enrolling', N'In progress')
+      AND (c1.RoomId = c2.RoomId OR c1.TeacherId = c2.TeacherId)
+      AND c2.StartDate <= ISNULL(c1.EndDate, DATEADD(MONTH, 6, c1.StartDate))
+      AND c1.StartDate <= ISNULL(c2.EndDate, DATEADD(MONTH, 6, c2.StartDate));
 
     IF @Msg IS NOT NULL
     BEGIN
@@ -71,39 +71,39 @@ BEGIN
 END;
 GO
 
-/* T3. trg_GHIDANH_KiemTraSiSo: số học viên đang học không vượt sĩ số tối đa */
-IF OBJECT_ID(N'dbo.trg_GHIDANH_KiemTraSiSo', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_GHIDANH_KiemTraSiSo;
+/* T3. trg_ENROLLMENT_CheckCapacity: the number of enrolled students never exceeds the class size */
+IF OBJECT_ID(N'dbo.trg_ENROLLMENT_CheckCapacity', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_ENROLLMENT_CheckCapacity;
 GO
-CREATE TRIGGER dbo.trg_GHIDANH_KiemTraSiSo
-ON dbo.GHIDANH
+CREATE TRIGGER dbo.trg_ENROLLMENT_CheckCapacity
+ON dbo.ENROLLMENT
 AFTER INSERT, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF NOT (UPDATE(MaLop) OR UPDATE(TrangThai)) RETURN;
+    IF NOT (UPDATE(ClassId) OR UPDATE(Status)) RETURN;
 
-    DECLARE @MaLop VARCHAR(10);
-    SELECT TOP (1) @MaLop = l.MaLop
-    FROM dbo.LOPHOC l
-    WHERE l.MaLop IN (SELECT MaLop FROM inserted)
-      AND (SELECT COUNT(*) FROM dbo.GHIDANH gd
-           WHERE gd.MaLop = l.MaLop AND gd.TrangThai IN (N'Đang học', N'Hoàn thành')) > l.SiSoToiDa;
+    DECLARE @ClassId VARCHAR(10);
+    SELECT TOP (1) @ClassId = cl.ClassId
+    FROM dbo.CLASS cl
+    WHERE cl.ClassId IN (SELECT ClassId FROM inserted)
+      AND (SELECT COUNT(*) FROM dbo.ENROLLMENT en
+           WHERE en.ClassId = cl.ClassId AND en.Status IN (N'Studying', N'Completed')) > cl.MaxStudents;
 
-    IF @MaLop IS NOT NULL
+    IF @ClassId IS NOT NULL
     BEGIN
-        RAISERROR (N'Lớp %s đã đủ sĩ số tối đa.', 16, 1, @MaLop);
+        RAISERROR (N'Class %s is full.', 16, 1, @ClassId);
         ROLLBACK TRANSACTION;
     END;
 END;
 GO
 
-/* T4. trg_PHIEUTHU_CapNhatDaDong (thuộc tính dẫn xuất liên quan hệ)
-       GHIDANH.DaDong = SUM(PHIEUTHU.SoTien) của các phiếu Hợp lệ.
-       Nếu vượt học phí phải đóng thì CHECK của GHIDANH báo lỗi => rollback. */
-IF OBJECT_ID(N'dbo.trg_PHIEUTHU_CapNhatDaDong', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_PHIEUTHU_CapNhatDaDong;
+/* T4. trg_RECEIPT_UpdateAmountPaid (derived attribute across tables)
+       ENROLLMENT.AmountPaid = SUM(RECEIPT.Amount) of the valid receipts.
+       A payment above the tuition due is rejected => rollback. */
+IF OBJECT_ID(N'dbo.trg_RECEIPT_UpdateAmountPaid', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_RECEIPT_UpdateAmountPaid;
 GO
-CREATE TRIGGER dbo.trg_PHIEUTHU_CapNhatDaDong
-ON dbo.PHIEUTHU
+CREATE TRIGGER dbo.trg_RECEIPT_UpdateAmountPaid
+ON dbo.RECEIPT
 AFTER INSERT, UPDATE
 AS
 BEGIN
@@ -111,188 +111,189 @@ BEGIN
 
     IF EXISTS (
         SELECT 1
-        FROM dbo.GHIDANH gd
-        JOIN (SELECT MaGD, SUM(SoTien) AS Tong FROM dbo.PHIEUTHU
-              WHERE TrangThai = N'Hợp lệ' AND MaGD IN (SELECT MaGD FROM inserted UNION SELECT MaGD FROM deleted)
-              GROUP BY MaGD) t ON t.MaGD = gd.MaGD
-        WHERE t.Tong > gd.HocPhiPhaiDong)
+        FROM dbo.ENROLLMENT en
+        JOIN (SELECT EnrollmentId, SUM(Amount) AS Total FROM dbo.RECEIPT
+              WHERE Status = N'Valid'
+                AND EnrollmentId IN (SELECT EnrollmentId FROM inserted UNION SELECT EnrollmentId FROM deleted)
+              GROUP BY EnrollmentId) t ON t.EnrollmentId = en.EnrollmentId
+        WHERE t.Total > en.TuitionDue)
     BEGIN
-        RAISERROR (N'Số tiền thu vượt quá học phí còn nợ của học viên.', 16, 1);
+        RAISERROR (N'The amount exceeds the tuition the student still owes.', 16, 1);
         ROLLBACK TRANSACTION;
         RETURN;
     END;
 
-    UPDATE gd
-    SET DaDong = ISNULL((SELECT SUM(pt.SoTien) FROM dbo.PHIEUTHU pt
-                         WHERE pt.MaGD = gd.MaGD AND pt.TrangThai = N'Hợp lệ'), 0)
-    FROM dbo.GHIDANH gd
-    WHERE gd.MaGD IN (SELECT MaGD FROM inserted UNION SELECT MaGD FROM deleted);
+    UPDATE en
+    SET AmountPaid = ISNULL((SELECT SUM(rc.Amount) FROM dbo.RECEIPT rc
+                             WHERE rc.EnrollmentId = en.EnrollmentId AND rc.Status = N'Valid'), 0)
+    FROM dbo.ENROLLMENT en
+    WHERE en.EnrollmentId IN (SELECT EnrollmentId FROM inserted UNION SELECT EnrollmentId FROM deleted);
 END;
 GO
 
-/* T5. trg_PHIEUTHU_KhongXoa (INSTEAD OF DELETE): chứng từ tài chính không được
-       xóa vật lý, chỉ được hủy bằng usp_PhieuThu_Huy. */
-IF OBJECT_ID(N'dbo.trg_PHIEUTHU_KhongXoa', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_PHIEUTHU_KhongXoa;
+/* T5. trg_RECEIPT_PreventDelete (INSTEAD OF DELETE): financial documents are never
+       physically deleted, only cancelled with usp_Receipt_Cancel. */
+IF OBJECT_ID(N'dbo.trg_RECEIPT_PreventDelete', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_RECEIPT_PreventDelete;
 GO
-CREATE TRIGGER dbo.trg_PHIEUTHU_KhongXoa
-ON dbo.PHIEUTHU
+CREATE TRIGGER dbo.trg_RECEIPT_PreventDelete
+ON dbo.RECEIPT
 INSTEAD OF DELETE
 AS
 BEGIN
     SET NOCOUNT ON;
-    RAISERROR (N'Không được xóa phiếu thu. Hãy dùng chức năng Hủy phiếu thu.', 16, 1);
+    RAISERROR (N'Receipts cannot be deleted. Use the Cancel receipt function instead.', 16, 1);
 END;
 GO
 
-/* T6. trg_DIEMDANH_KiemTraLop: học viên được điểm danh phải thuộc đúng lớp của buổi học */
-IF OBJECT_ID(N'dbo.trg_DIEMDANH_KiemTraLop', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_DIEMDANH_KiemTraLop;
+/* T6. trg_ATTENDANCE_CheckClass: the student must belong to the class of the session */
+IF OBJECT_ID(N'dbo.trg_ATTENDANCE_CheckClass', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_ATTENDANCE_CheckClass;
 GO
-CREATE TRIGGER dbo.trg_DIEMDANH_KiemTraLop
-ON dbo.DIEMDANH
+CREATE TRIGGER dbo.trg_ATTENDANCE_CheckClass
+ON dbo.ATTENDANCE
 AFTER INSERT, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
     IF EXISTS (SELECT 1 FROM inserted i
-               JOIN dbo.BUOIHOC b ON b.MaBuoi = i.MaBuoi
-               JOIN dbo.GHIDANH gd ON gd.MaGD = i.MaGD
-               WHERE gd.MaLop <> b.MaLop)
+               JOIN dbo.CLASS_SESSION se ON se.SessionId = i.SessionId
+               JOIN dbo.ENROLLMENT en    ON en.EnrollmentId = i.EnrollmentId
+               WHERE en.ClassId <> se.ClassId)
     BEGIN
-        RAISERROR (N'Học viên không thuộc lớp của buổi học này.', 16, 1);
+        RAISERROR (N'The student does not belong to the class of this session.', 16, 1);
         ROLLBACK TRANSACTION;
     END;
 END;
 GO
 
-/* T7. trg_DIEM_KiemTraThanhPhan: cột điểm phải thuộc khóa học của lớp học viên ghi danh */
-IF OBJECT_ID(N'dbo.trg_DIEM_KiemTraThanhPhan', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_DIEM_KiemTraThanhPhan;
+/* T7. trg_GRADE_CheckComponent: the grade component must belong to the course of the enrollment's class */
+IF OBJECT_ID(N'dbo.trg_GRADE_CheckComponent', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_GRADE_CheckComponent;
 GO
-CREATE TRIGGER dbo.trg_DIEM_KiemTraThanhPhan
-ON dbo.DIEM
+CREATE TRIGGER dbo.trg_GRADE_CheckComponent
+ON dbo.GRADE
 AFTER INSERT, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
     IF EXISTS (SELECT 1 FROM inserted i
-               JOIN dbo.GHIDANH gd       ON gd.MaGD = i.MaGD
-               JOIN dbo.LOPHOC l         ON l.MaLop = gd.MaLop
-               JOIN dbo.THANHPHANDIEM tp ON tp.MaTP = i.MaTP
-               WHERE tp.MaKH <> l.MaKH)
+               JOIN dbo.ENROLLMENT en       ON en.EnrollmentId = i.EnrollmentId
+               JOIN dbo.CLASS cl            ON cl.ClassId = en.ClassId
+               JOIN dbo.GRADE_COMPONENT gc  ON gc.ComponentId = i.ComponentId
+               WHERE gc.CourseId <> cl.CourseId)
     BEGIN
-        RAISERROR (N'Cột điểm không thuộc khóa học của lớp.', 16, 1);
+        RAISERROR (N'The grade component does not belong to the course of the class.', 16, 1);
         ROLLBACK TRANSACTION;
     END;
 END;
 GO
 
-/* T8. trg_DIEM_NhatKy: ghi nhật ký mọi thay đổi điểm (dữ liệu cũ/mới dạng XML) */
-IF OBJECT_ID(N'dbo.trg_DIEM_NhatKy', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_DIEM_NhatKy;
+/* T8. trg_GRADE_Audit: log every grade change (old/new data as XML) */
+IF OBJECT_ID(N'dbo.trg_GRADE_Audit', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_GRADE_Audit;
 GO
-CREATE TRIGGER dbo.trg_DIEM_NhatKy
-ON dbo.DIEM
+CREATE TRIGGER dbo.trg_GRADE_Audit
+ON dbo.GRADE
 AFTER INSERT, UPDATE, DELETE
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO dbo.NHATKYHETHONG (BangDuLieu, HanhDong, KhoaChinh, DuLieuCu, DuLieuMoi)
-    SELECT N'DIEM',
-           CASE WHEN i.MaGD IS NOT NULL AND d.MaGD IS NOT NULL THEN 'UPDATE'
-                WHEN i.MaGD IS NOT NULL THEN 'INSERT' ELSE 'DELETE' END,
-           COALESCE(i.MaGD, d.MaGD) + N'/' + CAST(COALESCE(i.MaTP, d.MaTP) AS NVARCHAR(10)),
-           (SELECT d.Diem, d.NguoiNhap FOR XML PATH('Diem'), TYPE),
-           (SELECT i.Diem, i.NguoiNhap FOR XML PATH('Diem'), TYPE)
+    INSERT INTO dbo.AUDIT_LOG (TableName, Action, RecordKey, OldData, NewData)
+    SELECT N'GRADE',
+           CASE WHEN i.EnrollmentId IS NOT NULL AND d.EnrollmentId IS NOT NULL THEN 'UPDATE'
+                WHEN i.EnrollmentId IS NOT NULL THEN 'INSERT' ELSE 'DELETE' END,
+           COALESCE(i.EnrollmentId, d.EnrollmentId) + N'/' + CAST(COALESCE(i.ComponentId, d.ComponentId) AS NVARCHAR(10)),
+           (SELECT d.Score, d.EnteredBy FOR XML PATH('Grade'), TYPE),
+           (SELECT i.Score, i.EnteredBy FOR XML PATH('Grade'), TYPE)
     FROM inserted i
-    FULL OUTER JOIN deleted d ON d.MaGD = i.MaGD AND d.MaTP = i.MaTP
-    WHERE i.MaGD IS NULL OR d.MaGD IS NULL OR i.Diem <> d.Diem;
+    FULL OUTER JOIN deleted d ON d.EnrollmentId = i.EnrollmentId AND d.ComponentId = i.ComponentId
+    WHERE i.EnrollmentId IS NULL OR d.EnrollmentId IS NULL OR i.Score <> d.Score;
 END;
 GO
 
-/* T9. trg_PHIEUTHU_NhatKy: ghi nhật ký lập/hủy phiếu thu */
-IF OBJECT_ID(N'dbo.trg_PHIEUTHU_NhatKy', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_PHIEUTHU_NhatKy;
+/* T9. trg_RECEIPT_Audit: log receipts being created/cancelled */
+IF OBJECT_ID(N'dbo.trg_RECEIPT_Audit', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_RECEIPT_Audit;
 GO
-CREATE TRIGGER dbo.trg_PHIEUTHU_NhatKy
-ON dbo.PHIEUTHU
+CREATE TRIGGER dbo.trg_RECEIPT_Audit
+ON dbo.RECEIPT
 AFTER INSERT, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO dbo.NHATKYHETHONG (BangDuLieu, HanhDong, KhoaChinh, DuLieuCu, DuLieuMoi)
-    SELECT N'PHIEUTHU',
-           CASE WHEN d.MaPT IS NULL THEN 'INSERT' ELSE 'UPDATE' END,
-           i.MaPT,
-           CASE WHEN d.MaPT IS NULL THEN NULL
-                ELSE (SELECT d.MaGD, d.SoTien, d.TrangThai FOR XML PATH('PhieuThu'), TYPE) END,
-           (SELECT i.MaGD, i.SoTien, i.HinhThuc, i.TrangThai, i.LyDoHuy FOR XML PATH('PhieuThu'), TYPE)
+    INSERT INTO dbo.AUDIT_LOG (TableName, Action, RecordKey, OldData, NewData)
+    SELECT N'RECEIPT',
+           CASE WHEN d.ReceiptId IS NULL THEN 'INSERT' ELSE 'UPDATE' END,
+           i.ReceiptId,
+           CASE WHEN d.ReceiptId IS NULL THEN NULL
+                ELSE (SELECT d.EnrollmentId, d.Amount, d.Status FOR XML PATH('Receipt'), TYPE) END,
+           (SELECT i.EnrollmentId, i.Amount, i.PaymentMethod, i.Status, i.CancelReason FOR XML PATH('Receipt'), TYPE)
     FROM inserted i
-    LEFT JOIN deleted d ON d.MaPT = i.MaPT;
+    LEFT JOIN deleted d ON d.ReceiptId = i.ReceiptId;
 END;
 GO
 
-/* T10. trg_NHATKY_KhongSua (INSTEAD OF UPDATE, DELETE): nhật ký chỉ được ghi thêm */
-IF OBJECT_ID(N'dbo.trg_NHATKY_KhongSua', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_NHATKY_KhongSua;
+/* T10. trg_AUDIT_LOG_ReadOnly (INSTEAD OF UPDATE, DELETE): the audit log is append-only */
+IF OBJECT_ID(N'dbo.trg_AUDIT_LOG_ReadOnly', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_AUDIT_LOG_ReadOnly;
 GO
-CREATE TRIGGER dbo.trg_NHATKY_KhongSua
-ON dbo.NHATKYHETHONG
+CREATE TRIGGER dbo.trg_AUDIT_LOG_ReadOnly
+ON dbo.AUDIT_LOG
 INSTEAD OF UPDATE, DELETE
 AS
 BEGIN
     SET NOCOUNT ON;
-    RAISERROR (N'Nhật ký hệ thống chỉ được ghi thêm, không được sửa hoặc xóa.', 16, 1);
+    RAISERROR (N'The audit log is append-only; it cannot be changed or deleted.', 16, 1);
 END;
 GO
 
-/* T11. trg_KIEMTRADAUVAO_DeXuat: tự động đề xuất khóa học theo điểm tổng */
-IF OBJECT_ID(N'dbo.trg_KIEMTRADAUVAO_DeXuat', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_KIEMTRADAUVAO_DeXuat;
+/* T11. trg_PLACEMENT_TEST_Recommend: recommend a course from the overall score automatically */
+IF OBJECT_ID(N'dbo.trg_PLACEMENT_TEST_Recommend', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_PLACEMENT_TEST_Recommend;
 GO
-CREATE TRIGGER dbo.trg_KIEMTRADAUVAO_DeXuat
-ON dbo.KIEMTRADAUVAO
+CREATE TRIGGER dbo.trg_PLACEMENT_TEST_Recommend
+ON dbo.PLACEMENT_TEST
 AFTER INSERT, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF NOT (UPDATE(DiemNghe) OR UPDATE(DiemNoi) OR UPDATE(DiemDoc) OR UPDATE(DiemViet)) RETURN;
+    IF NOT (UPDATE(ListeningScore) OR UPDATE(SpeakingScore) OR UPDATE(ReadingScore) OR UPDATE(WritingScore)) RETURN;
 
-    UPDATE kt
-    SET MaKHDeXuat = dbo.fn_DeXuatKhoaHoc(kt.DiemTong, NULL)
-    FROM dbo.KIEMTRADAUVAO kt
-    JOIN inserted i ON i.MaKT = kt.MaKT;
+    UPDATE pl
+    SET RecommendedCourseId = dbo.fn_RecommendCourse(pl.OverallScore, NULL)
+    FROM dbo.PLACEMENT_TEST pl
+    JOIN inserted i ON i.TestId = pl.TestId;
 END;
 GO
 
-/* T12. trg_CHUNGCHI_KiemTraKetQua: chỉ cấp chứng nhận cho lượt ghi danh có kết quả Đạt */
-IF OBJECT_ID(N'dbo.trg_CHUNGCHI_KiemTraKetQua', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_CHUNGCHI_KiemTraKetQua;
+/* T12. trg_CERTIFICATE_CheckResult: certificates are only issued to enrollments that Passed */
+IF OBJECT_ID(N'dbo.trg_CERTIFICATE_CheckResult', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_CERTIFICATE_CheckResult;
 GO
-CREATE TRIGGER dbo.trg_CHUNGCHI_KiemTraKetQua
-ON dbo.CHUNGCHI
+CREATE TRIGGER dbo.trg_CERTIFICATE_CheckResult
+ON dbo.CERTIFICATE
 AFTER INSERT, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.GHIDANH gd ON gd.MaGD = i.MaGD
-               WHERE ISNULL(gd.KetQua, N'') <> N'Đạt')
+    IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.ENROLLMENT en ON en.EnrollmentId = i.EnrollmentId
+               WHERE ISNULL(en.Result, N'') <> N'Passed')
     BEGIN
-        RAISERROR (N'Chỉ cấp chứng nhận cho học viên có kết quả Đạt.', 16, 1);
+        RAISERROR (N'Certificates are only issued to students who passed.', 16, 1);
         ROLLBACK TRANSACTION;
     END;
 END;
 GO
 
-/* T13. trg_BUOIHOC_KhongSuaDaDay: buổi đã dạy không được đổi ngày/giờ/phòng
-        (giữ đúng dữ liệu tính lương và điểm danh) */
-IF OBJECT_ID(N'dbo.trg_BUOIHOC_KhongSuaDaDay', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_BUOIHOC_KhongSuaDaDay;
+/* T13. trg_CLASS_SESSION_LockTaught: a taught session cannot change its date/time/room/teacher
+        (keeps payroll and attendance data correct) */
+IF OBJECT_ID(N'dbo.trg_CLASS_SESSION_LockTaught', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_CLASS_SESSION_LockTaught;
 GO
-CREATE TRIGGER dbo.trg_BUOIHOC_KhongSuaDaDay
-ON dbo.BUOIHOC
+CREATE TRIGGER dbo.trg_CLASS_SESSION_LockTaught
+ON dbo.CLASS_SESSION
 AFTER UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF EXISTS (SELECT 1 FROM inserted i JOIN deleted d ON d.MaBuoi = i.MaBuoi
-               WHERE d.TrangThai = N'Đã dạy'
-                 AND (i.NgayHoc <> d.NgayHoc OR i.GioBatDau <> d.GioBatDau OR i.GioKetThuc <> d.GioKetThuc
-                      OR i.MaGV <> d.MaGV OR i.MaPhong <> d.MaPhong))
+    IF EXISTS (SELECT 1 FROM inserted i JOIN deleted d ON d.SessionId = i.SessionId
+               WHERE d.Status = N'Taught'
+                 AND (i.SessionDate <> d.SessionDate OR i.StartTime <> d.StartTime OR i.EndTime <> d.EndTime
+                      OR i.TeacherId <> d.TeacherId OR i.RoomId <> d.RoomId))
     BEGIN
-        RAISERROR (N'Không được thay đổi thời gian, phòng, giáo viên của buổi đã dạy.', 16, 1);
+        RAISERROR (N'The date, time, room and teacher of a taught session cannot be changed.', 16, 1);
         ROLLBACK TRANSACTION;
     END;
 END;
