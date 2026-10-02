@@ -6,8 +6,9 @@ Cách dùng:
 
 Nội dung nằm trong thư mục content/ (mỗi chương một file). Mã SQL được trích trực tiếp từ database/*.sql,
 từ điển dữ liệu và kết quả truy vấn/kiểm thử lấy từ data/*.json|txt (xuất từ CSDL thật), hình chụp màn hình
-lấy từ images/screens (tools/qlttta_screenshots). Sau khi sinh, mở file bằng Word và chọn "Yes" khi được hỏi
-cập nhật field (hoặc Ctrl+A rồi F9) để Word đánh lại mục lục, danh mục hình/bảng và số trang.
+lấy từ images/screens (tools/qlttta_screenshots). File vừa sinh có cờ updateFields để Word đánh lại mục lục, danh
+mục hình/bảng và số trang khi mở (Word hỏi "update the fields?" -> "Yes"). Trên macOS chạy tiếp tools/export_pdf.sh:
+script xuất PDF và thay docx bằng bản Word đã cập nhật (không còn cờ, mở không bị hỏi nữa).
 Yêu cầu: pip install python-docx
 """
 import sys

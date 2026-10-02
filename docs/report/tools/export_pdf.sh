@@ -2,6 +2,9 @@
 # Xuất PDF báo cáo bằng Microsoft Word (macOS): cập nhật mục lục, danh mục hình/bảng, số trang rồi lưu PDF.
 #   ./docs/report/tools/export_pdf.sh
 #
+# Bản docx đã được Word cập nhật (mục lục, số trang điền sẵn, KHÔNG còn cờ updateFields) được chép đè lên
+# IE103_Group1_Report.docx => mở file báo cáo bằng Word không còn hỏi "update the fields in this document?".
+#
 # Word trên macOS chạy trong sandbox: file được mở bằng "open -a" (như bấm đúp trong Finder) nên macOS tự cấp
 # quyền đọc file cho Word. Nếu Word vẫn hiện "Grant File Access", NGƯỜI DÙNG bấm "Select..." và chọn file
 # (không tự động bấm hộp thoại cấp quyền). Không xóa thư mục .build để quyền đã cấp còn hiệu lực.
@@ -19,7 +22,9 @@ PDF="$REPORT/IE103_Group1_Report.pdf"
 [[ -f "$DOCX" ]] || { echo "Chưa có $DOCX - chạy python3 docs/report/build_report.py trước." >&2; exit 2; }
 mkdir -p "$BUILD"   # KHÔNG xóa thư mục này, Word sẽ mất quyền truy cập đã cấp
 
-# Bản sao bỏ cờ updateFields: nếu còn, Word hỏi "Update fields?" và làm treo tự động hóa
+# Bản sao bỏ cờ updateFields và w:dirty của các field (mục lục, danh mục hình/bảng): còn một trong hai thì Word
+# hỏi "update the fields in this document?" khi mở và hộp thoại đó làm treo tự động hóa. Script tự cập nhật các
+# mục lục bằng AppleScript ở dưới.
 python3 - "$DOCX" "$BUILD/report.docx" <<'PY'
 import sys
 from docx import Document
@@ -28,9 +33,15 @@ d = Document(sys.argv[1])
 el = d.settings.element.find(qn("w:updateFields"))
 if el is not None:
     d.settings.element.remove(el)
+for fld in d.element.body.iter(qn("w:fldChar")):
+    fld.attrib.pop(qn("w:dirty"), None)
 d.save(sys.argv[2])
 PY
 rm -f "$BUILD/report.pdf"
+# File khóa "~$report.docx" còn sót từ lần xuất lỗi trước làm Word không mở được tài liệu => xóa khi Word không mở file
+if ! osascript -e 'tell application "Microsoft Word" to get name of every document' 2>/dev/null | grep -q "report.docx"; then
+  rm -f "$BUILD/~\$report.docx"
+fi
 
 # Mở bằng LaunchServices (AppleScript "open" của Word bị sandbox chặn âm thầm với file chưa được cấp quyền)
 open -a "Microsoft Word" "$BUILD/report.docx"
@@ -48,6 +59,7 @@ on run argv
             repeat with i from 1 to (count of tables of contents of d)
                 update (table of contents i of d)
             end repeat
+            save d   -- giữ bản docx đã cập nhật field (chép về file báo cáo ở cuối script)
             save as d file name (item 1 of argv) file format format PDF
             close d saving no
         end tell
@@ -68,4 +80,5 @@ done
 wait "$PID" || { echo "Lỗi khi xuất PDF bằng Word." >&2; exit 1; }
 [[ -s "$BUILD/report.pdf" ]] || { echo "Word không tạo được file PDF." >&2; exit 1; }
 cp "$BUILD/report.pdf" "$PDF"
-echo "Đã xuất ${PDF#"$ROOT"/}"
+cp "$BUILD/report.docx" "$DOCX"
+echo "Đã xuất ${PDF#"$ROOT"/} (docx được thay bằng bản Word đã cập nhật mục lục, số trang)"

@@ -72,7 +72,8 @@ validate as well.
 
 ## 6. Export the PDF (skipped with `nopdf`)
 - macOS + Microsoft Word: `./docs/report/tools/export_pdf.sh` (opens with `open -a`, updates the table of contents and
-  the lists of figures/tables, saves the PDF to `docs/report/IE103_Group1_Report.pdf`). If Word shows
+  the lists of figures/tables, saves the PDF to `docs/report/IE103_Group1_Report.pdf` and replaces the docx with the
+  version Word saved, so opening it does not ask to update fields again). If Word shows
   **"Grant File Access"**, stop and ask the user to click *Select...* themselves - never click permission dialogs.
 - Windows or no Word: ask the user to open the docx in Word → Ctrl+A, F9 → *Save As* PDF.
 
