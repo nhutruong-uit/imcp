@@ -21,7 +21,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Cài Qt, ODBC, Ninja (Homebrew)
         run: brew install qt qt-unixodbc unixodbc ninja
@@ -33,13 +33,14 @@ jobs:
         run: cmake --build --preset macos-debug
 
       - name: Unit test
-        run: ctest --preset macos-debug
+        # -V: in kết quả từng hàm test (PASS/SKIP) để thấy rõ trên log CI; e2e cần CSDL nên được ghi Skipped
+        run: ctest --preset macos-debug --output-on-failure -V
 
   windows:
     name: Windows (Qt + MinGW)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Cài Qt 6.8 LTS + MinGW + Ninja
         uses: jurplel/install-qt-action@v4
@@ -62,4 +63,5 @@ jobs:
         run: cmake --build --preset windows-debug
 
       - name: Unit test
-        run: ctest --preset windows-debug
+        # -V: in kết quả từng hàm test (PASS/SKIP) để thấy rõ trên log CI; e2e cần CSDL nên được ghi Skipped
+        run: ctest --preset windows-debug --output-on-failure -V
