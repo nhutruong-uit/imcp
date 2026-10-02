@@ -30,6 +30,11 @@ paths:
   protection) and manually. Keep the three job names `macOS (Apple Silicon)`, `Windows (Qt + MinGW)` and
   `Full tests (Linux + SQL Server)`: renaming a job requires updating the required checks of `main`, otherwise every
   PR into `main` gets stuck.
+- The first failing job stops the whole CI run: the job `Stop the run on the first failure` (not a required check,
+  `actions: write` only) polls the jobs of the run and cancels it when one fails. GitHub's `fail-fast` only works
+  inside a matrix, so keep this job when adding jobs; it must never fail on its own (API errors are retried).
+- Every tool a job's `test_all` step needs is installed by the job itself (e.g. clang-format for `check_changes`, same
+  install as `checks.yml`).
 - Do not add `paths-ignore` to the `pull_request` trigger of `main` (the required checks would never run).
 - The `Full tests (Linux + SQL Server)` job runs SQL Server 2022 Developer in Docker and installs Microsoft ODBC
   Driver 18 (`msodbcsql18`), both with `ACCEPT_EULA=Y`: the repository owner accepted these two licenses for CI

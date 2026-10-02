@@ -9,6 +9,7 @@
 # run scripts/test_all.sh locally before merging.
 # A merge into main runs release.yml (packaging); CI does not run again because the PR into main already ran it.
 # Keep the job names: they are the required status checks of main.
+# The first failing job stops the whole run (job "Stop the run on the first failure", not a required check).
 name: CI
 # Manual runs get a descriptive title; push / PR runs keep GitHub's default (commit message / PR title)
 run-name: >-
@@ -166,3 +167,44 @@ jobs:
           name: full-test-results
           path: build/test-results/
           if-no-files-found: ignore
+
+  stop-on-failure:
+    # GitHub cancels the other jobs on a failure only inside a matrix (fail-fast); the three jobs above are separate,
+    # so this job watches them and cancels the whole run when one fails (no macOS/Windows minutes spent on a run that
+    # is already red). The failed job keeps its red X, the others end as "cancelled".
+    name: Stop the run on the first failure
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      actions: write # read the jobs of this run and cancel it
+    steps:
+      - name: Cancel the run as soon as another job fails
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SELF: Stop the run on the first failure # this job's own name, not watched
+          RUN: repos/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ATTEMPT: ${{ github.run_attempt }}
+        # An API error is retried and the watch gives up after 80 minutes (full tests time out at 60), so this job
+        # never turns a green run red. A job over its timeout-minutes ends as failure or cancelled.
+        run: |
+          end=$((SECONDS + 80 * 60))
+          while (( SECONDS < end )); do
+            sleep 15
+            jobs="$(gh api "$RUN/attempts/$ATTEMPT/jobs" \
+              --jq '.jobs[] | select(.name != env.SELF) | "\(.status)|\(.conclusion)|\(.name)"')" || continue
+            failed="$(grep -E '^completed\|(failure|timed_out|cancelled)\|' <<< "$jobs" | cut -d'|' -f3- || true)"
+            open="$(grep -vc '^completed|' <<< "$jobs" || true)"
+            if [[ -n "$failed" ]]; then
+              echo "FAILED: $failed"
+              if (( open > 0 )); then
+                echo "Cancelling the run ($open job(s) still queued or running)"
+                gh api -X POST "$RUN/cancel" > /dev/null || true
+              fi
+              exit 0
+            fi
+            if [[ -n "$jobs" ]] && (( open == 0 )); then
+              echo "All jobs passed"
+              exit 0
+            fi
+          done
+          echo "Jobs still running after 80 minutes - stopped watching"

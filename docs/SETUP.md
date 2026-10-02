@@ -161,7 +161,9 @@ without error `50099` (the `Verdict` column of the summary shows `PASSED`/`FAILE
 > end-to-end test is recorded as *Skipped* there). The job
 > **Full tests (Linux + SQL Server)** starts SQL Server 2022 Developer in Docker and runs `test_all.sh` and then
 > `test_all.ps1`, i.e. the whole suite above including the end-to-end GUI test (Qt 6.8 + Microsoft ODBC Driver 18 on
-> Ubuntu), then the end-to-end test once more through FreeTDS, the driver bundled in the macOS `.dmg`. PRs into
+> Ubuntu), then the end-to-end test once more through FreeTDS, the driver bundled in the macOS `.dmg`. As soon as one
+> job fails, the job **Stop the run on the first failure** cancels the whole run (the failed job keeps its red X, the
+> others show as cancelled), so a red run does not keep spending macOS/Windows minutes. PRs into
 > `develop` run only the fast **Checks** workflow (`checks.yml`: change checks + build + unit tests on Linux, no
 > database), which is why the PR checklist still asks you to paste the local `test_all` result.
 
