@@ -1,23 +1,26 @@
 #!/usr/bin/env bash
 # Runs the WHOLE test suite and stops at the first failing step (run it before creating a PR):
-#   1. Re-initialize the QLTTTA database from scratch (scripts/db_init.sh) => always the same seed data
-#   2. Database tests: database/12_tests.sql (constraints, business rules, functions/triggers/cursors, XML,
-#      permissions)
-#   3. Server-level tests: database/13_server_tests.sql (backup/restore, BULK INSERT, distributed database,
+#   1. Change checks against origin/develop (scripts/check_changes.sh): format of the changed C++ lines, commit
+#      messages, no build output / .env in the repository
+#   2. Re-initialize the QLTTTA database from scratch (scripts/db_init.sh) => always the same seed data
+#   3. Database tests: database/12_tests.sql (constraints, business rules, functions/triggers/cursors, XML,
+#      permissions, naming and least-privilege rules)
+#   4. Server-level tests: database/13_server_tests.sql (backup/restore, BULK INSERT, distributed database,
 #      account lockout with real sign-ins) - needs sysadmin and the MSOLEDBSQL provider (SQL Server 2019+)
-#   4. Build the application + unit tests + end-to-end GUI tests against the real database (ctest)
+#   5. Build the application + unit tests (incl. tst_conventions) + end-to-end GUI tests against the database
 #
 # Usage:
 #   SQL_PASSWORD='<sa password>' ./scripts/test_all.sh --docker sql2022   # sqlcmd inside the container
 #   SQL_PASSWORD='<sa password>' ./scripts/test_all.sh                    # sqlcmd on this machine (SQL_SERVER)
-#   ... ./scripts/test_all.sh --docker sql2022 --no-init                   # skip step 1
+#   ... ./scripts/test_all.sh --docker sql2022 --no-init                   # skip step 2
 #
 # Environment: SQL_SERVER (default localhost,1433), SQL_USER (default sa), SQL_PASSWORD (required),
 #   QLTTTA_E2E_PASSWORD (demo account password, default as in docs/SETUP.md),
 #   PRESET (default macos-debug, linux-debug on Linux),
 #   EXTRA_CMAKE_ARGS (e.g. -DCMAKE_OSX_SYSROOT=... when CMake reports a "broken" compiler),
 #   SQL_CSV_PATH (without --docker: path of database/samples/student_import.csv as seen by the SQL Server
-#   machine; default: a copy in /tmp, which works when SQL Server runs natively on this machine)
+#   machine; default: a copy in /tmp, which works when SQL Server runs natively on this machine),
+#   CHANGE_BASE (base branch of step 1, default origin/develop)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -44,9 +47,13 @@ RESULTS="$ROOT/build/test-results"
 mkdir -p "$RESULTS"
 step() { printf '\n==== %s ====\n' "$1"; }
 
-# 1. Re-initialize the database
+# 1. Change checks (fast, so they come first)
+step "1/5 Change checks (scripts/check_changes.sh)"
+"$ROOT/scripts/check_changes.sh" "${CHANGE_BASE:-origin/develop}"
+
+# 2. Re-initialize the database
 if [[ $INIT_DB -eq 1 ]]; then
-  step "1/4 Re-initialize the database"
+  step "2/5 Re-initialize the database"
   if [[ -n "$CONTAINER" ]]; then "$ROOT/scripts/db_init.sh" --docker "$CONTAINER"; else "$ROOT/scripts/db_init.sh"; fi
 fi
 
@@ -81,13 +88,13 @@ run_db_tests() {
   DB_TOTAL=$((DB_TOTAL + total))
 }
 
-# 2. Database tests
-step "2/4 Database tests (database/12_tests.sql)"
+# 3. Database tests
+step "3/5 Database tests (database/12_tests.sql)"
 run_db_tests 12_tests.sql database_tests.txt
 
-# 3. Server-level tests: 13_server_tests.sql includes 11_distributed_demo.sql (:r, read by sqlcmd) and
+# 4. Server-level tests: 13_server_tests.sql includes 11_distributed_demo.sql (:r, read by sqlcmd) and
 #    BULK INSERTs the sample CSV (read by the SQL Server service, so the file must be on the server machine)
-step "3/4 Server-level tests (database/13_server_tests.sql)"
+step "4/5 Server-level tests (database/13_server_tests.sql)"
 if [[ -n "$CONTAINER" ]]; then
   docker cp "$ROOT/database/11_distributed_demo.sql" "$CONTAINER:/tmp/11_distributed_demo.sql" >/dev/null
   docker cp "$ROOT/database/samples/student_import.csv" "$CONTAINER:/tmp/student_import.csv" >/dev/null
@@ -102,8 +109,8 @@ else
   run_db_tests 13_server_tests.sql server_tests.txt -v DatabaseDir="$ROOT/database" CsvPath="$CSV_PATH"
 fi
 
-# 4. Build + unit tests + end-to-end
-step "4/4 Build, unit tests and GUI tests (ctest)"
+# 5. Build + unit tests + end-to-end
+step "5/5 Build, unit tests and GUI tests (ctest)"
 # shellcheck disable=SC2086
 cmake --preset "$PRESET" ${EXTRA_CMAKE_ARGS:-} > "$RESULTS/cmake_configure.log" 2>&1 \
   || { cat "$RESULTS/cmake_configure.log"; exit 1; }

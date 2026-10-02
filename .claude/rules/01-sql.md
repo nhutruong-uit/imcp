@@ -4,15 +4,27 @@ paths:
 ---
 # T-SQL rules (database/)
 
-Complements the "Database" section of `CLAUDE.md` (SQL Server 2012+, DROP/GO pattern, THROW 5xxxx, set-based
-triggers, GRANT).
+The grading focus of the course. `tst_conventions` (file checks) and `12_tests.sql` T28-T30 (catalog checks) verify
+the marked (✔) rules automatically on every `test_all` / CI run.
+
+## Compatibility and file layout
+- ✔ **SQL Server 2012+** only: no `CREATE OR ALTER`, `DROP ... IF EXISTS`, `STRING_AGG`, `STRING_SPLIT`, `TRIM`,
+  `CONCAT_WS`, `TRANSLATE`, JSON, `AT TIME ZONE`, row-level security, 2022 functions (`GREATEST`, `DATETRUNC`...).
+  Re-runnable objects: `IF OBJECT_ID(N'dbo.x', N'P') IS NOT NULL DROP PROCEDURE dbo.x;` + `GO`, then `CREATE`.
+- ✔ Every file starts with `USE QLTTTA; GO; SET ANSI_NULLS ON; SET QUOTED_IDENTIFIER ON; GO` (server-level scripts -
+  `00`, `09`, `11` - start with `USE master;`).
+- The application never INSERTs/UPDATEs/DELETEs tables directly: every write goes through a procedure.
+- Dynamic SQL only through `sys.sp_executesql` with parameters for values; identifiers that come from input are
+  validated and wrapped in `QUOTENAME` (reference: `usp_Account_Create`, `usp_Account_Lock`); `EXECUTE AS OWNER`
+  only where the caller needs rights it must not hold itself (accounts, backup).
 
 ## Language and naming (English)
-- Everything is **English**: tables in UPPER_SNAKE_CASE (`STUDENT`, `CLASS_SESSION`), columns in PascalCase
+- ✔ Everything is **English**: tables in UPPER_SNAKE_CASE (`STUDENT`, `CLASS_SESSION`), columns in PascalCase
   (`StudentId`, `EnrolledOn`), procedures `usp_<Entity>_<Verb>` (`usp_Student_Add`, `usp_Enrollment_Create`),
   functions `fn_` (`fn_FinalGrade`), views `vw_` (`vw_ClassDetails`, teacher views `vw_Teacher_My...`), triggers
   `trg_<TABLE>_<Purpose>` (`trg_RECEIPT_UpdateAmountPaid`), roles `rl_` (`rl_AcademicStaff`), comments in English.
-  Constraints: `PK_<TABLE>`, `FK_<CHILD>_<PARENT>`, `CK_<TABLE>_<Column>`, `UQ_`, `DF_`, filtered unique indexes `UX_`.
+  Constraints: `PK_<TABLE>`, `FK_<CHILD>_<PARENT>`, `CK_<TABLE>_<Column>`, `UQ_<TABLE>_...`, `DF_<TABLE>_<Column>`;
+  indexes `IX_<TABLE>_...`, filtered unique indexes `UX_<TABLE>_...`; sequences `seq_<TABLE>` (checked by T28).
 - Stored values are English text with the `N'...'` prefix (`N'Studying'`, `N'Bank transfer'`); codes without
   diacritics or spaces stay `VARCHAR` without `N` (`'MANAGER'`, `'PERCENT'`). Weekdays are ISO numbers
   (1 = Monday ... 7 = Sunday, `fn_Weekday`). People's names and addresses in the demo data stay Vietnamese
@@ -27,11 +39,12 @@ triggers, GRANT).
 
 ## Format
 - Keywords in **UPPERCASE** (`SELECT`, `JOIN`, `BEGIN TRY`), **4-space** indentation, every statement ends with `;`.
+- ✔ Every procedure and trigger starts with `SET NOCOUNT ON;` (checked by T30).
 - Always qualify the schema: `dbo.STUDENT`, `dbo.usp_Enrollment_Create`. Text values always use the `N'...'` prefix.
 - Align parameters as in `usp_Student_Add`; optional parameters end with `= NULL`.
 - Every object starts with **one comment line with its section code** (the groups of the file):
   `/* C5. usp_Enrollment_Cancel: cancel an enrollment, refund it when no session was attended */`.
-- No `SELECT *` in procedures/views (demo queries excepted); never the `sp_` prefix.
+- ✔ No `SELECT *` in procedures/views/functions (demo queries excepted; T30); never the `sp_` prefix.
 
 ## Template of a multi-step write procedure
 ```sql
@@ -98,8 +111,10 @@ GO
 Forbidden: `SELECT @x = Col FROM inserted` (reads a single row only), cursors inside triggers.
 
 ## Mandatory when adding/changing an object
-1. `GRANT` to the right roles in `06_security.sql` (business roles have no rights on base tables).
-2. A test case in `12_tests.sql` + its code and message pattern registered in `#Expected` (see `tests.md`); features
+1. `GRANT` to the right roles in `06_security.sql`. Business roles reach data through views/procedures (ownership
+   chaining); table rights are limited to the permission matrix of T29 in `12_tests.sql` - a new table right means
+   updating that matrix on purpose (and saying why in the PR).
+2. A test case in `12_tests.sql` + its code and message pattern registered in `#Expected` (see `03-tests.md`); features
    that need server-level operations (backup, BULK INSERT, distributed, sign-in/lockout) go to `13_server_tests.sql`.
    New business messages: register them in `DbMessages.cpp` and translate them (see "Language and naming").
 3. Re-run everything: `scripts/test_all.sh` (includes `db_init` from scratch) - not only the file you changed.

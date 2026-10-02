@@ -5,7 +5,8 @@
 #   - when a PR into main is opened/updated: REQUIRED, main's branch protection needs the three jobs green to merge;
 #   - manually for any branch: gh workflow run CI --ref <branch> -f reason="<what to check>"
 #     (or Actions tab > CI > Run workflow); the run is listed as "Manual CI on <branch>: <reason>".
-# Pushes to feature/fix branches and PRs into develop do NOT run CI: run scripts/test_all.sh locally before merging.
+# Pushes to feature/fix branches do NOT run CI; PRs into develop only run the fast checks.yml (no database):
+# run scripts/test_all.sh locally before merging.
 # A merge into main runs release.yml (packaging); CI does not run again because the PR into main already ran it.
 # Keep the job names: they are the required status checks of main.
 name: CI

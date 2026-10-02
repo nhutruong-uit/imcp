@@ -13,9 +13,10 @@ docs/<short-name>               CI runs after the merge)
 - **CI** (`ci.yml`: build + unit tests on macOS and Windows, plus the full `test_all` suite - database, server-level,
   unit and end-to-end tests - on Linux against SQL Server in Docker) runs when something is merged into `develop`, on
   every PR into `main`, and when started by hand: `gh workflow run CI --ref <branch> -f reason="<what to check>"` or
-  *Actions > CI > Run workflow* (the run is listed as "Manual CI on <branch>: <reason>"). Pushes to work branches and
-  PRs into `develop` do **not** run CI: run `scripts/test_all` locally before merging (see the checklist below and
-  [SETUP.md](SETUP.md)).
+  *Actions > CI > Run workflow* (the run is listed as "Manual CI on <branch>: <reason>"). Pushes to work branches do
+  not run CI. **PRs into `develop`** run the fast **Checks** workflow (`checks.yml`: `check_changes` + build + unit
+  tests incl. `tst_conventions` on Linux, no database); it is not a required check, so still run `scripts/test_all`
+  locally before merging (see the checklist below and [SETUP.md](SETUP.md)). Reviewers use `/imcp-review`.
 - PR `develop → main` = release: `release.yml` packages `.exe` / `.zip` / `.dmg` and creates a Release tagged
   `vX.Y.Z-build.N`. Before releasing, bump `project(VERSION ...)` in `CMakeLists.txt` if there are new features.
 - *Branch protection* is enabled for `main` only: a PR is required, the three CI jobs (`macOS (Apple Silicon)`,
@@ -86,8 +87,10 @@ docs(report): add section 3.7 on integrity constraints
   target and translate them in `qlttta_vi.ts` (see [SETUP.md](SETUP.md#translations-multi-language-ui)). Display text
   for codes belongs to `Labels`/`Columns`/`DbValues`, never to domain/application, and no logic may depend on
   displayed (translated) text - use codes, column keys and stored values.
-- Format with `clang-format` (the `.clang-format` file in the repo root; in Qt Creator: *Beautifier*); format only
-  the lines you changed (`git clang-format`).
+- Format with `clang-format` (the `.clang-format` file in the repo root; in Qt Creator: *Beautifier*) - the team
+  version is in `.clang-format-version` (`brew install clang-format`, or `pip install clang-format==<version>`);
+  format only the lines you changed (`git clang-format`). `scripts/check_changes` (step 1 of `test_all`) fails on
+  unformatted changed lines; Claude Code formats its edits by itself (hook in `.claude/settings.json`).
 - Cursor and VS Code: install the recommended `clangd` extension (`.vscode/extensions.json`) and do not install
   Microsoft C/C++ (`cpptools`) next to it - the two IntelliSense engines conflict. Configuring
   (`cmake --preset <name>`) symlinks `compile_commands.json` to the repository root (gitignored), which is where
@@ -97,12 +100,15 @@ docs(report): add section 3.7 on integrity constraints
   opened by the end-to-end test (it covers every feature listed in `Permissions` automatically).
 
 ## Pull Request checklist
-- [ ] `scripts/test_all.sh` (Windows: `scripts\test_all.ps1`) reports **ALL TESTS PASSED** (database + unit tests,
-      including translations, + end-to-end) - paste the result line into the PR
-- [ ] If the database changed: `06_security.sql` is updated; new business rules have test cases in `12_tests.sql` (+ `#Expected`); new messages are in `DbMessages.cpp`
+GitHub pre-fills every new PR with `.github/pull_request_template.md` (same sections as `/imcp-create-pr`):
+- [ ] `scripts/test_all.sh` (Windows: `scripts\test_all.ps1`) reports **ALL TESTS PASSED** (change checks, database,
+      server-level, unit tests incl. `tst_conventions` and translations, end-to-end) - paste the result line into the PR
+- [ ] If the database changed: `06_security.sql` is updated (and the permission matrix of `T29`); new business rules
+      have test cases in `12_tests.sql` / `13_server_tests.sql` (+ `#Expected`); new messages are in `DbMessages.cpp`
 - [ ] New UI strings are translated in `resources/translations/qlttta_vi.ts`
+- [ ] Commit messages in English (`type(scope): summary`), no AI attribution lines (checked by `check_changes`)
 - [ ] Tried with the demo account of the relevant role, in Vietnamese and English when the UI changed
-- [ ] Documentation/report updated if the design changed
+- [ ] Documentation/report updated if the design or a number they quote changed
 
 ## Using Claude Code (allowed by the instructor)
 - Read `CLAUDE.md` in the repo root and `.claude/rules/`: Claude Code applies the conventions above automatically.

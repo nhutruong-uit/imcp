@@ -18,7 +18,7 @@ Talk to the user in Vietnamese.
 
 1. `gh auth status` must show a logged-in account. If not, ask the user to run
    `gh auth login --web --git-protocol https` themselves (never handle tokens or passwords).
-2. Current branch must be a work branch (`feature/...`, `fix/...`, `docs/...`). If it is `develop` or `main`,
+2. Current branch must be a work branch (`feature/...`, `fix/...`, `docs/...`, `chore/...`). If it is `develop` or `main`,
    stop and create a `feature/...` branch from the current state first (`main` is protected and rejects direct
    pushes; `develop` is not protected, but the team still works through PRs).
 3. Uncommitted changes: show `git status --short` and ask whether to commit them (English message,
@@ -73,7 +73,7 @@ using this template and dropping empty sections:
 - **Docs / Report**: <...>
 
 ## Testing
-- `scripts/test_all.sh`: <result, e.g. "all passed - DB 57/57 cases (12_tests + 13_server_tests), unit + end-to-end">
+- `scripts/test_all.sh`: <result, e.g. "all passed - DB 60/60 cases (12_tests + 13_server_tests), unit + end-to-end">
 - Manual: <roles/screens checked with demo accounts, if any>
 - Not tested: <be explicit, e.g. Windows-only paths>
 
@@ -99,9 +99,10 @@ gh pr create --base <base> --head "$(git branch --show-current)" --title "<title
 # existing PR: gh pr edit <number> --title "<title>" --body-file "$BODY"
 ```
 After creating:
-- When CI runs (`.github/workflows/ci.yml`): PRs into `develop` do **not** trigger CI - it runs after the merge
-  into `develop` - so the local `test_all` result in step 2 is the check for those PRs. PRs into `main` always run
-  CI (required by branch protection). To check a branch on CI anyway:
+- When CI runs: PRs into `develop` trigger only the fast **Checks** workflow (`checks.yml`: change checks + build +
+  unit tests on Linux, not required); the full CI (`ci.yml`) runs after the merge into `develop`, so the local
+  `test_all` result in step 2 is the real check for those PRs. PRs into `main` always run CI (required by branch
+  protection). Reviewers check the PR with `/imcp-review`. To check a branch on CI anyway:
   `gh workflow run CI --ref <branch> -f reason="<what the change is>"` (listed as "Manual CI on <branch>: <reason>"
   instead of a bare "CI").
 - In the Claude desktop app: call the `ccd_pr` tools (`get_status`; `bind_pr` if it is not bound), read the CI

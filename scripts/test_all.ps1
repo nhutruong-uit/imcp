@@ -1,16 +1,19 @@
 ﻿# Runs the WHOLE test suite and stops at the first failing step (before creating a PR) - PowerShell version of test_all.sh:
-#   1. Re-initialize the QLTTTA database from scratch (scripts\db_init.ps1) => always the same seed data
-#   2. Database tests: database\12_tests.sql (constraints, business rules, functions/triggers/cursors, XML, permissions)
-#   3. Server-level tests: database\13_server_tests.sql (backup/restore, BULK INSERT, distributed database,
+#   1. Change checks against origin/develop (scripts\check_changes.ps1): format of the changed C++ lines, commit
+#      messages, no build output / .env in the repository
+#   2. Re-initialize the QLTTTA database from scratch (scripts\db_init.ps1) => always the same seed data
+#   3. Database tests: database\12_tests.sql (constraints, business rules, functions/triggers/cursors, XML,
+#      permissions, naming and least-privilege rules)
+#   4. Server-level tests: database\13_server_tests.sql (backup/restore, BULK INSERT, distributed database,
 #      account lockout with real sign-ins) - needs sysadmin and the MSOLEDBSQL provider (SQL Server 2019+)
-#   4. Build the application + unit tests + end-to-end GUI tests against the real database (ctest)
+#   5. Build the application + unit tests (incl. tst_conventions) + end-to-end GUI tests against the database
 #
 # Usage (PowerShell, in the repo folder):
 #   .\scripts\test_all.ps1                                   # Windows Authentication, server "localhost"
 #   .\scripts\test_all.ps1 -Server "localhost\SQLEXPRESS"    # SQL Server Express
 #   .\scripts\test_all.ps1 -User sa -Password "<password>"   # SQL Server Authentication
 #   .\scripts\test_all.ps1 -Docker sql2022                   # SQL Server in Docker (sa password: $env:SQL_PASSWORD)
-#   add -NoInit to skip step 1; -Preset selects the CMake preset (default windows-debug / macos-debug / linux-debug)
+#   add -NoInit to skip step 2; -ChangeBase sets the base branch of step 1 (default origin/develop); -Preset selects the CMake preset (default windows-debug / macos-debug / linux-debug)
 #   Without -Docker the SQL Server service reads the sample CSV (BULK INSERT) from a copy in %ProgramData%\QLTTTA
 #   (/tmp on macOS/Linux); $env:SQL_CSV_PATH overrides it with the file's path on the SQL Server machine.
 # Windows: needs $env:QT_ROOT_DIR and MinGW/Ninja/CMake on PATH as described in docs\SETUP.md.
@@ -21,7 +24,8 @@ param(
     [string]$Password = "",
     [string]$Docker = "",
     [switch]$NoInit,
-    [string]$Preset = ""
+    [string]$Preset = "",
+    [string]$ChangeBase = "origin/develop"
 )
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8   # read the UTF-8 output of sqlcmd -f 65001 (Vietnamese names) correctly
@@ -46,9 +50,14 @@ try {
     if (-not $env:QLTTTA_E2E_PASSWORD) { $env:QLTTTA_E2E_PASSWORD = "Demo@2026" }   # demo accounts, not a real password
     if (-not $env:QLTTTA_SERVER) { $env:QLTTTA_SERVER = if ($Docker) { "localhost,1433" } else { $Server } }
 
-    # 1. Re-initialize the database
+    # 1. Change checks (fast, so they come first)
+    Step "1/5 Change checks (scripts/check_changes.ps1)"
+    & (Join-Path $PSScriptRoot "check_changes.ps1") -Base $ChangeBase
+    if ($LASTEXITCODE -ne 0) { throw "FAILED: change checks." }
+
+    # 2. Re-initialize the database
     if (-not $NoInit) {
-        Step "1/4 Re-initialize the database"
+        Step "2/5 Re-initialize the database"
         & (Join-Path $PSScriptRoot "db_init.ps1") -Server $Server -User $User -Password $Password -Docker $Docker
     }
 
@@ -84,13 +93,13 @@ try {
         $script:dbTotal += $cases.Count
     }
 
-    # 2. Database tests
-    Step "2/4 Database tests (database/12_tests.sql)"
+    # 3. Database tests
+    Step "3/5 Database tests (database/12_tests.sql)"
     Invoke-DbTests "12_tests.sql" "database_tests.txt" @()
 
-    # 3. Server-level tests: 13_server_tests.sql includes 11_distributed_demo.sql (:r, read by sqlcmd) and
+    # 4. Server-level tests: 13_server_tests.sql includes 11_distributed_demo.sql (:r, read by sqlcmd) and
     #    BULK INSERTs the sample CSV (read by the SQL Server service, so the file must be on the server machine)
-    Step "3/4 Server-level tests (database/13_server_tests.sql)"
+    Step "4/5 Server-level tests (database/13_server_tests.sql)"
     if ($Docker) {
         docker cp (Join-Path $root "database/11_distributed_demo.sql") "${Docker}:/tmp/11_distributed_demo.sql" | Out-Null
         docker cp (Join-Path $root "database/samples/student_import.csv") "${Docker}:/tmp/student_import.csv" | Out-Null
@@ -106,8 +115,8 @@ try {
         Invoke-DbTests "13_server_tests.sql" "server_tests.txt" @("-v", "DatabaseDir=$(Join-Path $root 'database')", "CsvPath=$csvPath")
     }
 
-    # 4. Build + unit tests + end-to-end
-    Step "4/4 Build, unit tests and GUI tests (ctest)"
+    # 5. Build + unit tests + end-to-end
+    Step "5/5 Build, unit tests and GUI tests (ctest)"
     $configureLog = Join-Path $results "cmake_configure.log"
     $cmakeArgs = @("--preset", $Preset)
     if ($env:EXTRA_CMAKE_ARGS) { $cmakeArgs += ($env:EXTRA_CMAKE_ARGS -split ' ') }

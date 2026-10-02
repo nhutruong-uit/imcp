@@ -40,6 +40,7 @@ INSERT #Expected VALUES
     ('T15', NULL), ('T16', NULL), ('T17', NULL), ('T18', NULL), ('T19', NULL), ('T20', NULL),
     ('T21', N'%is full%'),                      ('T22', NULL), ('T23', NULL), ('T24', NULL),
     ('T25', N'%future month%'),                 ('T26', NULL), ('T27', N'%XML%'),
+    ('T28', NULL), ('T29', NULL), ('T30', NULL),
     ('P01', N'%STUDENT%'),                      ('P02', NULL),
     ('P03', N'%only enter grades%'),            ('P04', N'%usp_Enrollment_Create%'),
     ('P05', NULL),                              ('P06', N'%HourlyRate%'),
@@ -616,6 +617,139 @@ END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('T27', N'Course syllabus that violates the XML schema', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+/* ---------------- D. SCHEMA CONVENTIONS (catalog views, nothing to roll back) ---------------- */
+
+-- T28: naming conventions of 01-sql.md: tables UPPER_SNAKE_CASE, columns PascalCase, prefixes usp_/fn_/vw_/seq_,
+--      trg_<TABLE>_, PK_<TABLE>, FK_<CHILD>_<PARENT>, CK_/UQ_/DF_<TABLE>_, IX_/UX_<TABLE>_ (case-sensitive)
+BEGIN TRY
+    DECLARE @Bad TABLE (Name NVARCHAR(300));
+    INSERT @Bad
+    SELECT N'table ' + name FROM sys.tables WHERE is_ms_shipped = 0 AND name COLLATE Latin1_General_BIN LIKE N'%[^A-Z0-9_]%'
+    UNION ALL
+    SELECT N'column ' + t.name + N'.' + c.name
+    FROM sys.columns c JOIN sys.tables t ON t.object_id = c.object_id
+    WHERE t.is_ms_shipped = 0
+      AND (c.name COLLATE Latin1_General_BIN NOT LIKE N'[A-Z]%' OR c.name COLLATE Latin1_General_BIN LIKE N'%[^A-Za-z0-9]%')
+    UNION ALL
+    SELECT o.type_desc + N' ' + o.name
+    FROM sys.objects o
+    WHERE o.is_ms_shipped = 0 AND o.type IN ('P', 'FN', 'IF', 'TF', 'V', 'SO')
+      AND o.name COLLATE Latin1_General_BIN NOT LIKE CASE o.type WHEN 'P' THEN N'usp[_]%' WHEN 'V' THEN N'vw[_]%'
+                                                                 WHEN 'SO' THEN N'seq[_]%' ELSE N'fn[_]%' END
+    UNION ALL
+    -- constraints and triggers of the tables (the system-named key of a function's return table is not one)
+    SELECT o.type_desc + N' ' + o.name
+    FROM sys.objects o JOIN sys.tables t ON t.object_id = o.parent_object_id
+    WHERE o.type IN ('PK', 'C', 'UQ', 'D', 'TR')
+      AND o.name COLLATE Latin1_General_BIN NOT LIKE
+          CASE o.type WHEN 'PK' THEN N'PK[_]' WHEN 'C' THEN N'CK[_]' WHEN 'UQ' THEN N'UQ[_]' WHEN 'D' THEN N'DF[_]'
+                      ELSE N'trg[_]' END + t.name + CASE o.type WHEN 'PK' THEN N'' ELSE N'[_]%' END
+    UNION ALL
+    SELECT N'foreign key ' + fk.name
+    FROM sys.foreign_keys fk
+    WHERE fk.name COLLATE Latin1_General_BIN NOT LIKE
+          N'FK[_]' + OBJECT_NAME(fk.parent_object_id) + N'[_]' + OBJECT_NAME(fk.referenced_object_id) + N'%'
+    UNION ALL
+    SELECT N'index ' + i.name
+    FROM sys.indexes i JOIN sys.tables t ON t.object_id = i.object_id
+    WHERE t.is_ms_shipped = 0 AND i.name IS NOT NULL AND i.is_primary_key = 0 AND i.is_unique_constraint = 0
+      AND i.name COLLATE Latin1_General_BIN NOT LIKE CASE WHEN i.is_unique = 1 THEN N'UX[_]' ELSE N'IX[_]' END + t.name + N'[_]%';
+    DECLARE @BadCount INT = (SELECT COUNT(*) FROM @Bad);
+    INSERT #Results VALUES ('T28', N'Naming conventions of tables, columns, objects, constraints and indexes', N'Succeeded',
+                            CASE WHEN @BadCount = 0 THEN N'Succeeded' ELSE N'Rejected' END,
+                            CASE WHEN @BadCount = 0 THEN N'Every name follows the conventions'
+                                 ELSE LEFT(CONCAT(@BadCount, N' names break the conventions: ',
+                                                  STUFF((SELECT N', ' + Name FROM @Bad FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, N'')), 400) END);
+END TRY
+BEGIN CATCH
+    INSERT #Results VALUES ('T28', N'Naming conventions of tables, columns, objects, constraints and indexes', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T29: least privilege - the table permissions of the business roles are EXACTLY those of 06_security.sql
+--      (column grants count as the table; DENY only narrows rights). A new GRANT must be added here on purpose.
+BEGIN TRY
+    DECLARE @Spec TABLE (RoleName SYSNAME, Permission NVARCHAR(60), Target SYSNAME);
+    INSERT @Spec VALUES
+        (N'rl_Manager', N'MEMBER OF', N'db_datareader'), (N'rl_Manager', N'EXECUTE', N'SCHEMA::dbo'),
+        (N'rl_Manager', N'SELECT', N'BRANCH'), (N'rl_Manager', N'SELECT', N'PROGRAM'),
+        (N'rl_Manager', N'SELECT', N'COURSE'), (N'rl_Manager', N'SELECT', N'ROOM'),
+        (N'rl_Manager', N'INSERT', N'BRANCH'), (N'rl_Manager', N'UPDATE', N'BRANCH'),
+        (N'rl_Manager', N'INSERT', N'ROOM'), (N'rl_Manager', N'UPDATE', N'ROOM'),
+        (N'rl_Manager', N'INSERT', N'PROGRAM'), (N'rl_Manager', N'UPDATE', N'PROGRAM'),
+        (N'rl_Manager', N'INSERT', N'COURSE'), (N'rl_Manager', N'UPDATE', N'COURSE'),
+        (N'rl_Manager', N'INSERT', N'GRADE_COMPONENT'), (N'rl_Manager', N'UPDATE', N'GRADE_COMPONENT'),
+        (N'rl_Manager', N'DELETE', N'GRADE_COMPONENT'),
+        (N'rl_Manager', N'INSERT', N'EMPLOYEE'), (N'rl_Manager', N'UPDATE', N'EMPLOYEE'),
+        (N'rl_Manager', N'INSERT', N'TEACHER'), (N'rl_Manager', N'UPDATE', N'TEACHER'),
+        (N'rl_Manager', N'INSERT', N'PROMOTION'), (N'rl_Manager', N'UPDATE', N'PROMOTION'),
+        (N'rl_AcademicStaff', N'SELECT', N'BRANCH'), (N'rl_AcademicStaff', N'SELECT', N'PROGRAM'),
+        (N'rl_AcademicStaff', N'SELECT', N'COURSE'), (N'rl_AcademicStaff', N'SELECT', N'ROOM'),
+        (N'rl_AcademicStaff', N'SELECT', N'GRADE_COMPONENT'), (N'rl_AcademicStaff', N'SELECT', N'PLACEMENT_TEST'),
+        (N'rl_AcademicStaff', N'SELECT', N'PROMOTION'), (N'rl_AcademicStaff', N'SELECT', N'TEACHER'),
+        (N'rl_Accountant', N'SELECT', N'BRANCH'), (N'rl_Accountant', N'SELECT', N'PROGRAM'),
+        (N'rl_Accountant', N'SELECT', N'COURSE'), (N'rl_Accountant', N'SELECT', N'PAYROLL'),
+        (N'rl_Accountant', N'SELECT', N'PROMOTION'), (N'rl_Accountant', N'SELECT', N'RECEIPT'),
+        (N'rl_Accountant', N'SELECT', N'TEACHER'),
+        (N'rl_Teacher', N'SELECT', N'BRANCH'), (N'rl_Teacher', N'SELECT', N'PROGRAM'),
+        (N'rl_Teacher', N'SELECT', N'COURSE'), (N'rl_Teacher', N'SELECT', N'ROOM');
+    DECLARE @Actual TABLE (RoleName SYSNAME, Permission NVARCHAR(60), Target SYSNAME);
+    INSERT @Actual
+    SELECT DISTINCT r.name, p.permission_name,
+           CASE p.class WHEN 1 THEN OBJECT_NAME(p.major_id) WHEN 3 THEN N'SCHEMA::' + SCHEMA_NAME(p.major_id) ELSE N'DATABASE' END
+    FROM sys.database_permissions p
+    JOIN sys.database_principals r ON r.principal_id = p.grantee_principal_id
+    LEFT JOIN sys.objects o ON p.class = 1 AND o.object_id = p.major_id
+    WHERE r.name LIKE N'rl[_]%' AND p.state IN ('G', 'W') AND (p.class <> 1 OR o.type = 'U')
+    UNION
+    SELECT m.name, N'MEMBER OF', r.name
+    FROM sys.database_role_members rm
+    JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id
+    JOIN sys.database_principals m ON m.principal_id = rm.member_principal_id
+    WHERE m.name LIKE N'rl[_]%';
+    DECLARE @Diff TABLE (Item NVARCHAR(300));
+    INSERT @Diff
+    SELECT N'extra ' + RoleName + N' ' + Permission + N' ' + Target
+    FROM (SELECT RoleName, Permission, Target FROM @Actual EXCEPT SELECT RoleName, Permission, Target FROM @Spec) x
+    UNION ALL
+    SELECT N'missing ' + RoleName + N' ' + Permission + N' ' + Target
+    FROM (SELECT RoleName, Permission, Target FROM @Spec EXCEPT SELECT RoleName, Permission, Target FROM @Actual) y;
+    DECLARE @DiffCount INT = (SELECT COUNT(*) FROM @Diff);
+    INSERT #Results VALUES ('T29', N'Least privilege: table permissions of the roles = 06_security.sql', N'Succeeded',
+                            CASE WHEN @DiffCount = 0 THEN N'Succeeded' ELSE N'Rejected' END,
+                            CASE WHEN @DiffCount = 0 THEN CONCAT((SELECT COUNT(*) FROM @Spec), N' expected permissions, no extra and none missing')
+                                 ELSE LEFT(CONCAT(@DiffCount, N' differences: ',
+                                                  STUFF((SELECT N', ' + Item FROM @Diff FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, N'')), 400) END);
+END TRY
+BEGIN CATCH
+    INSERT #Results VALUES ('T29', N'Least privilege: table permissions of the roles = 06_security.sql', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T30: code conventions of 01-sql.md: every procedure and trigger sets NOCOUNT ON; no SELECT * in procedures,
+--      views or functions
+BEGIN TRY
+    DECLARE @Bad TABLE (Name NVARCHAR(300));
+    INSERT @Bad
+    SELECT o.type_desc + N' ' + o.name + N' without SET NOCOUNT ON'
+    FROM sys.sql_modules m JOIN sys.objects o ON o.object_id = m.object_id
+    WHERE o.type IN ('P', 'TR') AND m.definition NOT LIKE N'%SET NOCOUNT ON%'
+    UNION ALL
+    SELECT o.type_desc + N' ' + o.name + N' uses SELECT *'
+    FROM sys.sql_modules m JOIN sys.objects o ON o.object_id = m.object_id
+    WHERE o.type IN ('P', 'V', 'FN', 'IF', 'TF') AND m.definition LIKE N'%SELECT *%';
+    DECLARE @BadCount INT = (SELECT COUNT(*) FROM @Bad);
+    INSERT #Results VALUES ('T30', N'Procedures/triggers set NOCOUNT ON, no SELECT * in modules', N'Succeeded',
+                            CASE WHEN @BadCount = 0 THEN N'Succeeded' ELSE N'Rejected' END,
+                            CASE WHEN @BadCount = 0 THEN CONCAT((SELECT COUNT(*) FROM sys.sql_modules m JOIN sys.objects o ON o.object_id = m.object_id
+                                                                 WHERE o.type IN ('P', 'TR', 'V', 'FN', 'IF', 'TF')), N' modules checked, all follow the conventions')
+                                 ELSE LEFT(STUFF((SELECT N', ' + Name FROM @Bad FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, N''), 400) END);
+END TRY
+BEGIN CATCH
+    INSERT #Results VALUES ('T30', N'Procedures/triggers set NOCOUNT ON, no SELECT * in modules', N'Succeeded', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 

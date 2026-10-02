@@ -14,6 +14,10 @@
     "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
   },
   "files.associations": {
-    "*.sql": "sql"
+    "*.sql": "sql",
+    // Qt Linguist files are XML. A pattern with "/" is matched against the
+    // absolute path and anchored at the start, so it never hits this repo.
+    // A pattern without "/" is matched against the file name only.
+    "qlttta_vi.ts": "xml"
   }
 }
