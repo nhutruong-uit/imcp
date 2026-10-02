@@ -6,12 +6,16 @@ cmake-build-*/
 dist/
 CMakeUserPresets.json
 compile_commands.json
+# clangd background index (.vscode/settings.json: --background-index)
+.cache/
 
 # ---- IDE ----
 .vs/
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+# Claude Code: .claude/settings.json is shared, settings.local.json is personal
+.claude/settings.local.json
 .idea/
 *.user
 *.user.*
