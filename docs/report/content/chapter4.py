@@ -1,5 +1,5 @@
 """Chương 4 - Cài đặt và xử lý thông tin trên CSDL."""
-from noidung.chung import KET_QUA_VI, SQL, doi_tuong, ket_qua, kiem_thu, schema
+from content.common import KET_QUA_VI, SQL, doi_tuong, ket_qua, kiem_thu, schema
 from report_lib import sql_block, sql_object
 
 

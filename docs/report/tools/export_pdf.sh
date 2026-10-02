@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # Xuất PDF báo cáo bằng Microsoft Word (macOS): cập nhật mục lục, danh mục hình/bảng, số trang rồi lưu PDF.
-#   ./docs/report/cong_cu/xuat_pdf.sh
+#   ./docs/report/tools/export_pdf.sh
 #
 # Word trên macOS chạy trong sandbox: file được mở bằng "open -a" (như bấm đúp trong Finder) nên macOS tự cấp
 # quyền đọc file cho Word. Nếu Word vẫn hiện "Grant File Access", NGƯỜI DÙNG bấm "Select..." và chọn file
 # (không tự động bấm hộp thoại cấp quyền). Không xóa thư mục .build để quyền đã cấp còn hiệu lực.
-# Windows: mở BaoCao_DoAn_IE103_Nhom1.docx bằng Word -> Ctrl+A, F9 (cập nhật field) -> File > Save As > PDF.
+# Windows: mở IE103_Group1_Report.docx bằng Word -> Ctrl+A, F9 (cập nhật field) -> File > Save As > PDF.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 REPORT="$ROOT/docs/report"
 BUILD="$REPORT/.build"
-DOCX="$REPORT/BaoCao_DoAn_IE103_Nhom1.docx"
-PDF="$REPORT/BaoCao_DoAn_IE103_Nhom1.pdf"
+DOCX="$REPORT/IE103_Group1_Report.docx"
+PDF="$REPORT/IE103_Group1_Report.pdf"
 
 [[ "$(uname)" == "Darwin" ]] || { echo "Script chỉ chạy trên macOS (Windows: xuất PDF thủ công, xem đầu file)." >&2; exit 2; }
 [[ -d "/Applications/Microsoft Word.app" ]] || { echo "Chưa cài Microsoft Word." >&2; exit 2; }

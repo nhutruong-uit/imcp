@@ -1,5 +1,5 @@
 """Chương 6 - Trình bày thông tin (ứng dụng); Chương 7 - CSDL tiên tiến; Chương 8 - Tổng kết; tài liệu, phụ lục."""
-from noidung.chung import IMG, SQL, doi_tuong, kiem_thu
+from content.common import IMG, SQL, doi_tuong, kiem_thu
 from report_lib import sql_block
 
 SCR = IMG / "screens"
@@ -12,7 +12,7 @@ def chuong6(r):
     r.p("Ứng dụng desktop viết bằng **C++17 và Qt 6** (thống nhất ngôn ngữ C++ cả nhóm đã học), chạy trên Windows và "
         "macOS từ cùng một mã nguồn. Mã nguồn tổ chức theo **Clean Architecture**: các tầng bên trong (nghiệp vụ) không "
         "phụ thuộc tầng bên ngoài (giao diện, CSDL); chiều phụ thuộc được ép bằng cấu hình liên kết thư viện của CMake.")
-    r.figure(IMG / "diagrams" / "kien_truc.png", "Clean Architecture của ứng dụng QLTTTA", width_cm=12.5)
+    r.figure(IMG / "diagrams" / "architecture.png", "Clean Architecture của ứng dụng QLTTTA", width_cm=12.5)
     r.table(["Tầng", "Nội dung", "Ví dụ"], [
         ["domain", "Thực thể và quy tắc nghiệp vụ thuần, chỉ dùng Qt Core", "Student::validate() - dưới 18 tuổi phải có phụ huynh; Result<T>"],
         ["application", "Use case + port (interface) mà tầng ngoài phải hiện thực; ma trận phân quyền menu", "StudentService, AuthService, LanguageService, Permissions, IStudentRepository"],
@@ -142,7 +142,7 @@ class Enrollment (extent Enrollments key enrollmentId) {
     r.h2("7.2. CSDL phân tán")
     r.p("Trung tâm có nhiều chi nhánh, mỗi chi nhánh chủ yếu thao tác dữ liệu của mình (học viên, lớp, thu tiền), còn ban "
         "quản lý cần số liệu toàn hệ thống. Đây là tình huống điển hình cho CSDL phân tán theo địa lý. Thiết kế đề xuất:")
-    r.figure(IMG / "diagrams" / "phan_tan.png", "Thiết kế phân mảnh và cấp phát dữ liệu theo chi nhánh", width_cm=15)
+    r.figure(IMG / "diagrams" / "distributed_database.png", "Thiết kế phân mảnh và cấp phát dữ liệu theo chi nhánh", width_cm=15)
     r.table(["Kỹ thuật", "Áp dụng", "Lý do"], [
         ["Phân mảnh ngang chính", "STUDENT_BRi = σ BranchId = 'BRi' (STUDENT); CLASS_BRi tương tự", "Mỗi chi nhánh truy cập cục bộ học viên, lớp của mình"],
         ["Phân mảnh ngang dẫn xuất", "ENROLLMENT_BRi = ENROLLMENT ⋉ CLASS_BRi; RECEIPT, ATTENDANCE, GRADE theo ENROLLMENT", "Giữ dữ liệu phụ thuộc cùng trạm với lớp để phép kết thực hiện cục bộ"],

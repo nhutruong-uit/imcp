@@ -39,11 +39,11 @@ def schema():
 
 
 def ket_qua():
-    return json.loads((DATA / "ket_qua_truy_van.json").read_text(encoding="utf-8"))
+    return json.loads((DATA / "query_results.json").read_text(encoding="utf-8"))
 
 
 def doi_tuong():
-    """Số lượng đối tượng CSDL đếm từ CSDL thật (cong_cu/xuat_du_lieu.py) - dùng thay cho con số ghi cứng."""
+    """Số lượng đối tượng CSDL đếm từ CSDL thật (tools/export_data.py) - dùng thay cho con số ghi cứng."""
     k = ket_qua()["doi_tuong"]
     d = {cot: int(gt) for cot, gt in zip(k["cot"], k["dong"][0])}
     d["SoRangBuoc"] = d["SoCheck"] + d["SoDefault"] + d["SoFK"] + d["SoPK"] + d["SoUnique"]
@@ -57,7 +57,7 @@ KET_QUA_VI = {"Rejected": "Từ chối", "Succeeded": "Thành công", "Wrong res
 def kiem_thu():
     """Các dòng TestId|Description|Expected|Actual|Verdict|Message của 12_tests.sql (Verdict = PASSED/FAILED)."""
     rows = []
-    for line in (DATA / "kiem_thu.txt").read_text(encoding="utf-8").splitlines():
+    for line in (DATA / "database_tests.txt").read_text(encoding="utf-8").splitlines():
         parts = line.split("|")
         if len(parts) >= 6:
             rows.append(parts[:6])

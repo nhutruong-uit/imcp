@@ -1,5 +1,5 @@
 """Chương 5 - An ninh dữ liệu."""
-from noidung.chung import IMG, KET_QUA_VI, SQL, ket_qua, kiem_thu
+from content.common import IMG, KET_QUA_VI, SQL, ket_qua, kiem_thu
 from report_lib import sql_block, sql_object
 
 
@@ -37,7 +37,7 @@ def chuong5(r):
         "`SELECT` view cần thiết. Cơ chế **ownership chaining** của SQL Server làm cho điều này khả thi: khi view/thủ tục "
         "và bảng cùng chủ sở hữu (dbo), SQL Server chỉ kiểm tra quyền trên view/thủ tục mà bỏ qua kiểm tra quyền trên bảng "
         "bên dưới - kể cả khi bảng bị `DENY`.")
-    r.figure_landscape(IMG / "diagrams" / "phan_quyen.png", "Mô hình phân quyền: user → role → view/thủ tục → bảng")
+    r.figure_landscape(IMG / "diagrams" / "permissions.png", "Mô hình phân quyền: user → role → view/thủ tục → bảng")
     r.table(["Đối tượng", "Quản lý", "Giáo vụ", "Kế toán", "Giáo viên"], [
         ["Bảng gốc (SELECT)", "✔ (db_datareader)", "—", "RECEIPT, PAYROLL", "DENY STUDENT, RECEIPT, PAYROLL"],
         ["TEACHER (mức cột)", "✔ tất cả", "Không có HourlyRate", "TeacherId, FullName, HourlyRate...", "—"],

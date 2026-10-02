@@ -1,7 +1,7 @@
 """Chương 3 - Thiết kế cơ sở dữ liệu."""
 import re
 
-from noidung.chung import IMG, SQL, doi_tuong, schema
+from content.common import IMG, SQL, doi_tuong, schema
 from report_lib import sql_block
 
 # Ý nghĩa các cột (dùng cho từ điển dữ liệu)
@@ -155,8 +155,8 @@ def chuong3(r):
         f"{doi_tuong()['SoBang']} thực thể, sơ đồ được tách thành 2 phân hệ dùng chung một số thực thể (tô xám ở sơ đồ "
         "thứ hai). Tên thực thể, thuộc tính trong sơ đồ dùng đúng tên bảng, cột tiếng Anh của CSDL.")
     r.figures_landscape([
-        (IMG / "diagrams" / "erd_1_to_chuc_dao_tao.png", "ERD phân hệ tổ chức - nhân sự - đào tạo - lớp học"),
-        (IMG / "diagrams" / "erd_2_hoc_vien_tai_chinh.png", "ERD phân hệ học viên - ghi danh - tài chính - kết quả"),
+        (IMG / "diagrams" / "erd_1_organization_training.png", "ERD phân hệ tổ chức - nhân sự - đào tạo - lớp học"),
+        (IMG / "diagrams" / "erd_2_students_finance.png", "ERD phân hệ học viên - ghi danh - tài chính - kết quả"),
     ])
     r.p("Một số điểm thiết kế đáng chú ý:")
     r.bullets([
@@ -194,7 +194,7 @@ def chuong3(r):
         "Teacher, Employee với các thuộc tính chung họ tên, ngày sinh, giới tính, liên lạc), **phương thức** của "
         "lớp (enroll, pay, evaluateResults...), quan hệ **thành phần** (ClassSession là thành phần của Class), "
         "**kết tập** (Receipt thuộc Enrollment) và thuộc tính kiểu tập hợp `set(...)`, bộ `tuple(...)`.")
-    r.figure(IMG / "diagrams" / "cd_lop.png", "Sơ đồ lớp (CD) của hệ thống QLTTTA", width_cm=15.5)
+    r.figure(IMG / "diagrams" / "class_diagram.png", "Sơ đồ lớp (CD) của hệ thống QLTTTA", width_cm=15.5)
     r.p("Khi cài đặt trên hệ quản trị quan hệ, lớp trừu tượng Person được hiện thực theo chiến lược **mỗi lớp con một "
         "bảng** (STUDENT, TEACHER, EMPLOYEE lặp lại các cột chung) vì ba đối tượng có vòng đời, khóa và quyền truy cập "
         "khác nhau; các phương thức được hiện thực thành thủ tục/hàm trong CSDL và use case trong ứng dụng.")

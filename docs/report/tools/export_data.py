@@ -2,14 +2,14 @@
 """Xuất dữ liệu THẬT từ CSDL QLTTTA cho báo cáo (docs/report/data/), để báo cáo luôn khớp với CSDL:
 
   schema.json            từ điển dữ liệu: bảng, cột, kiểu, khóa, CHECK, UNIQUE, DEFAULT, số dòng
-  ket_qua_truy_van.json  kết quả các truy vấn minh họa (Chương 4, 5) + "doi_tuong": số lượng bảng,
+  query_results.json  kết quả các truy vấn minh họa (Chương 4, 5) + "doi_tuong": số lượng bảng,
                          hàm, view, thủ tục, trigger, ràng buộc... (các con số trong báo cáo đọc từ đây)
-  kiem_thu.txt           kết quả database/12_tests.sql - CHỈ ghi khi tất cả ca kiểm thử đạt (PASSED)
+  database_tests.txt           kết quả database/12_tests.sql - CHỈ ghi khi tất cả ca kiểm thử đạt (PASSED)
 
 Cách dùng (mật khẩu sa đặt trong biến SQL_PASSWORD, không truyền trên dòng lệnh):
   SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" \\
-      python3 docs/report/cong_cu/xuat_du_lieu.py --docker sql2022
-  SQL_PASSWORD='<mật khẩu sa>' python3 docs/report/cong_cu/xuat_du_lieu.py --server localhost,1433
+      python3 docs/report/tools/export_data.py --docker sql2022
+  SQL_PASSWORD='<mật khẩu sa>' python3 docs/report/tools/export_data.py --server localhost,1433
 
 Nên chạy scripts/test_all.sh trước: CSDL được khởi tạo lại từ đầu nên số liệu khớp dữ liệu mẫu.
 """
@@ -25,7 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 DATA = ROOT / "docs" / "report" / "data"
 
-# Truy vấn minh họa dùng trong báo cáo (khóa = tên mục mà noidung/*.py đọc qua chung.ket_qua())
+# Truy vấn minh họa dùng trong báo cáo (khóa = tên mục mà content/*.py đọc qua chung.ket_qua())
 TRUY_VAN = {
     "tong_quan": "EXEC dbo.usp_Dashboard_Stats",
     "doanh_thu_ct": """SELECT pg.ProgramName, COUNT(DISTINCT en.StudentId) AS StudentCount, SUM(rc.Amount) AS Revenue
@@ -172,10 +172,10 @@ def xuat_truy_van(kn):
         if ma != 0 or len(dong) < 2:
             sys.exit(f"Lỗi truy vấn '{ten}':\n{out}")
         ket_qua[ten] = {"cot": dong[0].split("|"), "dong": [d.split("|") for d in dong[2:]]}
-    (DATA / "ket_qua_truy_van.json").write_text(json.dumps(ket_qua, ensure_ascii=False, indent=1) + "\n",
+    (DATA / "query_results.json").write_text(json.dumps(ket_qua, ensure_ascii=False, indent=1) + "\n",
                                                 encoding="utf-8")
     dt = dict(zip(ket_qua["doi_tuong"]["cot"], ket_qua["doi_tuong"]["dong"][0]))
-    print(f"ket_qua_truy_van.json: {len(ket_qua)} truy vấn; đối tượng CSDL: "
+    print(f"query_results.json: {len(ket_qua)} truy vấn; đối tượng CSDL: "
           + ", ".join(f"{k}={v}" for k, v in dt.items()))
 
 
@@ -185,9 +185,9 @@ def xuat_kiem_thu(kn):
     dat = [d for d in ca if "|PASSED|" in d]
     if ma != 0 or not ca or len(dat) != len(ca):
         print("\n".join(d for d in ca if "|PASSED|" not in d) or out[-2000:])
-        sys.exit(f"Kiểm thử CSDL KHÔNG đạt ({len(dat)}/{len(ca)}) - không ghi kiem_thu.txt. Sửa lỗi trước.")
-    (DATA / "kiem_thu.txt").write_text("\n".join(ca) + "\n", encoding="utf-8")
-    print(f"kiem_thu.txt: {len(dat)}/{len(ca)} ca PASSED")
+        sys.exit(f"Kiểm thử CSDL KHÔNG đạt ({len(dat)}/{len(ca)}) - không ghi database_tests.txt. Sửa lỗi trước.")
+    (DATA / "database_tests.txt").write_text("\n".join(ca) + "\n", encoding="utf-8")
+    print(f"database_tests.txt: {len(dat)}/{len(ca)} ca PASSED")
 
 
 def main():

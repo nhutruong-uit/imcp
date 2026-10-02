@@ -1,5 +1,5 @@
 """Chương 1 - Tổng quan; Chương 2 - Phân tích yêu cầu."""
-from noidung.chung import IMG, THANH_VIEN, doi_tuong
+from content.common import IMG, THANH_VIEN, doi_tuong
 
 
 def chuong1(r):
@@ -142,8 +142,8 @@ def chuong2(r):
     r.h2("2.5. Sơ đồ luồng dữ liệu (DFD)")
     r.p("DFD mức 0 (sơ đồ ngữ cảnh) thể hiện hệ thống như một xử lý duy nhất trao đổi thông tin với các tác nhân "
         "bên ngoài; DFD mức 1 phân rã thành 6 xử lý chính và các kho dữ liệu tương ứng với nhóm bảng trong CSDL.")
-    r.figure(IMG / "diagrams" / "dfd_muc0.png", "DFD mức 0 - sơ đồ ngữ cảnh", width_cm=15.5)
-    r.figure_landscape(IMG / "diagrams" / "dfd_muc1.png", "DFD mức 1 - các xử lý chính và kho dữ liệu")
+    r.figure(IMG / "diagrams" / "dfd_level0.png", "DFD mức 0 - sơ đồ ngữ cảnh", width_cm=15.5)
+    r.figure_landscape(IMG / "diagrams" / "dfd_level1.png", "DFD mức 1 - các xử lý chính và kho dữ liệu")
 
     r.h2("2.6. Yêu cầu chức năng")
     r.table(["Nhóm", "Chức năng", "Hiện thực ở CSDL"], [

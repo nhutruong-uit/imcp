@@ -1,9 +1,9 @@
 """Trang bìa, checklist, phân công, mục lục."""
-from noidung.chung import THANH_VIEN, kiem_thu
+from content.common import THANH_VIEN, kiem_thu
 
 
 def trang_bia(r):
-    # Chỉ số đoạn văn theo mẫu (template/mau_bao_cao_uit.docx)
+    # Chỉ số đoạn văn theo mẫu (template/uit_report_template.docx)
     r.set_paragraph_text(4, "BÁO CÁO ĐỒ ÁN MÔN HỌC")
     r.set_paragraph_text(5, "QUẢN LÝ THÔNG TIN")
     r.set_paragraph_text(6, "MÃ LỚP: IE103.Q21.VB2")

@@ -1,4 +1,4 @@
-"""Thư viện dựng báo cáo .docx theo mẫu báo cáo UIT của nhóm (template/mau_bao_cao_uit.docx).
+"""Thư viện dựng báo cáo .docx theo mẫu báo cáo UIT của nhóm (template/uit_report_template.docx).
 
 Cung cấp các khối: tiêu đề chương/mục, đoạn văn có định dạng nội tuyến (**đậm**, *nghiêng*, `mã`),
 danh sách gạch đầu dòng, bảng dữ liệu (tiêu đề nền navy), khung mã SQL tô màu cú pháp,

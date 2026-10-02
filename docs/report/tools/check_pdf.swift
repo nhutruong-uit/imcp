@@ -1,8 +1,8 @@
 // Kiểm tra / xem nhanh file PDF báo cáo (macOS, dùng PDFKit có sẵn của hệ điều hành).
-//   swift docs/report/cong_cu/kiem_tra_pdf.swift kiemtra <pdf> [chuỗi cần tìm...]
+//   swift docs/report/tools/check_pdf.swift kiemtra <pdf> [chuỗi cần tìm...]
 //       In số trang và các trang chứa từng chuỗi. Mã thoát 1 nếu PDF còn lỗi field của Word
 //       (mục lục/tham chiếu chưa cập nhật: "Error! Bookmark not defined"...).
-//   swift docs/report/cong_cu/kiem_tra_pdf.swift anh <pdf> <thư mục ra> <trang...>
+//   swift docs/report/tools/check_pdf.swift anh <pdf> <thư mục ra> <trang...>
 //       Xuất ảnh PNG các trang (vd: 56 57 70-72) và ảnh ghép tong_hop.png để xem nhanh bố cục.
 import AppKit
 import PDFKit
@@ -91,6 +91,6 @@ switch args.first {
 case "kiemtra" where args.count >= 2: kiemTra(Array(args.dropFirst()))
 case "anh" where args.count >= 4: xuatAnh(Array(args.dropFirst()))
 default:
-    print("Cách dùng: kiem_tra_pdf.swift kiemtra <pdf> [chuỗi...] | anh <pdf> <thư mục ra> <trang...>")
+    print("Cách dùng: check_pdf.swift kiemtra <pdf> [chuỗi...] | anh <pdf> <thư mục ra> <trang...>")
     exit(2)
 }
