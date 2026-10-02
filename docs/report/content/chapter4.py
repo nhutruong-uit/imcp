@@ -1,10 +1,10 @@
 """Chương 4 - Cài đặt và xử lý thông tin trên CSDL."""
-from content.common import KET_QUA_VI, SQL, doi_tuong, ket_qua, kiem_thu, schema
+from content.common import RESULT_LABELS_VI, SQL, object_counts, query_results, database_tests, schema
 from report_lib import sql_block, sql_object
 
 
-def _kq(r, key, caption, widths=None, size=9.5, max_rows=12, money_cols=()):
-    data = ket_qua()[key]
+def _query_table(r, key, caption, widths=None, size=9.5, max_rows=12, money_cols=()):
+    data = query_results()[key]
     rows = data["dong"][:max_rows]
     fmt = []
     for row in rows:
@@ -21,7 +21,7 @@ def _kq(r, key, caption, widths=None, size=9.5, max_rows=12, money_cols=()):
     r.table(data["cot"], fmt, widths_cm=widths, caption=caption, size=size)
 
 
-def chuong4(r):
+def chapter4(r):
     r.h1("CHƯƠNG 4: CÀI ĐẶT VÀ XỬ LÝ THÔNG TIN TRÊN CSDL")
 
     # ------------------------------------------------------------------ 4.1
@@ -29,7 +29,7 @@ def chuong4(r):
     r.p("CSDL được cài đặt bằng các script T-SQL đánh số, chạy tuần tự bằng SSMS hoặc tự động bằng "
         "`scripts/db_init.sh` (macOS/Linux, Docker) và `scripts/db_init.ps1` (Windows). Mọi script tương thích SQL "
         "Server 2012 trở lên (không dùng `CREATE OR ALTER`, `STRING_AGG`, `TRIM`, JSON).")
-    dt = doi_tuong()
+    dt = object_counts()
     r.table(["File", "Nội dung", "Số đối tượng"], [
         ["00_create_database.sql", "Bật contained database authentication, tạo CSDL CONTAINMENT = PARTIAL, collation Vietnamese_CI_AS, RECOVERY FULL", "1 CSDL"],
         ["01_tables.sql", "SEQUENCE, XML Schema Collection, bảng, khóa, CHECK, UNIQUE, DEFAULT, chỉ mục", f"{dt['SoBang']} bảng, {dt['SoSequence']} sequence, {dt['SoRangBuoc']} ràng buộc"],
@@ -48,7 +48,7 @@ def chuong4(r):
     r.code("Sinh mã học viên bằng SEQUENCE trong DEFAULT - 01_tables.sql",
            "CREATE SEQUENCE dbo.seq_STUDENT AS INT START WITH 1 INCREMENT BY 1;\n...\nStudentId VARCHAR(10) NOT NULL CONSTRAINT DF_STUDENT_StudentId\n"
            "    DEFAULT ('ST' + RIGHT('00000' + CAST(NEXT VALUE FOR dbo.seq_STUDENT AS VARCHAR(10)), 5)),")
-    _kq(r, "so_dong", "Số dòng dữ liệu mẫu trong từng bảng (sau khi chạy 07_seed_data.sql)", widths=[6, 4], size=9.5,
+    _query_table(r, "so_dong", "Số dòng dữ liệu mẫu trong từng bảng (sau khi chạy 07_seed_data.sql)", widths=[6, 4], size=9.5,
         max_rows=21)
 
     # ------------------------------------------------------------------ 4.2
@@ -56,19 +56,19 @@ def chuong4(r):
     r.p("File `08_demo_queries.sql` gồm 10 truy vấn minh họa các kỹ thuật SQL của Chương 3 (môn học). Một số truy vấn tiêu biểu:")
     r.h3("4.2.1. Gom nhóm có điều kiện (GROUP BY ... HAVING)")
     r.code("Q2 - Chương trình có doanh thu trên 50 triệu", sql_block(SQL, "08_demo_queries.sql", "SELECT pg.ProgramName, COUNT(DISTINCT", "-- Q3."))
-    _kq(r, "doanh_thu_ct", "Kết quả Q2", widths=[6, 4, 6], money_cols=(2,))
+    _query_table(r, "doanh_thu_ct", "Kết quả Q2", widths=[6, 4, 6], money_cols=(2,))
     r.h3("4.2.2. Phép chia quan hệ bằng NOT EXISTS lồng nhau")
     r.p("Tìm học viên đã học **tất cả** khóa IELTS đang có lớp hoạt động: không tồn tại khóa IELTS nào mà học viên chưa ghi danh.")
     r.code("Q4 - Phép chia", sql_block(SQL, "08_demo_queries.sql", "SELECT st.StudentId, st.FullName\nFROM dbo.STUDENT st\nWHERE NOT EXISTS", "-- Q5."))
     r.h3("4.2.3. Hàm cửa sổ và CTE: xếp hạng trong từng lớp")
     r.code("Q5 - Top 3 học viên điểm cao nhất mỗi lớp đã kết thúc", sql_block(SQL, "08_demo_queries.sql", "WITH Ranking AS", "-- Q6."))
-    _kq(r, "top3", "Kết quả Q5", widths=[3, 2, 7, 4])
+    _query_table(r, "top3", "Kết quả Q5", widths=[3, 2, 7, 4])
     r.h3("4.2.4. Truy vấn đệ quy (recursive CTE) trên mối kết hợp tiên quyết")
     r.code("Q8 - Lộ trình khóa học từ IELTS 6.5 về khóa gốc", sql_block(SQL, "08_demo_queries.sql", "WITH Path AS", "-- Q9."))
-    _kq(r, "lo_trinh", "Kết quả Q8", widths=[3, 4, 9])
+    _query_table(r, "lo_trinh", "Kết quả Q8", widths=[3, 4, 9])
     r.h3("4.2.5. Xoay bảng (PIVOT)")
     r.code("Q7 - Số lượt ghi danh theo chương trình × chi nhánh", sql_block(SQL, "08_demo_queries.sql", "SELECT ProgramName, ISNULL([BR01]", "-- Q8."))
-    _kq(r, "pivot", "Kết quả Q7", widths=[7, 4.5, 4.5])
+    _query_table(r, "pivot", "Kết quả Q7", widths=[7, 4.5, 4.5])
 
     # ------------------------------------------------------------------ 4.3
     r.h2("4.3. Truy vấn XPath / XQuery trên dữ liệu XML")
@@ -76,20 +76,20 @@ def chuong4(r):
         "đoạn XML, `.exist()` kiểm tra điều kiện, `.nodes()` tách phần tử lặp thành các dòng quan hệ, `.modify()` sửa XML "
         "(XML DML); biến SQL được đưa vào biểu thức XQuery bằng `sql:variable()`.")
     r.code("X3 - .exist(): giáo viên có IELTS từ 8.0", sql_block(SQL, "08_demo_queries.sql", "SELECT TeacherId, FullName,\n       ProfileXml.value", "-- X4."))
-    _kq(r, "ielts8", "Kết quả X3", widths=[3, 8, 5])
+    _query_table(r, "ielts8", "Kết quả X3", widths=[3, 8, 5])
     r.code("X4 - .nodes() + CROSS APPLY: tách mọi chứng chỉ thành bảng quan hệ", sql_block(SQL, "08_demo_queries.sql", "SELECT te.TeacherId, te.FullName,\n       c.value", "-- X5."))
-    _kq(r, "nodes", "Kết quả X4 (8 dòng đầu)", widths=[2.6, 5, 3.8, 2.2, 2.4])
+    _query_table(r, "nodes", "Kết quả X4 (8 dòng đầu)", widths=[2.6, 5, 3.8, 2.2, 2.4])
     r.code("X5 - FLWOR: lọc, sắp xếp và dựng lại XML", sql_block(SQL, "08_demo_queries.sql", "SELECT CourseId,\n       SyllabusXml.query('", "-- X6."))
     r.code("X6 - Kiểm tra nhất quán giữa XML và quan hệ: tổng số buổi các Unit = COURSE.SessionCount",
            sql_block(SQL, "08_demo_queries.sql", "SELECT CourseId, SessionCount,\n       SyllabusXml.value('sum", "-- X7."))
-    _kq(r, "nhat_quan", "Kết quả X6 - đề cương khớp số buổi của khóa học", widths=[5, 5, 6])
+    _query_table(r, "nhat_quan", "Kết quả X6 - đề cương khớp số buổi của khóa học", widths=[5, 5, 6])
     r.code("Thủ tục usp_Course_FindBySkill - XQuery với sql:variable", sql_object(SQL, "04_procedures.sql", "usp_Course_FindBySkill"))
-    _kq(r, "ky_nang", "Kết quả EXEC usp_Course_FindBySkill N'Speaking'", widths=[2.0, 4.6, 1.2, 5.8, 2.4])
+    _query_table(r, "ky_nang", "Kết quả EXEC usp_Course_FindBySkill N'Speaking'", widths=[2.0, 4.6, 1.2, 5.8, 2.4])
     r.code("X7 - .modify(): thêm chứng chỉ vào hồ sơ giáo viên (XML DML)", sql_block(SQL, "08_demo_queries.sql", "BEGIN TRANSACTION;\nUPDATE dbo.TEACHER", "-- X8."))
 
     # ------------------------------------------------------------------ 4.4
     r.h2("4.4. Stored procedure")
-    r.p(f"Toàn bộ thao tác ghi dữ liệu của ứng dụng đi qua **{doi_tuong()['SoThuTuc']} thủ tục** (tiền tố `usp_`; không dùng `sp_` vì SQL "
+    r.p(f"Toàn bộ thao tác ghi dữ liệu của ứng dụng đi qua **{object_counts()['SoThuTuc']} thủ tục** (tiền tố `usp_`; không dùng `sp_` vì SQL "
         "Server luôn tìm thủ tục `sp_` trong CSDL master trước). Cách làm này tập trung quy tắc nghiệp vụ tại CSDL, "
         "phân quyền bằng `GRANT EXECUTE` thay vì cấp quyền trên bảng, và giảm lưu lượng mạng.")
     r.table(["Nhóm", "Thủ tục", "Kỹ thuật nổi bật"], [
@@ -132,7 +132,7 @@ def chuong4(r):
     ], widths_cm=[5.4, 4.0, 6.6], caption="Danh mục hàm", size=9.5)
     r.code("fn_FinalGrade - hàm vô hướng", sql_object(SQL, "02_functions.sql", "fn_FinalGrade"))
     r.code("fn_MonthlyRevenue - hàm trả về bảng nhiều câu lệnh", sql_object(SQL, "02_functions.sql", "fn_MonthlyRevenue"))
-    _kq(r, "doanh_thu_thang", "Kết quả fn_MonthlyRevenue (tháng 3 - 10 năm hiện tại)", widths=[4, 4, 8], money_cols=(2,))
+    _query_table(r, "doanh_thu_thang", "Kết quả fn_MonthlyRevenue (tháng 3 - 10 năm hiện tại)", widths=[4, 4, 8], money_cols=(2,))
     r.p("**Inline TVF** (một câu SELECT) được bộ tối ưu mở rộng như view có tham số nên hiệu năng tốt; **multi-statement "
         "TVF** cần khi phải xử lý nhiều bước (ở đây: tạo trước 12 dòng tháng rồi cập nhật số liệu) nhưng bộ tối ưu không "
         "ước lượng được số dòng, nên chỉ dùng cho tập kết quả nhỏ.")
@@ -170,11 +170,11 @@ def chuong4(r):
         "`WHILE @@FETCH_STATUS = 0` → CLOSE → DEALLOCATE. Nhóm dùng cursor `LOCAL FAST_FORWARD` (chỉ đọc, tiến một "
         "chiều - loại nhẹ nhất) ở hai nghiệp vụ có xử lý khác nhau cho từng dòng:")
     r.code("usp_Class_EvaluateResults - xét kết quả cuối khóa bằng cursor", sql_object(SQL, "04_procedures.sql", "usp_Class_EvaluateResults"), size=8.5)
-    _kq(r, "ket_qua_lop1", "Kết quả xét lớp CL0001 (IELTS Foundation #1) sau khi chạy thủ tục", widths=[2.2, 4.2, 2.2, 2.6, 3.0, 1.8])
+    _query_table(r, "ket_qua_lop1", "Kết quả xét lớp CL0001 (IELTS Foundation #1) sau khi chạy thủ tục", widths=[2.2, 4.2, 2.2, 2.6, 3.0, 1.8])
     r.p("Hai học viên Không đạt minh họa đúng hai điều kiện: một học viên điểm tổng kết dưới 5, một học viên đủ điểm "
         "nhưng chuyên cần dưới 80%. Học viên Đạt được cấp chứng nhận số hiệu `EC<năm>-<EnrollmentId>` ngay trong vòng lặp.")
     r.code("usp_Payroll_Finalize - chốt lương tháng bằng cursor", sql_object(SQL, "04_procedures.sql", "usp_Payroll_Finalize"), size=8.5)
-    _kq(r, "luong", "Bảng lương giáo viên (6 dòng đầu)", widths=[1.2, 1.4, 3.4, 2.4, 1.4, 2.2, 1.6, 2.4], size=9, money_cols=(5, 6, 7))
+    _query_table(r, "luong", "Bảng lương giáo viên (6 dòng đầu)", widths=[1.2, 1.4, 3.4, 2.4, 1.4, 2.2, 1.6, 2.4], size=9, money_cols=(5, 6, 7))
     r.note("**Nhận xét**: hai nghiệp vụ trên có thể viết bằng câu lệnh tập hợp (UPDATE ... FROM, INSERT ... SELECT) "
            "và sẽ nhanh hơn với dữ liệu lớn. Nhóm chọn cursor vì logic mỗi học viên gồm nhiều bước có điều kiện "
            "(cập nhật kết quả, quyết định cấp chứng nhận) và số dòng nhỏ (một lớp ≤ 50 học viên, một tháng ≤ vài chục "
@@ -195,9 +195,9 @@ def chuong4(r):
 
     # ------------------------------------------------------------------ 4.9
     r.h2("4.9. Kiểm thử ràng buộc, nghiệp vụ và xử lý")
-    ca = [k for k in kiem_thu() if k[0].startswith("T")]
+    ca = [k for k in database_tests() if k[0].startswith("T")]
     dat = len([k for k in ca if k[4] == "PASSED"])
-    r.p(f"Script `12_tests.sql` chạy {len(ca)} ca kiểm thử (cùng {len(kiem_thu()) - len(ca)} ca phân quyền ở mục 5.7), "
+    r.p(f"Script `12_tests.sql` chạy {len(ca)} ca kiểm thử (cùng {len(database_tests()) - len(ca)} ca phân quyền ở mục 5.7), "
         "mỗi ca thực hiện trong giao dịch rồi ROLLBACK nên không làm thay đổi dữ liệu. T01-T15 kiểm tra ràng buộc và "
         "quy tắc nghiệp vụ; T16-T27 kiểm tra **kết quả xử lý** của hàm, trigger, cursor và XML bằng cách so với giá trị "
         "tính độc lập hoặc kịch bản dựng sẵn (ví dụ dựng 2 buổi có mặt + 1 đi trễ + các buổi vắng rồi so tỷ lệ chuyên cần).")
@@ -206,6 +206,6 @@ def chuong4(r):
         "“đạt” nhầm); có ca không đạt hoặc không chạy thì file kết thúc bằng `THROW 50099`, lệnh `scripts/test_all.sh` "
         "dừng lại. Nhóm đã thử cố ý làm sai ngưỡng xếp loại và xóa trigger sĩ số: T16, T21 lập tức báo FAILED. "
         "Thông báo trong cột cuối là **kết quả thực tế** do SQL Server trả về:")
-    rows = [[k[0], k[1], KET_QUA_VI.get(k[2], k[2]), KET_QUA_VI.get(k[3], k[3]), k[5]] for k in ca]
+    rows = [[k[0], k[1], RESULT_LABELS_VI.get(k[2], k[2]), RESULT_LABELS_VI.get(k[3], k[3]), k[5]] for k in ca]
     r.table(["Mã", "Ca kiểm thử", "Kỳ vọng", "Thực tế", "Thông báo / kết quả"], rows,
             widths_cm=[1.1, 4.4, 1.8, 1.8, 6.9], caption=f"Kết quả kiểm thử ràng buộc, nghiệp vụ và xử lý ({dat}/{len(ca)} đạt)", size=8.5)

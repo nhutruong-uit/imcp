@@ -1,11 +1,11 @@
 """Chương 6 - Trình bày thông tin (ứng dụng); Chương 7 - CSDL tiên tiến; Chương 8 - Tổng kết; tài liệu, phụ lục."""
-from content.common import IMG, SQL, doi_tuong, kiem_thu
+from content.common import IMG, SQL, object_counts, database_tests
 from report_lib import sql_block
 
 SCR = IMG / "screens"
 
 
-def chuong6(r):
+def chapter6(r):
     r.h1("CHƯƠNG 6: TRÌNH BÀY THÔNG TIN - ỨNG DỤNG QLTTTA")
 
     r.h2("6.1. Kiến trúc ứng dụng")
@@ -97,13 +97,13 @@ def chuong6(r):
         "Trên CI (không có SQL Server) bài kiểm thử được ghi nhận là bỏ qua (Skipped).",
         "**Kiểm thử hiển thị**: công cụ `tools/qlttta_screenshots` tự đăng nhập bằng 4 tài khoản demo, mở "
         "từng chức năng và chụp màn hình (hình trong chương này được tạo bằng công cụ đó).",
-        f"**Kiểm thử CSDL**: {len(kiem_thu())} ca trong `12_tests.sql` (Chương 4 và 5), tất cả đạt.",
+        f"**Kiểm thử CSDL**: {len(database_tests())} ca trong `12_tests.sql` (Chương 4 và 5), tất cả đạt.",
         "**Chạy toàn bộ bằng một lệnh** `scripts/test_all.sh`: khởi tạo lại CSDL → kiểm thử CSDL → build → unit test → "
         "end-to-end; bước nào hỏng thì dừng và trả mã lỗi. Đây là điều kiện bắt buộc trước khi tạo Pull Request.",
     ])
 
 
-def chuong7(r):
+def chapter7(r):
     r.h1("CHƯƠNG 7: MÔ HÌNH CSDL TIÊN TIẾN - ÁP DỤNG CHO BÀI TOÁN")
 
     r.h2("7.1. CSDL hướng đối tượng")
@@ -212,18 +212,18 @@ class Enrollment (extent Enrollments key enrollmentId) {
         "không đổi mô hình logic; các mô hình NoSQL phù hợp vai trò bổ trợ (cache, nhật ký khối lượng lớn, lộ trình học).")
 
 
-def chuong8(r):
+def chapter8(r):
     r.h1("CHƯƠNG 8: TỔNG KẾT")
 
     r.h2("8.1. Kết quả đạt được")
-    dat = len([k for k in kiem_thu() if k[4] == "PASSED"])
+    dat = len([k for k in database_tests() if k[4] == "PASSED"])
     r.table(["Hạng mục", "Kết quả"], [
-        ["Phân tích, thiết kế", f"Use case, DFD mức 0-1, ERD (Chen) {doi_tuong()['SoBang']} thực thể, CD có kế thừa, lược đồ quan hệ đạt BCNF, từ điển dữ liệu"],
+        ["Phân tích, thiết kế", f"Use case, DFD mức 0-1, ERD (Chen) {object_counts()['SoBang']} thực thể, CD có kế thừa, lược đồ quan hệ đạt BCNF, từ điển dữ liệu"],
         ["Cài đặt CSDL", "{SoBang} bảng, {SoRangBuoc} ràng buộc khai báo, {SoSequence} sequence, {SoXmlSchema} XML Schema, "
-                         "{SoHam} hàm, {SoView} view, {SoThuTuc} thủ tục, {SoTrigger} trigger, {SoRole} role".format(**doi_tuong())],
+                         "{SoHam} hàm, {SoView} view, {SoThuTuc} thủ tục, {SoTrigger} trigger, {SoRole} role".format(**object_counts())],
         ["Xử lý thông tin", "Truy vấn SQL (chia, đệ quy, cửa sổ, PIVOT), XPath/XQuery đủ 5 phương thức, cursor, giao dịch"],
         ["An ninh", "Contained user, phân quyền mức đối tượng và mức cột, view bảo mật, nhật ký XML, backup Full/Diff/Log"],
-        ["Kiểm thử", f"{dat}/{len(kiem_thu())} ca kiểm thử CSDL đạt; 4 bộ unit test; 10/10 kịch bản end-to-end qua giao diện"],
+        ["Kiểm thử", f"{dat}/{len(database_tests())} ca kiểm thử CSDL đạt; 4 bộ unit test; 10/10 kịch bản end-to-end qua giao diện"],
         ["Ứng dụng", "Qt 6 đa nền tảng, Clean Architecture, giao diện song ngữ Việt/Anh, đăng nhập theo vai trò, Tổng quan, Học viên, 10 màn hình tra cứu, xuất PDF/Excel"],
         ["Triển khai", "CI build/test macOS + Windows, tự đóng gói setup.exe/zip/dmg, tài liệu cài đặt"],
         ["Mô hình tiên tiến", "Chuyển đổi sang OODB, thiết kế + demo phân mảnh phân tán, thiết kế NoSQL, bảng so sánh"],
@@ -265,7 +265,7 @@ def chuong8(r):
     ])
 
 
-def tai_lieu(r):
+def references(r):
     r.h1_unnumbered("TÀI LIỆU THAM KHẢO")
     r.numbered([
         "Kenneth C. Laudon, Jane P. Laudon (2011). *Management Information Systems* (12th Edition). Prentice Hall.",
@@ -280,14 +280,14 @@ def tai_lieu(r):
     ])
 
 
-def phu_luc(r):
+def appendix(r):
     r.h1_unnumbered("PHỤ LỤC: HƯỚNG DẪN CÀI ĐẶT VÀ CHẠY THỬ")
     r.h2("A. Khởi tạo CSDL")
     r.bullets([
         "**Windows** (SQL Server Express/Developer + SSMS): mở PowerShell tại thư mục mã nguồn, chạy "
         "`.\\scripts\\db_init.ps1` (hoặc `-Server \"localhost\\SQLEXPRESS\"`); hoặc mở lần lượt `database/00` → `07` trong SSMS.",
         "**macOS/Linux** (Docker): `docker compose up -d`, sau đó `SQL_PASSWORD='<mật khẩu sa>' ./scripts/db_init.sh --docker imcp-mssql`.",
-        f"Kiểm thử: chạy `database/12_tests.sql` - bảng kết quả cuối file phải có {len(kiem_thu())}/{len(kiem_thu())} ca PASSED.",
+        f"Kiểm thử: chạy `database/12_tests.sql` - bảng kết quả cuối file phải có {len(database_tests())}/{len(database_tests())} ca PASSED.",
     ])
     r.h2("B. Cài ứng dụng")
     r.bullets([

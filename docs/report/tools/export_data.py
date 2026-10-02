@@ -25,8 +25,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 DATA = ROOT / "docs" / "report" / "data"
 
-# Truy vấn minh họa dùng trong báo cáo (khóa = tên mục mà content/*.py đọc qua chung.ket_qua())
-TRUY_VAN = {
+# Truy vấn minh họa dùng trong báo cáo (khóa = tên mục mà content/*.py đọc qua common.query_results())
+QUERIES = {
     "tong_quan": "EXEC dbo.usp_Dashboard_Stats",
     "doanh_thu_ct": """SELECT pg.ProgramName, COUNT(DISTINCT en.StudentId) AS StudentCount, SUM(rc.Amount) AS Revenue
         FROM dbo.RECEIPT rc JOIN dbo.ENROLLMENT en ON en.EnrollmentId=rc.EnrollmentId
@@ -73,7 +73,7 @@ TRUY_VAN = {
         FROM dbo.AUDIT_LOG WHERE TableName=N'RECEIPT' ORDER BY LogId DESC""",
     "so_dong": """SELECT t.name AS TableName, SUM(p.rows) AS RecordCount FROM sys.tables t
         JOIN sys.partitions p ON p.object_id=t.object_id AND p.index_id IN (0,1) GROUP BY t.name ORDER BY t.name""",
-    # Số lượng đối tượng CSDL - báo cáo đọc qua chung.doi_tuong(), không ghi cứng con số trong văn bản
+    # Số lượng đối tượng CSDL - báo cáo đọc qua common.object_counts(), không ghi cứng con số trong văn bản
     "doi_tuong": """SELECT
         (SELECT COUNT(*) FROM sys.tables WHERE is_ms_shipped = 0) AS SoBang,
         (SELECT COUNT(*) FROM sys.sequences) AS SoSequence,
@@ -122,14 +122,14 @@ SCHEMA_SQL = """SELECT (
  FROM sys.tables t ORDER BY t.name FOR JSON PATH) AS j;"""
 
 
-class KetNoi:
+class SqlRunner:
     """Chạy file SQL bằng sqlcmd (trong container Docker hoặc trên máy); mật khẩu qua biến môi trường."""
 
     def __init__(self, docker, server, user, password):
         self.docker, self.server, self.user = docker, server, user
         self.env = dict(os.environ, SQLCMDPASSWORD=password)
 
-    def chay(self, sql_hoac_file, *tuy_chon):
+    def run(self, sql_hoac_file, *tuy_chon):
         if isinstance(sql_hoac_file, Path):
             file = sql_hoac_file
         else:
@@ -154,8 +154,8 @@ class KetNoi:
                 file.unlink(missing_ok=True)
 
 
-def xuat_schema(kn):
-    ma, out = kn.chay(SCHEMA_SQL, "-y", "0")   # -y 0: không cắt cột JSON dài (không dùng chung được với -h)
+def export_schema(runner):
+    ma, out = runner.run(SCHEMA_SQL, "-y", "0")   # -y 0: không cắt cột JSON dài (không dùng chung được với -h)
     if ma != 0:
         sys.exit("Lỗi khi đọc từ điển dữ liệu:\n" + out)
     than = "".join(d for d in out.splitlines() if d.strip() and d.strip() != "j" and not re.fullmatch(r"-+", d.strip()))
@@ -164,23 +164,23 @@ def xuat_schema(kn):
     print(f"schema.json: {len(du_lieu)} bảng, {sum(len(t['cot']) for t in du_lieu)} cột")
 
 
-def xuat_truy_van(kn):
-    ket_qua = {}
-    for ten, sql in TRUY_VAN.items():
-        ma, out = kn.chay(sql, "-W", "-s", "|")
+def export_queries(runner):
+    results = {}
+    for ten, sql in QUERIES.items():
+        ma, out = runner.run(sql, "-W", "-s", "|")
         dong = [d for d in out.splitlines() if d.strip()]
         if ma != 0 or len(dong) < 2:
             sys.exit(f"Lỗi truy vấn '{ten}':\n{out}")
-        ket_qua[ten] = {"cot": dong[0].split("|"), "dong": [d.split("|") for d in dong[2:]]}
-    (DATA / "query_results.json").write_text(json.dumps(ket_qua, ensure_ascii=False, indent=1) + "\n",
-                                                encoding="utf-8")
-    dt = dict(zip(ket_qua["doi_tuong"]["cot"], ket_qua["doi_tuong"]["dong"][0]))
-    print(f"query_results.json: {len(ket_qua)} truy vấn; đối tượng CSDL: "
+        results[ten] = {"cot": dong[0].split("|"), "dong": [d.split("|") for d in dong[2:]]}
+    (DATA / "query_results.json").write_text(json.dumps(results, ensure_ascii=False, indent=1) + "\n",
+                                             encoding="utf-8")
+    dt = dict(zip(results["doi_tuong"]["cot"], results["doi_tuong"]["dong"][0]))
+    print(f"query_results.json: {len(results)} truy vấn; đối tượng CSDL: "
           + ", ".join(f"{k}={v}" for k, v in dt.items()))
 
 
-def xuat_kiem_thu(kn):
-    ma, out = kn.chay(ROOT / "database" / "12_tests.sql", "-b", "-W", "-s", "|")
+def export_tests(runner):
+    ma, out = runner.run(ROOT / "database" / "12_tests.sql", "-b", "-W", "-s", "|")
     ca = sorted(d for d in out.splitlines() if re.match(r"^[TP]\d{2}\|", d))
     dat = [d for d in ca if "|PASSED|" in d]
     if ma != 0 or not ca or len(dat) != len(ca):
@@ -195,18 +195,18 @@ def main():
     ap.add_argument("--docker", help="tên container SQL Server (vd sql2022, imcp-mssql)")
     ap.add_argument("--server", default="localhost,1433", help="máy chủ khi dùng sqlcmd trên máy")
     ap.add_argument("--user", default="sa")
-    ap.add_argument("--chi", choices=["schema", "truy_van", "kiem_thu"], help="chỉ xuất một phần")
+    ap.add_argument("--only", choices=["schema", "queries", "tests"], help="chỉ xuất một phần")
     a = ap.parse_args()
     mat_khau = os.environ.get("SQL_PASSWORD")
     if not mat_khau:
         sys.exit("Hãy đặt biến môi trường SQL_PASSWORD (mật khẩu tài khoản sa).")
-    kn = KetNoi(a.docker, a.server, a.user, mat_khau)
-    if a.chi in (None, "schema"):
-        xuat_schema(kn)
-    if a.chi in (None, "truy_van"):
-        xuat_truy_van(kn)
-    if a.chi in (None, "kiem_thu"):
-        xuat_kiem_thu(kn)
+    runner = SqlRunner(a.docker, a.server, a.user, mat_khau)
+    if a.only in (None, "schema"):
+        export_schema(runner)
+    if a.only in (None, "queries"):
+        export_queries(runner)
+    if a.only in (None, "tests"):
+        export_tests(runner)
 
 
 if __name__ == "__main__":

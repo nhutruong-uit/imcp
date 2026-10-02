@@ -8,7 +8,7 @@ SQL = REPO / "database"
 IMG = REPORT_DIR / "images"
 DATA = REPORT_DIR / "data"
 
-THANH_VIEN = [
+MEMBERS = [
     {"ten": "Trương Quang Như", "mssv": "25540022",
      "mang": "Kiến trúc & lập trình ứng dụng (Clean Architecture, Qt, ODBC), đăng nhập theo vai trò, "
              "CI/CD, đóng gói; điều phối, tích hợp",
@@ -38,23 +38,23 @@ def schema():
     return json.loads((DATA / "schema.json").read_text(encoding="utf-8"))
 
 
-def ket_qua():
+def query_results():
     return json.loads((DATA / "query_results.json").read_text(encoding="utf-8"))
 
 
-def doi_tuong():
+def object_counts():
     """Số lượng đối tượng CSDL đếm từ CSDL thật (tools/export_data.py) - dùng thay cho con số ghi cứng."""
-    k = ket_qua()["doi_tuong"]
+    k = query_results()["doi_tuong"]
     d = {cot: int(gt) for cot, gt in zip(k["cot"], k["dong"][0])}
     d["SoRangBuoc"] = d["SoCheck"] + d["SoDefault"] + d["SoFK"] + d["SoPK"] + d["SoUnique"]
     return d
 
 
 # Kỳ vọng / thực tế trong bảng kết quả của 12_tests.sql (tiếng Anh) -> nhãn tiếng Việt cho báo cáo
-KET_QUA_VI = {"Rejected": "Từ chối", "Succeeded": "Thành công", "Wrong result": "Sai kết quả", "Error": "Lỗi"}
+RESULT_LABELS_VI = {"Rejected": "Từ chối", "Succeeded": "Thành công", "Wrong result": "Sai kết quả", "Error": "Lỗi"}
 
 
-def kiem_thu():
+def database_tests():
     """Các dòng TestId|Description|Expected|Actual|Verdict|Message của 12_tests.sql (Verdict = PASSED/FAILED)."""
     rows = []
     for line in (DATA / "database_tests.txt").read_text(encoding="utf-8").splitlines():

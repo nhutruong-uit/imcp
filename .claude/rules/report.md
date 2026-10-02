@@ -11,8 +11,8 @@ paths:
   (the next generation overwrites it). Run the whole pipeline with the `/imcp-update-report` skill.
 - Each chapter is owned by one member (assignment table in `content/front_matter.py`, `docs/PLAN.md`); say so in the
   result report when you change someone else's chapter.
-- **Never hard-code numbers** that come from the database: use `doi_tuong()` (counts of tables, procedures, triggers,
-  constraints...), `kiem_thu()` (test cases), `ket_qua()` (query results), `schema()` (data dictionary) from
+- **Never hard-code numbers** that come from the database: use `object_counts()` (counts of tables, procedures, triggers,
+  constraints...), `database_tests()` (test cases), `query_results()` (query results), `schema()` (data dictionary) from
   `content/common.py`. The data is regenerated with `docs/report/tools/export_data.py`.
 - SQL code in the report is extracted automatically from `database/*.sql` (`sql_object`, `sql_block`) - never copy code
   by hand into the content. C++ class names quoted in the report must match the code (`StudentService`, `Permissions`,

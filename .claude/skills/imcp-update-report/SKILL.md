@@ -40,11 +40,11 @@ step fails** and tell the user - the report must never show wrong test results. 
 ```bash
 SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" python3 docs/report/tools/export_data.py --docker sql2022
 ```
-Writes `data/schema.json`, `data/query_results.json` (including `doi_tuong`: number of tables, procedures,
-triggers, constraints...) and `data/database_tests.txt` (only written when every case passes). Look at
+Writes `data/schema.json`, `data/query_results.json` (including the `doi_tuong` entry read by `object_counts()`:
+number of tables, procedures, triggers, constraints...) and `data/database_tests.txt` (only written when every case passes). Look at
 `git diff --stat docs/report/data` and explain the changes (numbers that move with the date are normal; a changed
-structure/column means checking the chapters that use it). New demo query: add it to `TRUY_VAN` in
-`export_data.py`, then read it with `ket_qua()["name"]`.
+structure/column means checking the chapters that use it). New demo query: add it to `QUERIES` in
+`export_data.py`, then read it with `query_results()["name"]`.
 
 ## 3. Screenshots (when the UI or the displayed data changed)
 ```bash
@@ -59,7 +59,7 @@ then look at the image.
 
 ## 4. Edit the content (on request or when the design changed)
 - Edit the right chapter in `docs/report/content/` (common, front_matter, chapter1_2, chapter3, chapter4, chapter5, chapter6_8).
-- Numbers come from `doi_tuong()`, `kiem_thu()`, `ket_qua()`, `schema()` - never hard-coded.
+- Numbers come from `object_counts()`, `database_tests()`, `query_results()`, `schema()` - never hard-coded.
 - SQL code uses `sql_object(...)`/`sql_block(...)` to extract it from `database/*.sql`.
 - Find outdated descriptions: `grep -rn "<old object name/behavior>" docs/report/content`.
 

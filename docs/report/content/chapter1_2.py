@@ -1,8 +1,8 @@
 """Chương 1 - Tổng quan; Chương 2 - Phân tích yêu cầu."""
-from content.common import IMG, THANH_VIEN, doi_tuong
+from content.common import IMG, MEMBERS, object_counts
 
 
-def chuong1(r):
+def chapter1(r):
     r.h1("CHƯƠNG 1: TỔNG QUAN ĐỀ TÀI")
 
     r.h2("1.1. Lý do chọn đề tài")
@@ -82,14 +82,14 @@ def chuong1(r):
     r.p("Nhóm gồm 5 thành viên thuộc nhiều ngành khác nhau. Để mọi thành viên đều làm chủ được một phần kiến thức "
         "của môn học và trả lời được câu hỏi khi báo cáo, nhóm phân công theo **mảng nội dung** thay vì theo màn hình:")
     r.table(["Thành viên", "MSSV", "Phụ trách chính"],
-            [[tv["ten"] + (" (NT)" if i == 0 else ""), tv["mssv"], tv["mang"]] for i, tv in enumerate(THANH_VIEN)],
+            [[tv["ten"] + (" (NT)" if i == 0 else ""), tv["mssv"], tv["mang"]] for i, tv in enumerate(MEMBERS)],
             widths_cm=[3.8, 2.2, 10.0], caption="Phân công thành viên", size=10)
     r.p("Nhóm trưởng cùng công cụ AI Claude Code (được giảng viên cho phép) đảm nhận phần lập trình ứng dụng; các "
         "thành viên rà soát script CSDL, kiểm thử trên SSMS, góp ý qua Issue/Pull Request trên GitHub và hoàn thiện "
         "phần báo cáo của mình. Quy trình và lịch làm việc chi tiết nằm trong `docs/PLAN.md` của kho mã nguồn.")
 
 
-def chuong2(r):
+def chapter2(r):
     r.h1("CHƯƠNG 2: PHÂN TÍCH YÊU CẦU")
 
     r.h2("2.1. Quy trình quản lý thông tin của trung tâm")
@@ -98,7 +98,7 @@ def chuong2(r):
     r.table(["Bước", "Trong hệ thống QLTTTA", "Công cụ/đối tượng hiện thực"], [
         ["Thu thập", "Phiếu đăng ký học viên, bài kiểm tra đầu vào, phiếu thu, điểm danh, điểm số",
          "Form nhập liệu, thủ tục usp_*_Them, nhập XML/CSV"],
-        ["Tổ chức", f"Mô hình hóa thành {doi_tuong()['SoBang']} bảng quan hệ, dữ liệu bán cấu trúc lưu dạng XML",
+        ["Tổ chức", f"Mô hình hóa thành {object_counts()['SoBang']} bảng quan hệ, dữ liệu bán cấu trúc lưu dạng XML",
          "ERD, CD, mô hình quan hệ 3NF, XML Schema"],
         ["Xử lý / Chuyển đổi", "Tính học phí sau khuyến mãi, công nợ, điểm tổng kết, chuyên cần, lương; "
          "chuyển quan hệ ↔ XML", "Function, trigger, cursor, FOR XML, XQuery"],

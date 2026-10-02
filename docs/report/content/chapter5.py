@@ -1,9 +1,9 @@
 """Chương 5 - An ninh dữ liệu."""
-from content.common import IMG, KET_QUA_VI, SQL, ket_qua, kiem_thu
+from content.common import IMG, RESULT_LABELS_VI, SQL, query_results, database_tests
 from report_lib import sql_block, sql_object
 
 
-def chuong5(r):
+def chapter5(r):
     r.h1("CHƯƠNG 5: AN NINH DỮ LIỆU")
 
     # ------------------------------------------------------------------ 5.1
@@ -78,7 +78,7 @@ def chuong5(r):
         "hiện (`ORIGINAL_LOGIN()` - giữ đúng người thật kể cả khi đang giả lập quyền), bảng, hành động, khóa và **ảnh dữ "
         "liệu cũ/mới dạng XML**. Nhật ký được bảo vệ hai lớp: trigger INSTEAD OF UPDATE, DELETE và `DENY UPDATE, DELETE` "
         "cho cả role Quản lý.")
-    kq = ket_qua()["nhat_ky"]
+    kq = query_results()["nhat_ky"]
     r.table(kq["cot"], kq["dong"], widths_cm=[2.6, 2.4, 2.2, 1.6, 2.0, 5.2],
             caption="Một số dòng nhật ký lập phiếu thu", size=8.5)
 
@@ -118,8 +118,8 @@ def chuong5(r):
     r.h2("5.7. Kiểm thử phân quyền")
     r.p("Các ca kiểm thử phân quyền trong `12_tests.sql` giả lập từng người dùng bằng `EXECUTE AS USER ... REVERT`. "
         "Thông báo là kết quả thực tế của SQL Server:")
-    ca = [k for k in kiem_thu() if k[0].startswith("P")]
+    ca = [k for k in database_tests() if k[0].startswith("P")]
     dat = len([k for k in ca if k[4] == "PASSED"])
-    rows = [[k[0], k[1], KET_QUA_VI.get(k[2], k[2]), KET_QUA_VI.get(k[3], k[3]), k[5]] for k in ca]
+    rows = [[k[0], k[1], RESULT_LABELS_VI.get(k[2], k[2]), RESULT_LABELS_VI.get(k[3], k[3]), k[5]] for k in ca]
     r.table(["Mã", "Ca kiểm thử", "Kỳ vọng", "Thực tế", "Thông báo / kết quả"], rows,
             widths_cm=[1.1, 4.4, 1.8, 1.8, 6.9], caption=f"Kết quả kiểm thử phân quyền ({dat}/{len(ca)} đạt)", size=8.5)

@@ -1,11 +1,11 @@
 """Chương 3 - Thiết kế cơ sở dữ liệu."""
 import re
 
-from content.common import IMG, SQL, doi_tuong, schema
+from content.common import IMG, SQL, object_counts, schema
 from report_lib import sql_block
 
 # Ý nghĩa các cột (dùng cho từ điển dữ liệu)
-MO_TA = {
+COLUMN_DESCRIPTIONS = {
     "BranchId": "Mã chi nhánh", "BranchName": "Tên chi nhánh", "Address": "Địa chỉ", "Phone": "Số điện thoại",
     "Email": "Địa chỉ email", "FoundedOn": "Ngày thành lập", "RoomId": "Mã phòng học", "RoomName": "Tên phòng",
     "Capacity": "Sức chứa tối đa (người)", "RoomType": "Loại phòng", "EmployeeId": "Mã nhân viên", "FullName": "Họ và tên",
@@ -45,7 +45,7 @@ MO_TA = {
     "Status": "Trạng thái",
 }
 
-TAN_TU = {
+PREDICATES = {
     "BRANCH": "Mỗi chi nhánh có mã duy nhất, tên không trùng, địa chỉ, số điện thoại, email, ngày thành lập và trạng thái hoạt động.",
     "ROOM": "Mỗi phòng học thuộc đúng một chi nhánh, có tên (không trùng trong cùng chi nhánh), sức chứa và loại phòng.",
     "EMPLOYEE": "Mỗi nhân viên văn phòng làm việc tại một chi nhánh với một chức vụ (quản lý, giáo vụ, kế toán, tư vấn).",
@@ -69,12 +69,12 @@ TAN_TU = {
     "AUDIT_LOG": "Mỗi dòng nhật ký ghi một thao tác thay đổi dữ liệu nhạy cảm (điểm, phiếu thu), chỉ được ghi thêm.",
 }
 
-THU_TU_BANG = ["BRANCH", "ROOM", "EMPLOYEE", "TEACHER", "ACCOUNT", "STUDENT", "PROGRAM", "COURSE",
+TABLE_ORDER = ["BRANCH", "ROOM", "EMPLOYEE", "TEACHER", "ACCOUNT", "STUDENT", "PROGRAM", "COURSE",
                "GRADE_COMPONENT", "CLASS", "CLASS_SCHEDULE", "CLASS_SESSION", "PROMOTION", "ENROLLMENT", "RECEIPT", "ATTENDANCE",
                "GRADE", "PLACEMENT_TEST", "CERTIFICATE", "PAYROLL", "AUDIT_LOG"]
 
 
-def _dep_check(defn: str) -> str:
+def _pretty_check(defn: str) -> str:
     """Rút gọn định nghĩa CHECK / DEFAULT cho dễ đọc."""
     d = defn.strip()
     m = re.fullmatch(r"\(NOT \[(\w+)\] like '%\[\^0-9\]%' AND \(len\(\[\1\]\)>=\((\d+)\) AND len\(\[\1\]\)<=\((\d+)\)\)\)", d)
@@ -105,22 +105,22 @@ def _dep_check(defn: str) -> str:
     return re.sub(r"\s{2,}", " ", s)
 
 
-def _cot_cua_check(defn: str):
+def _check_columns(defn: str):
     return set(re.findall(r"\[(\w+)\]", defn))
 
 
-def tu_dien(r):
+def data_dictionary(r):
     sc = {t["bang"]: t for t in schema()}
-    for ten in THU_TU_BANG:
+    for ten in TABLE_ORDER:
         t = sc[ten]
         checks = t.get("check_") or []
         check_cot, check_bang = {}, []
         for ck in checks:
-            cols = _cot_cua_check(ck["dinh_nghia"])
+            cols = _check_columns(ck["dinh_nghia"])
             if len(cols) == 1:
-                check_cot.setdefault(next(iter(cols)), []).append(_dep_check(ck["dinh_nghia"]))
+                check_cot.setdefault(next(iter(cols)), []).append(_pretty_check(ck["dinh_nghia"]))
             else:
-                check_bang.append((ck["ten"], _dep_check(ck["dinh_nghia"])))
+                check_bang.append((ck["ten"], _pretty_check(ck["dinh_nghia"])))
         rows = []
         for c in t["cot"]:
             rb = []
@@ -131,13 +131,13 @@ def tu_dien(r):
             if c.get("identity_"):
                 rb.append("IDENTITY")
             if c.get("cong_thuc"):
-                rb.append("Tính toán: " + _dep_check(c["cong_thuc"]))
+                rb.append("Tính toán: " + _pretty_check(c["cong_thuc"]))
             if c.get("mac_dinh"):
-                md = _dep_check(c["mac_dinh"])
+                md = _pretty_check(c["mac_dinh"])
                 rb.append("Mặc định: " + ("sinh từ SEQUENCE" if "NEXT VALUE" in md.upper() else md))
             rb += check_cot.get(c["cot"], [])
             rows.append([c["cot"], c["kieu"].upper(), "" if c["cho_null"] else "Không",
-                         "\n".join(rb), MO_TA.get(c["cot"], "")])
+                         "\n".join(rb), COLUMN_DESCRIPTIONS.get(c["cot"], "")])
         r.table(["Tên cột", "Kiểu dữ liệu", "NULL", "Ràng buộc", "Ý nghĩa"], rows,
                 widths_cm=[3.0, 2.9, 1.3, 4.8, 4.0], caption=f"Từ điển dữ liệu bảng {ten}", size=9)
         if check_bang:
@@ -145,14 +145,14 @@ def tu_dien(r):
                 "; ".join(f"`{n}`: {d}" for n, d in check_bang) + ".", indent=False)
 
 
-def chuong3(r):
+def chapter3(r):
     r.h1("CHƯƠNG 3: THIẾT KẾ CƠ SỞ DỮ LIỆU")
 
     # ------------------------------------------------------------------ 3.1
     r.h2("3.1. Mô hình quan niệm - sơ đồ thực thể kết hợp (ERD)")
     r.p("Mô hình quan niệm được vẽ theo ký hiệu Chen như bài giảng: **hình chữ nhật** là thực thể (thuộc tính khóa "
         f"gạch dưới), **hình thoi** là mối kết hợp, bản số **(min,max)** ghi cạnh thực thể tham gia. Do có "
-        f"{doi_tuong()['SoBang']} thực thể, sơ đồ được tách thành 2 phân hệ dùng chung một số thực thể (tô xám ở sơ đồ "
+        f"{object_counts()['SoBang']} thực thể, sơ đồ được tách thành 2 phân hệ dùng chung một số thực thể (tô xám ở sơ đồ "
         "thứ hai). Tên thực thể, thuộc tính trong sơ đồ dùng đúng tên bảng, cột tiếng Anh của CSDL.")
     r.figures_landscape([
         (IMG / "diagrams" / "erd_1_organization_training.png", "ERD phân hệ tổ chức - nhân sự - đào tạo - lớp học"),
@@ -223,9 +223,9 @@ def chuong3(r):
 
     # ------------------------------------------------------------------ 3.4
     r.h2("3.4. Lược đồ quan hệ")
-    r.p(f"Lược đồ CSDL QLTTTA gồm {doi_tuong()['SoBang']} quan hệ (khóa chính gạch dưới). Mỗi quan hệ kèm tân từ mô tả ngữ nghĩa:")
+    r.p(f"Lược đồ CSDL QLTTTA gồm {object_counts()['SoBang']} quan hệ (khóa chính gạch dưới). Mỗi quan hệ kèm tân từ mô tả ngữ nghĩa:")
     sc = {t["bang"]: t for t in schema()}
-    for i, ten in enumerate(THU_TU_BANG, 1):
+    for i, ten in enumerate(TABLE_ORDER, 1):
         cols = []
         for c in sc[ten]["cot"]:
             ten_cot = c["cot"]
@@ -233,7 +233,7 @@ def chuong3(r):
                 ten_cot = "/" + ten_cot
             cols.append(f"__{ten_cot}__" if c.get("khoa_chinh") else ten_cot)
         r.p(f"**{i}. {ten}** (" + ", ".join(cols) + ")", indent=False, after=20)
-        r.p(f"*Tân từ:* {TAN_TU[ten]}", indent=True, after=100)
+        r.p(f"*Tân từ:* {PREDICATES[ten]}", indent=True, after=100)
 
     # ------------------------------------------------------------------ 3.5
     r.h2("3.5. Từ điển dữ liệu")
@@ -243,7 +243,7 @@ def chuong3(r):
         "`UQ_...`, `DF_...`; giá trị lưu trong CSDL cũng bằng tiếng Anh (`Studying`, `Passed`...), giao diện tiếng "
         "Việt hiển thị bản dịch. Mã nghiệp vụ "
         "(ST00001, CL0001, EN000001...) được sinh bởi **SEQUENCE** trong ràng buộc DEFAULT.")
-    tu_dien(r)
+    data_dictionary(r)
 
     # ------------------------------------------------------------------ 3.6
     r.h2("3.6. Chuẩn hóa lược đồ")
@@ -274,12 +274,12 @@ def chuong3(r):
         "thủ tục khi ràng buộc gắn với một thao tác nghiệp vụ.")
     r.table(["Loại RBTV", "Ví dụ trong đồ án", "Cài đặt"], [
         ["Miền giá trị", "0 ≤ Score ≤ 10; Capacity 1..100; Gender ∈ {Male, Female, Other}; SĐT 9-11 chữ số; Level ∈ {A1..C2}",
-         f"CHECK ({doi_tuong()['SoCheck']} ràng buộc)"],
+         f"CHECK ({object_counts()['SoCheck']} ràng buộc)"],
         ["Liên thuộc tính một quan hệ", "Dưới 18 tuổi phải có phụ huynh; EndTime > StartTime; giáo viên bản ngữ ≠ quốc tịch Việt Nam; "
          "DiscountAmount ≤ BaseTuition; khuyến mãi % ≤ 50", "CHECK nhiều cột"],
         ["Liên bộ một quan hệ", "Không trùng SĐT/email học viên; không trùng (StudentId, ClassId); mỗi GV một bảng lương/tháng; "
          "hai lớp không trùng phòng/giờ", "UNIQUE, filtered unique index, trigger CLASS_SCHEDULE"],
-        ["Khóa chính, khóa ngoại", f"{doi_tuong()['SoPK']} khóa chính, {doi_tuong()['SoFK']} khóa ngoại; xóa lan truyền "
+        ["Khóa chính, khóa ngoại", f"{object_counts()['SoPK']} khóa chính, {object_counts()['SoFK']} khóa ngoại; xóa lan truyền "
          "CLASS_SCHEDULE, CLASS_SESSION, ATTENDANCE", "PRIMARY KEY, FOREIGN KEY"],
         ["Liên thuộc tính nhiều quan hệ", "Phòng của lớp cùng chi nhánh; MaxStudents ≤ Capacity; cột điểm thuộc đúng khóa học; "
          "học viên điểm danh thuộc lớp của buổi", "Trigger"],
