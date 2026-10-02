@@ -121,17 +121,21 @@ macOS), CMake ≥ 3.25 for the presets.
 ```bash
 SQL_PASSWORD='<sa password>' ./scripts/test_all.sh --docker sql2022   # or drop --docker if sqlcmd is installed locally
 ```
-It runs, in order: re-initialize the database → `database/12_tests.sql` (39 cases: constraints, business rules,
-functions/triggers/cursors, XML, authorization) → `database/13_server_tests.sql` (18 server-level cases: backup and
-restore, BULK INSERT of the sample CSV, the distributed database of `11_distributed_demo.sql`, account lockout with real
-sign-ins) → build → unit tests → end-to-end GUI tests. It stops at the first
-failing step and exits with a non-zero code; details are written to `build/test-results/`. Add `--no-init` to skip the
+It runs, in order: change checks against `origin/develop` (`scripts/check_changes.sh`: format of the changed C++
+lines, commit messages, no build output / `.env` in the repository) → re-initialize the database →
+`database/12_tests.sql` (42 cases: constraints, business rules, functions/triggers/cursors, XML, authorization, schema
+conventions) → `database/13_server_tests.sql` (18 server-level cases: backup and restore, BULK INSERT of the sample
+CSV, the distributed database of `11_distributed_demo.sql`, account lockout with real sign-ins) → build → unit tests
+(incl. `tst_conventions`) → end-to-end GUI tests. It stops at the first failing step and exits with a non-zero code; details are written to `build/test-results/`. Add `--no-init` to skip the
 database re-initialization. Optional environment variables: `SQL_SERVER`, `SQL_USER`, `QLTTTA_E2E_PASSWORD` (demo
 account password, defaults to the one above), `PRESET` (CMake preset, default `macos-debug`, `linux-debug` on Linux),
-`EXTRA_CMAKE_ARGS` and `SQL_CSV_PATH` (see below).
+`EXTRA_CMAKE_ARGS`, `SQL_CSV_PATH` (see below) and `CHANGE_BASE` (base branch of the change checks).
+The change checks need `clang-format` and `git clang-format` of the team version (`.clang-format-version`):
+`brew install clang-format`, or on any OS `pip install clang-format==<version>` (Windows: also possible with the
+LLVM installer). Run them alone with `./scripts/check_changes.sh` (Windows: `.\scripts\check_changes.ps1`).
 A skipped end-to-end test counts as a failure, so a missing password or an unreachable database cannot pass silently.
 The last line is
-`ALL TESTS PASSED: database 57/57 cases (12_tests + 13_server_tests), unit tests + end-to-end GUI tests passed.`
+`ALL TESTS PASSED: database 60/60 cases (12_tests + 13_server_tests), unit tests + end-to-end GUI tests passed.`
 
 The server-level step needs a **sysadmin** login (`sa`, or a Windows account that is sysadmin) and the MSOLEDBSQL
 provider (installed with SQL Server 2019+, also in the Docker image): it creates scratch databases `QLTTTA_T_*`, backup
@@ -158,7 +162,8 @@ without error `50099` (the `Verdict` column of the summary shows `PASSED`/`FAILE
 > **Full tests (Linux + SQL Server)** starts SQL Server 2022 Developer in Docker and runs `test_all.sh` and then
 > `test_all.ps1`, i.e. the whole suite above including the end-to-end GUI test (Qt 6.8 + Microsoft ODBC Driver 18 on
 > Ubuntu), then the end-to-end test once more through FreeTDS, the driver bundled in the macOS `.dmg`. PRs into
-> `develop` do not trigger CI, which is why the PR checklist still asks you to paste the local `test_all` result.
+> `develop` run only the fast **Checks** workflow (`checks.yml`: change checks + build + unit tests on Linux, no
+> database), which is why the PR checklist still asks you to paste the local `test_all` result.
 
 ### End-to-end GUI tests (need a database loaded with the seed data)
 `tests/tst_e2e_gui.cpp` types and clicks on the real screens against the real database: login, every role opening

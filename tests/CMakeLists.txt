@@ -18,6 +18,10 @@ qlttta_add_test(tst_application qlttta_application)
 qlttta_add_test(tst_sqlerrormapper qlttta_infrastructure)
 qlttta_add_test(tst_sqlhelpers qlttta_infrastructure)
 
+# Repository conventions read from the files (no database): SQL syntax/headers, layers, scripts, numbers in the docs
+qlttta_add_test(tst_conventions)
+target_compile_definitions(tst_conventions PRIVATE QLTTTA_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+
 # Translations: English source strings, Vietnamese .ts/.qm, labels of database values and messages
 qlttta_add_test(tst_i18n qlttta_presentation qlttta_infrastructure)
 target_compile_definitions(tst_i18n PRIVATE
