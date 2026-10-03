@@ -23,7 +23,7 @@ Arguments: `all` (default) | `screens` | `windows` (fill in the Windows placehol
   ```
   | Changed | Sections of the guide to check |
   |---|---|
-  | `Permissions.cpp`, `Labels.cpp` (new/removed menu entry or role) | `chapters/common.py` `FEATURES`/`ROLES` (the build stops with a `KeyError` on an unknown feature), table 1.1, a section in chapter 5 + its screenshot |
+  | `Permissions.cpp`, `Labels.cpp` (new/removed menu entry or role) | table 1.1 follows by itself (`FEATURES` in `chapters/common.py` reads `Labels.cpp` and the translations; a `KeyError` means a menu name without translation), `ROLES`, a section in chapter 5 + its screenshot |
   | `src/presentation/**` (buttons, dialogs, columns, filters, export) | screenshots (step 2) and the text of chapters 4-5 |
   | `resources/translations/qlttta_vi.ts` | button/menu names quoted in **bold** (always the Vietnamese UI text), message tables 4.3, 5.2, 6.2 |
   | `src/domain/entities/*.cpp` (validation), `SqlErrorMapper.cpp`, `DbMessages.cpp` | rule/message tables of 5.2 and 6.2 |
