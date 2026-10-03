@@ -123,8 +123,8 @@ GO
       One row per enrollment that still owes money and is not Left. ContactPhone = the student's
       phone, or the guardian's phone when the student has none (COALESCE); DaysSinceEnrollment
       shows how old the debt is.
-      Used by: the Outstanding tuition screen (SqlListRepository), the payment form of the Tuition screen
-      (SqlTuitionRepository::outstanding), usp_Dashboard_Stats (TotalOutstanding), the sqlcmd export
+      Used by: the Outstanding tuition screen (SqlListRepository), the payment form of the Tuition collection
+      screen (SqlTuitionRepository::outstanding), usp_Dashboard_Stats (TotalOutstanding), the sqlcmd export
       example of 10_import_export.sql, the e2e GUI test; SELECT is GRANTed to rl_AcademicStaff and
       rl_Accountant.
       Concepts: view with a row filter, COALESCE, DATEDIFF. */
@@ -190,8 +190,8 @@ GO
 
 /* 7. vw_SessionDetails: detailed timetable, one row per session
       Room and teacher come from the session itself (CLASS_SESSION), not from the class.
-      Used by: the Timetable screen (SqlSessionRepository, one week at a time; its SessionId opens the
-      attendance and the session form); SELECT is GRANTed to rl_AcademicStaff.
+      Used by: the Timetable & attendance screen (SqlSessionRepository, one week at a time; its SessionId
+      opens the attendance and the session form); SELECT is GRANTed to rl_AcademicStaff.
       Concepts: multi-table join view. */
 IF OBJECT_ID(N'dbo.vw_SessionDetails', N'V') IS NOT NULL DROP VIEW dbo.vw_SessionDetails;
 GO

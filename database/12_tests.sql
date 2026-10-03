@@ -3148,8 +3148,8 @@ END CATCH;
 GO
 
 -- P24: an accountant searches receipts and enrollments
---      Proves the GRANTs behind the Tuition screen: rl_Accountant may run usp_Receipt_Search and usp_Enrollment_Search
---      (ownership chaining reads STUDENT, CLASS and EMPLOYEE for them) and gets rows.
+--      Proves the GRANTs behind the Tuition collection screen: rl_Accountant may run usp_Receipt_Search and
+--      usp_Enrollment_Search (ownership chaining reads STUDENT, CLASS and EMPLOYEE for them) and gets rows.
 BEGIN TRY
     DECLARE @Receipts24 TABLE (ReceiptId VARCHAR(10), PaidAtUtc DATETIME, EnrollmentId VARCHAR(10), StudentId VARCHAR(10),
                                StudentName NVARCHAR(100), ClassId VARCHAR(10), ClassName NVARCHAR(100),

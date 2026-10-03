@@ -460,7 +460,7 @@ GO
 /* T14. trg_ROOM_CheckClasses (rule across ROOM - CLASS, seen from the room)
         A room used by an active class (Enrolling / In progress) stays in the branch of that class and keeps a
         capacity of at least the class size: rule 2 of docs/DATABASE.md, which T1 checks when a CLASS row changes.
-        Fired by: usp_Room_Update (Branches screen) and a direct UPDATE of ROOM (managers keep UPDATE on the
+        Fired by: usp_Room_Update (Branches & rooms screen) and a direct UPDATE of ROOM (managers keep UPDATE on the
         catalog tables for SSMS, 06_security.sql); tested by tests T61 (a capacity below the size of a class in
         progress) and T86.
         Why a trigger: the rule reads the CLASS rows that use the room.
