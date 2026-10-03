@@ -47,6 +47,7 @@ def chapter5(r):
         ["usp_Receipt_*, usp_Payroll_Finalize", "✔", "DENY usp_Receipt_Create", "✔", "—"],
         ["usp_Attendance_Save, usp_Grade_Save", "✔", "✔", "DENY usp_Grade_Save", "✔ (chỉ lớp mình)"],
         ["usp_Account_Create/_Lock, usp_Backup", "✔", "—", "—", "—"],
+        ["INSERT/UPDATE bảng danh mục (thêm DELETE GRADE_COMPONENT)", "✔ (trigger bảo vệ)", "—", "—", "—"],
         ["DELETE RECEIPT; UPDATE/DELETE AUDIT_LOG", "DENY", "—", "—", "—"],
     ], widths_cm=[4.6, 2.4, 2.8, 3.0, 3.2], caption="Ma trận phân quyền theo role", size=9)
     r.code("Trích 06_security.sql - GRANT/DENY cho role giáo viên và phân quyền mức cột",
@@ -55,7 +56,11 @@ def chapter5(r):
            "    TO rl_AcademicStaff;")
     r.p("`DENY` được ưu tiên hơn `GRANT` khi một user thuộc nhiều role; `REVOKE` chỉ thu hồi một GRANT/DENY đã cấp (trở "
         "về trạng thái chưa xác định). Vì vậy dữ liệu nhạy cảm như bảng lương được `DENY` tường minh cho giáo vụ, và "
-        "ngay cả role Quản lý cũng bị `DENY DELETE` trên RECEIPT để bảo vệ chứng từ tài chính.")
+        "ngay cả role Quản lý cũng bị `DENY DELETE` trên RECEIPT để bảo vệ chứng từ tài chính. Quyền ghi trực tiếp lên bảng "
+        "duy nhất của role nghiệp vụ là quyền của Quản lý trên các bảng danh mục (chi nhánh, phòng, khóa học, cột điểm...), "
+        "dùng để quản lý danh mục trong SSMS vì ứng dụng chưa có màn hình này; những quy tắc mà thao tác đó có thể phá vỡ "
+        "được trigger bảo vệ: `trg_ROOM_CheckClasses` (phòng vẫn phù hợp với lớp đang dùng) và `trg_GRADE_COMPONENT_Lock` "
+        "(không đổi cột điểm của khóa học đã có lớp được đánh giá).")
 
     # ------------------------------------------------------------------ 5.3
     r.h2("5.3. View bảo mật")

@@ -27,6 +27,7 @@ COLUMN_DESCRIPTIONS = {
     "EndTime": "Giờ kết thúc", "SessionId": "Mã buổi học", "SessionNo": "Buổi thứ", "SessionDate": "Ngày học",
     "PromotionId": "Mã khuyến mãi", "PromotionName": "Tên khuyến mãi", "DiscountType": "Phần trăm / số tiền",
     "DiscountValue": "Giá trị giảm", "StartDate": "Ngày bắt đầu (khai giảng lớp / hiệu lực khuyến mãi)", "EnrollmentId": "Mã lượt ghi danh", "EnrolledOn": "Ngày ghi danh",
+    "ClassJoinedOn": "Ngày bắt đầu học ở lớp hiện tại (ngày ghi danh hoặc ngày chuyển lớp)",
     "BaseTuition": "Học phí của lớp tại thời điểm ghi danh", "DiscountAmount": "Số tiền được giảm",
     "TuitionDue": "Học phí phải đóng (cột tính toán)", "AmountPaid": "Tổng tiền đã đóng (dẫn xuất, trigger duy trì)",
     "FinalGrade": "Điểm tổng kết", "Result": "Kết quả cuối khóa", "EnrolledByEmployeeId": "Nhân viên thực hiện ghi danh",
@@ -282,12 +283,14 @@ def chapter3(r):
          "hai lớp không trùng phòng/giờ", "UNIQUE, filtered unique index, trigger CLASS_SCHEDULE"],
         ["Khóa chính, khóa ngoại", f"{object_counts()['PrimaryKeyCount']} khóa chính, {object_counts()['ForeignKeyCount']} khóa ngoại; xóa lan truyền "
          "CLASS_SCHEDULE, CLASS_SESSION, ATTENDANCE", "PRIMARY KEY, FOREIGN KEY"],
-        ["Liên thuộc tính nhiều quan hệ", "Phòng của lớp cùng chi nhánh; MaxStudents ≤ Capacity; cột điểm thuộc đúng khóa học; "
-         "học viên điểm danh thuộc lớp của buổi", "Trigger"],
+        ["Liên thuộc tính nhiều quan hệ", "Phòng của lớp cùng chi nhánh; MaxStudents ≤ Capacity (kiểm tra khi sửa lớp và khi "
+         "sửa phòng); cột điểm thuộc đúng khóa học; học viên điểm danh thuộc lớp của buổi", "Trigger"],
         ["Liên bộ nhiều quan hệ", "AmountPaid = Σ RECEIPT.Amount hợp lệ; sĩ số ≤ MaxStudents; chỉ cấp chứng nhận khi Đạt; "
          "Σ Weight của khóa = 100%", "Trigger, thủ tục + view kiểm tra"],
-        ["Do chu trình / nghiệp vụ thời gian", "Ghi danh cần khóa tiên quyết hoặc điểm đầu vào; buổi đã dạy không được sửa; "
-         "không sửa điểm khi lớp đã kết thúc", "Thủ tục, trigger"],
+        ["Do chu trình / nghiệp vụ thời gian", "Ghi danh cần khóa tiên quyết hoặc điểm đầu vào; buổi chỉ được đánh dấu đã dạy "
+         "từ ngày học và không được sửa sau đó; lớp đi theo vòng đời Đang tuyển sinh → Đang học → Đã kết thúc hoặc Đã hủy, "
+         "không mở lại; không sửa điểm, điểm danh, buổi học khi lớp đã kết thúc; cột điểm của khóa đã có lớp được đánh giá "
+         "không được đổi", "Thủ tục, trigger"],
     ], widths_cm=[3.4, 8.8, 3.8], caption="Phân loại ràng buộc toàn vẹn", size=9.5)
 
     r.h3("3.7.1. RBTV liên bộ nhiều quan hệ: số tiền đã đóng")
@@ -347,5 +350,5 @@ def chapter3(r):
         ["Ràng buộc", "PK, FK, CHECK mạnh", "XSD kiểm tra cấu trúc/kiểu; không có FK tới phần tử XML"],
         ["Truy vấn", "SQL, phép kết, chỉ mục B-tree", "XPath/XQuery (.value, .query, .nodes, .exist), XML index"],
         ["Phù hợp", "Dữ liệu giao dịch: ghi danh, phiếu thu, điểm", "Hồ sơ, tài liệu mô tả, nhật ký, trao đổi dữ liệu"],
-        ["Trong đồ án", "19 bảng nghiệp vụ", "Đề cương, hồ sơ giáo viên, nhật ký, xuất/nhập học viên"],
+        ["Trong đồ án", f"{object_counts()['TableCount']} bảng quan hệ", "Đề cương, hồ sơ giáo viên, nhật ký, xuất/nhập học viên"],
     ], widths_cm=[2.8, 6.2, 7.0], caption="So sánh mô hình quan hệ và mô hình XML", size=10)

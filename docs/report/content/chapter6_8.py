@@ -22,8 +22,8 @@ def chapter6(r):
         ["app", "Composition root: khởi tạo đối tượng, nối các tầng", "main.cpp, AppContainer"],
     ], widths_cm=[2.6, 6.6, 6.8], caption="Các tầng của ứng dụng", size=9.5)
     r.p("Lợi ích cụ thể: toàn bộ SQL nằm ở tầng infrastructure nên dễ đối chiếu với thủ tục trong CSDL; use case được "
-        "**kiểm thử đơn vị bằng repository giả** (không cần SQL Server); nếu đổi hệ quản trị CSDL chỉ cần viết lại các lớp "
-        "`Sql*Repository`. Quy tắc nghiệp vụ được kiểm tra **hai lớp**: tại ứng dụng để phản hồi nhanh, và tại CSDL "
+        "**kiểm thử đơn vị bằng repository giả** (không cần SQL Server); nếu đổi hệ quản trị CSDL chỉ cần viết lại tầng "
+        "infrastructure (các lớp `Sql*Repository` và phần kết nối, ánh xạ lỗi riêng của SQL Server). Quy tắc nghiệp vụ được kiểm tra **hai lớp**: tại ứng dụng để phản hồi nhanh, và tại CSDL "
         "(CHECK/trigger/thủ tục) là nguồn sự thật cuối cùng.")
 
     r.h2("6.2. Đăng nhập và menu theo vai trò")
@@ -164,8 +164,8 @@ class Enrollment (extent Enrollments key enrollmentId) {
     ])
     r.code("View phân tán tại trạm trung tâm (11_distributed_demo.sql)",
            sql_block(SQL, "11_distributed_demo.sql", "CREATE VIEW dbo.vw_Student_AllBranches", "GO"))
-    r.p("Yêu cầu khi triển khai thật: giao dịch ghi danh/chuyển lớp giữa hai chi nhánh cần giao thức hai pha (2PC, "
-        "MSDTC); danh mục nhân bản cần cơ chế đồng bộ (replication) một chiều từ trạm trung tâm; nếu mất kết nối, chi "
+    r.p("Yêu cầu khi triển khai thật: chuyển lớp luôn ở cùng chi nhánh nên không cần giao dịch phân tán; thao tác nào "
+        "ghi vào dữ liệu của hai chi nhánh cùng lúc mới cần giao thức hai pha (2PC, MSDTC); danh mục nhân bản cần cơ chế đồng bộ (replication) một chiều từ trạm trung tâm; nếu mất kết nối, chi "
         "nhánh vẫn hoạt động với dữ liệu cục bộ.")
 
     r.h2("7.3. CSDL phi quan hệ (NoSQL)")

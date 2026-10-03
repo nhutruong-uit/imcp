@@ -32,8 +32,8 @@ T10|Score outside the 0-10 domain|Rejected|Rejected|PASSED|The INSERT statement 
 T11|Changing the audit log|Rejected|Rejected|PASSED|The audit log is append-only; it cannot be changed or deleted.
 T12|Certificate for a student who failed|Rejected|Rejected|PASSED|Certificates are only issued to students who passed.
 T13|Changing the time of a taught session|Rejected|Rejected|PASSED|The date, time, room and teacher of a taught session cannot be changed.
-T14|Transfer to a class of another course|Rejected|Rejected|PASSED|A student can only be transferred to an open class of the same course.
-T15|Valid enrollment with a promotion|Succeeded|Succeeded|PASSED|ID EN000091, tuition due 3,300,000 VND (expected 3,300,000)
+T14|Transfer to a class of another course|Rejected|Rejected|PASSED|A student can only be transferred to an open class of the same course and branch.
+T15|Valid enrollment with a promotion|Succeeded|Succeeded|PASSED|ID EN000095, tuition due 3,300,000 VND (expected 3,300,000)
 T16|fn_Classification: thresholds at 9 / 8 / 6.5 / 5|Succeeded|Succeeded|PASSED|11/11 grades (NULL included) classified correctly
 T17|fn_FinalGrade: weighted grade, NULL when a score is missing|Succeeded|Succeeded|PASSED|22/22 enrollments match; one score of EN000001 removed => NULL
 T18|fn_AttendanceRate: late counts as present, excused absence does not|Succeeded|Succeeded|PASSED|2 present + 1 late out of 24 taught sessions => 12.50% (expected 12.50%)
@@ -48,9 +48,9 @@ T26|Student XML export/import, duplicates skipped|Succeeded|Succeeded|PASSED|Exp
 T27|Course syllabus that violates the XML schema|Rejected|Rejected|PASSED|XML Validation: Invalid content. Expected element(s): 'Textbook'. Found: element 'ElementNotInSchema' instead. Location: /*:Syllabus[1]/*:ElementNotInSchema[1].
 T28|Naming conventions of tables, columns, objects, constraints and indexes|Succeeded|Succeeded|PASSED|Every name follows the conventions
 T29|Least privilege: table permissions of the roles = 06_security.sql|Succeeded|Succeeded|PASSED|42 expected permissions, no extra and none missing
-T30|Procedures/triggers set NOCOUNT ON, no SELECT * in modules|Succeeded|Succeeded|PASSED|81 modules checked, all follow the conventions
+T30|Procedures/triggers set NOCOUNT ON, no SELECT * in modules|Succeeded|Succeeded|PASSED|85 modules checked, all follow the conventions
 T31|Receipt at 00:30 center time counts in the center's day and month|Succeeded|Succeeded|PASSED|paid 2024-01-31 17:30 UTC: fn_MonthlyRevenue Jan/Feb = 0/1, vw_MonthlyRevenue Feb = 1, usp_Report_Revenue rows on 31 Jan = 0, revenue on 1 Feb = 100000
-T32|Instants in UTC (...Utc), no server-local clock, DATE defaults in center time|Succeeded|Succeeded|PASSED|81 modules and 44 defaults checked; center offset +07:00
+T32|Instants in UTC (...Utc), no server-local clock, DATE defaults in center time|Succeeded|Succeeded|PASSED|85 modules and 45 defaults checked; center offset +07:00
 T33|Prerequisite course required when no minimum score is set|Rejected|Rejected|PASSED|The student does not meet the entry requirement of course IE-65 (complete the prerequisite course first).
 T34|Transfer into a class that clashes with another class of the student|Rejected|Rejected|PASSED|The class schedule clashes with another class the student is taking.
 T35|Re-evaluation: certificates follow the corrected results|Succeeded|Succeeded|PASSED|CL0001: EN000001 failed and lost the certificate = 1, EN000002 re-graded 10 = 1; 9 certificates for 9 passed; 0 mismatch(es)
@@ -66,3 +66,27 @@ T44|Changing the attendance of a finished class|Rejected|Rejected|PASSED|The cla
 T45|Locking an account without saying lock or unlock|Rejected|Rejected|PASSED|Choose whether to lock or unlock the account.
 T46|Transfer: the tuition of the new class applies|Succeeded|Succeeded|PASSED|BaseTuition 4,200,000, discount 500,000, due 3,700,000 (expected 4,200,000 / 500,000)
 T47|Transfer when more was paid than the new tuition|Rejected|Rejected|PASSED|The student has paid more than the tuition of the new class; cancel a receipt before the transfer.
+T48|fn_AttendanceRate: only sessions since the student joined the class count|Succeeded|Succeeded|PASSED|EN000023 joined on 2026-08-27, present at 11 sessions => 100.00%
+T49|fn_RecommendCourse: no course that needs its prerequisite|Succeeded|Succeeded|PASSED|score 0.5 => CM-A1 (expected CM-A1)
+T50|Marking a future session as taught|Rejected|Rejected|PASSED|A session can only be marked as taught on or after its date.
+T51|Setting a taught session back to Scheduled|Rejected|Rejected|PASSED|A taught session cannot change its status.
+T52|Resuming an enrollment that clashes with another class|Rejected|Rejected|PASSED|The class schedule clashes with another class the student is taking.
+T53|Changing the status of a completed enrollment|Rejected|Rejected|PASSED|Only an enrollment that is not completed can be set to Studying, On hold or Left.
+T54|Reopening a finished class|Rejected|Rejected|PASSED|A class can only move from Enrolling to In progress, or from Enrolling or In progress to Cancelled.
+T55|usp_Class_UpdateStatus: a cancelled class closes its enrollments|Succeeded|Succeeded|PASSED|CL0008 => Cancelled, 2 Left, 0 still open
+T56|Changing a session of a finished class|Rejected|Rejected|PASSED|The sessions of a finished or cancelled class cannot be changed.
+T57|Evaluating a class with sessions still scheduled|Rejected|Rejected|PASSED|The class still has scheduled sessions; mark them as taught or cancelled first.
+T58|usp_Payroll_Finalize: a row without taught sessions is removed|Succeeded|Succeeded|PASSED|TE0002: 0 row(s) left for month 9/2026
+T59|usp_Student_ImportXml: duplicates inside the file, empty name|Succeeded|Succeeded|PASSED|1 imported, 2 skipped; kept: T59 First
+T60|Teacher younger than 18 when hired|Rejected|Rejected|PASSED|The UPDATE statement conflicted with the CHECK constraint "CK_TEACHER_Age". The conflict occurred in database "QLTTTA", table "dbo.TEACHER".
+T61|Room capacity below the size of an active class|Rejected|Rejected|PASSED|The room is used by an active class: it must stay in the branch of the class and hold its maximum size.
+T62|Account for an employee who has left|Rejected|Rejected|PASSED|An account cannot be created for an employee or teacher who has left.
+T63|fn_FinalGrade: one rounding at the end (4.994959 => 4.99)|Succeeded|Succeeded|PASSED|EN000023 => 4.99
+T64|usp_Enrollment_Create: a valid promotion code on a free class|Succeeded|Succeeded|PASSED|ST00070 => EN000102, tuition due 0
+T65|usp_Enrollment_Create: admitted on the score or on the prerequisite|Succeeded|Succeeded|PASSED|ST00070 (score 6.0) => EN000103; ST00010 (passed IE-FND, score 1.0) => EN000104
+T66|ID sequences end at the largest number their code can hold|Succeeded|Succeeded|PASSED|8 sequences checked
+T67|usp_Dashboard_Stats: students with a Studying enrollment|Succeeded|Succeeded|PASSED|62 active students (expected 62; STUDENT rows with status Studying: 62)
+T68|New grade weight for a course with evaluated classes|Rejected|Rejected|PASSED|The grade components of a course with evaluated classes cannot be changed; open a new course instead.
+T69|Transfer: attendance of the new class counts from the transfer day|Succeeded|Succeeded|PASSED|EN000034 joined on 2026-10-04 after 4 taught sessions => NULL (nothi
+T70|Transfer to a class of another branch|Rejected|Rejected|PASSED|A student can only be transferred to an open class of the same course and branch.
+T71|usp_Class_EvaluateResults: students without another class become Completed|Succeeded|Succeeded|PASSED|CL0001: 4 Completed, 8 still Studying, 0 wrong

@@ -135,7 +135,7 @@
     "definition": "([Status]=N'Unexcused absence' OR [Status]=N'Excused absence' OR [Status]=N'Late' OR [Status]=N'Present')"
    }
   ],
-  "row_count": 1412
+  "row_count": 1424
  },
  {
   "table_name": "AUDIT_LOG",
@@ -1038,6 +1038,16 @@
    },
    {
     "position": 5,
+    "name": "ClassJoinedOn",
+    "data_type": "date",
+    "is_nullable": false,
+    "is_identity": false,
+    "is_computed": false,
+    "is_primary_key": false,
+    "default_value": "(CONVERT([date],switchoffset(sysdatetimeoffset(),'+07:00')))"
+   },
+   {
+    "position": 6,
     "name": "BaseTuition",
     "data_type": "decimal(12,0)",
     "is_nullable": false,
@@ -1046,7 +1056,7 @@
     "is_primary_key": false
    },
    {
-    "position": 6,
+    "position": 7,
     "name": "PromotionId",
     "data_type": "varchar(10)",
     "is_nullable": true,
@@ -1056,7 +1066,7 @@
     "referenced_table": "PROMOTION"
    },
    {
-    "position": 7,
+    "position": 8,
     "name": "DiscountAmount",
     "data_type": "decimal(12,0)",
     "is_nullable": false,
@@ -1066,7 +1076,7 @@
     "default_value": "((0))"
    },
    {
-    "position": 8,
+    "position": 9,
     "name": "TuitionDue",
     "data_type": "decimal(13,0)",
     "is_nullable": true,
@@ -1076,7 +1086,7 @@
     "formula": "([BaseTuition]-[DiscountAmount])"
    },
    {
-    "position": 9,
+    "position": 10,
     "name": "AmountPaid",
     "data_type": "decimal(12,0)",
     "is_nullable": false,
@@ -1086,7 +1096,7 @@
     "default_value": "((0))"
    },
    {
-    "position": 10,
+    "position": 11,
     "name": "Status",
     "data_type": "nvarchar(20)",
     "is_nullable": false,
@@ -1096,7 +1106,7 @@
     "default_value": "(N'Studying')"
    },
    {
-    "position": 11,
+    "position": 12,
     "name": "FinalGrade",
     "data_type": "decimal(4,2)",
     "is_nullable": true,
@@ -1105,7 +1115,7 @@
     "is_primary_key": false
    },
    {
-    "position": 12,
+    "position": 13,
     "name": "Result",
     "data_type": "nvarchar(20)",
     "is_nullable": true,
@@ -1114,7 +1124,7 @@
     "is_primary_key": false
    },
    {
-    "position": 13,
+    "position": 14,
     "name": "EnrolledByEmployeeId",
     "data_type": "varchar(10)",
     "is_nullable": true,
@@ -1132,6 +1142,10 @@
    {
     "name": "CK_ENROLLMENT_BaseTuition",
     "definition": "([BaseTuition]>=(0))"
+   },
+   {
+    "name": "CK_ENROLLMENT_ClassJoinedOn",
+    "definition": "([ClassJoinedOn]>=[EnrolledOn])"
    },
    {
     "name": "CK_ENROLLMENT_DiscountAmount",
@@ -2011,7 +2025,7 @@
    },
    {
     "name": "CK_STUDENT_Status",
-    "definition": "([Status]=N'Dropped out' OR [Status]=N'On hold' OR [Status]=N'Studying' OR [Status]=N'Prospective')"
+    "definition": "([Status]=N'Completed' OR [Status]=N'Dropped out' OR [Status]=N'On hold' OR [Status]=N'Studying' OR [Status]=N'Prospective')"
    }
   ],
   "row_count": 72
@@ -2152,6 +2166,10 @@
    }
   ],
   "checks": [
+   {
+    "name": "CK_TEACHER_Age",
+    "definition": "(dateadd(year,(18),[DateOfBirth])<=[HireDate])"
+   },
    {
     "name": "CK_TEACHER_Degree",
     "definition": "([Degree]=N'PhD' OR [Degree]=N'Master' OR [Degree]=N'Bachelor')"
