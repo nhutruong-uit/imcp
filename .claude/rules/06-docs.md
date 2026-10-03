@@ -36,6 +36,11 @@ Everything here is **English**.
 - ✔ `docs/data-map.html` copies the schema into its constants `TABLES`, `FKS` and `TRIGGERS`; `tst_conventions`
   (`docs_dataMap_matchesScripts`) compares them with `01_tables.sql` and `05_triggers.sql`. The page computes its
   counts from these constants - never type a count into it.
+- ✔ The business flow and app flow of `docs/data-map.html` are written by hand, but `tst_conventions` checks their
+  skeleton: every `usp_`/`vw_`/`fn_`/`trg_`/`seq_`/`CK_`/`UQ_`/`UX_`/`IX_` name exists in `database/01-05`
+  (`docs_dataMapNames_existInScripts`) and `SCREENS` is the menu of `Permissions::allowedFeatures` with the names
+  of `Labels::feature` (`docs_dataMapScreens_matchPermissions`). Whether an explanation is still right is up to
+  the author and the reviewer.
 
 ## Style
 - Short sentences, imperative for instructions; identifiers, paths and commands in backticks; relative links

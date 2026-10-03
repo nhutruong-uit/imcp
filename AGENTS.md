@@ -85,7 +85,7 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
   `13_server_tests.sql` for server-level features) registered in `#Expected`. Never change the expectation of an
   existing case to make the tests green unless the specification really changed - then say so in the PR.
 - **Enforced by tests** (`test_all`, CI): `tst_conventions` (SQL syntax and headers, layers, SQL location, scripts,
-  numbers quoted in the docs, the schema copy in `docs/data-map.html`), `12_tests.sql` T28-T30 and T32 (naming,
+  numbers quoted in the docs, the data map `docs/data-map.html`), `12_tests.sql` T28-T30 and T32 (naming,
   permission matrix, `SET NOCOUNT ON`, UTC times), `tst_i18n` (translations and database messages), `check_changes`
   (format of the changed lines, commit messages). Fix the code, not the check.
 - **Git**: default branch `develop`; work on `feature/...`/`fix/...`/`docs/...`/`chore/...` branches and PR into
