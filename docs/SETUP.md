@@ -206,8 +206,20 @@ QLTTTA_E2E_PASSWORD='Demo@2026' ctest --preset macos-debug -R e2e --output-on-fa
 `QLTTTA_SERVER` selects another SQL Server (default `localhost,1433`).
 
 ### Building installers on your own machine
-- macOS: `./scripts/package-macos.sh` → `dist/QLTTTA-x.y.z-macos-arm64.dmg`
-- Windows: additionally install Inno Setup 6 and run `.\scripts\package-windows.ps1` → `dist\...-setup.exe` and `...-portable.zip`
+One command builds the installer of the operating system it runs on (`scripts/package`, which calls
+`package-macos.sh` or `package-windows.ps1`):
+```bash
+./scripts/package.sh                      # macOS -> dist/QLTTTA-x.y.z-macos-<arch>.dmg
+```
+```powershell
+.\scripts\package.ps1                     # Windows -> dist\QLTTTA-x.y.z-windows-x64-setup.exe and ...-portable.zip
+```
+- Requirements: the toolchain of section 3 (macOS: `brew install qt qt-unixodbc unixodbc freetds cmake ninja`;
+  Windows: Qt MinGW with `QT_ROOT_DIR`, CMake and Ninja on PATH), plus **Inno Setup 6** on Windows for the setup.exe
+  (without it only the portable ZIP is built). Linux has no installer.
+- Another Qt installation: `--qt-dir <folder>` (`.sh`) or `-QtDir <folder>` (`.ps1`). On macOS, if CMake reports a
+  broken compiler, add `EXTRA_CMAKE_ARGS="-DCMAKE_OSX_SYSROOT=<Xcode SDK>"` in front of the command. If PowerShell
+  blocks scripts: `powershell -ExecutionPolicy Bypass -File scripts\package.ps1`.
 
 CI does the same when something is merged into `main` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
