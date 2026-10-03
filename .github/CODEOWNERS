@@ -1,0 +1,4 @@
+# Reviews required to merge into develop and main must come from the team lead.
+# The rulesets protect-develop / protect-main require a code owner review; only the repository
+# admin can bypass them (to merge their own PRs, since an author cannot approve their own PR).
+* @nhutruong-uit

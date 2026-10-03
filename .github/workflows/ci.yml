@@ -1,8 +1,8 @@
 # CI: build + unit tests (incl. translations) on macOS and Windows, plus the FULL test suite on Linux
 # (scripts/test_all.sh and scripts/test_all.ps1 against SQL Server 2022 in Docker: database tests, server-level
 # tests, unit tests and end-to-end GUI tests). Runs only:
-#   - when something is merged into develop (GitHub raises a push to develop; a direct push to develop also runs);
-#   - when a PR into main is opened/updated: REQUIRED, main's branch protection needs the three jobs green to merge;
+#   - when something is merged into develop (GitHub raises a push to develop; the ruleset rejects a direct push);
+#   - when a PR into main is opened/updated: REQUIRED, the ruleset of main needs the three jobs green to merge;
 #   - manually for any branch: gh workflow run CI --ref <branch> -f reason="<what to check>"
 #     (or Actions tab > CI > Run workflow); the run is listed as "Manual CI on <branch>: <reason>".
 # Pushes to feature/fix branches do NOT run CI; PRs into develop only run the fast checks.yml (no database):

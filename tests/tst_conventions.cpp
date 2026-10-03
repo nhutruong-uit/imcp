@@ -142,6 +142,15 @@ int numberIn(const QString& doc, const QString& pattern, int group = 1) {
 QString joined(const QStringList& problems) {
     return QStringLiteral("\n") + problems.join(QLatin1Char('\n'));
 }
+
+// docs/data-map.html: the text of one JavaScript constant, from its start ("const TABLES = {") to its closing
+// line ("\n};" or "\n];"); empty when it is missing
+QString dataMapConstant(const QString& start, const QString& end) {
+    const QString page = readText(QStringLiteral("docs/data-map.html"));
+    const qsizetype from = page.indexOf(start);
+    const qsizetype to = from < 0 ? -1 : page.indexOf(end, from);
+    return to < 0 ? QString() : page.mid(from, to - from);
+}
 } // namespace
 
 class TestConventions : public QObject {
@@ -439,20 +448,13 @@ private slots:
             scripts << m.captured(2) + QStringLiteral(": ") + m.captured(1);
         }
 
-        // The page: the text of one constant, from "const NAME = {" to the closing line "};" (or "];")
-        const QString page = readText(QStringLiteral("docs/data-map.html"));
-        auto constant = [&](const QString& start, const QString& end) {
-            const qsizetype from = page.indexOf(start);
-            const qsizetype to = from < 0 ? -1 : page.indexOf(end, from);
-            return to < 0 ? QString() : page.mid(from, to - from);
-        };
         QSet<QString> mapped;
         // TABLES: NAME: { g: '...', ..., cols: ['Column|TYPE|...', ...]
         const QRegularExpression pageTable(QStringLiteral("\\b([A-Z_]+): \\{ g: '\\w+',.*?cols: \\[(.*?)\\]"),
                                            QRegularExpression::DotMatchesEverythingOption);
         const QRegularExpression pageColumn(QStringLiteral("'(\\w+)\\|"));
-        for (auto t =
-                 pageTable.globalMatch(constant(QStringLiteral("const TABLES = {"), QStringLiteral("\n};")));
+        for (auto t = pageTable.globalMatch(
+                 dataMapConstant(QStringLiteral("const TABLES = {"), QStringLiteral("\n};")));
              t.hasNext();) {
             const auto m = t.next();
             mapped << m.captured(1);
@@ -461,7 +463,8 @@ private slots:
         }
         // FKS: ['CHILD', 'Column', 'PARENT', 'Column', ...]
         const QRegularExpression pageKey(QStringLiteral("\\['([A-Z_]+)', '(\\w+)', '([A-Z_]+)', '(\\w+)'"));
-        for (auto f = pageKey.globalMatch(constant(QStringLiteral("const FKS = ["), QStringLiteral("\n];")));
+        for (auto f = pageKey.globalMatch(
+                 dataMapConstant(QStringLiteral("const FKS = ["), QStringLiteral("\n];")));
              f.hasNext();) {
             const auto k = f.next();
             mapped << QStringLiteral("%1.%2 -> %3.%4")
@@ -471,7 +474,7 @@ private slots:
         const QRegularExpression pageTrigger(QStringLiteral("\\b([A-Z_]+): \\[|\\['(trg_\\w+)'"));
         QString owner;
         for (auto t = pageTrigger.globalMatch(
-                 constant(QStringLiteral("const TRIGGERS = {"), QStringLiteral("\n};")));
+                 dataMapConstant(QStringLiteral("const TRIGGERS = {"), QStringLiteral("\n};")));
              t.hasNext();) {
             const auto m = t.next();
             if (!m.captured(1).isEmpty())
@@ -495,6 +498,107 @@ private slots:
                             "remove it")
                             .arg(item);
         QVERIFY2(!scripts.isEmpty(), "no CREATE TABLE found in database/01_tables.sql");
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
+
+    // 06-docs.md: every database object that docs/data-map.html names in its explanations (procedures, views,
+    // functions, triggers, sequences, the XML schema, constraints, indexes) exists in database/01-05, so
+    // renaming or dropping one also updates the business flow and the app flow of the page. Wildcards
+    // ("usp_Student_*") are not names.
+    void docs_dataMapNames_existInScripts() {
+        QSet<QString> defined;
+        const QRegularExpression definition(
+            QStringLiteral("\\b(?:PROCEDURE|VIEW|FUNCTION|TRIGGER|SEQUENCE|COLLECTION)\\s+dbo\\.(\\w+)|"
+                           "\\bCONSTRAINT\\s+(\\w+)|\\bINDEX\\s+(\\w+)"),
+            QRegularExpression::CaseInsensitiveOption);
+        for (const QString& script : {QStringLiteral("01_tables.sql"), QStringLiteral("02_functions.sql"),
+                                      QStringLiteral("03_views.sql"), QStringLiteral("04_procedures.sql"),
+                                      QStringLiteral("05_triggers.sql")}) {
+            for (auto it = definition.globalMatch(sqlCode(script)); it.hasNext();) {
+                const auto m = it.next();
+                for (int group = 1; group <= 3; ++group)
+                    if (!m.captured(group).isEmpty())
+                        defined << m.captured(group);
+            }
+        }
+        const QString file = QStringLiteral("docs/data-map.html");
+        const QString page = readText(file);
+        const QRegularExpression name(QStringLiteral("\\b(?:usp|vw|fn|trg|seq|xsc|CK|UQ|UX|IX)_\\w+"));
+        QStringList problems;
+        for (auto it = name.globalMatch(page); it.hasNext();) {
+            const auto m = it.next();
+            if (!m.captured().endsWith(QLatin1Char('_')) && !defined.contains(m.captured()))
+                problems << QStringLiteral(
+                                "%1:%2: %3 is not created in database/01-05 - use its current name or "
+                                "remove it")
+                                .arg(file)
+                                .arg(lineOf(page, m.capturedStart()))
+                                .arg(m.captured());
+        }
+        QVERIFY2(!page.isEmpty() && !defined.isEmpty(),
+                 "docs/data-map.html or the database scripts not found");
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
+
+    // 06-docs.md: the roles x screens table of docs/data-map.html (SCREENS) is the menu of
+    // Permissions::allowedFeatures, with the screen names of Labels::feature (English source texts). Role
+    // codes of the page: M = Manager, S = AcademicStaff, A = Accountant, T = Teacher.
+    void docs_dataMapScreens_matchPermissions() {
+        QHash<QString, QString> nameOf; // "Dashboard" -> "Overview"
+        const QRegularExpression label(QStringLiteral(
+            "case\\s+Feature::(\\w+)\\s*:\\s*return\\s*\\{\\s*f\\s*,\\s*LabelsText::tr\\(\"([^\"]+)\"\\)"));
+        for (auto it = label.globalMatch(
+                 withoutComments(readText(QStringLiteral("src/presentation/common/Labels.cpp")), false));
+             it.hasNext();) {
+            const auto m = it.next();
+            nameOf.insert(m.captured(1), m.captured(2));
+        }
+        // "Role: Screen" for every menu entry of the application...
+        QSet<QString> app;
+        const QRegularExpression roleMenu(
+            QStringLiteral("case\\s+Role::(\\w+)\\s*:\\s*return\\s*\\{([^}]*)\\}"));
+        const QRegularExpression feature(QStringLiteral("Feature::(\\w+)"));
+        for (auto r = roleMenu.globalMatch(withoutComments(
+                 readText(QStringLiteral("src/application/services/Permissions.cpp")), false));
+             r.hasNext();) {
+            const auto m = r.next();
+            for (auto f = feature.globalMatch(m.captured(2)); f.hasNext();) {
+                const QString id = f.next().captured(1);
+                app << QStringLiteral("%1: %2").arg(m.captured(1),
+                                                    nameOf.value(id, QStringLiteral("Feature::") + id));
+            }
+        }
+        // ...and of the page: { grp: '...', name: '...', roles: 'MSA', ... }
+        const QHash<QChar, QString> roleOf = {{u'M', QStringLiteral("Manager")},
+                                              {u'S', QStringLiteral("AcademicStaff")},
+                                              {u'A', QStringLiteral("Accountant")},
+                                              {u'T', QStringLiteral("Teacher")}};
+        QSet<QString> mapped;
+        const QRegularExpression screen(QStringLiteral("name: (['\"])(.*?)\\1, roles: '([A-Z]*)'"));
+        for (auto it = screen.globalMatch(
+                 dataMapConstant(QStringLiteral("const SCREENS = ["), QStringLiteral("\n];")));
+             it.hasNext();) {
+            const auto m = it.next();
+            for (const QChar code : m.captured(3))
+                mapped << QStringLiteral("%1: %2").arg(
+                    roleOf.value(code, QStringLiteral("role code ") + code), m.captured(2));
+        }
+
+        QStringList missing = (app - mapped).values(), extra = (mapped - app).values();
+        missing.sort();
+        extra.sort();
+        QStringList problems;
+        for (const QString& item : missing)
+            problems << QStringLiteral(
+                            "docs/data-map.html: SCREENS lacks \"%1\" of Permissions::allowedFeatures - "
+                            "add the screen or its role code")
+                            .arg(item);
+        for (const QString& item : extra)
+            problems << QStringLiteral(
+                            "docs/data-map.html: SCREENS has \"%1\", Permissions::allowedFeatures does "
+                            "not - fix the name or the role codes")
+                            .arg(item);
+        QVERIFY2(!app.isEmpty(), "no menu found in src/application/services/Permissions.cpp");
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 };
