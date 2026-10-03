@@ -24,6 +24,9 @@ views, backup/restore, import/export and XPath/XQuery, and the lab tool is SSMS.
 
 ## 2. Entity-relationship diagram (simplified)
 
+For an interactive version with every column, cardinality, trigger and the app screens that read each table, open
+[data-map.html](data-map.html) in a browser.
+
 ```mermaid
 erDiagram
     BRANCH ||--o{ ROOM : "has"

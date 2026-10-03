@@ -402,6 +402,101 @@ private slots:
         }
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
+
+    // 06-docs.md: docs/data-map.html (the interactive table map) keeps a copy of the schema in its constants
+    // TABLES, FKS and TRIGGERS - the tables, columns, foreign keys and triggers must be the ones of the
+    // scripts. Both sides become texts "TABLE", "TABLE.Column", "CHILD.Column -> PARENT.Column", "TABLE:
+    // trg_..." that are compared as sets.
+    void docs_dataMap_matchesScripts() {
+        QSet<QString> scripts;
+        const QRegularExpression table(
+            QStringLiteral("\\bCREATE\\s+TABLE\\s+dbo\\.(\\w+)\\s*\\((.*?)\\n\\);"),
+            QRegularExpression::DotMatchesEverythingOption);
+        // A column line: a name followed by a data type or by AS (computed column); CONSTRAINT/DEFAULT lines
+        // are not followed by a type
+        const QRegularExpression column(
+            QStringLiteral("^\\s+(\\w+)\\s+(?:AS\\b|(?:BIGINT|INT|SMALLINT|TINYINT|BIT|DECIMAL|NUMERIC|MONEY|"
+                           "N?VARCHAR|N?CHAR|DATE|DATETIME2?|TIME|XML|FLOAT|UNIQUEIDENTIFIER|VARBINARY)\\b)"),
+            QRegularExpression::MultilineOption);
+        const QRegularExpression foreignKey(QStringLiteral(
+            "\\bFOREIGN\\s+KEY\\s*\\((\\w+)\\)\\s*REFERENCES\\s+dbo\\.(\\w+)\\s*\\((\\w+)\\)"));
+        for (auto t = table.globalMatch(sqlCode(QStringLiteral("01_tables.sql"))); t.hasNext();) {
+            const auto m = t.next();
+            const QString name = m.captured(1);
+            scripts << name;
+            for (auto c = column.globalMatch(m.captured(2)); c.hasNext();)
+                scripts << name + QLatin1Char('.') + c.next().captured(1);
+            for (auto f = foreignKey.globalMatch(m.captured(2)); f.hasNext();) {
+                const auto k = f.next();
+                scripts << QStringLiteral("%1.%2 -> %3.%4")
+                               .arg(name, k.captured(1), k.captured(2), k.captured(3));
+            }
+        }
+        const QRegularExpression trigger(
+            QStringLiteral("\\bCREATE\\s+TRIGGER\\s+dbo\\.(\\w+)\\s+ON\\s+dbo\\.(\\w+)"));
+        for (auto t = trigger.globalMatch(sqlCode(QStringLiteral("05_triggers.sql"))); t.hasNext();) {
+            const auto m = t.next();
+            scripts << m.captured(2) + QStringLiteral(": ") + m.captured(1);
+        }
+
+        // The page: the text of one constant, from "const NAME = {" to the closing line "};" (or "];")
+        const QString page = readText(QStringLiteral("docs/data-map.html"));
+        auto constant = [&](const QString& start, const QString& end) {
+            const qsizetype from = page.indexOf(start);
+            const qsizetype to = from < 0 ? -1 : page.indexOf(end, from);
+            return to < 0 ? QString() : page.mid(from, to - from);
+        };
+        QSet<QString> mapped;
+        // TABLES: NAME: { g: '...', ..., cols: ['Column|TYPE|...', ...]
+        const QRegularExpression pageTable(QStringLiteral("\\b([A-Z_]+): \\{ g: '\\w+',.*?cols: \\[(.*?)\\]"),
+                                           QRegularExpression::DotMatchesEverythingOption);
+        const QRegularExpression pageColumn(QStringLiteral("'(\\w+)\\|"));
+        for (auto t =
+                 pageTable.globalMatch(constant(QStringLiteral("const TABLES = {"), QStringLiteral("\n};")));
+             t.hasNext();) {
+            const auto m = t.next();
+            mapped << m.captured(1);
+            for (auto c = pageColumn.globalMatch(m.captured(2)); c.hasNext();)
+                mapped << m.captured(1) + QLatin1Char('.') + c.next().captured(1);
+        }
+        // FKS: ['CHILD', 'Column', 'PARENT', 'Column', ...]
+        const QRegularExpression pageKey(QStringLiteral("\\['([A-Z_]+)', '(\\w+)', '([A-Z_]+)', '(\\w+)'"));
+        for (auto f = pageKey.globalMatch(constant(QStringLiteral("const FKS = ["), QStringLiteral("\n];")));
+             f.hasNext();) {
+            const auto k = f.next();
+            mapped << QStringLiteral("%1.%2 -> %3.%4")
+                          .arg(k.captured(1), k.captured(2), k.captured(3), k.captured(4));
+        }
+        // TRIGGERS: TABLE: [['trg_...', '...'], ...] - a trigger belongs to the last table name read
+        const QRegularExpression pageTrigger(QStringLiteral("\\b([A-Z_]+): \\[|\\['(trg_\\w+)'"));
+        QString owner;
+        for (auto t = pageTrigger.globalMatch(
+                 constant(QStringLiteral("const TRIGGERS = {"), QStringLiteral("\n};")));
+             t.hasNext();) {
+            const auto m = t.next();
+            if (!m.captured(1).isEmpty())
+                owner = m.captured(1);
+            else
+                mapped << owner + QStringLiteral(": ") + m.captured(2);
+        }
+
+        QStringList missing = (scripts - mapped).values(), extra = (mapped - scripts).values();
+        missing.sort();
+        extra.sort();
+        QStringList problems;
+        for (const QString& item : missing)
+            problems << QStringLiteral(
+                            "docs/data-map.html: %1 is in the scripts but not in the page - add it to "
+                            "TABLES, FKS or TRIGGERS")
+                            .arg(item);
+        for (const QString& item : extra)
+            problems << QStringLiteral(
+                            "docs/data-map.html: %1 is in the page but not in the scripts - rename or "
+                            "remove it")
+                            .arg(item);
+        QVERIFY2(!scripts.isEmpty(), "no CREATE TABLE found in database/01_tables.sql");
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
 };
 
 // main() without a Qt application object: the tests only read files

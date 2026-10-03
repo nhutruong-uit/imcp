@@ -15,6 +15,7 @@ Everything here is **English**.
 | Change | Doc |
 |---|---|
 | Database object, constraint, test case, demo script | `docs/DATABASE.md` (feature table, numbers) |
+| Table, column, foreign key, trigger, business step, app screen | `docs/data-map.html` (constants at the top of its script) |
 | Layer, pattern, driver behavior, new module recipe | `docs/ARCHITECTURE.md` |
 | Command, environment variable, tool to install, test step, CI job | `docs/SETUP.md` (+ `AGENTS.md` "Common commands") |
 | Team workflow, branches, PR checklist, required checks | `docs/CONTRIBUTING.md` (+ `.github/pull_request_template.md`) |
@@ -31,6 +32,9 @@ Everything here is **English**.
   `ALL TESTS PASSED` line) are checked by `tst_conventions` (`docs_databaseNumbers_matchScripts`): update them with the
   scripts. Do not add new hand-maintained counts elsewhere (e2e scenarios, lines of code) - describe instead, or add
   the count to that test.
+- ✔ `docs/data-map.html` copies the schema into its constants `TABLES`, `FKS` and `TRIGGERS`; `tst_conventions`
+  (`docs_dataMap_matchesScripts`) compares them with `01_tables.sql` and `05_triggers.sql`. The page computes its
+  counts from these constants - never type a count into it.
 
 ## Style
 - Short sentences, imperative for instructions; identifiers, paths and commands in backticks; relative links

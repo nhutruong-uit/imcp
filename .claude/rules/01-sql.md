@@ -41,6 +41,9 @@ verify the marked (✔) rules automatically on every `test_all` / CI run.
 - A new enumerated value displayed in the UI (new value in a `CHECK ... IN (...)`) needs an entry in `kEntries`
   (`src/presentation/common/DbValues.cpp`) and a Vietnamese translation (`tst_i18n` checks both); a new column shown
   in a list needs an entry in `kCatalog` (`src/presentation/common/Columns.cpp`).
+- ✔ A new, renamed or removed table, column, foreign key or trigger is copied into the constants `TABLES`, `FKS` and
+  `TRIGGERS` of `docs/data-map.html` in the same commit (checked by `tst_conventions`,
+  `docs_dataMap_matchesScripts`); a new procedure step or app screen goes into its `STEPS` / `SCREENS` by hand.
 
 ## Format
 - Keywords in **UPPERCASE** (`SELECT`, `JOIN`, `BEGIN TRY`), **4-space** indentation, every statement ends with `;`.
