@@ -235,13 +235,14 @@ GO
 
 /* 6. fn_AttendanceRate: % of taught sessions attended (late counts as present)
       = 100 x (marks Present or Late at taught sessions) / (taught sessions of the class since the
-      enrollment date).
+      student joined it, ENROLLMENT.ClassJoinedOn).
       Only sessions with status Taught count; an absence (excused or not) and a missing mark both
-      count as not attended. Sessions taught before the student enrolled do not count: a student may
-      join a class in progress (usp_Enrollment_Create) and could otherwise never reach 80%. NULL when
-      no session was taught since then (no division by zero); usp_Class_EvaluateResults then uses 100.
+      count as not attended. Sessions taught before the student joined the class do not count: a student
+      may enroll in a class in progress or be transferred from another class, and could otherwise never
+      reach 80%. NULL when no session was taught since then (no division by zero);
+      usp_Class_EvaluateResults then uses 100.
       Used by: vw_LearningResults, vw_Teacher_MyStudents, usp_Class_EvaluateResults (pass rule:
-      attendance >= 80%), tests T18, T23 and T48.
+      attendance >= 80%), tests T18, T23, T48 and T69.
       Concepts: scalar function, two aggregate queries, decimal instead of integer division. */
 IF OBJECT_ID(N'dbo.fn_AttendanceRate', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_AttendanceRate;
 GO
@@ -254,13 +255,13 @@ BEGIN
     SELECT @TaughtCount = COUNT(*)
     FROM dbo.CLASS_SESSION se
     JOIN dbo.ENROLLMENT en ON en.ClassId = se.ClassId
-    WHERE en.EnrollmentId = @EnrollmentId AND se.Status = N'Taught' AND se.SessionDate >= en.EnrolledOn;
+    WHERE en.EnrollmentId = @EnrollmentId AND se.Status = N'Taught' AND se.SessionDate >= en.ClassJoinedOn;
 
     SELECT @PresentCount = COUNT(*)
     FROM dbo.ATTENDANCE at
     JOIN dbo.CLASS_SESSION se ON se.SessionId = at.SessionId
     JOIN dbo.ENROLLMENT en ON en.EnrollmentId = at.EnrollmentId
-    WHERE at.EnrollmentId = @EnrollmentId AND se.Status = N'Taught' AND se.SessionDate >= en.EnrolledOn
+    WHERE at.EnrollmentId = @EnrollmentId AND se.Status = N'Taught' AND se.SessionDate >= en.ClassJoinedOn
       AND at.Status IN (N'Present', N'Late');
 
     IF @TaughtCount = 0 RETURN NULL;

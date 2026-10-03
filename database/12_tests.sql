@@ -94,6 +94,8 @@ INSERT #Expected VALUES
     ('T60', N'%CK_TEACHER_Age%'),               ('T61', N'%used by an active class%'),
     ('T62', N'%who has left%'),                 ('T63', NULL), ('T64', NULL), ('T65', NULL),
     ('T66', NULL), ('T67', NULL),
+    ('T68', N'%evaluated classes cannot be changed%'), ('T69', NULL),
+    ('T70', N'%same course and branch%'),       ('T71', NULL),
     ('P01', N'%STUDENT%'),                      ('P02', NULL),
     ('P03', N'%only enter grades%'),            ('P04', N'%usp_Enrollment_Create%'),
     ('P05', NULL),                              ('P06', N'%HourlyRate%'),
@@ -814,6 +816,51 @@ BEGIN CATCH
 END CATCH;
 GO
 
+-- T68: changing a grade weight of a course whose classes have been evaluated
+--      Proves trg_GRADE_COMPONENT_Lock: the manager may maintain GRADE_COMPONENT directly (06_security.sql), but the
+--      components of an evaluated course are frozen - a new weight would change the final grades recomputed next
+--      to the stored results and certificates. Concept: trigger on INSERT, UPDATE and DELETE (inserted UNION deleted).
+BEGIN TRY
+    DECLARE @Component68 INT = (SELECT TOP (1) gc.ComponentId FROM dbo.GRADE_COMPONENT gc
+                                WHERE EXISTS (SELECT 1 FROM dbo.CLASS cl JOIN dbo.ENROLLMENT en ON en.ClassId = cl.ClassId
+                                              WHERE cl.CourseId = gc.CourseId AND en.Result IS NOT NULL)
+                                ORDER BY gc.ComponentId);
+    BEGIN TRAN;
+    UPDATE dbo.GRADE_COMPONENT SET Weight = Weight - 5 WHERE ComponentId = @Component68;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T68', N'New grade weight for a course with evaluated classes', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T68', N'New grade weight for a course with evaluated classes', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T70: transferring a student to a class of the same course at another branch
+--      Proves usp_Enrollment_TransferClass keeps an enrollment in its branch (THROW 50027): the revenue of a receipt
+--      belongs to the branch of its class, so a cross-branch move would change past monthly figures. Scenario,
+--      rolled back: a TO-450 class opens at BR02 and a student of CL0004 (TO-450, BR01) asks to move there.
+BEGIN TRY
+    DECLARE @C70 TABLE (ClassId VARCHAR(10));
+    DECLARE @Class70 VARCHAR(10), @Enrollment70 VARCHAR(10);
+    SELECT TOP (1) @Enrollment70 = EnrollmentId FROM dbo.ENROLLMENT
+    WHERE ClassId = 'CL0004' AND Status = N'Studying' ORDER BY EnrollmentId;
+    BEGIN TRAN;
+    INSERT INTO dbo.CLASS (ClassName, CourseId, BranchId, TeacherId, RoomId, StartDate, MaxStudents, Tuition)
+    OUTPUT inserted.ClassId INTO @C70
+    SELECT N'T70 other branch', CourseId, 'BR02', TeacherId, 'TD-301', dbo.fn_Today(), 20, Tuition
+    FROM dbo.CLASS WHERE ClassId = 'CL0004';
+    SELECT @Class70 = ClassId FROM @C70;
+    EXEC dbo.usp_Enrollment_TransferClass @EnrollmentId = @Enrollment70, @NewClassId = @Class70;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T70', N'Transfer to a class of another branch', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T70', N'Transfer to a class of another branch', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
 /* ---------------- C. FUNCTIONS, TRIGGERS, CURSORS, XML: CHECKING THE RESULTS ----------------
    Not only "it runs": results are compared with independently computed values or prepared scenarios. */
 
@@ -1383,9 +1430,10 @@ END CATCH;
 GO
 
 -- T48: the attendance rate of a student who joined a class in progress
---      Proves fn_AttendanceRate counts only the sessions taught since the enrollment date. Scenario, rolled back:
---      a student of CL0004 enrolls on the day of its 4th taught session and attends every session from then on;
---      the rate must be 100% (counting the 3 earlier sessions would give less and fail the 80% rule).
+--      Proves fn_AttendanceRate counts only the sessions taught since the student joined the class
+--      (ENROLLMENT.ClassJoinedOn). Scenario, rolled back: a student of CL0004 enrolls on the day of its 4th taught
+--      session and attends every session from then on; the rate must be 100% (counting the 3 earlier sessions
+--      would give less and fail the 80% rule).
 BEGIN TRY
     DECLARE @Enrollment48 VARCHAR(10), @Joined48 DATE, @Rate48 DECIMAL(5,2), @Sessions48 INT;
     SELECT TOP (1) @Enrollment48 = EnrollmentId FROM dbo.ENROLLMENT
@@ -1395,7 +1443,7 @@ BEGIN TRY
           FROM dbo.CLASS_SESSION WHERE ClassId = 'CL0004' AND Status = N'Taught') s
     WHERE n = 4;
     BEGIN TRAN;
-    UPDATE dbo.ENROLLMENT SET EnrolledOn = @Joined48 WHERE EnrollmentId = @Enrollment48;
+    UPDATE dbo.ENROLLMENT SET EnrolledOn = @Joined48, ClassJoinedOn = @Joined48 WHERE EnrollmentId = @Enrollment48;
     DELETE at FROM dbo.ATTENDANCE at JOIN dbo.CLASS_SESSION se ON se.SessionId = at.SessionId
     WHERE at.EnrollmentId = @Enrollment48 AND se.SessionDate < @Joined48;
     UPDATE dbo.ATTENDANCE SET Status = N'Present' WHERE EnrollmentId = @Enrollment48;
@@ -1407,14 +1455,14 @@ BEGIN TRY
     SET @Rate48 = dbo.fn_AttendanceRate(@Enrollment48);
     ROLLBACK;
 
-    INSERT #Results VALUES ('T48', N'fn_AttendanceRate: only sessions since the enrollment date count', N'Succeeded',
+    INSERT #Results VALUES ('T48', N'fn_AttendanceRate: only sessions since the student joined the class count', N'Succeeded',
         CASE WHEN @Joined48 IS NOT NULL AND @Sessions48 > 0 AND @Rate48 = 100 THEN N'Succeeded' ELSE N'Wrong result' END,
         ISNULL(@Enrollment48, N'?') + N' joined on ' + ISNULL(CONVERT(NVARCHAR(10), @Joined48, 23), N'?') + N', present at '
         + CAST(ISNULL(@Sessions48, 0) AS NVARCHAR(10)) + N' sessions => ' + ISNULL(CAST(@Rate48 AS NVARCHAR(10)), N'NULL') + N'%');
 END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK;
-    INSERT #Results VALUES ('T48', N'fn_AttendanceRate: only sessions since the enrollment date count', N'Succeeded', N'Error', ERROR_MESSAGE());
+    INSERT #Results VALUES ('T48', N'fn_AttendanceRate: only sessions since the student joined the class count', N'Succeeded', N'Error', ERROR_MESSAGE());
 END CATCH;
 GO
 
@@ -1551,24 +1599,28 @@ GO
 -- T63: fn_FinalGrade rounds once, at the end
 --      Hand-computed case, rolled back: weights 6.22 / 18.61 / 75.17 and scores 4.75 / 5.42 / 4.91 give
 --      (4.75 x 6.22 + 5.42 x 18.61 + 4.91 x 75.17) / 100 = 4.994959 => 4.99 (failed). Rounding to 4 decimals first
---      would give 4.9950 and then 5.00 (a pass). The components of one course are changed, in ComponentId order.
+--      would give 4.9950 and then 5.00 (a pass). The components of a course without evaluated classes are changed
+--      (trg_GRADE_COMPONENT_Lock freezes the others, T68), in ComponentId order, and one of its students gets the
+--      three scores.
 BEGIN TRY
     DECLARE @Enrollment63 VARCHAR(10), @Course63 VARCHAR(10), @Grade63 DECIMAL(4,2);
     SELECT TOP (1) @Enrollment63 = en.EnrollmentId, @Course63 = cl.CourseId
     FROM dbo.ENROLLMENT en JOIN dbo.CLASS cl ON cl.ClassId = en.ClassId
-    WHERE (SELECT COUNT(*) FROM dbo.GRADE_COMPONENT gc WHERE gc.CourseId = cl.CourseId) = 3
-      AND (SELECT COUNT(*) FROM dbo.GRADE gr WHERE gr.EnrollmentId = en.EnrollmentId) = 3
+    WHERE en.Status = N'Studying'
+      AND (SELECT COUNT(*) FROM dbo.GRADE_COMPONENT gc WHERE gc.CourseId = cl.CourseId) = 3
+      AND NOT EXISTS (SELECT 1 FROM dbo.ENROLLMENT x JOIN dbo.CLASS c2 ON c2.ClassId = x.ClassId
+                      WHERE c2.CourseId = cl.CourseId AND x.Result IS NOT NULL)
     ORDER BY en.EnrollmentId;
     BEGIN TRAN;
     ;WITH c AS (SELECT ComponentId, ROW_NUMBER() OVER (ORDER BY ComponentId) AS n
                 FROM dbo.GRADE_COMPONENT WHERE CourseId = @Course63)
     UPDATE gc SET Weight = CASE c.n WHEN 1 THEN 6.22 WHEN 2 THEN 18.61 ELSE 75.17 END
     FROM dbo.GRADE_COMPONENT gc JOIN c ON c.ComponentId = gc.ComponentId;
-    ;WITH c AS (SELECT ComponentId, ROW_NUMBER() OVER (ORDER BY ComponentId) AS n
-                FROM dbo.GRADE_COMPONENT WHERE CourseId = @Course63)
-    UPDATE gr SET Score = CASE c.n WHEN 1 THEN 4.75 WHEN 2 THEN 5.42 ELSE 4.91 END
-    FROM dbo.GRADE gr JOIN c ON c.ComponentId = gr.ComponentId
-    WHERE gr.EnrollmentId = @Enrollment63;
+    DELETE FROM dbo.GRADE WHERE EnrollmentId = @Enrollment63;
+    INSERT INTO dbo.GRADE (EnrollmentId, ComponentId, Score, EnteredBy)
+    SELECT @Enrollment63, c.ComponentId, CASE c.n WHEN 1 THEN 4.75 WHEN 2 THEN 5.42 ELSE 4.91 END, N'T63'
+    FROM (SELECT ComponentId, ROW_NUMBER() OVER (ORDER BY ComponentId) AS n
+          FROM dbo.GRADE_COMPONENT WHERE CourseId = @Course63) c;
     SET @Grade63 = dbo.fn_FinalGrade(@Enrollment63);
     ROLLBACK;
 
@@ -1669,6 +1721,82 @@ BEGIN TRY
 END TRY
 BEGIN CATCH
     INSERT #Results VALUES ('T67', N'usp_Dashboard_Stats: students with a Studying enrollment', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T69: after a transfer, the attendance of the new class counts from the transfer day
+--      Proves usp_Enrollment_TransferClass sets ENROLLMENT.ClassJoinedOn to today and fn_AttendanceRate counts the
+--      new class from then on. Scenario, rolled back: a second TO-450 class of BR01 started four weeks ago (Sundays
+--      07:00-08:00) and taught its past sessions; a student of CL0004 moves to it today. No session of the new class
+--      counts yet (NULL) - counting from EnrolledOn would mark all of them as absences.
+BEGIN TRY
+    DECLARE @C69 TABLE (ClassId VARCHAR(10));
+    DECLARE @R69 TABLE (SessionsCreated INT, EndDate DATE);
+    DECLARE @Class69 VARCHAR(10), @Enrollment69 VARCHAR(10), @Joined69 DATE, @Rate69 DECIMAL(5,2), @Taught69 INT;
+    SELECT TOP (1) @Enrollment69 = EnrollmentId FROM dbo.ENROLLMENT
+    WHERE ClassId = 'CL0004' AND Status = N'Studying' ORDER BY EnrollmentId DESC;
+    BEGIN TRAN;
+    INSERT INTO dbo.CLASS (ClassName, CourseId, BranchId, TeacherId, RoomId, StartDate, MaxStudents, Tuition)
+    OUTPUT inserted.ClassId INTO @C69
+    SELECT N'T69 transfer target', CourseId, BranchId, TeacherId, RoomId, DATEADD(WEEK, -4, dbo.fn_Today()),
+           MaxStudents, Tuition
+    FROM dbo.CLASS WHERE ClassId = 'CL0004';
+    SELECT @Class69 = ClassId FROM @C69;
+    INSERT INTO dbo.CLASS_SCHEDULE (ClassId, Weekday, StartTime, EndTime) VALUES (@Class69, 7, '07:00', '08:00');
+    INSERT @R69 EXEC dbo.usp_Class_GenerateSessions @ClassId = @Class69;
+    UPDATE dbo.CLASS_SESSION SET Status = N'Taught' WHERE ClassId = @Class69 AND SessionDate < dbo.fn_Today();
+    UPDATE dbo.CLASS SET Status = N'In progress' WHERE ClassId = @Class69;
+    SELECT @Taught69 = COUNT(*) FROM dbo.CLASS_SESSION WHERE ClassId = @Class69 AND Status = N'Taught';
+    EXEC dbo.usp_Enrollment_TransferClass @EnrollmentId = @Enrollment69, @NewClassId = @Class69;
+    SELECT @Joined69 = ClassJoinedOn FROM dbo.ENROLLMENT WHERE EnrollmentId = @Enrollment69;
+    SET @Rate69 = dbo.fn_AttendanceRate(@Enrollment69);
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T69', N'Transfer: attendance of the new class counts from the transfer day', N'Succeeded',
+        CASE WHEN @Taught69 > 0 AND @Joined69 = dbo.fn_Today() AND @Rate69 IS NULL THEN N'Succeeded' ELSE N'Wrong result' END,
+        ISNULL(@Enrollment69, N'?') + N' joined on ' + ISNULL(CONVERT(NVARCHAR(10), @Joined69, 23), N'?') + N' after '
+        + CAST(ISNULL(@Taught69, 0) AS NVARCHAR(10)) + N' taught sessions => '
+        + ISNULL(CAST(@Rate69 AS NVARCHAR(10)) + N'%', N'NULL (nothing to count yet)'));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T69', N'Transfer: attendance of the new class counts from the transfer day', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T71: evaluating a class makes the students who take no other class Completed
+--      Proves the last step of usp_Class_EvaluateResults. Scenario, rolled back: the students of a finished class are
+--      set back to Studying and the class is evaluated again. A student with no other Studying / On hold
+--      enrollment must be Completed, the others (already in their next class) must stay Studying.
+BEGIN TRY
+    DECLARE @Class71 VARCHAR(10) = (SELECT TOP (1) ClassId FROM dbo.CLASS WHERE Status = N'Finished' ORDER BY ClassId);
+    DECLARE @R71 TABLE (PassedCount INT, FailedCount INT);
+    DECLARE @Wrong71 INT, @Completed71 INT, @Studying71 INT;
+    BEGIN TRAN;
+    UPDATE st SET Status = N'Studying' FROM dbo.STUDENT st
+    WHERE EXISTS (SELECT 1 FROM dbo.ENROLLMENT en
+                  WHERE en.StudentId = st.StudentId AND en.ClassId = @Class71 AND en.Status = N'Completed');
+    INSERT @R71 EXEC dbo.usp_Class_EvaluateResults @ClassId = @Class71;
+    SELECT @Wrong71 = SUM(CASE WHEN st.Status = x.Expected THEN 0 ELSE 1 END),
+           @Completed71 = SUM(CASE WHEN st.Status = N'Completed' THEN 1 ELSE 0 END),
+           @Studying71 = SUM(CASE WHEN st.Status = N'Studying' THEN 1 ELSE 0 END)
+    FROM dbo.STUDENT st
+    CROSS APPLY (SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.ENROLLMENT o
+                                          WHERE o.StudentId = st.StudentId AND o.Status IN (N'Studying', N'On hold'))
+                             THEN N'Studying' ELSE N'Completed' END AS Expected) x
+    WHERE EXISTS (SELECT 1 FROM dbo.ENROLLMENT en
+                  WHERE en.StudentId = st.StudentId AND en.ClassId = @Class71 AND en.Status = N'Completed');
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T71', N'usp_Class_EvaluateResults: students without another class become Completed', N'Succeeded',
+        CASE WHEN @Wrong71 = 0 AND @Completed71 > 0 AND @Studying71 > 0 THEN N'Succeeded' ELSE N'Wrong result' END,
+        ISNULL(@Class71, N'?') + N': ' + CAST(ISNULL(@Completed71, 0) AS NVARCHAR(10)) + N' Completed, '
+        + CAST(ISNULL(@Studying71, 0) AS NVARCHAR(10)) + N' still Studying, ' + CAST(ISNULL(@Wrong71, -1) AS NVARCHAR(10))
+        + N' wrong');
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T71', N'usp_Class_EvaluateResults: students without another class become Completed', N'Succeeded', N'Error', ERROR_MESSAGE());
 END CATCH;
 GO
 

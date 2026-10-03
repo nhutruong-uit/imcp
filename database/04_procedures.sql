@@ -558,9 +558,10 @@ GO
                    periods (the same check as C2 and C3).
                 6. A promotion code must exist and be valid on the enrollment date (50025); the discount comes
                    from fn_DiscountAmount (0 on a free class is a valid discount).
-                7. In one transaction: insert the ENROLLMENT (TuitionDue = BaseTuition - DiscountAmount is a
-                   computed column; the capacity trigger may roll back here), set a Prospective / On hold
-                   student to Studying, commit, and return the new ID through the OUTPUT parameter.
+                7. In one transaction: insert the ENROLLMENT (ClassJoinedOn = the enrollment date; TuitionDue =
+                   BaseTuition - DiscountAmount is a computed column; the capacity trigger may roll back here),
+                   set a Prospective / On hold / Completed student to Studying, commit, and return the new ID
+                   through the OUTPUT parameter.
        Concepts: multi-step transaction (SET XACT_ABORT ON + TRY/CATCH + THROW;), NOT EXISTS subqueries,
                  TOP (1) with ORDER BY, an inline table-valued function in EXISTS, scalar functions,
                  OUTPUT inserted.x INTO @New, a business rule that a CHECK constraint cannot express (it needs
@@ -632,13 +633,13 @@ BEGIN
         BEGIN TRANSACTION;
 
         DECLARE @New TABLE (EnrollmentId VARCHAR(10));
-        INSERT INTO dbo.ENROLLMENT (StudentId, ClassId, EnrolledOn, BaseTuition, PromotionId, DiscountAmount,
-                                    EnrolledByEmployeeId)
+        INSERT INTO dbo.ENROLLMENT (StudentId, ClassId, EnrolledOn, ClassJoinedOn, BaseTuition, PromotionId,
+                                    DiscountAmount, EnrolledByEmployeeId)
         OUTPUT inserted.EnrollmentId INTO @New
-        VALUES (@StudentId, @ClassId, @EnrolledOn, @Tuition, @PromotionId, @Discount, @EmployeeId);
+        VALUES (@StudentId, @ClassId, @EnrolledOn, @EnrolledOn, @Tuition, @PromotionId, @Discount, @EmployeeId);
 
         UPDATE dbo.STUDENT SET Status = N'Studying'
-        WHERE StudentId = @StudentId AND Status IN (N'Prospective', N'On hold');
+        WHERE StudentId = @StudentId AND Status IN (N'Prospective', N'On hold', N'Completed');
 
         COMMIT TRANSACTION;
         SELECT @EnrollmentId = EnrollmentId FROM @New;
@@ -650,13 +651,16 @@ BEGIN
 END;
 GO
 
-/* C2. usp_Enrollment_TransferClass: move a student to another class of the SAME course,
+/* C2. usp_Enrollment_TransferClass: move a student to another class of the SAME course and branch,
        keeping the payment history (ClassId is updated in one transaction).
        Used by: roles rl_Manager, rl_AcademicStaff; tests T14 (a class of another course is rejected), T34 (a
                 class that clashes with another class of the student is rejected), T46 (the tuition of the new
-                class applies), T47 (a student who paid more than the new tuition cannot move).
-       Rules:   only a Studying / On hold enrollment can move (50026); the new class must be of the same course
-                and still open, Enrolling / In progress (50027); the student must not be in it already (50022);
+                class applies), T47 (a student who paid more than the new tuition cannot move), T69 (attendance
+                counts from the transfer day), T70 (a class of another branch is rejected).
+       Rules:   only a Studying / On hold enrollment can move (50026); the new class must be of the same course,
+                at the same branch and still open, Enrolling / In progress (50027): the revenue of a receipt
+                belongs to the branch of its class, so an enrollment never changes branch and past monthly
+                figures never move; the student must not be in it already (50022);
                 its weekly schedule must not clash with another class the student is taking (50024,
                 fn_StudentScheduleClash as in usp_Enrollment_Create, leaving out the enrollment that moves).
                 The tuition follows the new class: BaseTuition becomes its tuition and the promotion of the
@@ -664,7 +668,8 @@ GO
                 paid more than the new tuition due cannot move until a receipt is cancelled (50028), because
                 AmountPaid may never exceed TuitionDue (CK_ENROLLMENT_AmountPaid).
                 The enrollment row is kept (same EnrollmentId), so receipts and grades stay attached to it;
-                only the attendance of the old class is removed. The capacity trigger
+                only the attendance of the old class is removed, and ClassJoinedOn becomes the transfer day
+                (fn_AttendanceRate counts the new class from then on). The capacity trigger
                 (trg_ENROLLMENT_CheckCapacity) checks the new class because ClassId changes. An enrollment
                 that was On hold becomes Studying, and so does the student.
        Concepts: UPDATE of a foreign key instead of delete + insert, DELETE with a JOIN, self-join of CLASS
@@ -688,11 +693,11 @@ BEGIN
     WHERE EnrollmentId = @EnrollmentId AND Status IN (N'Studying', N'On hold');
     IF @OldClassId IS NULL
         THROW 50026, N'Active enrollment not found.', 1;
-    -- 2. The new class: same course (self-join a = old, b = new), still open, student not enrolled there yet
-    IF NOT EXISTS (SELECT 1 FROM dbo.CLASS a JOIN dbo.CLASS b ON a.CourseId = b.CourseId
+    -- 2. The new class: same course and branch (self-join a = old, b = new), still open, student not there yet
+    IF NOT EXISTS (SELECT 1 FROM dbo.CLASS a JOIN dbo.CLASS b ON a.CourseId = b.CourseId AND a.BranchId = b.BranchId
                    WHERE a.ClassId = @OldClassId AND b.ClassId = @NewClassId
                      AND b.Status IN (N'Enrolling', N'In progress'))
-        THROW 50027, N'A student can only be transferred to an open class of the same course.', 1;
+        THROW 50027, N'A student can only be transferred to an open class of the same course and branch.', 1;
     IF EXISTS (SELECT 1 FROM dbo.ENROLLMENT WHERE StudentId = @StudentId AND ClassId = @NewClassId)
         THROW 50022, N'The student is already enrolled in this class.', 1;
 
@@ -716,8 +721,10 @@ BEGIN
         DELETE at FROM dbo.ATTENDANCE at JOIN dbo.CLASS_SESSION se ON se.SessionId = at.SessionId
         WHERE at.EnrollmentId = @EnrollmentId AND se.ClassId = @OldClassId;
 
+        -- ClassJoinedOn: today, never before EnrolledOn (an enrollment may be dated in advance)
         UPDATE dbo.ENROLLMENT
-        SET ClassId = @NewClassId, Status = N'Studying', BaseTuition = @NewTuition, DiscountAmount = @NewDiscount
+        SET ClassId = @NewClassId, Status = N'Studying', BaseTuition = @NewTuition, DiscountAmount = @NewDiscount,
+            ClassJoinedOn = CASE WHEN dbo.fn_Today() > EnrolledOn THEN dbo.fn_Today() ELSE EnrolledOn END
         WHERE EnrollmentId = @EnrollmentId;
 
         UPDATE dbo.STUDENT SET Status = N'Studying' WHERE StudentId = @StudentId AND Status = N'On hold';
@@ -1091,8 +1098,10 @@ GO
                    A student who passed and already has one (re-evaluation) gets its grade and classification
                    updated; a student who failed loses an earlier certificate (only a Passed enrollment may
                    hold one - the trigger only checks new or changed certificates, not this case).
-                5. Close the cursor, mark the class Finished (E4 then refuses grade changes), commit, and return
-                   PassedCount / FailedCount (the seed and T23 read it with INSERT ... EXEC).
+                5. Close the cursor; a student of the class who takes no other class any more (no Studying or On
+                   hold enrollment) becomes Completed (test T71); mark the class Finished (E4 then refuses grade
+                   changes), commit, and return PassedCount / FailedCount (the seed and T23 read it with
+                   INSERT ... EXEC).
        Cursor:  DECLARE cur CURSOR LOCAL FAST_FORWARD FOR <query>; OPEN cur; FETCH NEXT FROM cur INTO @var;
                 WHILE @@FETCH_STATUS = 0 (0 = a row was read) BEGIN ...; FETCH NEXT ... END; CLOSE; DEALLOCATE.
                 LOCAL: only this procedure sees the cursor; FAST_FORWARD: read-only and forward-only, the
@@ -1176,6 +1185,15 @@ BEGIN
 
         CLOSE cur_Enrollment;
         DEALLOCATE cur_Enrollment;
+
+        -- Students who finished their last class are Completed (usp_Enrollment_Create makes them Studying again)
+        UPDATE st SET Status = N'Completed'
+        FROM dbo.STUDENT st
+        WHERE st.Status = N'Studying'
+          AND EXISTS (SELECT 1 FROM dbo.ENROLLMENT en
+                      WHERE en.StudentId = st.StudentId AND en.ClassId = @ClassId AND en.Status = N'Completed')
+          AND NOT EXISTS (SELECT 1 FROM dbo.ENROLLMENT x
+                          WHERE x.StudentId = st.StudentId AND x.Status IN (N'Studying', N'On hold'));
 
         UPDATE dbo.CLASS SET Status = N'Finished' WHERE ClassId = @ClassId;
 

@@ -28,7 +28,7 @@
        other rows (capacity, schedule clashes), other tables (room branch, enrollment result) or the old
        values of a row (taught session) need a trigger.
    Each trigger header names the test cases of 12_tests.sql that prove its rule (test Tnn, Pnn);
-   T1-T14 without the word test are the triggers of this file.
+   T1-T15 without the word test are the triggers of this file.
    ===================================================================== */
 USE QLTTTA;
 GO
@@ -480,6 +480,43 @@ BEGIN
                  AND (cl.BranchId <> i.BranchId OR cl.MaxStudents > i.Capacity))
     BEGIN
         RAISERROR (N'The room is used by an active class: it must stay in the branch of the class and hold its maximum size.', 16, 1);
+        ROLLBACK TRANSACTION;
+    END;
+END;
+GO
+
+/* T15. trg_GRADE_COMPONENT_Lock: the grade components of a course are frozen once one of its classes has
+        been evaluated
+        A new component, a changed weight or course, or a deleted component would change the final grade that
+        vw_LearningResults recomputes next to the Result and the certificate already stored. To grade a course
+        differently afterwards, the center opens a new course. Renaming a component is still allowed.
+        Fired by: a direct write to GRADE_COMPONENT (managers maintain the catalog tables in SSMS, 06_security.sql;
+        the application has no screen for them); tested by test T68 (a new weight for an evaluated course).
+        Why a trigger: the rule reads ENROLLMENT through CLASS, and it must hold for every writer.
+        How: AFTER INSERT, UPDATE, DELETE; an UPDATE that touches neither CourseId nor Weight returns at once.
+        The courses concerned are those of inserted (new rows) UNION deleted (old rows, so moving a component to
+        another course checks both courses); one of their classes with an evaluated enrollment (Result filled
+        in by usp_Class_EvaluateResults) rejects the whole statement.
+        Concepts: trigger on several events, UNION of inserted and deleted, EXISTS through a join. */
+IF OBJECT_ID(N'dbo.trg_GRADE_COMPONENT_Lock', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_GRADE_COMPONENT_Lock;
+GO
+CREATE TRIGGER dbo.trg_GRADE_COMPONENT_Lock
+ON dbo.GRADE_COMPONENT
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    -- An UPDATE has rows in both tables; a rename (neither CourseId nor Weight in the SET list) changes no grade
+    IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
+       AND NOT (UPDATE(CourseId) OR UPDATE(Weight)) RETURN;
+
+    IF EXISTS (SELECT 1
+               FROM (SELECT CourseId FROM inserted UNION SELECT CourseId FROM deleted) c
+               JOIN dbo.CLASS cl       ON cl.CourseId = c.CourseId
+               JOIN dbo.ENROLLMENT en  ON en.ClassId = cl.ClassId
+               WHERE en.Result IS NOT NULL)
+    BEGIN
+        RAISERROR (N'The grade components of a course with evaluated classes cannot be changed; open a new course instead.', 16, 1);
         ROLLBACK TRANSACTION;
     END;
 END;

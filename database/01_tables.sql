@@ -289,7 +289,8 @@ GO
    8. STUDENT - Students
       One row = one learner registered at one branch (StudentId ST00001 ... from seq_STUDENT).
       A student takes placement tests and enrolls in many classes (ENROLLMENT). Status starts as
-      Prospective; usp_Enrollment_Create sets a Prospective or On hold student to Studying.
+      Prospective; usp_Enrollment_Create sets a Prospective, On hold or Completed student to Studying;
+      usp_Class_EvaluateResults sets Completed when the student takes no other class any more.
       Business rule 1 of docs/DATABASE.md, written as CHECK constraints:
         - CK_STUDENT_DateOfBirth: born after 1930-01-01 and at least 4 years old on the
           registration day
@@ -330,7 +331,7 @@ CREATE TABLE dbo.STUDENT (
         OR (GuardianName IS NOT NULL AND GuardianPhone IS NOT NULL)),
     -- Must be reachable: the student's phone or the guardian's phone
     CONSTRAINT CK_STUDENT_Contact CHECK (Phone IS NOT NULL OR GuardianPhone IS NOT NULL),
-    CONSTRAINT CK_STUDENT_Status CHECK (Status IN (N'Prospective', N'Studying', N'On hold', N'Dropped out'))
+    CONSTRAINT CK_STUDENT_Status CHECK (Status IN (N'Prospective', N'Studying', N'On hold', N'Dropped out', N'Completed'))
 );
 GO
 CREATE UNIQUE INDEX UX_STUDENT_Phone ON dbo.STUDENT (Phone) WHERE Phone IS NOT NULL;
@@ -555,6 +556,10 @@ GO
          - AmountPaid: stored rather than summed on every read, so lists and balances
            (vw_OutstandingTuition, fn_StudentBalance) read it directly, and CK_ENROLLMENT_AmountPaid
            can forbid paying more than TuitionDue (a backup of the check in the trigger, test T06)
+       Dates: EnrolledOn is the day of the enrollment (promotions are valid on it); ClassJoinedOn is the day
+       the student started in the CURRENT class - EnrolledOn at enrollment, the transfer day after
+       usp_Enrollment_TransferClass - so fn_AttendanceRate only counts the sessions of the class since then
+       (CK_ENROLLMENT_ClassJoinedOn: never before EnrolledOn).
        FinalGrade and Result stay NULL until usp_Class_EvaluateResults writes them at the end of
        the course. Free seats: trg_ENROLLMENT_CheckCapacity (it needs the CLASS table).
    --------------------------------------------------------------------- */
@@ -564,6 +569,8 @@ CREATE TABLE dbo.ENROLLMENT (
     StudentId             VARCHAR(10)    NOT NULL,
     ClassId               VARCHAR(10)    NOT NULL,
     EnrolledOn            DATE           NOT NULL CONSTRAINT DF_ENROLLMENT_EnrolledOn
+                              DEFAULT (CAST(SWITCHOFFSET(SYSDATETIMEOFFSET(), '+07:00') AS DATE)),
+    ClassJoinedOn         DATE           NOT NULL CONSTRAINT DF_ENROLLMENT_ClassJoinedOn
                               DEFAULT (CAST(SWITCHOFFSET(SYSDATETIMEOFFSET(), '+07:00') AS DATE)),
     BaseTuition           DECIMAL(12,0)  NOT NULL,
     PromotionId           VARCHAR(10)    NULL,
@@ -580,6 +587,7 @@ CREATE TABLE dbo.ENROLLMENT (
     CONSTRAINT FK_ENROLLMENT_PROMOTION FOREIGN KEY (PromotionId) REFERENCES dbo.PROMOTION (PromotionId),
     CONSTRAINT FK_ENROLLMENT_EMPLOYEE FOREIGN KEY (EnrolledByEmployeeId) REFERENCES dbo.EMPLOYEE (EmployeeId),
     CONSTRAINT UQ_ENROLLMENT_StudentId_ClassId UNIQUE (StudentId, ClassId),
+    CONSTRAINT CK_ENROLLMENT_ClassJoinedOn CHECK (ClassJoinedOn >= EnrolledOn),
     CONSTRAINT CK_ENROLLMENT_BaseTuition CHECK (BaseTuition >= 0),
     CONSTRAINT CK_ENROLLMENT_DiscountAmount CHECK (DiscountAmount >= 0 AND DiscountAmount <= BaseTuition),
     -- Cross-column constraint: the amount paid never exceeds the tuition due

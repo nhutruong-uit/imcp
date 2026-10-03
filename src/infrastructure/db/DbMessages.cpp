@@ -44,7 +44,8 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages", "The class schedule clashes with another class the student is taking."),
     QT_TRANSLATE_NOOP("DbMessages", "The promotion code does not exist or has expired."),
     QT_TRANSLATE_NOOP("DbMessages", "Active enrollment not found."),
-    QT_TRANSLATE_NOOP("DbMessages", "A student can only be transferred to an open class of the same course."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "A student can only be transferred to an open class of the same course and branch."),
     QT_TRANSLATE_NOOP("DbMessages", "Enrollment not found."),
     QT_TRANSLATE_NOOP("DbMessages",
                       "The student has paid more than the tuition of the new class; cancel a receipt "
@@ -106,6 +107,9 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages", "A session can only be marked as taught on or after its date."),
     QT_TRANSLATE_NOOP("DbMessages", "The room is used by an active class: it must stay in the branch of the "
                                     "class and hold its maximum size."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "The grade components of a course with evaluated classes cannot be changed; "
+                      "open a new course instead."),
 };
 
 // A template and the regular expression built from it (a regular expression = a text pattern; "(.+?)"

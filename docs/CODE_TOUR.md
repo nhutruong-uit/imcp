@@ -254,21 +254,23 @@ case proves it. Use this table to find the code behind a rule during the defense
 | A student under 18 needs a guardian name and phone | `Student::validate` | `CK_STUDENT_Guardian` | `T01` |
 | A student with an enrollment history is never deleted | - | `usp_Student_Delete` | `T41` |
 | A class whose students paid cannot be cancelled | - | `usp_Class_UpdateStatus` | `T42` |
-| A class goes Enrolling → In progress → Finished or Cancelled, never back; cancelling closes its enrollments | - | `usp_Class_UpdateStatus` | `T54`, `T55` |
+| A class goes Enrolling → In progress → Finished or Cancelled, never back (a new class instead); cancelling closes its enrollments | - | `usp_Class_UpdateStatus` | `T54`, `T55` |
+| A student is Completed after the last class, Studying again with the next enrollment | - | `usp_Class_EvaluateResults`, `usp_Enrollment_Create` | `T71` |
 | Phone numbers have 9-11 digits | `Student::validate`, digits-only fields | `CK_STUDENT_Phone` | `T02` |
 | No double enrollment in a class | - | `usp_Enrollment_Create`, `UQ_ENROLLMENT_StudentId_ClassId` | `T03` |
 | Entry requirement (prerequisite course or placement score) | - | `usp_Enrollment_Create` | `T04`, `T33`, `T65` |
 | A student cannot take two classes at the same time | - | `fn_StudentScheduleClash` in `usp_Enrollment_Create`, `usp_Enrollment_TransferClass`, `usp_Enrollment_UpdateStatus` | `T05`, `T34`, `T52` |
 | A completed enrollment keeps its status (grade and result come from the evaluation) | - | `usp_Enrollment_UpdateStatus` | `T53` |
 | Amount paid = sum of valid receipts, never above the tuition | - | `trg_RECEIPT_UpdateAmountPaid` | `T06`, `T20` |
-| A transfer applies the tuition of the new class | - | `usp_Enrollment_TransferClass` | `T46`, `T47` |
+| A transfer stays in the course and branch and applies the tuition of the new class | - | `usp_Enrollment_TransferClass` | `T14`, `T46`, `T47`, `T70` |
 | Receipts are never deleted | - | `trg_RECEIPT_PreventDelete`, `DENY DELETE` | `T07`, `P08` |
 | Only accountants and managers collect money | no menu entry | `DENY EXECUTE` on `usp_Receipt_Create` to academic staff | `P16` |
 | No room or teacher double-booking | - | `trg_CLASS_SCHEDULE_CheckConflict` | `T08` |
 | A class uses a room of its own branch, which holds its size | - | `trg_CLASS_CheckRoom`, `trg_ROOM_CheckClasses` | `T09`, `T61` |
 | Grades are between 0 and 10 | - | `CK_GRADE_Score` | `T10` |
 | Grades, attendance and sessions are final once the class is finished | - | `usp_Grade_Save`, `usp_Attendance_Save`, `usp_Session_Update` | `T43`, `T44`, `T56` |
-| Attendance counts the sessions taught since the student enrolled | - | `fn_AttendanceRate` | `T48` |
+| Attendance counts the sessions taught since the student joined the class (enrollment or transfer) | - | `fn_AttendanceRate`, `ENROLLMENT.ClassJoinedOn` | `T48`, `T69` |
+| The grade components of an evaluated course are frozen | - | `trg_GRADE_COMPONENT_Lock` | `T68` |
 | A class is evaluated only when no session is still scheduled | - | `usp_Class_EvaluateResults` | `T57` |
 | The audit log is append-only | - | `trg_AUDIT_LOG_ReadOnly`, `DENY UPDATE, DELETE` | `T11`, `P14`, `P15` |
 | Certificates only for students who passed, also after a re-evaluation | - | `trg_CERTIFICATE_CheckResult`, `usp_Class_EvaluateResults` | `T12`, `T23`, `T35` |

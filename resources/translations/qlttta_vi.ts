@@ -461,8 +461,8 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Không tìm thấy lượt ghi danh đang hiệu lực.</translation>
     </message>
     <message>
-        <source>A student can only be transferred to an open class of the same course.</source>
-        <translation>Chỉ được chuyển sang lớp đang mở của cùng khóa học.</translation>
+        <source>A student can only be transferred to an open class of the same course and branch.</source>
+        <translation>Chỉ được chuyển học viên sang lớp đang mở của cùng khóa học và cùng chi nhánh.</translation>
     </message>
     <message>
         <source>Enrollment not found.</source>
@@ -635,6 +635,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>The room is used by an active class: it must stay in the branch of the class and hold its maximum size.</source>
         <translation>Phòng đang được một lớp sử dụng: phòng phải ở cùng chi nhánh với lớp và đủ chỗ cho sĩ số tối đa của lớp.</translation>
+    </message>
+    <message>
+        <source>The grade components of a course with evaluated classes cannot be changed; open a new course instead.</source>
+        <translation>Không được thay đổi thành phần điểm của khóa học đã có lớp được đánh giá kết quả; hãy mở khóa học mới.</translation>
     </message>
 </context>
 <context>

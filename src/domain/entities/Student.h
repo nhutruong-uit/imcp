@@ -10,7 +10,7 @@
 // DbValues::label (presentation) turns them into display text in the UI language.
 namespace StudentValues {
 QStringList genders();  // Male, Female, Other
-QStringList statuses(); // Prospective, Studying, On hold, Dropped out
+QStringList statuses(); // Prospective, Studying, On hold, Dropped out, Completed
 QString activeStatus(); // "Studying"
 } // namespace StudentValues
 

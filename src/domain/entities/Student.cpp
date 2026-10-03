@@ -8,7 +8,7 @@ QStringList genders() {
 }
 QStringList statuses() {
     return {QStringLiteral("Prospective"), QStringLiteral("Studying"), QStringLiteral("On hold"),
-            QStringLiteral("Dropped out")};
+            QStringLiteral("Dropped out"), QStringLiteral("Completed")};
 }
 QString activeStatus() {
     return QStringLiteral("Studying");
