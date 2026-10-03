@@ -51,6 +51,10 @@ swift docs/report/tools/check_pdf.swift check docs/report/IE103_Group1_Report.pd
 python3 docs/user-guide/build_user_guide.py
 ./docs/report/tools/export_pdf.sh docs/user-guide/QLTTTA_User_Guide.docx
 
+# Installer of the operating system you are on: macOS .dmg / Windows setup.exe + portable .zip, written to dist/
+# (Windows: .\scripts\package.ps1; another Qt: --qt-dir <folder> / -QtDir <folder>)
+./scripts/package.sh
+
 # Screenshots (visual check with real data; QLTTTA_SHOT_LANG=en for the English UI)
 cmake --preset macos-debug -DQLTTTA_BUILD_TOOLS=ON && cmake --build --preset macos-debug
 QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/tools/qlttta_screenshots
