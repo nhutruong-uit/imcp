@@ -213,15 +213,16 @@ def chapter4(r):
         "tính độc lập hoặc kịch bản dựng sẵn (ví dụ dựng 2 buổi có mặt + 1 đi trễ + các buổi vắng rồi so tỷ lệ chuyên cần); "
         "T31 kiểm tra cách lưu thời gian theo UTC (phiếu thu lúc 00:30 giờ Việt Nam thuộc ngày và tháng của trung tâm). "
         "T28-T30 và T32 đọc các view hệ thống (catalog) để kiểm tra quy ước lược đồ: đặt tên, ma trận quyền tối thiểu, "
-        "`SET NOCOUNT ON` và quy ước thời gian. T33-T40 được bổ sung sau khi rà soát mã nguồn: điều kiện đầu vào khi "
-        "khóa học có khóa tiên quyết nhưng không đặt điểm tối thiểu, trùng lịch khi chuyển lớp, xét lại kết quả thì "
-        "chứng chỉ phải đi theo kết quả mới, tên đăng nhập không dấu, và các trigger điểm danh, thành phần điểm, nhật ký "
-        "điểm, gợi ý khóa học.")
+        "`SET NOCOUNT ON` và quy ước thời gian. T33-T47 được bổ sung sau khi rà soát mã nguồn: điều kiện đầu vào khi "
+        "khóa học có khóa tiên quyết nhưng không đặt điểm tối thiểu, trùng lịch và học phí khi chuyển lớp, xét lại kết "
+        "quả thì chứng chỉ phải đi theo kết quả mới, tên đăng nhập không dấu, khóa tài khoản, điểm và điểm danh của lớp "
+        "đã kết thúc, các thủ tục từ chối xóa học viên có lịch sử hoặc hủy lớp đã thu tiền, và các trigger điểm danh, "
+        "thành phần điểm, nhật ký điểm, gợi ý khóa học.")
     r.p("Cách chấm được thiết kế để dùng làm **kiểm thử hồi quy**: bảng `#Expected` liệt kê mọi ca phải chạy và mẫu "
         "thông báo của ca “Rejected” (từ chối) - ca chỉ đạt khi bị từ chối **đúng lý do** (một thủ tục hỏng vì lỗi khác không thể "
         "“đạt” nhầm); có ca không đạt hoặc không chạy thì file kết thúc bằng `THROW 50099`, lệnh `scripts/test_all.sh` "
         "dừng lại. Nhóm đã thử cố ý làm sai ngưỡng xếp loại và xóa trigger sĩ số: T16, T21 lập tức báo FAILED; chạy các "
-        "ca mới trên phiên bản thủ tục trước khi sửa lỗi thì T33-T36 và P13 đều FAILED. "
+        "ca mới trên phiên bản thủ tục trước khi sửa lỗi thì T33-T36, T44-T47 và P13 đều FAILED. "
         "Thông báo trong cột cuối là **kết quả thực tế** do SQL Server trả về:")
     rows = [[k[0], k[1], RESULT_LABELS_VI.get(k[2], k[2]), RESULT_LABELS_VI.get(k[3], k[3]), k[5]] for k in cases]
     r.table(["Mã", "Ca kiểm thử", "Kỳ vọng", "Thực tế", "Thông báo / kết quả"], rows,
