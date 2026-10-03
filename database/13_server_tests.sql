@@ -14,6 +14,26 @@
        CsvPath      database/samples/student_import.csv as seen by the SQL SERVER machine (BULK INSERT)
    - Same summary as 12_tests.sql (Verdict PASSED/FAILED; a "Rejected" case must match the message
      pattern in #Expected); any failing case ends the script with THROW 50099.
+
+   How this test script works (the header of 12_tests.sql explains #Results, #Expected, the
+   TRY/CATCH shape of a case and the summary; only the differences are listed here):
+   - #Ctx keeps the values several batches need (folders, backup file names, the random password):
+     a DECLAREd variable lives for one batch only, a #temp table for the whole session.
+   - #usp_Cleanup and #usp_SignIn are TEMPORARY procedures (the # prefix): they exist only in this
+     session, so the test adds no helper objects to QLTTTA.
+   - The scratch data is real (no rollback), e.g. the promotion PR-S01 of S01 and the account
+     t_lockout; #usp_Cleanup removes it. The demo accounts are only impersonated, never changed.
+   - Order: SETUP (cleanup, folders, account t_lockout, linked servers) -> A. backup/restore ->
+     B. BULK INSERT -> C. distributed database (runs 11_distributed_demo.sql itself) -> D. account
+     lockout -> CLEANUP + SUMMARY. Later cases use what earlier ones built (S02 restores the files
+     of S01, S03 signs in to the copy restored by S02, S16-S17 lock/unlock the account of the SETUP).
+   How to run it:
+   - Command line: scripts/test_all.sh (Windows: scripts\test_all.ps1) runs it as step 4 with sqlcmd
+     and sets DatabaseDir and CsvPath (with --docker it first copies 11_distributed_demo.sql and the
+     CSV into the container).
+   - SSMS: connect as a sysadmin and switch on SQLCMD Mode (Query menu), needed for the include of
+     11_distributed_demo.sql and for the two variables; define them first with two :setvar lines
+     (do not commit them). The run passed when it ends without error 50099.
    ===================================================================== */
 USE QLTTTA;
 GO
@@ -52,6 +72,9 @@ GO
 /* ---------------- SETUP ---------------- */
 
 -- Removes every scratch object of this script
+-- Runs at the start (an earlier run may have stopped half-way) and at the end: linked servers, the scratch rows of
+-- QLTTTA (user t_lockout, its ACCOUNT row, PR-S01), the scratch databases (SINGLE_USER WITH ROLLBACK IMMEDIATE
+-- closes their open connections first), then the backup files listed in #Ctx (cursor).
 IF OBJECT_ID('tempdb..#usp_Cleanup') IS NOT NULL DROP PROCEDURE #usp_Cleanup;
 GO
 CREATE PROCEDURE #usp_Cleanup
@@ -108,6 +131,9 @@ END;
 GO
 
 -- Signs in through a loopback linked server; returns the database user name or the error
+-- OPENQUERY(server, query) sends the query to the linked server, which opens a NEW connection with the remote
+-- user and password stored for it (sp_addlinkedsrvlogin) - a real sign-in, like the application. QUOTENAME
+-- puts the server name in brackets, so it cannot break out of the dynamic SQL.
 IF OBJECT_ID('tempdb..#usp_SignIn') IS NOT NULL DROP PROCEDURE #usp_SignIn;
 GO
 CREATE PROCEDURE #usp_SignIn
@@ -148,6 +174,7 @@ INSERT #Ctx VALUES ('DataDir', @DataDir),
 
 -- Temporary MANAGER account with a random password (the demo accounts are left untouched).
 -- It is created BEFORE the backup, so the restored copy contains it too (S03).
+-- (NEWID() without dashes is random; the prefix Aa1! adds lower/upper case, a digit and a symbol for the policy.)
 DECLARE @Password NVARCHAR(128) = N'Aa1!' + REPLACE(CONVERT(NVARCHAR(36), NEWID()), N'-', N''),
         @EmployeeId VARCHAR(10) = (SELECT TOP (1) em.EmployeeId FROM dbo.EMPLOYEE em
                                    WHERE NOT EXISTS (SELECT 1 FROM dbo.ACCOUNT ac WHERE ac.EmployeeId = em.EmployeeId)
@@ -156,6 +183,8 @@ INSERT #Ctx VALUES ('Password', @Password);
 EXEC dbo.usp_Account_Create N't_lockout', @Password, 'MANAGER', @EmployeeId, NULL;
 
 -- Loopback linked servers to this same instance (the production design of 11: [SRV_TD].QLTTTA_BR02...)
+-- A loopback linked server points back to this instance, so remote sign-ins can be tested on one machine.
+-- MSOLEDBSQL = Microsoft OLE DB Driver for SQL Server; rpc out lets MAIN run EXEC (...) AT the linked server (S15).
 DECLARE @DataSource NVARCHAR(200) =
     N'localhost' + ISNULL(N'\' + CAST(SERVERPROPERTY('InstanceName') AS NVARCHAR(128)), N'');
 --   MAIN: signs in to QLTTTA as t_lockout; COPY: signs in to the restored copy as t_lockout
@@ -177,6 +206,10 @@ GO
 /* ---------------- A. BACKUP & RESTORE (09_backup_restore.sql) ---------------- */
 
 -- S01: FULL -> DIFFERENTIAL -> LOG chain with CHECKSUM; every file is recorded in msdb and passes VERIFYONLY
+--      Concepts: backup chain - FULL (whole database), DIFFERENTIAL (pages changed since the FULL), LOG (log records
+--      since the last log backup; needs the FULL recovery model). WITH CHECKSUM verifies every page while writing,
+--      RESTORE VERIFYONLY reads a backup file without restoring it, msdb.dbo.backupset records every backup.
+--      PR-S01 is inserted after the FULL and changed after the DIFF, so S02 can tell which file brought which change.
 DECLARE @Full NVARCHAR(400) = (SELECT Value FROM #Ctx WHERE Name = 'FullBackup'),
         @Diff NVARCHAR(400) = (SELECT Value FROM #Ctx WHERE Name = 'DiffBackup'),
         @Log  NVARCHAR(400) = (SELECT Value FROM #Ctx WHERE Name = 'LogBackup'),
@@ -210,6 +243,9 @@ END CATCH;
 GO
 
 -- S02: restoring FULL -> DIFF -> LOG into a new database (MOVE) brings back the data changed after the FULL backup
+--      Concepts: restore sequence - FULL and DIFF WITH NORECOVERY (the database waits for more backups), LOG WITH
+--      RECOVERY (opens it); MOVE gives the copy new file paths, so QLTTTA itself is untouched. DiscountValue = 300000
+--      can only come from the LOG backup.
 DECLARE @Full NVARCHAR(400) = (SELECT Value FROM #Ctx WHERE Name = 'FullBackup'),
         @Diff NVARCHAR(400) = (SELECT Value FROM #Ctx WHERE Name = 'DiffBackup'),
         @Log  NVARCHAR(400) = (SELECT Value FROM #Ctx WHERE Name = 'LogBackup'),
@@ -243,6 +279,9 @@ END CATCH;
 GO
 
 -- S03: contained users travel with the restored copy: the same users exist and can sign in right away
+--      Concept: contained database users (CREATE USER ... WITH PASSWORD) are stored inside the database, not as
+--      logins in master, so a restored copy has no orphaned users to repair. Checked by comparing the users and
+--      by a real sign-in to the copy through QLTTTA_T_LINK_COPY.
 DECLARE @Missing INT, @SignedInAs SYSNAME, @Error NVARCHAR(400);
 BEGIN TRY
     EXEC sys.sp_executesql N'
@@ -263,6 +302,8 @@ END CATCH;
 GO
 
 -- S04: the manager backs up from the application (usp_Backup, EXECUTE AS OWNER): a valid FULL file in msdb
+--      The manager needs only EXECUTE on usp_Backup; the BACKUP statement runs as the owner of the procedure.
+--      The file name is kept in #Ctx so #usp_Cleanup deletes it.
 DECLARE @File NVARCHAR(400), @Recorded INT;
 BEGIN TRY
     EXECUTE AS USER = N'ql_quan';
@@ -285,6 +326,7 @@ END CATCH;
 GO
 
 -- S05: academic staff run usp_Backup (EXECUTE is granted to rl_Manager only)
+--      Concept: permission on a procedure - rl_Manager has EXECUTE through GRANT EXECUTE ON SCHEMA::dbo.
 DECLARE @File NVARCHAR(400);
 BEGIN TRY
     EXECUTE AS USER = N'gvu_lan';
@@ -300,6 +342,7 @@ END CATCH;
 GO
 
 -- S06: an unknown backup type
+--      Proves usp_Backup checks its input (THROW 50070) before it builds the dynamic BACKUP statement.
 DECLARE @File NVARCHAR(400);
 BEGIN TRY
     EXECUTE AS USER = N'ql_quan';
@@ -316,6 +359,9 @@ GO
 /* ---------------- B. CSV IMPORT WITH BULK INSERT (10_import_export.sql) ---------------- */
 
 -- S07: BULK INSERT of the Unicode sample file (same options as 10): every row arrives with its Vietnamese text
+--      Concepts: BULK INSERT with DATAFILETYPE widechar reads the UTF-16 file, so the Vietnamese letters survive;
+--      EXCEPT against the expected rows finds any difference. The SQL Server SERVICE reads the file, so CsvPath is
+--      a path on the server machine. Dynamic SQL because BULK INSERT takes the file name only as a literal.
 IF OBJECT_ID('tempdb..#StudentCsv') IS NOT NULL DROP TABLE #StudentCsv;
 CREATE TABLE #StudentCsv (
     FullName NVARCHAR(100), DateOfBirth DATE, Gender NVARCHAR(10), Phone VARCHAR(15), Email VARCHAR(100),
@@ -349,6 +395,8 @@ END CATCH;
 GO
 
 -- S08: the imported rows are loaded through usp_Student_Add, so the business rules apply (rolled back)
+--      Concepts: staging table (#StudentCsv) + cursor calling a procedure per row, so every rule of a manual
+--      entry (checks, CHECK constraints, generated StudentId) also applies to imported rows.
 DECLARE @FullName NVARCHAR(100), @DateOfBirth DATE, @Gender NVARCHAR(10), @Phone VARCHAR(15), @Email VARCHAR(100),
         @BranchId VARCHAR(10), @Id VARCHAR(10), @Added INT, @Matching INT;
 BEGIN TRY
@@ -381,12 +429,17 @@ END CATCH;
 GO
 
 /* ---------------- C. DISTRIBUTED DATABASE (runs the real 11_distributed_demo.sql) ---------------- */
+-- The include line below is a sqlcmd command: it inserts 11_distributed_demo.sql here, so the cases test the real
+-- demo script, not a copy (it re-creates the fragment databases QLTTTA_BR01 and QLTTTA_BR02).
 :r $(DatabaseDir)/11_distributed_demo.sql
 GO
+-- 11_distributed_demo.sql ends in the database QLTTTA_BR01
 USE QLTTTA;
 GO
 
 -- S09: primary horizontal fragmentation of STUDENT is complete, disjoint and reconstructible (UNION ALL view)
+--      Complete: BR01 + BR02 row counts = STUDENT; disjoint: no StudentId in both fragments; reconstructible: the
+--      UNION ALL view equals STUDENT (EXCEPT in both directions). Concept: correctness rules of fragmentation.
 DECLARE @Original INT = (SELECT COUNT(*) FROM QLTTTA.dbo.STUDENT),
         @Fragments INT = (SELECT COUNT(*) FROM QLTTTA_BR01.dbo.STUDENT) + (SELECT COUNT(*) FROM QLTTTA_BR02.dbo.STUDENT),
         @Overlap INT = (SELECT COUNT(*) FROM QLTTTA_BR01.dbo.STUDENT a JOIN QLTTTA_BR02.dbo.STUDENT b ON b.StudentId = a.StudentId),
@@ -412,6 +465,7 @@ END CATCH;
 GO
 
 -- S10: the replicated catalog (COURSE) is identical at every site
+--      Concept: replication - a full copy of a rarely changing table at every site (EXCEPT in both directions).
 DECLARE @Different INT;
 BEGIN TRY
     SELECT @Different = (SELECT COUNT(*) FROM (SELECT CourseId, CourseName, Level, Tuition FROM QLTTTA.dbo.COURSE
@@ -432,6 +486,8 @@ END CATCH;
 GO
 
 -- S11: the CHECK of a fragment rejects a student of another branch (fragment predicate BranchId = 'BR02')
+--      Concept: the CHECK constraint CK_STUDENT_BranchId is the fragment definition; it also lets the optimizer
+--      skip fragments (S12).
 BEGIN TRY
     BEGIN TRAN;
     INSERT INTO QLTTTA_BR02.dbo.STUDENT (StudentId, FullName, DateOfBirth, Phone, Status, BranchId)
@@ -447,6 +503,8 @@ GO
 
 -- S12: a query on the view filtered by BranchId = 'BR02' reads ONLY the BR02 fragment (partition elimination
 --      thanks to the CHECK constraints), measured with the index usage statistics of each fragment
+--      sys.dm_db_index_usage_stats counts the scans/seeks/lookups of each table: only the counter of BR02 may grow.
+--      Concept: distributed partitioned view with partition elimination.
 DECLARE @Reads01 BIGINT, @Reads02 BIGINT, @After01 BIGINT, @After02 BIGINT, @Rows INT,
         @Expected INT = (SELECT COUNT(*) FROM QLTTTA.dbo.STUDENT WHERE BranchId = 'BR02');
 BEGIN TRY
@@ -473,6 +531,7 @@ END CATCH;
 GO
 
 -- S13: production design of 11 - the remote fragment is read through a linked server ([server].database.dbo.table)
+--      Concept: four-part name linked_server.database.schema.table; local BR01 + remote BR02 must equal STUDENT.
 DECLARE @Remote INT, @Union INT, @Local INT = (SELECT COUNT(*) FROM QLTTTA_BR02.dbo.STUDENT),
         @Original INT = (SELECT COUNT(*) FROM QLTTTA.dbo.STUDENT);
 BEGIN TRY
@@ -496,6 +555,7 @@ GO
 /* ---------------- D. ACCOUNT LOCKOUT (usp_Account_Lock) WITH REAL SIGN-INS ---------------- */
 
 -- S14: control case - before locking, the temporary account signs in (so S16 fails only because of the lock)
+--      Also proves that the linked servers and the account of the SETUP work at all.
 DECLARE @SignedInAs SYSNAME, @Error NVARCHAR(400);
 EXEC #usp_SignIn N'QLTTTA_T_LINK_MAIN', @SignedInAs OUTPUT, @Error OUTPUT;
 INSERT #Results VALUES ('S14', N'Active account signs in', N'Succeeded',
@@ -504,6 +564,8 @@ INSERT #Results VALUES ('S14', N'Active account signs in', N'Succeeded',
 GO
 
 -- S15: a manager signed in as t_lockout tries to lock their own account (ORIGINAL_LOGIN() check)
+--      EXEC (...) AT runs the call on the linked server, i.e. really as t_lockout. Inside EXECUTE AS OWNER,
+--      USER_NAME() is the owner, so usp_Account_Lock compares with ORIGINAL_LOGIN() (the real caller).
 DECLARE @Status NVARCHAR(20);
 BEGIN TRY
     EXEC sys.sp_executesql N'EXEC (N''EXEC dbo.usp_Account_Lock @Username = N''''t_lockout'''', @Lock = 1;'') AT QLTTTA_T_LINK_MAIN;';
@@ -517,6 +579,9 @@ END CATCH;
 GO
 
 -- S16: the manager locks t_lockout => DENY CONNECT, status Locked, and SQL Server refuses the sign-in
+--      usp_Account_Lock runs DENY CONNECT TO the user (dynamic SQL) and sets ACCOUNT.Status; both are checked first,
+--      then a real sign-in must fail with error 18456 - the lock is enforced by SQL Server, not by the application.
+--      A lock that was not recorded raises error 50099 inside the TRY: Rejected, but without 18456 => FAILED.
 DECLARE @SignedInAs SYSNAME, @Error NVARCHAR(400), @Status NVARCHAR(20), @Denied INT;
 BEGIN TRY
     EXECUTE AS USER = N'ql_quan';
@@ -541,6 +606,7 @@ END CATCH;
 GO
 
 -- S17: after unlocking (GRANT CONNECT), the same account signs in again
+--      Proves the lock is reversible: the status returns to Active and the sign-in works.
 DECLARE @SignedInAs SYSNAME, @Error NVARCHAR(400), @Status NVARCHAR(20);
 BEGIN TRY
     EXECUTE AS USER = N'ql_quan';
@@ -559,6 +625,7 @@ END CATCH;
 GO
 
 -- S18: academic staff lock an account (EXECUTE is granted to rl_Manager only)
+--      Concept: permission on a procedure (no GRANT EXECUTE for rl_AcademicStaff).
 BEGIN TRY
     EXECUTE AS USER = N'gvu_lan';
     EXEC dbo.usp_Account_Lock @Username = N't_lockout', @Lock = 1;
@@ -575,6 +642,8 @@ GO
 EXEC #usp_Cleanup;
 GO
 
+-- Same summary as in 12_tests.sql (see the comments there); the cleanup runs first, so the scratch objects are
+-- gone even when the verdict is FAILED
 IF OBJECT_ID('tempdb..#Summary') IS NOT NULL DROP TABLE #Summary;
 SELECT COALESCE(r.TestId, e.TestId) AS TestId,
        ISNULL(r.Description, N'(test case did not run)') AS Description, r.Expected, r.Actual,
@@ -589,6 +658,7 @@ FULL OUTER JOIN #Expected e ON e.TestId = r.TestId;
 SELECT TestId, Description, Expected, Actual, Verdict, Message FROM #Summary ORDER BY TestId;
 SELECT COUNT(*) AS TotalCases, SUM(CASE WHEN Verdict = N'PASSED' THEN 1 ELSE 0 END) AS PassedCases FROM #Summary;
 
+-- Makes the run fail: sqlcmd -b returns exit code 1 (scripts/test_all stops), SSMS shows error 50099
 IF EXISTS (SELECT 1 FROM #Summary WHERE Verdict <> N'PASSED')
     THROW 50099, N'Some server-level test cases FAILED (see the summary table above).', 1;
 GO

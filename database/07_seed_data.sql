@@ -8,6 +8,26 @@
      usp_Payroll_Finalize, usp_Account_Create) => triggers, functions and
      cursors are exercised at the same time.
    - All data is fictitious, not real personal information.
+
+   When: the last script of scripts/db_init (after 06, so procedures, triggers and roles exist). It
+   expects the EMPTY database created by 00; a second run fails on duplicate keys.
+   Why relative dates: @Today = the day db_init runs, @Monday = Monday of that week; every date
+   (registrations, class starts, promotions, receipts, payroll months) is an offset from them, so
+   the screens, the demos and the tests always find data in every state. Each class starts a fixed
+   number of days after a Monday that matches its weekly days, so its first session is its start date.
+   How IDs are generated:
+     - Catalogs, staff and students get explicit IDs (BR01, EM0001, TE0001, ST00001...) because the
+       rest of the script and the tests refer to them; ALTER SEQUENCE ... RESTART then moves the
+       sequence past the last explicit ID, so the next DEFAULT value is not a duplicate.
+     - Classes, enrollments, receipts, placement tests and certificates take their ID from a DEFAULT
+       constraint with NEXT VALUE FOR seq_<TABLE> (CL0001, EN000001, RC000001...); usp_Class_Create
+       and usp_Enrollment_Create return it through an OUTPUT parameter.
+     - Classes and enrollments are created one at a time in a fixed order (WHILE loop, cursor with
+       ORDER BY), so they get the same IDs on every run; 12_tests.sql relies on them (CL0004, EN000001).
+   Repeatable "random" values: ABS(CHECKSUM(...)) % n turns IDs into a number from 0 to n-1, so
+   attendance, scores and dates differ between students but the same IDs always give the same value.
+   Demo accounts (section 9): contained users for the four roles; their shared password is test data
+   documented in docs/SETUP.md, never a real password.
    ===================================================================== */
 USE QLTTTA;
 GO
@@ -42,6 +62,9 @@ INSERT INTO dbo.PROGRAM (ProgramId, ProgramName, TargetLearners, Description) VA
 ('COMM',  N'English for Communication', N'Working adults',                                            N'Listening and speaking reflexes for work and daily life'),
 ('KIDS',  N'English for Kids',         N'Children aged 6 - 11',                                       N'Based on the Cambridge Young Learners framework');
 
+-- SyllabusXml is typed XML: SQL Server validates every document against xsc_CourseSyllabus (01_tables.sql)
+-- while inserting it; a course without a syllabus keeps NULL. PrerequisiteCourseId builds the course path
+-- read by the recursive query Q8 of 08_demo_queries.sql.
 INSERT INTO dbo.COURSE (CourseId, ProgramId, CourseName, Level, SessionCount, SessionMinutes, Tuition, MinPlacementScore,
                         PrerequisiteCourseId, SyllabusXml) VALUES
 ('IE-FND', 'IELTS', N'IELTS Foundation',       'A2', 24, 120,  6500000, 4.0, NULL, N'
@@ -96,6 +119,8 @@ INSERT INTO dbo.COURSE (CourseId, ProgramId, CourseName, Level, SessionCount, Se
 </Syllabus>'),
 ('KD-MOV', 'KIDS', N'Kids Movers',            'A2', 32,  90,  5600000, 4.0, 'KD-STA', NULL);
 
+-- One set of grade components per program (weights add up to 100), copied to every course of the program
+-- by joining COURSE with a VALUES table constructor
 INSERT INTO dbo.GRADE_COMPONENT (CourseId, ComponentName, Weight)
 SELECT co.CourseId, gc.ComponentName, gc.Weight
 FROM dbo.COURSE co
@@ -105,6 +130,7 @@ JOIN (VALUES ('IELTS', N'Homework', 20),      ('IELTS', N'Midterm', 30),      ('
              ('KIDS',  N'Participation', 20), ('KIDS',  N'Midterm', 30),      ('KIDS',  N'Final exam', 50)
      ) AS gc (ProgramId, ComponentName, Weight) ON gc.ProgramId = co.ProgramId;
 
+-- PR-SUMMER is already over (it covers the enrollments of the finished classes), PR-REFER and PR-OPEN are valid today
 INSERT INTO dbo.PROMOTION (PromotionId, PromotionName, DiscountType, DiscountValue, StartDate, EndDate) VALUES
 ('PR-SUMMER', N'Summer offer: 10% off',              'PERCENT', 10,     DATEADD(WEEK, -26, @Monday), DATEADD(WEEK, -12, @Monday)),
 ('PR-REFER',  N'Refer a friend: 500,000 VND off',    'AMOUNT',  500000, DATEADD(YEAR, -1, @Today),   DATEADD(YEAR, 1, @Today)),
@@ -120,7 +146,11 @@ INSERT INTO dbo.EMPLOYEE (EmployeeId, FullName, DateOfBirth, Gender, Phone, Emai
 ('EM0004', N'Nguyễn Thu Hà',   '19960314', N'Female', '0903111004', 'ha.nt@englishcenter.edu.vn',    N'TP. Thủ Đức, TP.HCM', N'Academic staff', 'BR02', '20210901', 10500000),
 ('EM0005', N'Võ Thanh Tùng',   '19920709', N'Male',   '0903111005', 'tung.vt@englishcenter.edu.vn',  N'Bình Thạnh, TP.HCM',  N'Accountant',     'BR02', '20210901', 12500000),
 ('EM0006', N'Đặng Ngọc Mai',   '19980228', N'Female', '0903111006', 'mai.dn@englishcenter.edu.vn',   N'Quận 5, TP.HCM',      N'Consultant',     'BR01', '20220110',  9000000);
+-- Continue the numbering after the explicit IDs (DF_EMPLOYEE_EmployeeId uses NEXT VALUE FOR seq_EMPLOYEE)
 ALTER SEQUENCE dbo.seq_EMPLOYEE RESTART WITH 7;
+
+-- ProfileXml (untyped XML): certificates, experience and specialties, read by usp_Teacher_FindByCertificate
+-- and the XQuery demos X3/X4 of 08_demo_queries.sql
 
 INSERT INTO dbo.TEACHER (TeacherId, FullName, DateOfBirth, Gender, Nationality, Phone, Email, Degree, TeacherType, HourlyRate,
                          BranchId, HireDate, ProfileXml) VALUES
@@ -148,6 +178,8 @@ ALTER SEQUENCE dbo.seq_TEACHER RESTART WITH 9;
 DECLARE @Students TABLE (StudentId VARCHAR(10), FullName NVARCHAR(100), DateOfBirth DATE, Gender NVARCHAR(10),
                          Phone VARCHAR(15), Email VARCHAR(100), Occupation NVARCHAR(50),
                          GuardianName NVARCHAR(100), GuardianPhone VARCHAR(15), BranchId VARCHAR(10), DaysAgo INT);
+-- The table variable is filled once and reused below for STUDENT, the placement tests and the enrollment list.
+-- Pupils under 18 have a guardian name and phone (CK_STUDENT_Guardian).
 INSERT INTO @Students VALUES
 ('ST00001', N'Nguyễn Văn An',        '20040312', N'Male',   '0901000001', 'an.nv04@gmail.com',      N'University student', NULL, NULL, 'BR01', 175),
 ('ST00002', N'Trần Thị Bích Ngọc',   '20030725', N'Female', '0901000002', 'ngoc.ttb@gmail.com',     N'University student', NULL, NULL, 'BR01', 175),
@@ -231,6 +263,8 @@ FROM @Students;
 ALTER SEQUENCE dbo.seq_STUDENT RESTART WITH 73;
 
 /* Placement tests (a trigger recommends the course) */
+-- Taken 3 days before registration; OverallScore is a computed column and trg_PLACEMENT_TEST_Recommend
+-- fills RecommendedCourseId. The scores decide who may enter a course with a minimum placement score.
 INSERT INTO dbo.PLACEMENT_TEST (StudentId, TestDate, ListeningScore, SpeakingScore, ReadingScore, WritingScore, GradedByTeacherId)
 SELECT s.StudentId, DATEADD(DAY, -s.DaysAgo - 3, @Today), p.Listening, p.Speaking, p.Reading, p.Writing, p.TeacherId
 FROM @Students s
@@ -263,6 +297,8 @@ JOIN (VALUES
    4. Open the classes + weekly schedules + generate the sessions (through procedures)
       Weekdays: ISO numbers (1 = Monday ... 7 = Sunday)
    --------------------------------------------------------------------- */
+-- ClassNo = number of the class inside this script; FinalStatus = the status it should reach (section 6
+-- reads it). Every class is created as Enrolling (DF_CLASS_Status).
 DECLARE @Classes TABLE (ClassNo INT, ClassName NVARCHAR(100), CourseId VARCHAR(10), BranchId VARCHAR(10), TeacherId VARCHAR(10),
                         RoomId VARCHAR(10), StartDate DATE, MaxStudents INT, Weekdays VARCHAR(20), StartTime TIME(0),
                         EndTime TIME(0), FinalStatus NVARCHAR(20));
@@ -283,6 +319,12 @@ DECLARE @i INT = 1, @ClassId VARCHAR(10), @ClassName NVARCHAR(100), @CourseId VA
         @StartTime TIME(0), @EndTime TIME(0), @Weekday TINYINT, @Pos INT;
 DECLARE @ClassIdByNo TABLE (ClassNo INT PRIMARY KEY, ClassId VARCHAR(10));
 
+-- For every class, in ClassNo order:
+--   1. usp_Class_Create returns the generated ClassId (OUTPUT); @ClassIdByNo remembers it for later sections
+--   2. the weekday list (a comma is appended, e.g. '1,3,5,') is cut at each comma with CHARINDEX/SUBSTRING
+--      (STRING_SPLIT needs SQL Server 2016) and usp_ClassSchedule_Add adds each slot, which fires the
+--      room/teacher clash trigger trg_CLASS_SCHEDULE_CheckConflict
+--   3. usp_Class_GenerateSessions creates the sessions and sets the EndDate of the class
 WHILE @i <= 10
 BEGIN
     SELECT @ClassName = ClassName, @CourseId = CourseId, @BranchId = BranchId, @TeacherId = TeacherId, @RoomId = RoomId,
@@ -302,7 +344,7 @@ BEGIN
         EXEC dbo.usp_ClassSchedule_Add @ClassId, @Weekday, @StartTime, @EndTime;
     END;
 
-    -- Capture the procedure's result set so the script output stays short
+    -- Capture the procedure's result set (INSERT ... EXEC) so the script output stays short
     DECLARE @Generated TABLE (SessionsCreated INT, EndDate DATE);
     INSERT INTO @Generated EXEC dbo.usp_Class_GenerateSessions @ClassId;
     SET @i += 1;
@@ -314,6 +356,8 @@ END;
       class 3 (IELTS 5.5) and class 6 (Communication B1) filled, because they
       need the prerequisite course.
    --------------------------------------------------------------------- */
+-- @Enroll: who joins which class (by ClassNo), with which promotion, in which round;
+-- RIGHT(StudentId, 1) picks a few students by the last digit of their ID to use a promotion.
 DECLARE @Enroll TABLE (StudentId VARCHAR(10), ClassNo INT, PromotionId VARCHAR(10), Round INT);
 INSERT INTO @Enroll (StudentId, ClassNo, PromotionId, Round)
 SELECT StudentId, 1, CASE WHEN RIGHT(StudentId, 1) IN ('2', '7') THEN 'PR-SUMMER' END, 1 FROM @Students WHERE StudentId BETWEEN 'ST00001' AND 'ST00012'
@@ -333,6 +377,12 @@ UNION ALL SELECT StudentId, 6, 'PR-REFER', 2 FROM @Students WHERE StudentId IN (
 DECLARE @Round INT = 1, @StudentId VARCHAR(10), @PromotionId VARCHAR(10), @ClassNo INT, @EnrolledOn DATE,
         @EmployeeId VARCHAR(10), @EnrollmentId VARCHAR(10);
 
+-- CURSOR: usp_Enrollment_Create enrolls ONE student per call (entry requirement, schedule clash, promotion),
+-- so the rows of @Enroll are read one at a time. LOCAL = visible only in this batch; FAST_FORWARD = read-only
+-- and forward-only (the cheapest kind); @@FETCH_STATUS = 0 while FETCH returned a row. The cursor is closed
+-- and deallocated after each round, so the next round can declare it again.
+-- EnrolledOn: up to 5 days before today for a class that has not started, otherwise 6 to 10 days before the
+-- start date; the academic staff member of the class branch (EM0002 / EM0004) records the enrollment.
 WHILE @Round <= 2
 BEGIN
     DECLARE cur_Enroll CURSOR LOCAL FAST_FORWARD FOR
@@ -356,6 +406,9 @@ BEGIN
     IF @Round = 1
     BEGIN
         /* Classes 1 and 2 are over => sessions taught, attendance, grades, results */
+        -- usp_Class_EvaluateResults only accepts a class In progress or Finished, hence the status change first.
+        -- Attendance and grades are inserted set-based here (usp_Attendance_Save / usp_Grade_Save save one row
+        -- per call); the triggers on ATTENDANCE and GRADE still check and audit every row.
         UPDATE cl SET Status = N'In progress'
         FROM dbo.CLASS cl JOIN @ClassIdByNo m ON m.ClassId = cl.ClassId WHERE m.ClassNo IN (1, 2);
 
@@ -389,6 +442,8 @@ BEGIN
         JOIN @ClassIdByNo m          ON m.ClassId = cl.ClassId
         WHERE m.ClassNo IN (1, 2);
 
+        -- usp_Class_EvaluateResults (cursor) writes FinalGrade/Result, issues the certificates and marks the
+        -- class Finished, so round 2 can check the prerequisite course
         DECLARE @Results TABLE (PassedCount INT, FailedCount INT);
         SELECT @ClassId = ClassId FROM @ClassIdByNo WHERE ClassNo = 1;
         INSERT INTO @Results EXEC dbo.usp_Class_EvaluateResults @ClassId;
@@ -436,6 +491,11 @@ WHERE c.FinalStatus = N'In progress'
       third pays in 2 installments (the 2nd only once it is due); classes about
       to start take a deposit.
    --------------------------------------------------------------------- */
+-- E numbers the enrollments 1, 2, 3... with ROW_NUMBER() (window function). n % 3 chooses the payment method
+-- and makes every third enrollment pay half; in classes still Enrolling only every second enrollment pays a
+-- deposit. PaidAt = date + 09:00 + (n % 7) hours: adding a number to a DATETIME adds days, so / 24 gives hours.
+-- The leading ; ends the previous statement, which a CTE (WITH) requires.
+-- Each INSERT ... SELECT below fires trg_RECEIPT_UpdateAmountPaid and trg_RECEIPT_Audit ONCE for all its rows.
 ;WITH E AS (
     SELECT en.EnrollmentId, en.EnrolledOn, en.TuitionDue, cl.BranchId, cl.Status AS ClassStatus,
            ROW_NUMBER() OVER (ORDER BY en.EnrollmentId) AS n
@@ -456,6 +516,7 @@ FROM E
 WHERE NOT (ClassStatus = N'Enrolling' AND n % 2 = 0);
 
 -- Second installment of the 50% payments (due after 30 days); newly started classes still owe
+-- (TuitionDue - AmountPaid uses the AmountPaid the trigger has just updated for installment 1)
 INSERT INTO dbo.RECEIPT (EnrollmentId, PaidAt, Amount, PaymentMethod, CollectedByEmployeeId, Description)
 SELECT en.EnrollmentId, DATEADD(DAY, 30, CAST(en.EnrolledOn AS DATETIME)) + CAST('10:30' AS DATETIME),
        en.TuitionDue - en.AmountPaid, N'Bank transfer',
@@ -472,6 +533,8 @@ WHERE en.AmountPaid > 0 AND en.AmountPaid < en.TuitionDue
 DECLARE @Pay TABLE (TeacherId VARCHAR(10), TeacherName NVARCHAR(100), SessionCount INT, Hours DECIMAL(6,2),
                     HourlyRate DECIMAL(12,0), Bonus DECIMAL(12,0), Deduction DECIMAL(12,0), TotalPay DECIMAL(14,0),
                     Status NVARCHAR(20));
+-- @PayMonth starts two months ago and the loop stops before the first day of the current month, so the last
+-- two full months are finalized; afterwards the older of the two is marked Paid.
 DECLARE @PayMonth DATE = DATEADD(MONTH, -2, @Today), @Month TINYINT, @Year SMALLINT;
 WHILE @PayMonth < DATEADD(DAY, 1 - DAY(@Today), @Today)
 BEGIN
@@ -485,6 +548,9 @@ WHERE DATEFROMPARTS(Year, Month, 1) < DATEADD(MONTH, -1, DATEADD(DAY, 1 - DAY(@T
 /* ---------------------------------------------------------------------
    9. Demo sign-in accounts (contained users) - demo password: see docs/SETUP.md
    --------------------------------------------------------------------- */
+-- usp_Account_Create creates each contained user (CREATE USER ... WITH PASSWORD), adds it to its role and
+-- writes the ACCOUNT row; it runs last because ACCOUNT refers to the EMPLOYEE/TEACHER rows above.
+-- The shared password is test data; a real deployment resets it (usp_Account_ResetPassword).
 EXEC dbo.usp_Account_Create N'ql_quan',     N'Demo@2026', 'MANAGER',        'EM0001', NULL;
 EXEC dbo.usp_Account_Create N'gvu_lan',     N'Demo@2026', 'ACADEMIC_STAFF', 'EM0002', NULL;
 EXEC dbo.usp_Account_Create N'gvu_ha',      N'Demo@2026', 'ACADEMIC_STAFF', 'EM0004', NULL;
