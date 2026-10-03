@@ -35,7 +35,7 @@ kind of report**, so the team lead can merge it without rework and everyone can 
 - Database naming (`STUDENT`, `usp_Enrollment_Create`, `StudentId`): see `01-sql.md`.
 - Commit messages in English `type(scope): description` (feat, fix, test, docs, ci, build, refactor,
   style, chore, perf, revert - checked by `scripts/check_changes`), without AI
-  attribution lines (`Co-Authored-By: Claude ...`);
+  attribution lines (`Co-Authored-By: Claude ...`), made through `/imcp-commit`;
   PRs in English through `/imcp-create-pr`.
 - When `git status` shows changes that are not yours (someone/another session is working): do **not** `git add -A`,
   stash, checkout or reset. Commit **only your paths**: `git commit --only -m "..." -- <your files>`

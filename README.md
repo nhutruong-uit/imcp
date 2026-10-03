@@ -247,8 +247,8 @@ docker-compose.yml   SQL Server 2022 Developer for local development
   translated into Vietnamese in `resources/translations/qlttta_vi.ts`; only the course report and the user guide
   are in Vietnamese.
 - Run `scripts/test_all` before opening a pull request and paste its result line into the description.
-- AI-assisted work follows [AGENTS.md](AGENTS.md) and `.claude/rules/`; the `/imcp-create-pr` and `/imcp-review`
-  skills give every pull request the same shape.
+- AI-assisted work follows [AGENTS.md](AGENTS.md) and `.claude/rules/`; the `/imcp-commit`, `/imcp-create-pr` and
+  `/imcp-review` skills give every commit and pull request the same shape.
 
 Full workflow and conventions: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 

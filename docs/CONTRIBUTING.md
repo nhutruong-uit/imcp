@@ -57,6 +57,8 @@ feat(students): add search by guardian phone number
 fix(db): fix the schedule-clash trigger for classes without an end date
 docs(report): add section 3.7 on integrity constraints
 ```
+With Claude Code, type `/imcp-commit`: it commits only your files, checks them (forbidden files, secrets, format of
+the changed C++ lines, related tests) and writes a message that passes `scripts/check_changes`.
 
 ### Database (`database/`)
 - Tables in UPPER_SNAKE_CASE (`STUDENT`, `CLASS_SESSION`), columns in PascalCase (`StudentId`, `FullName`), constraints
