@@ -260,10 +260,10 @@ Class IE103.Q21.VB2 · Supervisor: Dr. Võ Phương Bình
 
 | No. | Name | Student ID | Main responsibility |
 |---|---|---|---|
-| 1 | Trương Quang Như (team lead) | 25540022 | Architecture, application development, CI/CD, integration |
-| 2 | Đỗ Phạm Minh Trâm | 25540042 | Domain survey, requirements analysis, ERD/CD |
-| 3 | Nguyễn Việt Phú | 25540025 | Relational model, normalization, integrity constraints, triggers |
-| 4 | Đỗ Bình Dương | 25540008 | Stored procedures, functions, cursors, SQL queries, XQuery |
-| 5 | Nguyễn Bảo Giang | 25540009 | Data security, backup/restore, import/export, advanced databases |
+| 1 | Trương Quang Như (team lead) | `******22` | Architecture, application development, CI/CD, integration |
+| 2 | Đỗ Phạm Minh Trâm | `******42` | Domain survey, requirements analysis, ERD/CD |
+| 3 | Nguyễn Việt Phú | `******25` | Relational model, normalization, integrity constraints, triggers |
+| 4 | Đỗ Bình Dương | `******08` | Stored procedures, functions, cursors, SQL queries, XQuery |
+| 5 | Nguyễn Bảo Giang | `******09` | Data security, backup/restore, import/export, advanced databases |
 
 Detailed assignments: [docs/PLAN.md](docs/PLAN.md).
