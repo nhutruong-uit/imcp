@@ -1,6 +1,6 @@
 /* =====================================================================
    File   : 13_server_tests.sql - Server-level tests: backup/restore (09), BULK INSERT import (10),
-            distributed database (11), account lockout with real sign-ins
+            distributed database (11), account lockout and password reset with real sign-ins
    - Unlike 12_tests.sql these cases cannot run inside BEGIN TRAN ... ROLLBACK: BACKUP/RESTORE,
      CREATE DATABASE and linked servers are server-level operations. The script creates scratch
      objects (database QLTTTA_T_Restored, the fragment databases of 11, backup files, loopback
@@ -62,7 +62,7 @@ INSERT #Expected VALUES
     ('S12', NULL), ('S13', NULL),
     ('S14', NULL),                              ('S15', N'%cannot lock the account you are signed in with%'),
     ('S16', N'%18456%'),                        ('S17', NULL),
-    ('S18', N'%usp_Account_Lock%');
+    ('S18', N'%usp_Account_Lock%'),            ('S19', NULL);
 
 -- Values shared by the batches of this session: folders, backup files, the temporary password
 IF OBJECT_ID('tempdb..#Ctx') IS NOT NULL DROP TABLE #Ctx;
@@ -553,7 +553,7 @@ BEGIN CATCH
 END CATCH;
 GO
 
-/* ---------------- D. ACCOUNT LOCKOUT (usp_Account_Lock) WITH REAL SIGN-INS ---------------- */
+/* ---------------- D. ACCOUNT LOCKOUT AND PASSWORD RESET WITH REAL SIGN-INS ---------------- */
 
 -- S14: control case - before locking, the temporary account signs in (so S16 fails only because of the lock)
 --      Also proves that the linked servers and the account of the SETUP work at all.
@@ -636,6 +636,37 @@ END TRY
 BEGIN CATCH
     REVERT;
     INSERT #Results VALUES ('S18', N'Academic staff lock an account', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- S19: the manager resets the password of t_lockout (usp_Account_ResetPassword, EXECUTE AS OWNER)
+--      Proves the reset with real sign-ins: after the reset the account signs in with the new password, and the
+--      old password is refused (error 18456). The linked server login of MAIN is switched to each password in
+--      turn (sp_addlinkedsrvlogin replaces it). #Ctx keeps the current password for any later batch.
+--      Concept: ALTER USER ... WITH PASSWORD without OLD_PASSWORD, allowed because the procedure runs as dbo.
+DECLARE @Old NVARCHAR(128) = (SELECT Value FROM #Ctx WHERE Name = 'Password');
+DECLARE @New NVARCHAR(128) = N'Bb2@' + REPLACE(CONVERT(NVARCHAR(36), NEWID()), N'-', N'');
+DECLARE @SignedNew SYSNAME, @ErrorNew NVARCHAR(400), @SignedOld SYSNAME, @ErrorOld NVARCHAR(400);
+BEGIN TRY
+    EXECUTE AS USER = N'ql_quan';
+    EXEC dbo.usp_Account_ResetPassword @Username = N't_lockout', @NewPassword = @New;
+    REVERT;
+    UPDATE #Ctx SET Value = @New WHERE Name = 'Password';
+    EXEC master.dbo.sp_addlinkedsrvlogin @rmtsrvname = N'QLTTTA_T_LINK_MAIN', @useself = 'FALSE', @locallogin = NULL,
+         @rmtuser = N't_lockout', @rmtpassword = @New;
+    EXEC #usp_SignIn N'QLTTTA_T_LINK_MAIN', @SignedNew OUTPUT, @ErrorNew OUTPUT;
+    EXEC master.dbo.sp_addlinkedsrvlogin @rmtsrvname = N'QLTTTA_T_LINK_MAIN', @useself = 'FALSE', @locallogin = NULL,
+         @rmtuser = N't_lockout', @rmtpassword = @Old;
+    EXEC #usp_SignIn N'QLTTTA_T_LINK_MAIN', @SignedOld OUTPUT, @ErrorOld OUTPUT;
+    INSERT #Results VALUES ('S19', N'Reset password: the new one signs in, the old one is refused', N'Succeeded',
+        CASE WHEN @SignedNew = N't_lockout' AND @SignedOld IS NULL AND @ErrorOld LIKE N'%18456%'
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        N'new password: ' + ISNULL(N'signed in as ' + @SignedNew, @ErrorNew) + N'; old password: '
+        + ISNULL(N'signed in as ' + @SignedOld, LEFT(@ErrorOld, 120)));
+END TRY
+BEGIN CATCH
+    IF USER_NAME() <> N'dbo' REVERT;
+    INSERT #Results VALUES ('S19', N'Reset password: the new one signs in, the old one is refused', N'Succeeded', N'Error', ERROR_MESSAGE());
 END CATCH;
 GO
 

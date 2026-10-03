@@ -11,6 +11,14 @@ P10|Manager creates an account (user + role)|Succeeded|Succeeded|PASSED|Created 
 P11|Academic staff see the monthly revenue on the Dashboard|Rejected|Rejected|PASSED|usp_Dashboard_Stats returns RevenueThisMonth = NULL for the ACADEMIC_STAFF role
 P12|Password change with a wrong current password|Rejected|Rejected|PASSED|The current password is incorrect.
 P13|Password change without the current password|Rejected|Rejected|PASSED|The current password is incorrect.
+P14|Manager UPDATEs the AUDIT_LOG table|Rejected|Rejected|PASSED|The UPDATE permission was denied on the object 'AUDIT_LOG', database 'QLTTTA', schema 'dbo'.
+P15|Manager DELETEs from the AUDIT_LOG table|Rejected|Rejected|PASSED|The DELETE permission was denied on the object 'AUDIT_LOG', database 'QLTTTA', schema 'dbo'.
+P16|Academic staff collect a payment|Rejected|Rejected|PASSED|The EXECUTE permission was denied on the object 'usp_Receipt_Create', database 'QLTTTA', schema 'dbo'.
+P17|Accountant enters a grade|Rejected|Rejected|PASSED|The EXECUTE permission was denied on the object 'usp_Grade_Save', database 'QLTTTA', schema 'dbo'.
+P18|Teacher SELECTs the RECEIPT table|Rejected|Rejected|PASSED|The SELECT permission was denied on the object 'RECEIPT', database 'QLTTTA', schema 'dbo'.
+P19|Teacher SELECTs the PAYROLL table|Rejected|Rejected|PASSED|The SELECT permission was denied on the object 'PAYROLL', database 'QLTTTA', schema 'dbo'.
+P20|Teacher updates a session of another teacher|Rejected|Rejected|PASSED|You can only update sessions you teach.
+P21|Teacher takes attendance for a session of another teacher|Rejected|Rejected|PASSED|You can only take attendance for sessions you teach.
 T01|Student under 18 without guardian details|Rejected|Rejected|PASSED|The INSERT statement conflicted with the CHECK constraint "CK_STUDENT_Guardian". The conflict occurred in database "QLTTTA", table "dbo.STUDENT".
 T02|Invalid phone number format (domain CHECK)|Rejected|Rejected|PASSED|The INSERT statement conflicted with the CHECK constraint "CK_STUDENT_Phone". The conflict occurred in database "QLTTTA", table "dbo.STUDENT", column 'Phone'.
 T03|Enrolling twice in the same class|Rejected|Rejected|PASSED|The student is already enrolled in this class.
@@ -51,3 +59,10 @@ T37|Attendance for a session of another class|Rejected|Rejected|PASSED|The stude
 T38|Grade for a component of another course|Rejected|Rejected|PASSED|The grade component does not belong to the course of the class.
 T39|trg_GRADE_Audit: one XML audit row per changed score|Succeeded|Succeeded|PASSED|EN000001/13: 7.90 -> 8.90 logged (1 row(s); unchanged score: 0)
 T40|trg_PLACEMENT_TEST_Recommend: course recommended from the score|Succeeded|Succeeded|PASSED|5.75 => IE-55 (expected IE-55), then 3.00 => TO-450 (expected TO-450)
+T41|Deleting a student who has an enrollment history|Rejected|Rejected|PASSED|The student has an enrollment history and cannot be deleted. Change the status to "Dropped out" instead.
+T42|Cancelling a class whose students have paid|Rejected|Rejected|PASSED|Some students of this class have paid tuition; refund or transfer them before cancelling the class.
+T43|Changing a grade of a finished class|Rejected|Rejected|PASSED|The class has finished and its results are final; grades can no longer be changed.
+T44|Changing the attendance of a finished class|Rejected|Rejected|PASSED|The class has finished and its results are final; attendance can no longer be changed.
+T45|Locking an account without saying lock or unlock|Rejected|Rejected|PASSED|Choose whether to lock or unlock the account.
+T46|Transfer: the tuition of the new class applies|Succeeded|Succeeded|PASSED|BaseTuition 4,200,000, discount 500,000, due 3,700,000 (expected 4,200,000 / 500,000)
+T47|Transfer when more was paid than the new tuition|Rejected|Rejected|PASSED|The student has paid more than the tuition of the new class; cancel a receipt before the transfer.

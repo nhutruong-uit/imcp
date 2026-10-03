@@ -80,12 +80,22 @@ INSERT #Expected VALUES
     ('T37', N'%does not belong to the class of this session%'),
     ('T38', N'%does not belong to the course of the class%'),
     ('T39', NULL), ('T40', NULL),
+    ('T41', N'%enrollment history%'),           ('T42', N'%have paid tuition%'),
+    ('T43', N'%grades can no longer be changed%'),
+    ('T44', N'%attendance can no longer be changed%'),
+    ('T45', N'%lock or unlock%'),               ('T46', NULL),
+    ('T47', N'%paid more than the tuition of the new class%'),
     ('P01', N'%STUDENT%'),                      ('P02', NULL),
     ('P03', N'%only enter grades%'),            ('P04', N'%usp_Enrollment_Create%'),
     ('P05', NULL),                              ('P06', N'%HourlyRate%'),
     ('P07', N'%PAYROLL%'),                      ('P08', N'%RECEIPT%'),
     ('P09', N'%usp_Account_Create%'),           ('P10', NULL), ('P11', NULL),
-    ('P12', N'%current password is incorrect%'), ('P13', N'%current password is incorrect%');
+    ('P12', N'%current password is incorrect%'), ('P13', N'%current password is incorrect%'),
+    ('P14', N'%AUDIT_LOG%'),                    ('P15', N'%AUDIT_LOG%'),
+    ('P16', N'%usp_Receipt_Create%'),           ('P17', N'%usp_Grade_Save%'),
+    ('P18', N'%RECEIPT%'),                      ('P19', N'%PAYROLL%'),
+    ('P20', N'%only update sessions you teach%'),
+    ('P21', N'%only take attendance for sessions you teach%');
 GO
 
 /* ---------------- A. INTEGRITY CONSTRAINTS & BUSINESS RULES ---------------- */
@@ -94,9 +104,11 @@ GO
 --      Proves CK_STUDENT_Guardian: a student under 18 needs a guardian name and phone. Concept: CHECK constraint
 --      across several columns - it applies even though usp_Student_Add has no check of its own for it.
 BEGIN TRY
+    -- 12 years before today (a fixed date would stop being "under 18" a few years later)
+    DECLARE @Dob DATE = DATEADD(YEAR, -12, dbo.fn_Today());
     BEGIN TRAN;
     DECLARE @Id VARCHAR(10);
-    EXEC dbo.usp_Student_Add @FullName = N'Nguyễn Nhỏ', @DateOfBirth = '20140101', @Gender = N'Male',
+    EXEC dbo.usp_Student_Add @FullName = N'Nguyễn Nhỏ', @DateOfBirth = @Dob, @Gender = N'Male',
          @Phone = '0909999001', @BranchId = 'BR01', @StudentId = @Id OUTPUT;
     ROLLBACK;
     INSERT #Results VALUES ('T01', N'Student under 18 without guardian details', N'Rejected', N'Succeeded', NULL);
@@ -456,6 +468,162 @@ END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('T38', N'Grade for a component of another course', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T41: deleting a student who has an enrollment history
+--      Proves usp_Student_Delete keeps the history: a student with enrollments cannot be deleted (THROW 50005,
+--      the message suggests the status Dropped out). Concept: business check before a DELETE.
+BEGIN TRY
+    BEGIN TRAN;
+    EXEC dbo.usp_Student_Delete @StudentId = 'ST00001';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T41', N'Deleting a student who has an enrollment history', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T41', N'Deleting a student who has an enrollment history', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T42: cancelling a class whose students have paid tuition
+--      Proves usp_Class_UpdateStatus refuses Cancelled while the class has valid receipts (THROW 50015): the
+--      money must be refunded or the students transferred first. Concept: rule across CLASS - ENROLLMENT -
+--      RECEIPT in a procedure.
+BEGIN TRY
+    BEGIN TRAN;
+    EXEC dbo.usp_Class_UpdateStatus @ClassId = 'CL0003', @Status = N'Cancelled';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T42', N'Cancelling a class whose students have paid', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T42', N'Cancelling a class whose students have paid', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T43: changing a grade of a finished class
+--      Proves usp_Grade_Save: once usp_Class_EvaluateResults has closed a class (Finished), its grades are final
+--      (THROW 50042). CL0001 is a finished class of the seed data.
+BEGIN TRY
+    DECLARE @Enrollment43 VARCHAR(10) = (SELECT TOP (1) EnrollmentId FROM dbo.ENROLLMENT WHERE ClassId = 'CL0001'
+                                         ORDER BY EnrollmentId);
+    DECLARE @Component43 INT = (SELECT TOP (1) ComponentId FROM dbo.GRADE_COMPONENT WHERE CourseId = 'IE-FND'
+                                ORDER BY ComponentId);
+    BEGIN TRAN;
+    EXEC dbo.usp_Grade_Save @EnrollmentId = @Enrollment43, @ComponentId = @Component43, @Score = 9;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T43', N'Changing a grade of a finished class', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T43', N'Changing a grade of a finished class', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T44: changing the attendance of a finished class
+--      Proves usp_Attendance_Save: the attendance of a Finished class is final like its grades (THROW 50046),
+--      because the results and certificates were computed from it. Concept: the same closing rule in two
+--      procedures.
+BEGIN TRY
+    DECLARE @Session44 INT = (SELECT TOP (1) SessionId FROM dbo.CLASS_SESSION WHERE ClassId = 'CL0001'
+                              ORDER BY SessionId);
+    DECLARE @Enrollment44 VARCHAR(10) = (SELECT TOP (1) EnrollmentId FROM dbo.ENROLLMENT WHERE ClassId = 'CL0001'
+                                         ORDER BY EnrollmentId);
+    BEGIN TRAN;
+    EXEC dbo.usp_Attendance_Save @SessionId = @Session44, @EnrollmentId = @Enrollment44, @Status = N'Present';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T44', N'Changing the attendance of a finished class', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T44', N'Changing the attendance of a finished class', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T45: locking an account without saying lock or unlock (@Lock NULL)
+--      Proves usp_Account_Lock refuses NULL (THROW 50068); before, NULL took the "unlock" branch (GRANT CONNECT,
+--      status Active). Rolled back in any case. Concept: validating a BIT parameter (it can also be NULL).
+BEGIN TRY
+    BEGIN TRAN;
+    EXEC dbo.usp_Account_Lock @Username = N'gvu_ha', @Lock = NULL;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T45', N'Locking an account without saying lock or unlock', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T45', N'Locking an account without saying lock or unlock', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T46: a transfer applies the tuition of the new class
+--      Proves usp_Enrollment_TransferClass: BaseTuition becomes the tuition of the new class and the promotion of
+--      the enrollment is applied again; compared with the discount computed here from the PROMOTION row.
+--      Scenario, rolled back: ST00071 in CL0010 (CM-A1, 3,800,000) with PR-REFER moves to a new CM-A1 class
+--      that costs 4,200,000. Concept: a derived amount recomputed in a multi-step transaction.
+BEGIN TRY
+    DECLARE @E46 TABLE (EnrollmentId VARCHAR(10));
+    DECLARE @C46 TABLE (ClassId VARCHAR(10));
+    DECLARE @Enrollment46 VARCHAR(10), @Class46 VARCHAR(10), @Base46 DECIMAL(12,0), @Discount46 DECIMAL(12,0),
+            @Due46 DECIMAL(12,0);
+    DECLARE @ExpectedDiscount46 DECIMAL(12,0) =
+        (SELECT CASE DiscountType WHEN 'AMOUNT' THEN DiscountValue ELSE ROUND(4200000 * DiscountValue / 100, -3) END
+         FROM dbo.PROMOTION WHERE PromotionId = 'PR-REFER');
+    BEGIN TRAN;
+    INSERT INTO dbo.ENROLLMENT (StudentId, ClassId, BaseTuition, PromotionId, DiscountAmount)
+    OUTPUT inserted.EnrollmentId INTO @E46
+    VALUES ('ST00071', 'CL0010', 3800000, 'PR-REFER', 500000);
+    SELECT @Enrollment46 = EnrollmentId FROM @E46;
+    -- Room D1-LAB (capacity 16) and teacher TE0003 are free on Monday evenings
+    INSERT INTO dbo.CLASS (ClassName, CourseId, BranchId, TeacherId, RoomId, StartDate, MaxStudents, Tuition)
+    OUTPUT inserted.ClassId INTO @C46
+    VALUES (N'T46 transfer target', 'CM-A1', 'BR01', 'TE0003', 'D1-LAB', dbo.fn_Today(), 16, 4200000);
+    SELECT @Class46 = ClassId FROM @C46;
+    INSERT INTO dbo.CLASS_SCHEDULE (ClassId, Weekday, StartTime, EndTime) VALUES (@Class46, 1, '18:00', '19:00');
+    EXEC dbo.usp_Enrollment_TransferClass @EnrollmentId = @Enrollment46, @NewClassId = @Class46;
+    SELECT @Base46 = BaseTuition, @Discount46 = DiscountAmount, @Due46 = TuitionDue
+    FROM dbo.ENROLLMENT WHERE EnrollmentId = @Enrollment46;
+    ROLLBACK;
+    INSERT #Results VALUES ('T46', N'Transfer: the tuition of the new class applies', N'Succeeded',
+        CASE WHEN @Base46 = 4200000 AND @Discount46 = @ExpectedDiscount46 AND @Due46 = 4200000 - @ExpectedDiscount46
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        N'BaseTuition ' + ISNULL(FORMAT(@Base46, 'N0'), N'?') + N', discount ' + ISNULL(FORMAT(@Discount46, 'N0'), N'?')
+        + N', due ' + ISNULL(FORMAT(@Due46, 'N0'), N'?') + N' (expected 4,200,000 / '
+        + FORMAT(@ExpectedDiscount46, 'N0') + N')');
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T46', N'Transfer: the tuition of the new class applies', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T47: transferring a student who paid more than the tuition of the new class
+--      Proves usp_Enrollment_TransferClass refuses the move (THROW 50028): AmountPaid may never exceed the new
+--      TuitionDue (CK_ENROLLMENT_AmountPaid), so a receipt must be cancelled first. Scenario, rolled back:
+--      ST00071 paid 3,800,000 in full for CL0010 and asks for a CM-A1 class that costs 3,000,000.
+BEGIN TRY
+    DECLARE @E47 TABLE (EnrollmentId VARCHAR(10));
+    DECLARE @C47 TABLE (ClassId VARCHAR(10));
+    DECLARE @Enrollment47 VARCHAR(10), @Class47 VARCHAR(10);
+    BEGIN TRAN;
+    INSERT INTO dbo.ENROLLMENT (StudentId, ClassId, BaseTuition) OUTPUT inserted.EnrollmentId INTO @E47
+    VALUES ('ST00071', 'CL0010', 3800000);
+    SELECT @Enrollment47 = EnrollmentId FROM @E47;
+    -- Paid in full: trg_RECEIPT_UpdateAmountPaid sets AmountPaid = 3,800,000
+    INSERT INTO dbo.RECEIPT (EnrollmentId, Amount, PaymentMethod, CollectedByEmployeeId)
+    VALUES (@Enrollment47, 3800000, N'Cash', 'EM0003');
+    INSERT INTO dbo.CLASS (ClassName, CourseId, BranchId, TeacherId, RoomId, StartDate, MaxStudents, Tuition)
+    OUTPUT inserted.ClassId INTO @C47
+    VALUES (N'T47 transfer target', 'CM-A1', 'BR01', 'TE0003', 'D1-LAB', dbo.fn_Today(), 16, 3000000);
+    SELECT @Class47 = ClassId FROM @C47;
+    INSERT INTO dbo.CLASS_SCHEDULE (ClassId, Weekday, StartTime, EndTime) VALUES (@Class47, 1, '18:00', '19:00');
+    EXEC dbo.usp_Enrollment_TransferClass @EnrollmentId = @Enrollment47, @NewClassId = @Class47;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T47', N'Transfer when more was paid than the new tuition', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T47', N'Transfer when more was paid than the new tuition', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 
@@ -1453,6 +1621,164 @@ BEGIN CATCH
     REVERT;
     IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P13', N'Password change without the current password', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P14: the manager changes the audit log (DENY UPDATE - even for the manager)
+--      Proves DENY UPDATE ON AUDIT_LOG TO rl_Manager: the permission check (error 229) comes before the
+--      INSTEAD OF trigger of T11, so the audit log has two independent guards. Concept: DENY on a table.
+BEGIN TRY
+    BEGIN TRAN;
+    EXECUTE AS USER = N'ql_quan';
+    UPDATE dbo.AUDIT_LOG SET PerformedBy = N'someone else' WHERE LogId = (SELECT MIN(LogId) FROM dbo.AUDIT_LOG);
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P14', N'Manager UPDATEs the AUDIT_LOG table', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P14', N'Manager UPDATEs the AUDIT_LOG table', N'Rejected',
+        CASE WHEN ERROR_NUMBER() = 229 THEN N'Rejected' ELSE N'Wrong error' END, ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P15: the manager deletes from the audit log (DENY DELETE - even for the manager)
+--      Proves DENY DELETE ON AUDIT_LOG TO rl_Manager (error 229, before the INSTEAD OF trigger).
+BEGIN TRY
+    BEGIN TRAN;
+    EXECUTE AS USER = N'ql_quan';
+    DELETE FROM dbo.AUDIT_LOG WHERE LogId = (SELECT MIN(LogId) FROM dbo.AUDIT_LOG);
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P15', N'Manager DELETEs from the AUDIT_LOG table', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P15', N'Manager DELETEs from the AUDIT_LOG table', N'Rejected',
+        CASE WHEN ERROR_NUMBER() = 229 THEN N'Rejected' ELSE N'Wrong error' END, ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P16: academic staff collect a payment (DENY EXECUTE)
+--      Proves DENY EXECUTE ON usp_Receipt_Create TO rl_AcademicStaff; the permission error names the procedure.
+BEGIN TRY
+    DECLARE @Receipt16 VARCHAR(10);
+    BEGIN TRAN;
+    EXECUTE AS USER = N'gvu_lan';
+    EXEC dbo.usp_Receipt_Create @EnrollmentId = 'EN000001', @Amount = 100000, @ReceiptId = @Receipt16 OUTPUT;
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P16', N'Academic staff collect a payment', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P16', N'Academic staff collect a payment', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P17: an accountant enters a grade (DENY EXECUTE)
+--      Proves DENY EXECUTE ON usp_Grade_Save TO rl_Accountant; the permission error names the procedure.
+BEGIN TRY
+    DECLARE @Enrollment17 VARCHAR(10) = (SELECT TOP (1) EnrollmentId FROM dbo.ENROLLMENT WHERE ClassId = 'CL0003'
+                                         ORDER BY EnrollmentId);
+    DECLARE @Component17 INT = (SELECT TOP (1) ComponentId FROM dbo.GRADE_COMPONENT WHERE CourseId = 'IE-55'
+                                ORDER BY ComponentId);
+    BEGIN TRAN;
+    EXECUTE AS USER = N'kt_minh';
+    EXEC dbo.usp_Grade_Save @EnrollmentId = @Enrollment17, @ComponentId = @Component17, @Score = 9;
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P17', N'Accountant enters a grade', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P17', N'Accountant enters a grade', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P18: a teacher reads the receipts (DENY SELECT)
+--      Proves DENY SELECT ON RECEIPT TO rl_Teacher (error 229): teachers never see payments.
+BEGIN TRY
+    DECLARE @Count18 INT;
+    BEGIN TRAN;
+    EXECUTE AS USER = N'gv_john';
+    SET @Count18 = (SELECT COUNT(*) FROM dbo.RECEIPT);
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P18', N'Teacher SELECTs the RECEIPT table', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P18', N'Teacher SELECTs the RECEIPT table', N'Rejected',
+        CASE WHEN ERROR_NUMBER() = 229 THEN N'Rejected' ELSE N'Wrong error' END, ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P19: a teacher reads the payroll table (DENY SELECT)
+--      Proves DENY SELECT ON PAYROLL TO rl_Teacher (error 229): a teacher sees only their own pay, through the
+--      view vw_Teacher_MyPay. Concept: DENY on the table + a filtered view (ownership chaining).
+BEGIN TRY
+    DECLARE @Count19 INT;
+    BEGIN TRAN;
+    EXECUTE AS USER = N'gv_john';
+    SET @Count19 = (SELECT COUNT(*) FROM dbo.PAYROLL);
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P19', N'Teacher SELECTs the PAYROLL table', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P19', N'Teacher SELECTs the PAYROLL table', N'Rejected',
+        CASE WHEN ERROR_NUMBER() = 229 THEN N'Rejected' ELSE N'Wrong error' END, ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P20: a teacher updates a session taught by another teacher
+--      Proves the row-level rule of usp_Session_Update (THROW 50017): GRANT EXECUTE lets every teacher call it,
+--      but the procedure compares the teacher of the session with fn_CurrentTeacherId().
+BEGIN TRY
+    DECLARE @Session20 INT = (SELECT TOP (1) SessionId FROM dbo.CLASS_SESSION
+                              WHERE TeacherId <> (SELECT TeacherId FROM dbo.ACCOUNT WHERE Username = N'gv_john')
+                              ORDER BY SessionId);
+    BEGIN TRAN;
+    EXECUTE AS USER = N'gv_john';
+    EXEC dbo.usp_Session_Update @SessionId = @Session20, @Status = N'Taught';
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P20', N'Teacher updates a session of another teacher', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P20', N'Teacher updates a session of another teacher', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P21: a teacher takes attendance for a session of another teacher
+--      Proves the row-level rule of usp_Attendance_Save (THROW 50040), with a session and an enrollment of CL0004
+--      (in progress, taught by TE0005).
+BEGIN TRY
+    DECLARE @Session21 INT = (SELECT TOP (1) SessionId FROM dbo.CLASS_SESSION WHERE ClassId = 'CL0004'
+                              ORDER BY SessionId);
+    DECLARE @Enrollment21 VARCHAR(10) = (SELECT TOP (1) EnrollmentId FROM dbo.ENROLLMENT WHERE ClassId = 'CL0004'
+                                         ORDER BY EnrollmentId);
+    BEGIN TRAN;
+    EXECUTE AS USER = N'gv_john';
+    EXEC dbo.usp_Attendance_Save @SessionId = @Session21, @EnrollmentId = @Enrollment21, @Status = N'Present';
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P21', N'Teacher takes attendance for a session of another teacher', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P21', N'Teacher takes attendance for a session of another teacher', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 

@@ -194,7 +194,7 @@ GO
 
 /* A3. usp_Student_Delete: only a student who never enrolled can be deleted
        Used by: Students screen - Delete (SqlStudentRepository::remove); roles rl_Manager, rl_AcademicStaff;
-                e2e academicStaff_searchAddDeleteStudent.
+                e2e academicStaff_searchAddDeleteStudent; test T41 (a student with an enrollment history).
        Rules:   a student with any enrollment keeps the history (enrollments, receipts, grades point to it),
                 so the message (50005) suggests the status Dropped out instead. The placement tests go first
                 because FK_PLACEMENT_TEST_STUDENT (no ON DELETE CASCADE) would block deleting the student.
@@ -422,7 +422,7 @@ END;
 GO
 
 /* B4. usp_Class_UpdateStatus: change the status of a class
-       Used by: roles rl_Manager, rl_AcademicStaff.
+       Used by: roles rl_Manager, rl_AcademicStaff; test T42 (cancelling a class whose students paid).
        Rules:   a class cannot be cancelled while some of its students hold a valid receipt (50015: refund or
                 transfer them first). The allowed values are those of CK_CLASS_Status. At the end of a course
                 E5 sets the status Finished itself, after computing the results.
@@ -450,7 +450,8 @@ END;
 GO
 
 /* B5. usp_Session_Update: the teacher confirms a session was taught / records its content
-       Used by: roles rl_Manager, rl_AcademicStaff, rl_Teacher.
+       Used by: roles rl_Manager, rl_AcademicStaff, rl_Teacher; test P20 (a teacher updates a session of
+                another teacher).
        Rules:   a TEACHER account may only change the sessions it teaches (CLASS_SESSION.TeacherId = the
                 teacher linked to the signed-in account, 50017); the other roles may change any session.
                 A NULL description keeps the old one. Status values: CK_CLASS_SESSION_Status. Once Taught, the
@@ -619,13 +620,18 @@ GO
 /* C2. usp_Enrollment_TransferClass: move a student to another class of the SAME course,
        keeping the payment history (ClassId is updated in one transaction).
        Used by: roles rl_Manager, rl_AcademicStaff; tests T14 (a class of another course is rejected), T34 (a
-                class that clashes with another class of the student is rejected).
+                class that clashes with another class of the student is rejected), T46 (the tuition of the new
+                class applies), T47 (a student who paid more than the new tuition cannot move).
        Rules:   only a Studying / On hold enrollment can move (50026); the new class must be of the same course
                 and still open, Enrolling / In progress (50027); the student must not be in it already (50022);
                 its weekly schedule must not clash with another class the student is taking (50024, the same
                 check as usp_Enrollment_Create, leaving out the enrollment that moves).
-                The enrollment row is kept (same EnrollmentId), so receipts, grades and the tuition stay
-                attached to it; only the attendance of the old class is removed. The capacity trigger
+                The tuition follows the new class: BaseTuition becomes its tuition and the promotion of the
+                enrollment is applied again (fn_DiscountAmount on the enrollment date). A student who already
+                paid more than the new tuition due cannot move until a receipt is cancelled (50028), because
+                AmountPaid may never exceed TuitionDue (CK_ENROLLMENT_AmountPaid).
+                The enrollment row is kept (same EnrollmentId), so receipts and grades stay attached to it;
+                only the attendance of the old class is removed. The capacity trigger
                 (trg_ENROLLMENT_CheckCapacity) checks the new class because ClassId changes.
        Concepts: UPDATE of a foreign key instead of delete + insert, DELETE with a JOIN, self-join of CLASS
                  (a = old class, b = new class), multi-step transaction. */
@@ -638,10 +644,14 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
-    DECLARE @OldClassId VARCHAR(10), @StudentId VARCHAR(10), @StartDate DATE, @EndDate DATE;
+    DECLARE @OldClassId VARCHAR(10), @StudentId VARCHAR(10), @StartDate DATE, @EndDate DATE,
+            @PromotionId VARCHAR(10), @EnrolledOn DATE, @AmountPaid DECIMAL(12,0),
+            @NewTuition DECIMAL(12,0), @NewDiscount DECIMAL(12,0);
 
-    -- 1. Read the active enrollment (old class and student); still NULL => none
-    SELECT @OldClassId = ClassId, @StudentId = StudentId FROM dbo.ENROLLMENT
+    -- 1. Read the active enrollment (old class, student, promotion, payments); still NULL => none
+    SELECT @OldClassId = ClassId, @StudentId = StudentId, @PromotionId = PromotionId, @EnrolledOn = EnrolledOn,
+           @AmountPaid = AmountPaid
+    FROM dbo.ENROLLMENT
     WHERE EnrollmentId = @EnrollmentId AND Status IN (N'Studying', N'On hold');
     IF @OldClassId IS NULL
         THROW 50026, N'Active enrollment not found.', 1;
@@ -670,7 +680,14 @@ BEGIN
           AND ISNULL(cl2.EndDate, DATEADD(MONTH, 6, cl2.StartDate)) >= @StartDate)
         THROW 50024, N'The class schedule clashes with another class the student is taking.', 1;
 
-    -- 4. Two writes that must succeed together (SET XACT_ABORT ON + TRY/CATCH, see the file header)
+    -- 4. The tuition of the new class, with the promotion of the enrollment applied again
+    SELECT @NewTuition = Tuition FROM dbo.CLASS WHERE ClassId = @NewClassId;
+    SET @NewDiscount = CASE WHEN @PromotionId IS NULL THEN 0
+                            ELSE dbo.fn_DiscountAmount(@PromotionId, @NewTuition, @EnrolledOn) END;
+    IF @AmountPaid > @NewTuition - @NewDiscount
+        THROW 50028, N'The student has paid more than the tuition of the new class; cancel a receipt before the transfer.', 1;
+
+    -- 5. Two writes that must succeed together (SET XACT_ABORT ON + TRY/CATCH, see the file header)
     BEGIN TRY
         BEGIN TRANSACTION;
         -- Attendance in the old class means nothing for the new class
@@ -678,7 +695,9 @@ BEGIN
         DELETE at FROM dbo.ATTENDANCE at JOIN dbo.CLASS_SESSION se ON se.SessionId = at.SessionId
         WHERE at.EnrollmentId = @EnrollmentId AND se.ClassId = @OldClassId;
 
-        UPDATE dbo.ENROLLMENT SET ClassId = @NewClassId, Status = N'Studying' WHERE EnrollmentId = @EnrollmentId;
+        UPDATE dbo.ENROLLMENT
+        SET ClassId = @NewClassId, Status = N'Studying', BaseTuition = @NewTuition, DiscountAmount = @NewDiscount
+        WHERE EnrollmentId = @EnrollmentId;
         COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
@@ -746,7 +765,8 @@ GO
 /* D1. usp_Receipt_Create: record a receipt; a trigger updates ENROLLMENT.AmountPaid
        and blocks payments above the tuition due.
        Used by: roles rl_Manager, rl_Accountant (DENY EXECUTE to rl_AcademicStaff: they cannot collect money);
-                tests T06 (payment above the tuition), T20 (payment, then cancellation).
+                tests T06 (payment above the tuition), T20 (payment, then cancellation), P16 (academic staff
+                are refused).
        Rules:   a collecting employee is required (50030): the signed-in one (fn_CurrentEmployeeId) unless
                 @EmployeeId is passed; the enrollment must exist and not be Left (50031); the amount must be
                 > 0 (CK_RECEIPT_Amount). After the INSERT, trg_RECEIPT_UpdateAmountPaid recomputes AmountPaid
@@ -884,9 +904,12 @@ GO
 
 /* E2. usp_Attendance_Save: save the attendance of one student at one session
        (a teacher only takes attendance for the sessions they teach)
-       Used by: roles rl_Manager, rl_AcademicStaff, rl_Teacher.
-       Rules:   a TEACHER account only marks the sessions it teaches (50040). The student must belong to the
-                class of the session (trigger trg_ATTENDANCE_CheckClass); status values: CK_ATTENDANCE_Status.
+       Used by: roles rl_Manager, rl_AcademicStaff, rl_Teacher; tests P21 (a teacher marks a session of another
+                teacher), T44 (a session of a finished class).
+       Rules:   a TEACHER account only marks the sessions it teaches (50040). The attendance of a Finished class
+                is final, like its grades (50046): the results and certificates were computed from it (E5).
+                The student must belong to the class of the session (trigger trg_ATTENDANCE_CheckClass);
+                status values: CK_ATTENDANCE_Status.
                 Only Present and Late count as present in fn_AttendanceRate (E5 needs 80%).
        Concepts: a row-level permission inside a procedure, upsert on a composite key (SessionId, EnrollmentId). */
 IF OBJECT_ID(N'dbo.usp_Attendance_Save', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Attendance_Save;
@@ -904,8 +927,12 @@ BEGIN
        AND NOT EXISTS (SELECT 1 FROM dbo.CLASS_SESSION WHERE SessionId = @SessionId
                                                          AND TeacherId = dbo.fn_CurrentTeacherId())
         THROW 50040, N'You can only take attendance for sessions you teach.', 1;
+    -- 2. A finished class is closed: its results were computed from this attendance (same rule as grades, E4)
+    IF EXISTS (SELECT 1 FROM dbo.CLASS_SESSION se JOIN dbo.CLASS cl ON cl.ClassId = se.ClassId
+               WHERE se.SessionId = @SessionId AND cl.Status = N'Finished')
+        THROW 50046, N'The class has finished and its results are final; attendance can no longer be changed.', 1;
 
-    -- 2. Save = update the mark when it exists, insert it otherwise
+    -- 3. Save = update the mark when it exists, insert it otherwise
     IF EXISTS (SELECT 1 FROM dbo.ATTENDANCE WHERE SessionId = @SessionId AND EnrollmentId = @EnrollmentId)
         UPDATE dbo.ATTENDANCE SET Status = @Status, Notes = @Notes
         WHERE SessionId = @SessionId AND EnrollmentId = @EnrollmentId;
@@ -951,7 +978,7 @@ GO
        (a teacher only grades their own classes; no changes after the class finished)
        Used by: roles rl_Manager, rl_AcademicStaff, rl_Teacher (DENY EXECUTE to rl_Accountant);
                 tests T10 (a score of 11 is rejected by CK_GRADE_Score), P03 (a teacher grades the class
-                of another teacher).
+                of another teacher), T43 (a grade of a finished class), P17 (an accountant is refused).
        Rules:   the enrollment must exist (50026, the message of group C); a TEACHER only grades the classes
                 whose CLASS.TeacherId is their own (50041); the grades of a Finished class are final (50042).
                 The component must belong to the course of the class (trigger trg_GRADE_CheckComponent) and
@@ -1550,10 +1577,12 @@ GO
 /* I2. usp_Account_Lock: lock / unlock (DENY / GRANT the CONNECT permission)
        Used by: rl_Manager only; tests S14-S18 (13_server_tests.sql: real sign-ins before and after the lock,
                 a manager cannot lock their own account, academic staff are refused).
-       Rules:   the account must exist (50064); nobody locks the account they are signed in with (50065).
-                Inside EXECUTE AS OWNER, USER_NAME() is dbo, so ORIGINAL_LOGIN() tells who really called.
+       Rules:   @Lock must say lock (1) or unlock (0) - NULL is refused instead of meaning "unlock" (50068,
+                test T45); the account must exist (50064); nobody locks the account they are signed in with
+                (50065). Inside EXECUTE AS OWNER, USER_NAME() is dbo, so ORIGINAL_LOGIN() tells who really called.
                 DENY CONNECT stops the user from signing in at all (DENY wins over GRANT); ACCOUNT.Status
-                keeps the state for the Accounts list (I6).
+                keeps the state for the Accounts list (I6). Both are written in one transaction (DENY/GRANT
+                can be rolled back), so the permission and the status never disagree.
        Concepts: DENY / GRANT CONNECT, EXECUTE AS OWNER, ORIGINAL_LOGIN(), QUOTENAME in dynamic SQL. */
 IF OBJECT_ID(N'dbo.usp_Account_Lock', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Account_Lock;
 GO
@@ -1564,23 +1593,36 @@ WITH EXECUTE AS OWNER
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     DECLARE @Sql NVARCHAR(400);
     -- 1. Rules
+    IF @Lock IS NULL
+        THROW 50068, N'Choose whether to lock or unlock the account.', 1;
     IF NOT EXISTS (SELECT 1 FROM dbo.ACCOUNT WHERE Username = @Username)
         THROW 50064, N'Account not found.', 1;
     IF @Username = ORIGINAL_LOGIN()
         THROW 50065, N'You cannot lock the account you are signed in with.', 1;
 
-    -- 2. DENY / GRANT take no variable for the user name, hence dynamic SQL with QUOTENAME; then the status
+    -- 2. DENY / GRANT take no variable for the user name, hence dynamic SQL with QUOTENAME; then the status,
+    --    both in one transaction
     SET @Sql = CASE WHEN @Lock = 1 THEN N'DENY CONNECT TO ' ELSE N'GRANT CONNECT TO ' END + QUOTENAME(@Username);
-    EXEC sys.sp_executesql @Sql;
-    UPDATE dbo.ACCOUNT SET Status = CASE WHEN @Lock = 1 THEN N'Locked' ELSE N'Active' END
-    WHERE Username = @Username;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        EXEC sys.sp_executesql @Sql;
+        UPDATE dbo.ACCOUNT SET Status = CASE WHEN @Lock = 1 THEN N'Locked' ELSE N'Active' END
+        WHERE Username = @Username;
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 
 /* I3. usp_Account_ResetPassword: the manager resets an employee's password
-       Used by: rl_Manager only.
+       Used by: rl_Manager only; test S19 (13_server_tests.sql: the account signs in with the new password and no
+                longer with the old one).
        Rules:   the account must exist (50064); the new password has at least 8 characters (50061). Running as
                 the owner, ALTER USER needs no OLD_PASSWORD (compare I4, which runs as the caller).
        Concepts: EXECUTE AS OWNER, ALTER USER ... WITH PASSWORD, quotes doubled in the password literal. */

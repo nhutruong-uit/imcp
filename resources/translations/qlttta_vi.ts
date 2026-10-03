@@ -461,6 +461,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Không tìm thấy lượt ghi danh.</translation>
     </message>
     <message>
+        <source>The student has paid more than the tuition of the new class; cancel a receipt before the transfer.</source>
+        <translation>Học viên đã đóng nhiều hơn học phí của lớp mới; hãy hủy phiếu thu trước khi chuyển lớp.</translation>
+    </message>
+    <message>
         <source>The current account is not linked to an employee who can collect payments.</source>
         <translation>Tài khoản hiện tại không gắn với nhân viên thu tiền.</translation>
     </message>
@@ -491,6 +495,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>The class has finished and its results are final; grades can no longer be changed.</source>
         <translation>Lớp đã kết thúc và xét kết quả, không thể sửa điểm.</translation>
+    </message>
+    <message>
+        <source>The class has finished and its results are final; attendance can no longer be changed.</source>
+        <translation>Lớp đã kết thúc và xét kết quả, không thể sửa điểm danh.</translation>
     </message>
     <message>
         <source>The class does not exist or has not started yet.</source>
@@ -527,6 +535,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>Account not found.</source>
         <translation>Không tìm thấy tài khoản.</translation>
+    </message>
+    <message>
+        <source>Choose whether to lock or unlock the account.</source>
+        <translation>Hãy chọn khóa hoặc mở khóa tài khoản.</translation>
     </message>
     <message>
         <source>You cannot lock the account you are signed in with.</source>

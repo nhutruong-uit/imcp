@@ -81,7 +81,7 @@ GRANT INSERT, UPDATE ON dbo.TEACHER          TO rl_Manager;
 GRANT INSERT, UPDATE ON dbo.PROMOTION        TO rl_Manager;
 -- Not even the manager may change the audit log or delete financial documents
 -- (second layer next to the INSTEAD OF triggers trg_AUDIT_LOG_ReadOnly and trg_RECEIPT_PreventDelete;
--- tested by P08)
+-- tested by P08 for RECEIPT, P14 and P15 for AUDIT_LOG)
 DENY UPDATE, DELETE ON dbo.AUDIT_LOG TO rl_Manager;
 DENY DELETE ON dbo.RECEIPT TO rl_Manager;
 GO
@@ -127,7 +127,7 @@ GRANT EXECUTE ON dbo.usp_Teacher_FindByCertificate  TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Dashboard_Stats            TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Report_ClassResults        TO rl_AcademicStaff;
 GRANT SELECT  ON dbo.fn_TeacherSchedule             TO rl_AcademicStaff;
--- Academic staff can neither see payroll nor collect payments (tested by P07)
+-- Academic staff can neither see payroll nor collect payments (tested by P07 and P16)
 DENY SELECT ON dbo.PAYROLL TO rl_AcademicStaff;
 DENY EXECUTE ON dbo.usp_Receipt_Create TO rl_AcademicStaff;
 GO
@@ -154,7 +154,7 @@ GRANT EXECUTE ON dbo.usp_Report_Revenue       TO rl_Accountant;
 GRANT EXECUTE ON dbo.usp_Dashboard_Stats      TO rl_Accountant;
 GRANT SELECT  ON dbo.fn_MonthlyRevenue        TO rl_Accountant;
 GRANT SELECT  ON dbo.fn_StudentBalance        TO rl_Accountant;
--- Accountants can neither change grades nor enroll students (tested by P04)
+-- Accountants can neither change grades nor enroll students (tested by P17 and P04)
 DENY EXECUTE ON dbo.usp_Grade_Save        TO rl_Accountant;
 DENY EXECUTE ON dbo.usp_Enrollment_Create TO rl_Accountant;
 GO
@@ -162,8 +162,9 @@ GO
 -- Teacher role (next section): row-level security through views. The vw_Teacher_My* views filter on
 -- dbo.fn_CurrentTeacherId() (USER_NAME() -> ACCOUNT.TeacherId), so each teacher sees only their own
 -- classes, students, sessions, grades and pay; the granted procedures check the same thing themselves
--- (fn_CurrentRole / fn_CurrentTeacherId, test P03). The DENYs on the tables do not break the views
--- thanks to ownership chaining (P01: the table is refused, P02: the views work).
+-- (fn_CurrentRole / fn_CurrentTeacherId, tests P03, P20, P21). The DENYs on the tables do not break the
+-- views thanks to ownership chaining (P01, P18, P19: STUDENT, RECEIPT and PAYROLL are refused; P02: the views
+-- work).
 
 /* 6. TEACHER: only the data of their own classes (through views filtered by the signed-in user) */
 GRANT SELECT ON dbo.vw_Teacher_MyClasses   TO rl_Teacher;
