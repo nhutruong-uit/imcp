@@ -1,5 +1,5 @@
 """Chapters 4-5: signing in, the common parts of the screens, every feature by role."""
-from chapters.common import ROLES, SCREENS, demo_accounts
+from chapters.common import ROLE_CODES, ROLES, SCREENS, demo_accounts
 
 ROLE_SCOPE = {
     "Manager": "Toàn bộ: học viên, lớp, công nợ, doanh thu, lương, tài khoản",
@@ -239,6 +239,25 @@ def chapter5(g):
         "`usp_Account_Lock`, `usp_Account_ResetPassword` (xem "
         "`docs/DATABASE.md`).")
     g.figure(SCREENS / "ql_quan_accounts.png", "Danh sách tài khoản (Quản lý)")
+    g.code("SSMS (đăng nhập bằng tài khoản quản lý)",
+           "-- Tạo tài khoản cho giáo viên TE0004\n"
+           "EXEC dbo.usp_Account_Create N'gv_emily', N'<mật khẩu>', 'TEACHER',\n"
+           "     NULL, 'TE0004';\n"
+           "-- Khóa (1) rồi mở khóa (0)\n"
+           "EXEC dbo.usp_Account_Lock N'gv_emily', 1;\n"
+           "EXEC dbo.usp_Account_Lock N'gv_emily', 0;\n"
+           "-- Đặt lại mật khẩu\n"
+           "EXEC dbo.usp_Account_ResetPassword N'gv_emily', N'<mật khẩu mới>';")
+    g.bullets([
+        "**Tên đăng nhập**: chỉ gồm chữ cái không dấu, chữ số, dấu chấm và dấu gạch dưới, ít nhất 3 ký tự "
+        "(tên có dấu như `gv_ánh` bị từ chối) và chưa có tài khoản nào dùng. **Mật khẩu** ít nhất 8 ký tự.",
+        "**Vai trò**: " + ", ".join(f"`{code}` ({ROLES[role]})" for code, role in ROLE_CODES.items())
+        + ". Tài khoản giáo viên cần mã giáo viên (`TE...`, tham số thứ năm); các vai trò khác cần mã nhân "
+        "viên (`EM...`, tham số thứ tư).",
+        "**Khóa / mở khóa**: tham số thứ hai bắt buộc là `1` (khóa) hoặc `0` (mở khóa). Không khóa được tài "
+        "khoản đang dùng để đăng nhập. Tài khoản bị khóa không đăng nhập được nữa (thông báo ở mục 4.3) và hiện "
+        "**Đã khóa** trong danh sách.",
+    ])
 
     g.h2("5.10. Chức năng dành cho giáo viên")
     g.p("*Vai trò: Giáo viên.* Giáo viên chỉ thấy dữ liệu của chính mình (CSDL lọc theo tài khoản đăng nhập):")
@@ -262,4 +281,23 @@ def chapter5(g):
         ["Điểm danh, nhập điểm", "`usp_Attendance_Save`, `usp_Grade_Save`", "Quản lý, Giáo vụ, Giáo viên"],
         ["Mở lớp, sinh lịch học", "`usp_Class_Create`, `usp_Class_GenerateSessions`", "Quản lý, Giáo vụ"],
     ], widths_cm=[5.0, 7.0, 4.0], caption="Nghiệp vụ thực hiện bằng thủ tục trong CSDL", size=10)
+    g.p("Mỗi thủ tục tự kiểm tra quy tắc nghiệp vụ trước khi ghi. Khi vi phạm, SSMS hiện thông báo lỗi (tiếng "
+        "Anh, ví dụ `The student is already enrolled in this class.`) và dữ liệu không thay đổi. Các quy tắc "
+        "người dùng hay gặp:")
+    g.table(["Nghiệp vụ", "Quy tắc CSDL kiểm tra"], [
+        ["Ghi danh",
+         "Học viên chưa **Ngừng học** và chưa có trong lớp; lớp **Đang tuyển sinh** hoặc **Đang học** và còn chỗ; "
+         "không trùng giờ với lớp khác học viên đang học; mã khuyến mãi còn hiệu lực. Khóa có điều kiện đầu vào: "
+         "học viên phải **Đạt** khóa tiên quyết, hoặc có bài kiểm tra xếp lớp gần nhất đủ điểm tối thiểu (chỉ khi "
+         "khóa có quy định điểm tối thiểu)."],
+        ["Chuyển lớp",
+         "Chỉ chuyển lượt ghi danh **Đang học** hoặc **Bảo lưu**, sang lớp **cùng khóa học** đang tuyển sinh hoặc "
+         "đang học, còn chỗ và không trùng giờ. Học phí tính lại theo lớp mới (áp dụng lại khuyến mãi của lượt "
+         "ghi danh); nếu học viên đã đóng nhiều hơn học phí mới thì phải hủy bớt phiếu thu trước. Phiếu thu và "
+         "điểm được giữ, điểm danh ở lớp cũ bị xóa."],
+        ["Điểm danh, nhập điểm",
+         "Giáo viên chỉ điểm danh các buổi mình dạy và chỉ nhập điểm lớp mình dạy. Lớp **Đã kết thúc** đã được "
+         "xét kết quả nên không sửa điểm danh và điểm được nữa."],
+    ], widths_cm=[3.6, 12.4], caption="Quy tắc CSDL kiểm tra khi ghi danh, chuyển lớp, điểm danh và nhập điểm",
+        size=10)
     g.p("Tham số và ví dụ của từng thủ tục nằm trong `database/04_procedures.sql` và Chương 4 của báo cáo đồ án.")
