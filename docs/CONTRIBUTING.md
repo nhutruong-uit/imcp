@@ -114,6 +114,8 @@ GitHub pre-fills every new PR with `.github/pull_request_template.md` (same sect
 - Read `AGENTS.md` in the repo root and `.claude/rules/`: Claude Code applies the conventions above automatically.
   It needs Claude Code v2.1.277 or later, which reads `AGENTS.md` by itself. Do not create a `CLAUDE.md` or
   `CLAUDE.local.md`: Claude Code would read it instead of `AGENTS.md`.
+- After cloning, type `/imcp-setup`: it checks your machine, installs what is missing (it asks first), creates the
+  database and runs `test_all` (`scripts/setup_dev`, see [SETUP.md](SETUP.md#one-command-setup-recommended)).
 - Every member must be able to **understand and explain** their own area: when you ask Claude to write or change
   something, ask it to explain each statement and run it yourself in SSMS.
 - Never commit secrets (real passwords, `.env` files).
