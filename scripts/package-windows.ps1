@@ -5,6 +5,10 @@
 #
 # Requirements: Qt 6 (MinGW 64-bit), CMake, Ninja on PATH; QT_ROOT_DIR pointing to the Qt folder,
 #               e.g. C:\Qt\6.8.3\mingw_64. Inno Setup 6 (optional, for setup.exe).
+#
+# Usage (PowerShell, in the repo folder):
+#   .\scripts\package-windows.ps1                                  # Qt from $env:QT_ROOT_DIR
+#   .\scripts\package-windows.ps1 -QtDir C:\Qt\6.8.3\mingw_64       # another Qt (also used by the CMake preset)
 param(
     [string]$QtDir = $env:QT_ROOT_DIR
 )
@@ -13,6 +17,8 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $root
 
 if (-not $QtDir) { throw "Set QT_ROOT_DIR, e.g. `$env:QT_ROOT_DIR = 'C:\Qt\6.8.3\mingw_64'" }
+# The windows-release preset reads $env:QT_ROOT_DIR: build and deploy with the same Qt
+$env:QT_ROOT_DIR = $QtDir
 $version = (Select-String -Path CMakeLists.txt -Pattern '^\s*VERSION\s+([0-9.]+)').Matches[0].Groups[1].Value
 Write-Host ">> Release build (QLTTTA $version)"
 cmake --preset windows-release

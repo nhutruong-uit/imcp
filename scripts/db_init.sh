@@ -3,7 +3,7 @@
 #
 # Usage:
 #   SQL_PASSWORD='<sa password>' ./scripts/db_init.sh                  # sqlcmd installed on this machine
-#   SQL_PASSWORD='<sa password>' ./scripts/db_init.sh --docker sql2022  # sqlcmd inside the container
+#   SQL_PASSWORD='<sa password>' ./scripts/db_init.sh --docker imcp-mssql  # sqlcmd inside the container
 #
 # Environment: SQL_SERVER (default localhost,1433), SQL_USER (default sa), SQL_PASSWORD (required)
 set -euo pipefail
@@ -15,7 +15,7 @@ SQL_USER="${SQL_USER:-sa}"
 CONTAINER=""
 
 if [[ "${1:-}" == "--docker" ]]; then
-  CONTAINER="${2:?Missing container name, e.g. --docker sql2022}"
+  CONTAINER="${2:?Missing container name, e.g. --docker imcp-mssql}"
 fi
 : "${SQL_PASSWORD:?Set SQL_PASSWORD (password of the sa account)}"
 

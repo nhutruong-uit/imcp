@@ -8,7 +8,8 @@ paths:
 # Rules for scripts, CI and packaging
 
 - Every script has **two versions doing the same steps**: `.sh` (macOS/Linux) and `.ps1` (Windows). Change one,
-  change the other.
+  change the other. The installer builders are the exception: `package-macos.sh` and `package-windows.ps1` only
+  exist for their own platform.
 - `.sh`: `#!/usr/bin/env bash` + `set -euo pipefail`; the repo root comes from `$(dirname "$0")`; a "Usage" comment
   block at the top of the file.
 - `.ps1`: saved as **UTF-8 with BOM + CRLF** (Windows PowerShell 5.1 needs the BOM to read non-ASCII text such as the

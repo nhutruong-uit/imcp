@@ -11,17 +11,17 @@
 # Usage (PowerShell, in the repo folder):
 #   .\scripts\test_all.ps1                                   # Windows Authentication, server "localhost"
 #   .\scripts\test_all.ps1 -Server "localhost\SQLEXPRESS"    # SQL Server Express
-#   .\scripts\test_all.ps1 -User sa -Password "<password>"   # SQL Server Authentication
-#   .\scripts\test_all.ps1 -Docker sql2022                   # SQL Server in Docker (sa password: $env:SQL_PASSWORD)
+#   .\scripts\test_all.ps1 -User sa                          # SQL Server Authentication (password: $env:SQL_PASSWORD)
+#   .\scripts\test_all.ps1 -Docker imcp-mssql                # SQL Server in Docker (sa password: $env:SQL_PASSWORD)
 #   add -NoInit to skip step 2; -ChangeBase sets the base branch of step 1 (default origin/develop); -Preset selects the CMake preset (default windows-debug / macos-debug / linux-debug)
 #   Without -Docker the SQL Server service reads the sample CSV (BULK INSERT) from a copy in %ProgramData%\QLTTTA
 #   (/tmp on macOS/Linux); $env:SQL_CSV_PATH overrides it with the file's path on the SQL Server machine.
 # Windows: needs $env:QT_ROOT_DIR and MinGW/Ninja/CMake on PATH as described in docs\SETUP.md.
 # Demo account password for the end-to-end tests: $env:QLTTTA_E2E_PASSWORD (default as in docs\SETUP.md).
+# The sa password only travels in $env:SQL_PASSWORD (never as an argument: it would stay in the PowerShell history).
 param(
     [string]$Server = "localhost",
     [string]$User = "",
-    [string]$Password = "",
     [string]$Docker = "",
     [switch]$NoInit,
     [string]$Preset = "",
@@ -33,9 +33,9 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 if (-not $Preset) { $Preset = if ($IsMacOS) { "macos-debug" } elseif ($IsLinux) { "linux-debug" } else { "windows-debug" } }
-if (-not $Password -and $env:SQL_PASSWORD) { $Password = $env:SQL_PASSWORD }
+$Password = $env:SQL_PASSWORD
 if ($Docker -and -not $User) { $User = "sa" }
-if ($User -and -not $Password) { throw "Missing password: use -Password or the SQL_PASSWORD environment variable." }
+if ($User -and -not $Password) { throw "Missing password: set the SQL_PASSWORD environment variable." }
 
 $results = Join-Path $root "build/test-results"
 New-Item -ItemType Directory -Force -Path $results | Out-Null
@@ -58,7 +58,7 @@ try {
     # 2. Re-initialize the database
     if (-not $NoInit) {
         Step "2/5 Re-initialize the database"
-        & (Join-Path $PSScriptRoot "db_init.ps1") -Server $Server -User $User -Password $Password -Docker $Docker
+        & (Join-Path $PSScriptRoot "db_init.ps1") -Server $Server -User $User -Docker $Docker
     }
 
     # Runs a test script of database\ into build/test-results\<log> (extra = extra sqlcmd arguments) and stops
@@ -70,6 +70,7 @@ try {
         if ($User) { $env:SQLCMDPASSWORD = $Password }
         if ($Docker) {
             docker cp (Join-Path $root "database/$file") "${Docker}:/tmp/$file" | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "FAILED: could not copy $file into the container $Docker" }
             $lines = docker exec -e SQLCMDPASSWORD $Docker /opt/mssql-tools18/bin/sqlcmd `
                 -S localhost -U $User -C -I -b -f 65001 -d QLTTTA -W -s "|" @extra -i "/tmp/$file"
         } else {
@@ -102,7 +103,9 @@ try {
     Step "4/5 Server-level tests (database/13_server_tests.sql)"
     if ($Docker) {
         docker cp (Join-Path $root "database/11_distributed_demo.sql") "${Docker}:/tmp/11_distributed_demo.sql" | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "FAILED: could not copy 11_distributed_demo.sql into the container $Docker" }
         docker cp (Join-Path $root "database/samples/student_import.csv") "${Docker}:/tmp/student_import.csv" | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "FAILED: could not copy student_import.csv into the container $Docker" }
         Invoke-DbTests "13_server_tests.sql" "server_tests.txt" @("-v", "DatabaseDir=/tmp", "CsvPath=/tmp/student_import.csv")
     } else {
         $csvPath = $env:SQL_CSV_PATH
@@ -129,7 +132,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "FAILED: some tests did not pass (ctest)." }
 
     # A silently skipped end-to-end test is not accepted (e.g. missing password, database unreachable)
-    if (Select-String -Path $junit -Pattern 'status="notrun"|<skipped' -Quiet) {
+    if (Select-String -Path $junit -Pattern 'status="notrun"|status="skipped"|<skipped' -Quiet) {
         throw "FAILED: some tests were skipped - check the database connection / QLTTTA_E2E_PASSWORD."
     }
     Write-Host ""

@@ -17,7 +17,8 @@ There are three levels of use; pick the one that fits you:
 2. Initialize the database in one of two ways:
    - PowerShell in the repo folder: `.\scripts\db_init.ps1` (Windows Authentication), or
      `.\scripts\db_init.ps1 -Server "localhost\SQLEXPRESS"` for the Express edition. SQL Server authentication:
-     `-User sa -Password "<password>"` (or set `$env:SQL_PASSWORD`); sqlcmd inside a Docker container: `-Docker sql2022`.
+     set `$env:SQL_PASSWORD` and add `-User sa` (the scripts take no password argument, which would stay in the
+     PowerShell history); sqlcmd inside a Docker container: `-Docker imcp-mssql`.
    - Or open SSMS and run `database/00_create_database.sql` → `07_seed_data.sql` in order
      (SQLCMD Mode under *Query > SQLCMD Mode* is not required).
 
@@ -27,14 +28,14 @@ SQL Server runs in Docker:
 2. Create a `.env` file in the repo root: `MSSQL_SA_PASSWORD=<strong password>`, then run `docker compose up -d`
    (this means you accept the SQL Server Developer Edition license terms). The container is named `imcp-mssql`; its
    time zone does not matter (the database stores UTC and computes the center's dates, see
-   [DATABASE.md](DATABASE.md#time-utc-instants-and-center-dates)).
+   [DATABASE.md](DATABASE.md#7-time-utc-instants-and-center-dates)).
 3. Initialize the database (uses the `sqlcmd` that is already inside the container):
    ```bash
    SQL_PASSWORD='<sa password>' ./scripts/db_init.sh --docker imcp-mssql
    ```
    Without Docker, drop `--docker ...` to use a `sqlcmd` installed on your machine (`SQL_SERVER` defaults to
-   `localhost,1433`, `SQL_USER` to `sa`). In the examples elsewhere, `sql2022` is simply the name of another local
-   container; use whatever name `docker ps` shows.
+   `localhost,1433`, `SQL_USER` to `sa`). If your SQL Server container has another name, use the one
+   `docker ps` shows in every `--docker` / `-Docker` example.
 4. To view/run SQL: VS Code + the **SQL Server (mssql)** extension, connect to `localhost,1433` as user `sa`.
 
 > The scripts are compatible with SQL Server **2012 and later** (no `CREATE OR ALTER`, `STRING_AGG`, ...).
@@ -144,7 +145,7 @@ macOS), CMake ≥ 3.25 for the presets.
 
 ### Running the full test suite with one command (before every PR)
 ```bash
-SQL_PASSWORD='<sa password>' ./scripts/test_all.sh --docker sql2022   # or drop --docker if sqlcmd is installed locally
+SQL_PASSWORD='<sa password>' ./scripts/test_all.sh --docker imcp-mssql   # or drop --docker if sqlcmd is installed locally
 ```
 It runs, in order: change checks against `origin/develop` (`scripts/check_changes.sh`: format of the changed C++
 lines, commit messages, no build output / `.env` in the repository) → re-initialize the database →
@@ -156,8 +157,9 @@ database re-initialization. Optional environment variables: `SQL_SERVER`, `SQL_U
 account password, defaults to the one above), `PRESET` (CMake preset, default `macos-debug`, `linux-debug` on Linux),
 `EXTRA_CMAKE_ARGS`, `SQL_CSV_PATH` (see below) and `CHANGE_BASE` (base branch of the change checks).
 The change checks need `clang-format` and `git clang-format` of the team version (`.clang-format-version`):
-`brew install clang-format`, or on any OS `pip install clang-format==<version>` (Windows: also possible with the
-LLVM installer). Run them alone with `./scripts/check_changes.sh` (Windows: `.\scripts\check_changes.ps1`).
+`pipx install clang-format==<version>` (or `pip install clang-format==<version>`; `scripts/setup_dev` does it) -
+`brew install clang-format` installs the newest LLVM, which may format differently from CI. Run them alone with
+`./scripts/check_changes.sh` (Windows: `.\scripts\check_changes.ps1`).
 A skipped end-to-end test counts as a failure, so a missing password or an unreachable database cannot pass silently.
 The last line is
 `ALL TESTS PASSED: database 108/108 cases (12_tests + 13_server_tests), unit tests + end-to-end GUI tests passed.`
@@ -173,9 +175,10 @@ On Windows (PowerShell, with `QT_ROOT_DIR` and PATH set as in section 3):
 ```powershell
 .\scripts\test_all.ps1                                  # Windows Authentication, server "localhost"
 .\scripts\test_all.ps1 -Server "localhost\SQLEXPRESS"   # Express edition
-.\scripts\test_all.ps1 -Docker sql2022                  # SQL Server in Docker, sa password in $env:SQL_PASSWORD
+.\scripts\test_all.ps1 -Docker imcp-mssql               # SQL Server in Docker, sa password in $env:SQL_PASSWORD
 ```
-(`-User/-Password`, `-NoInit` and `-Preset` are also available. On macOS the same script runs with `pwsh`.)
+(`-User sa` with `$env:SQL_PASSWORD`, `-NoInit`, `-Preset` and `-ChangeBase` are also available. On macOS the same
+script runs with `pwsh`.)
 
 To test only the database (no Qt needed): open `database/12_tests.sql` in SSMS; it passes when the script finishes
 without error `50099` (the `Verdict` column of the summary shows `PASSED`/`FAILED` per case).

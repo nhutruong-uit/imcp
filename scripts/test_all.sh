@@ -10,9 +10,9 @@
 #   5. Build the application + unit tests (incl. tst_conventions) + end-to-end GUI tests against the database
 #
 # Usage:
-#   SQL_PASSWORD='<sa password>' ./scripts/test_all.sh --docker sql2022   # sqlcmd inside the container
+#   SQL_PASSWORD='<sa password>' ./scripts/test_all.sh --docker imcp-mssql   # sqlcmd inside the container
 #   SQL_PASSWORD='<sa password>' ./scripts/test_all.sh                    # sqlcmd on this machine (SQL_SERVER)
-#   ... ./scripts/test_all.sh --docker sql2022 --no-init                   # skip step 2
+#   ... ./scripts/test_all.sh --docker imcp-mssql --no-init                   # skip step 2
 #
 # Environment: SQL_SERVER (default localhost,1433), SQL_USER (default sa), SQL_PASSWORD (required),
 #   QLTTTA_E2E_PASSWORD (demo account password, default as in docs/SETUP.md),
@@ -35,7 +35,7 @@ INIT_DB=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --docker)  CONTAINER="${2:?Missing container name, e.g. --docker sql2022}"; shift 2 ;;
+    --docker)  CONTAINER="${2:?Missing container name, e.g. --docker imcp-mssql}"; shift 2 ;;
     --no-init) INIT_DB=0; shift ;;
     *) echo "Invalid argument: $1" >&2; exit 2 ;;
   esac
@@ -64,9 +64,10 @@ DB_TOTAL=0
 run_db_tests() {
   local file="$1" log="$RESULTS/$2" exit_code total passed
   shift 2
+  # Outside "set +e": a failed copy stops the suite instead of running an older copy left in the container
+  if [[ -n "$CONTAINER" ]]; then docker cp "$ROOT/database/$file" "$CONTAINER:/tmp/$file" >/dev/null; fi
   set +e
   if [[ -n "$CONTAINER" ]]; then
-    docker cp "$ROOT/database/$file" "$CONTAINER:/tmp/$file" >/dev/null
     SQLCMDPASSWORD="$SQL_PASSWORD" docker exec -e SQLCMDPASSWORD "$CONTAINER" /opt/mssql-tools18/bin/sqlcmd \
       -S localhost -U "$SQL_USER" -C -I -b -f 65001 -d QLTTTA -W -s '|' "$@" -i "/tmp/$file" > "$log" 2>&1
   else
@@ -119,7 +120,7 @@ QLTTTA_SERVER="${QLTTTA_SERVER:-$SQL_SERVER}" ctest --preset "$PRESET" --output-
   --output-junit "$RESULTS/ctest.xml"
 
 # A silently skipped end-to-end test is not accepted (e.g. missing password, database unreachable)
-if grep -q 'status="skipped"\|<skipped' "$RESULTS/ctest.xml"; then
+if grep -q 'status="notrun"\|status="skipped"\|<skipped' "$RESULTS/ctest.xml"; then
   echo "FAILED: some tests were skipped - check the database connection / QLTTTA_E2E_PASSWORD." >&2
   exit 1
 fi

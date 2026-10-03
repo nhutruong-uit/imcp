@@ -3,22 +3,22 @@
 # Usage (PowerShell):
 #   .\scripts\db_init.ps1                                   # Windows Authentication, server "localhost"
 #   .\scripts\db_init.ps1 -Server "localhost\SQLEXPRESS"    # SQL Server Express
-#   .\scripts\db_init.ps1 -User sa -Password "<password>"   # SQL Server Authentication
-#   .\scripts\db_init.ps1 -Docker sql2022                   # sqlcmd inside a Docker container (sa password: $env:SQL_PASSWORD)
-# The password can be given in the SQL_PASSWORD environment variable instead of -Password (keeps it off the command line).
+#   .\scripts\db_init.ps1 -User sa                          # SQL Server Authentication (password: $env:SQL_PASSWORD)
+#   .\scripts\db_init.ps1 -Docker imcp-mssql                # sqlcmd inside a Docker container (sa password: $env:SQL_PASSWORD)
+# The password only travels in the SQL_PASSWORD environment variable: a -Password argument would end up in the
+# PowerShell history file (rule of .claude/rules/04-scripts-ci.md).
 param(
     [string]$Server = "localhost",
     [string]$User = "",
-    [string]$Password = "",
     [string]$Docker = ""
 )
 $ErrorActionPreference = "Stop"
 $dbDir = Join-Path $PSScriptRoot "..\database"
 $files = @("00_create_database.sql", "01_tables.sql", "02_functions.sql", "03_views.sql",
            "04_procedures.sql", "05_triggers.sql", "06_security.sql", "07_seed_data.sql")
-if (-not $Password -and $env:SQL_PASSWORD) { $Password = $env:SQL_PASSWORD }
+$Password = $env:SQL_PASSWORD
 if ($Docker -and -not $User) { $User = "sa" }
-if ($User -and -not $Password) { throw "Missing password: use -Password or the SQL_PASSWORD environment variable." }
+if ($User -and -not $Password) { throw "Missing password: set the SQL_PASSWORD environment variable." }
 
 $previousPassword = $env:SQLCMDPASSWORD
 try {
@@ -28,6 +28,7 @@ try {
         Write-Host ">> $f"
         if ($Docker) {
             docker cp (Join-Path $dbDir $f) "${Docker}:/tmp/$f" | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "Could not copy $f into the container $Docker" }
             docker exec -e SQLCMDPASSWORD $Docker /opt/mssql-tools18/bin/sqlcmd `
                 -S localhost -U $User -C -I -b -f 65001 -d $db -i "/tmp/$f"
         } else {

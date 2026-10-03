@@ -27,7 +27,7 @@ echo "Changes since $BASE ($(git rev-parse --short "$BASE_COMMIT")):"
 # 1. Format of the changed C++ lines (committed and uncommitted; new files once they are git-added)
 WANTED="$(tr -d '[:space:]' < .clang-format-version)"
 if ! command -v clang-format > /dev/null || ! git clang-format -h > /dev/null 2>&1; then
-  fail "clang-format / git clang-format not found (brew install clang-format, or pip install clang-format==$WANTED)"
+  fail "clang-format / git clang-format not found (pipx install clang-format==$WANTED, or pip install clang-format==$WANTED)"
 else
   HAVE="$(clang-format --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
   if [[ "${HAVE%%.*}" != "${WANTED%%.*}" ]]; then
