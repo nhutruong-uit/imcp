@@ -57,24 +57,46 @@ QString fileName(Feature feature) {
         return QStringLiteral("dashboard");
     case Feature::Students:
         return QStringLiteral("students");
+    case Feature::PlacementTests:
+        return QStringLiteral("placement_tests");
     case Feature::Classes:
         return QStringLiteral("classes");
+    case Feature::Enrollments:
+        return QStringLiteral("enrollments");
     case Feature::WeeklySchedule:
         return QStringLiteral("weekly_schedule");
+    case Feature::Grades:
+        return QStringLiteral("grade_book");
     case Feature::LearningResults:
         return QStringLiteral("learning_results");
+    case Feature::Tuition:
+        return QStringLiteral("tuition");
     case Feature::OutstandingTuition:
         return QStringLiteral("outstanding_tuition");
     case Feature::Revenue:
         return QStringLiteral("revenue");
     case Feature::Payroll:
         return QStringLiteral("payroll");
+    case Feature::Courses:
+        return QStringLiteral("courses");
+    case Feature::Teachers:
+        return QStringLiteral("teachers");
+    case Feature::Employees:
+        return QStringLiteral("employees");
+    case Feature::Branches:
+        return QStringLiteral("branches");
+    case Feature::Promotions:
+        return QStringLiteral("promotions");
     case Feature::Accounts:
         return QStringLiteral("accounts");
+    case Feature::Backup:
+        return QStringLiteral("backup");
     case Feature::MyClasses:
         return QStringLiteral("my_classes");
     case Feature::MyTeachingSchedule:
         return QStringLiteral("my_teaching_schedule");
+    case Feature::MyGrades:
+        return QStringLiteral("my_grade_book");
     case Feature::MyPay:
         return QStringLiteral("my_pay");
     }

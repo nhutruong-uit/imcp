@@ -29,6 +29,9 @@ StudentFormDialog::StudentFormDialog(StudentService& service, const QList<Branch
     ui->phoneEdit->setValidator(digitsOnly);
     ui->guardianPhoneEdit->setValidator(digitsOnly);
     ui->dateOfBirthEdit->setMaximumDate(QDate::currentDate());
+    // A registration may be recorded late (usp_Student_Add @RegisteredOn), never in the future; an existing
+    // student keeps it (usp_Student_Update has no such parameter)
+    ui->registeredOnEdit->setMaximumDate(QDate::currentDate());
     // No more characters than the database columns hold (Student::validate checks the notes, a plain text
     // edit)
     ui->fullNameEdit->setMaxLength(StudentLimits::fullName);
@@ -49,10 +52,12 @@ StudentFormDialog::StudentFormDialog(StudentService& service, const QList<Branch
     ui->titleLabel->setText(isNew ? tr("Add student") : tr("Edit student"));
     setWindowTitle(ui->titleLabel->text());
     ui->statusCombo->setEnabled(!isNew); // a new student always starts as "Prospective"
+    ui->registeredOnEdit->setEnabled(isNew);
     fillForm(student);
     updateGuardianGroup();
 
     connect(ui->dateOfBirthEdit, &QDateEdit::dateChanged, this, &StudentFormDialog::updateGuardianGroup);
+    connect(ui->registeredOnEdit, &QDateEdit::dateChanged, this, &StudentFormDialog::updateGuardianGroup);
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &StudentFormDialog::save);
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 }
@@ -75,12 +80,14 @@ void StudentFormDialog::fillForm(const Student& s) {
         ui->branchCombo->addItem(s.branchName.isEmpty() ? s.branchId : s.branchName, s.branchId);
     ui->branchCombo->setCurrentIndex(qMax(0, ui->branchCombo->findData(s.branchId)));
     ui->statusCombo->setCurrentIndex(qMax(0, ui->statusCombo->findData(s.status)));
+    ui->registeredOnEdit->setDate(s.registeredOn.isValid() ? s.registeredOn : QDate::currentDate());
     ui->guardianNameEdit->setText(s.guardianName);
     ui->guardianPhoneEdit->setText(s.guardianPhone);
     ui->notesEdit->setPlainText(s.notes);
 }
 
-// Starts from the original student so fields the form does not show (registration date, ID) are kept
+// Starts from the original student so fields the form does not change (ID, registration date of an existing
+// student) are kept
 Student StudentFormDialog::readForm() const {
     Student s = m_original;
     s.fullName = ui->fullNameEdit->text();
@@ -92,6 +99,8 @@ Student StudentFormDialog::readForm() const {
     s.occupation = ui->occupationEdit->text();
     s.branchId = ui->branchCombo->currentData().toString();
     s.status = ui->statusCombo->currentData().toString();
+    if (s.id.isEmpty())
+        s.registeredOn = ui->registeredOnEdit->date();
     s.guardianName = ui->guardianNameEdit->text();
     s.guardianPhone = ui->guardianPhoneEdit->text();
     s.notes = ui->notesEdit->toPlainText();
@@ -103,8 +112,7 @@ Student StudentFormDialog::readForm() const {
 void StudentFormDialog::updateGuardianGroup() {
     Student probe;
     probe.dateOfBirth = ui->dateOfBirthEdit->date();
-    const bool required = probe.needsGuardian(m_original.registeredOn.isValid() ? m_original.registeredOn
-                                                                                : QDate::currentDate());
+    const bool required = probe.needsGuardian(ui->registeredOnEdit->date());
     ui->guardianGroup->setTitle(required ? tr("Guardian information * (student under 18)")
                                          : tr("Guardian information (optional)"));
 }

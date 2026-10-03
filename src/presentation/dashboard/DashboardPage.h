@@ -4,10 +4,11 @@
 
 #include <QWidget>
 
+class QComboBox;
 class QLabel;
 class RevenueChart;
 
-// Overview page: key figures + revenue chart of the current year
+// Overview page: key figures + revenue chart of the current year, for the whole center or one branch
 // Data: StatisticsService -> usp_Dashboard_Stats (cards) and fn_MonthlyRevenue (chart). A role that may not
 // see revenue (academic staff) gets "No permission" on that card - the procedure returns NULL for it - and a
 // message instead of the chart, because SQL Server refuses fn_MonthlyRevenue to that role.
@@ -24,6 +25,7 @@ private:
     QWidget* buildCard(const QString& title, const QString& icon, QLabel** value);
 
     AppServices m_services;
+    QComboBox* m_branch = nullptr;
     QLabel* m_activeStudents = nullptr;
     QLabel* m_activeClasses = nullptr;
     QLabel* m_enrollingClasses = nullptr;

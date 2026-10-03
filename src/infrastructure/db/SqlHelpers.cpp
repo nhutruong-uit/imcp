@@ -1,5 +1,6 @@
 #include "infrastructure/db/SqlHelpers.h"
 
+#include <QSqlRecord>
 #include <algorithm>
 
 namespace {
@@ -101,6 +102,47 @@ bool execPrepared(QSqlQuery& q, const DatabaseManager& db, const QString& sql, c
     for (const QVariant& v : statement.values)
         q.addBindValue(v);
     return q.exec();
+}
+
+TableData readTable(QSqlQuery& q) {
+    TableData table;
+    const QSqlRecord record = q.record(); // describes the columns of the result
+    const int columnCount = record.count();
+    for (int i = 0; i < columnCount; ++i)
+        table.columns.append(record.fieldName(i));
+    while (q.next()) {
+        QVariantList row;
+        row.reserve(columnCount);
+        for (int i = 0; i < columnCount; ++i)
+            row.append(q.value(i));
+        table.rows.append(row);
+    }
+    return table;
+}
+
+VoidResult execCall(const DatabaseManager& db, const QString& sql, const QVariantList& values) {
+    QSqlQuery q = makeQuery(db.db());
+    if (!execPrepared(q, db, sql, values))
+        return VoidResult::failure(errorOf(q));
+    return VoidResult::success();
+}
+
+Result<TableData> queryTable(const DatabaseManager& db, const QString& sql, const QVariantList& values) {
+    QSqlQuery q = makeQuery(db.db());
+    if (!execPrepared(q, db, sql, values))
+        return Result<TableData>::failure(errorOf(q));
+    return Result<TableData>::success(readTable(q));
+}
+
+Result<QList<LookupItem>> queryLookup(const DatabaseManager& db, const QString& sql,
+                                      const QVariantList& values) {
+    QSqlQuery q = makeQuery(db.db());
+    if (!execPrepared(q, db, sql, values))
+        return Result<QList<LookupItem>>::failure(errorOf(q));
+    QList<LookupItem> items;
+    while (q.next())
+        items.append({q.value(0).toString(), q.value(1).toString()});
+    return Result<QList<LookupItem>>::success(items);
 }
 
 } // namespace SqlHelpers

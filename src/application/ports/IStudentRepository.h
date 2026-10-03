@@ -5,6 +5,12 @@
 
 #include <QList>
 
+// Result of usp_Student_ImportXml
+struct ImportResult {
+    int imported = 0;
+    int skipped = 0;
+};
+
 // PORT (interface) of the reference module: the list of operations StudentService needs from storage, with no
 // code. How to read it:
 //   - "virtual ... = 0" = a function without a body here; a class that implements the port must provide it.
@@ -23,4 +29,7 @@ public:
     virtual VoidResult update(const Student& student) = 0;
     // usp_Student_Delete: refused by the database when the student has an enrollment history
     virtual VoidResult remove(const QString& id) = 0;
+    // usp_Student_ExportXml / usp_Student_ImportXml (FOR XML PATH, .nodes()); branchId empty = every branch
+    virtual Result<QString> exportXml(const QString& branchId) = 0;
+    virtual Result<ImportResult> importXml(const QString& xml, const QString& branchId) = 0;
 };

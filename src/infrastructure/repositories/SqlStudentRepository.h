@@ -18,6 +18,8 @@ public:
     Result<QString> add(const Student& student) override;
     VoidResult update(const Student& student) override;
     VoidResult remove(const QString& id) override;
+    Result<QString> exportXml(const QString& branchId) override;
+    Result<ImportResult> importXml(const QString& xml, const QString& branchId) override;
 
 private:
     DatabaseManager& m_db;

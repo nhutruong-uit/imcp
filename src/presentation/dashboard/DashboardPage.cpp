@@ -7,6 +7,7 @@
 #include "presentation/common/UiHelpers.h"
 #include "presentation/dashboard/RevenueChart.h"
 
+#include <QComboBox>
 #include <QDate>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -28,10 +29,19 @@ DashboardPage::DashboardPage(AppServices services, QWidget* parent) : QWidget(pa
         new QLabel(QLocale().toString(QDate::currentDate(), QStringLiteral("dddd, dd/MM/yyyy")), this);
     today->setObjectName(QStringLiteral("Muted"));
     auto* refreshButton = UiHelpers::secondaryButton(tr("Refresh"), QStringLiteral("refresh"), this);
+    // The figures of the whole center or of one branch (usp_Dashboard_Stats / fn_MonthlyRevenue @BranchId)
+    m_branch = new QComboBox(this);
+    m_branch->setObjectName(QStringLiteral("dashboardBranchCombo"));
+    m_branch->addItem(tr("Whole center"), QString());
+    const auto branches = m_services.catalog.activeBranches();
+    if (branches.ok())
+        for (const Branch& b : branches.value())
+            m_branch->addItem(b.name, b.id);
     auto* greetingColumn = new QVBoxLayout;
     greetingColumn->addWidget(greeting);
     greetingColumn->addWidget(today);
     top->addLayout(greetingColumn, 1);
+    top->addWidget(m_branch, 0, Qt::AlignTop);
     top->addWidget(refreshButton, 0, Qt::AlignTop);
     v->addLayout(top);
 
@@ -62,6 +72,7 @@ DashboardPage::DashboardPage(AppServices services, QWidget* parent) : QWidget(pa
     v->addWidget(m_error);
 
     connect(refreshButton, &QPushButton::clicked, this, &DashboardPage::reload);
+    connect(m_branch, &QComboBox::currentIndexChanged, this, &DashboardPage::reload);
     reload();
 }
 
@@ -88,7 +99,8 @@ QWidget* DashboardPage::buildCard(const QString& title, const QString& icon, QLa
 }
 
 void DashboardPage::reload() {
-    const auto stats = m_services.statistics.dashboard();
+    const QString branchId = m_branch->currentData().toString();
+    const auto stats = m_services.statistics.dashboard(branchId);
     if (stats.ok()) {
         const auto& s = stats.value();
         m_activeStudents->setText(QString::number(s.activeStudents));
@@ -109,7 +121,7 @@ void DashboardPage::reload() {
         m_chart->setMessage(tr("No permission to view revenue, or no data yet."));
         return;
     }
-    const auto revenue = m_services.statistics.monthlyRevenue(QDate::currentDate().year());
+    const auto revenue = m_services.statistics.monthlyRevenue(QDate::currentDate().year(), branchId);
     if (revenue.ok())
         m_chart->setData(revenue.value());
     else

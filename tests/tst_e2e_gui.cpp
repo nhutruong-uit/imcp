@@ -7,8 +7,10 @@
 // The scenarios run in Vietnamese (the default UI language);
 // language_switchToEnglish_rebuildsUi covers English.
 // What it covers: login, the menu of every role and every feature it may open (with data), add/edit/delete
-// of a student, the totals line and the quick filter, PDF/CSV export, the password dialog, switching the
-// language. Data changed by a test is restored at its end, because the other tests rely on the seed data.
+// of a student, the business forms (edit a class, put an enrollment on hold and resume it, take the
+// attendance of a session), the totals line and the quick filter, PDF/CSV export, the password dialog,
+// switching the language. Data changed by a test is restored at its end, because the other tests rely on the
+// seed data.
 // Qt Test tools used below:
 // - QTRY_VERIFY / QTRY_COMPARE[_WITH_TIMEOUT]: repeat the check while processing events until it is true
 //   or the timeout (default 5 s) runs out. Pages load their data through the event loop, so a single check
@@ -25,6 +27,7 @@
 #include "app/AppContainer.h"
 #include "application/services/Permissions.h"
 #include "presentation/common/Columns.h"
+#include "presentation/common/DataTable.h"
 #include "presentation/common/DbValues.h"
 #include "presentation/common/Format.h"
 #include "presentation/common/I18n.h"
@@ -35,6 +38,7 @@
 #include "presentation/main/ChangePasswordDialog.h"
 #include "presentation/main/MainWindow.h"
 
+#include <QAbstractButton>
 #include <QApplication>
 #include <QComboBox>
 #include <QDateEdit>
@@ -48,6 +52,7 @@
 #include <QSignalSpy>
 #include <QStackedWidget>
 #include <QTableView>
+#include <QTableWidget>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QtTest>
@@ -102,13 +107,19 @@ bool opensFirstFeature(MainWindow& w, Role role) {
 }
 
 // Catches every message box shown during a test: records its text and closes it,
-// so the test never hangs and we know which screen reported an error
+// so the test never hangs and we know which screen reported an error. answerYes: a confirmation question
+// (Yes / No, UiHelpers::confirm) is answered Yes and recorded in questions() instead of texts().
 class MessageBoxCatcher {
 public:
-    MessageBoxCatcher() {
+    explicit MessageBoxCatcher(bool answerYes = false) {
         m_timer.setInterval(100);
-        QObject::connect(&m_timer, &QTimer::timeout, [this] {
+        QObject::connect(&m_timer, &QTimer::timeout, [this, answerYes] {
             if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) {
+                if (QAbstractButton* yes = box->button(QMessageBox::Yes); answerYes && yes) {
+                    m_questions << box->text();
+                    yes->click();
+                    return;
+                }
                 m_texts << box->text();
                 box->done(0);
             }
@@ -116,10 +127,12 @@ public:
         m_timer.start();
     }
     const QStringList& texts() const { return m_texts; }
+    const QStringList& questions() const { return m_questions; }
 
 private:
     QTimer m_timer;
     QStringList m_texts;
+    QStringList m_questions;
 };
 
 // Column with the given key (header Columns::KeyRole), -1 if absent
@@ -135,6 +148,22 @@ QTableView* visibleTable(MainWindow& w, const QString& name) {
     for (QTableView* t : w.findChildren<QTableView*>(name))
         if (t->isVisible())
             return t;
+    return nullptr;
+}
+
+// The main list of the page shown (a DataPage), to read and select rows by column key
+DataTable* visibleList(MainWindow& w) {
+    for (DataTable* t : w.findChildren<DataTable*>())
+        if (t->isVisible() && t->view()->objectName() == QStringLiteral("listTable"))
+            return t;
+    return nullptr;
+}
+
+// Button of the page shown: the pages opened before stay in the window, hidden
+QPushButton* visibleButton(MainWindow& w, const QString& name) {
+    for (QPushButton* b : w.findChildren<QPushButton*>(name))
+        if (b->isVisible())
+            return b;
     return nullptr;
 }
 } // namespace
@@ -431,7 +460,8 @@ private slots:
             QCOMPARE(title->text(), name);
             QWidget* page = content->currentWidget();
             QVERIFY(page);
-            if (f == Feature::Dashboard) {
+            // The pages without a list: the dashboard (cards and chart) and the backup form
+            if (f == Feature::Dashboard || f == Feature::Backup) {
                 for (QLabel* l : page->findChildren<QLabel*>(QStringLiteral("ErrorText")))
                     QVERIFY2(l->isHidden(), qPrintable(name + QStringLiteral(": ") + l->text()));
                 continue;
@@ -500,6 +530,164 @@ private slots:
         details = m_app->services().students.details(QStringLiteral("ST00010"));
         QVERIFY(details.ok());
         QCOMPARE(details.value().address, oldAddress);
+    }
+
+    // Classes screen: academic staff renames a class in progress in the class form (usp_Class_Update, which
+    // also checks the timetable again), sees the new name in the list, then restores it
+    void academicStaff_editClass_savesToDatabase() {
+        QVERIFY(login(QStringLiteral("gvu_lan"), m_password));
+        MessageBoxCatcher boxes;
+        MainWindow w(m_app->services());
+        w.show();
+        w.openFeature(Feature::Classes);
+        DataTable* list = nullptr;
+        QTRY_VERIFY((list = visibleList(w)) != nullptr);
+        QTRY_VERIFY(list->rowCount() > 0);
+        const QString classId = QStringLiteral("CL0003");
+
+        // Opens the Edit form of the class, changes its name and saves; false if the form did not close
+        auto rename = [&](const QString& newName, QString* oldName) {
+            bool saved = false;
+            QTimer::singleShot(300, this, [&] {
+                auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
+                if (!dialog)
+                    return;
+                auto* field = dialog->findChild<QLineEdit*>(QStringLiteral("classNameEdit"));
+                if (field) {
+                    if (oldName)
+                        *oldName = field->text();
+                    field->setText(newName);
+                    dialog->findChild<QDialogButtonBox*>(QStringLiteral("buttonBox"))
+                        ->button(QDialogButtonBox::Save)
+                        ->click();
+                    saved = !dialog->isVisible();
+                }
+                if (dialog->isVisible())
+                    dialog->reject(); // never hang if saving failed
+            });
+            if (!list->selectWhere(QStringLiteral("ClassId"), classId))
+                return false;
+            QTest::mouseClick(visibleButton(w, QStringLiteral("editButton")), Qt::LeftButton);
+            return saved;
+        };
+
+        const QString newName = QStringLiteral("Lớp Kiểm Thử E2E");
+        QString oldName;
+        QVERIFY(rename(newName, &oldName));
+        QVERIFY(!oldName.isEmpty());
+        auto details = m_app->services().classes.details(classId);
+        QVERIFY2(details.ok(), qPrintable(details.error()));
+        QCOMPARE(details.value().name, newName);
+        QTRY_COMPARE(list->selectedValue(QStringLiteral("ClassName")).toString(), newName);
+
+        QVERIFY(rename(oldName, nullptr)); // restore the seed data
+        details = m_app->services().classes.details(classId);
+        QVERIFY(details.ok());
+        QCOMPARE(details.value().name, oldName);
+        QVERIFY2(boxes.texts().isEmpty(), qPrintable(boxes.texts().join(QStringLiteral(" | "))));
+    }
+
+    // Enrollments screen: academic staff puts a Studying enrollment on hold, then resumes it
+    // (usp_Enrollment_UpdateStatus; resuming checks the timetable clash again). Each step asks for a
+    // confirmation; the list is read again from the database after each step.
+    void academicStaff_putOnHoldAndResume_updatesEnrollment() {
+        QVERIFY(login(QStringLiteral("gvu_lan"), m_password));
+        MessageBoxCatcher boxes(true);
+        MainWindow w(m_app->services());
+        w.show();
+        w.openFeature(Feature::Enrollments);
+        DataTable* list = nullptr;
+        QTRY_VERIFY((list = visibleList(w)) != nullptr);
+        QTRY_VERIFY(list->rowCount() > 0);
+        QString enrollmentId;
+        for (int r = 0; r < list->rowCount() && enrollmentId.isEmpty(); ++r)
+            if (list->valueAt(r, QStringLiteral("Status")).toString() == EnrollmentValues::studying())
+                enrollmentId = list->valueAt(r, QStringLiteral("EnrollmentId")).toString();
+        QVERIFY2(!enrollmentId.isEmpty(), "no Studying enrollment in the seed data");
+
+        QVERIFY(list->selectWhere(QStringLiteral("EnrollmentId"), enrollmentId));
+        QTest::mouseClick(visibleButton(w, QStringLiteral("holdButton")), Qt::LeftButton);
+        QTRY_COMPARE(list->selectedValue(QStringLiteral("EnrollmentId")).toString(), enrollmentId);
+        QTRY_COMPARE(list->selectedValue(QStringLiteral("Status")).toString(), EnrollmentValues::onHold());
+
+        QTest::mouseClick(visibleButton(w, QStringLiteral("resumeButton")), Qt::LeftButton); // restore
+        QTRY_COMPARE(list->selectedValue(QStringLiteral("Status")).toString(), EnrollmentValues::studying());
+        QCOMPARE(boxes.questions().size(), 2);
+        QVERIFY2(boxes.texts().isEmpty(), qPrintable(boxes.texts().join(QStringLiteral(" | "))));
+    }
+
+    // Teaching schedule: a teacher changes the attendance of one student at a session they taught
+    // (usp_Attendance_Save), checks it is saved, then restores it. Only a session whose marks are all saved
+    // is used, so saving creates no new row; early in the week it is found in the previous week.
+    void teacher_takeAttendance_savesToDatabase() {
+        QVERIFY(login(QStringLiteral("gv_john"), m_password));
+        MessageBoxCatcher boxes;
+        MainWindow w(m_app->services());
+        w.show();
+        w.openFeature(Feature::MyTeachingSchedule);
+        DataTable* list = nullptr;
+        QTRY_VERIFY((list = visibleList(w)) != nullptr);
+        QTRY_VERIFY(list->rowCount() > 0);
+        int sessionId = 0;
+        for (int week = 0; week < 2 && sessionId == 0; ++week) {
+            if (week > 0)
+                QTest::mouseClick(visibleButton(w, QStringLiteral("previousWeekButton")), Qt::LeftButton);
+            for (int r = 0; r < list->rowCount() && sessionId == 0; ++r) {
+                const int id = list->valueAt(r, QStringLiteral("SessionId")).toInt();
+                const auto marks = m_app->services().sessions.attendance(id);
+                if (!marks.ok() || marks.value().isEmpty())
+                    continue;
+                bool allSaved = true;
+                for (const AttendanceMark& m : marks.value())
+                    allSaved = allSaved && m.saved;
+                if (allSaved)
+                    sessionId = id;
+            }
+        }
+        QVERIFY2(sessionId != 0, "no session of this week or the previous one has its attendance saved");
+
+        // Opens the attendance of the session, sets the first student to that status and saves
+        auto mark = [&](const QString& status, QString* oldStatus) {
+            bool saved = false;
+            QTimer::singleShot(300, this, [&] {
+                auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
+                if (!dialog)
+                    return;
+                auto* grid = dialog->findChild<QTableWidget*>(QStringLiteral("attendanceTable"));
+                auto* combo = grid ? qobject_cast<QComboBox*>(grid->cellWidget(0, 2)) : nullptr;
+                if (combo) {
+                    if (oldStatus)
+                        *oldStatus = combo->currentData().toString();
+                    combo->setCurrentIndex(combo->findData(status));
+                    dialog->findChild<QPushButton*>(QStringLiteral("saveAttendanceButton"))->click();
+                    saved = !dialog->isVisible();
+                }
+                if (dialog->isVisible())
+                    dialog->reject(); // never hang if saving failed
+            });
+            if (!list->selectWhere(QStringLiteral("SessionId"), sessionId))
+                return false;
+            QTest::mouseClick(visibleButton(w, QStringLiteral("attendanceButton")), Qt::LeftButton);
+            return saved;
+        };
+        auto firstStatus = [&] {
+            const auto marks = m_app->services().sessions.attendance(sessionId);
+            return marks.ok() && !marks.value().isEmpty() ? marks.value().first().status : QString();
+        };
+
+        const QString before = firstStatus();
+        QString changed; // any other stored status
+        for (const QString& s : AttendanceValues::statuses())
+            if (changed.isEmpty() && s != before)
+                changed = s;
+        QString oldStatus;
+        QVERIFY(mark(changed, &oldStatus));
+        QCOMPARE(oldStatus, before);
+        QCOMPARE(firstStatus(), changed);
+
+        QVERIFY(mark(before, nullptr)); // restore the seed data
+        QCOMPARE(firstStatus(), before);
+        QVERIFY2(boxes.texts().isEmpty(), qPrintable(boxes.texts().join(QStringLiteral(" | "))));
     }
 
     // Quick filter on outstanding tuition: only matching rows remain,

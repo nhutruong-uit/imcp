@@ -21,6 +21,9 @@ public:
     VoidResult update(const Student& student, const QDate& today);
     VoidResult remove(const QString& id);
     Result<QList<Branch>> branches();
+    // XML export / import of students (usp_Student_ExportXml / _ImportXml); branchId empty = every branch
+    Result<QString> exportXml(const QString& branchId);
+    Result<ImportResult> importXml(const QString& xml, const QString& branchId);
 
 private:
     IStudentRepository& m_repository;

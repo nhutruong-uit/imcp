@@ -3,31 +3,21 @@
 #include <optional>
 
 namespace {
-// Which database list a menu feature shows. std::nullopt ("no value") = the feature has its own page.
+// Which database list a menu feature shows. std::nullopt ("no value") = the feature has its own page and
+// service.
 std::optional<ListKind> listFor(Feature feature) {
     switch (feature) {
-    case Feature::Classes:
-        return ListKind::Classes;
-    case Feature::WeeklySchedule:
-        return ListKind::WeeklySchedule;
     case Feature::LearningResults:
         return ListKind::LearningResults;
     case Feature::OutstandingTuition:
         return ListKind::OutstandingTuition;
     case Feature::Revenue:
         return ListKind::MonthlyRevenue;
-    case Feature::Payroll:
-        return ListKind::Payroll;
-    case Feature::Accounts:
-        return ListKind::Accounts;
     case Feature::MyClasses:
         return ListKind::MyClasses;
-    case Feature::MyTeachingSchedule:
-        return ListKind::MyTeachingSchedule;
     case Feature::MyPay:
         return ListKind::MyPay;
-    case Feature::Dashboard:
-    case Feature::Students:
+    default:
         break;
     }
     return std::nullopt;

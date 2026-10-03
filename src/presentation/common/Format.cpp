@@ -80,6 +80,11 @@ QString Format::schedule(const QString& stored) {
 QString Format::cell(const QVariant& value, const QString& columnKey) {
     if (value.isNull() || !value.isValid())
         return QString();
+    // Number codes shown as words, whatever integer type the driver returns (TINYINT, INT...)
+    if (Columns::isWeekday(columnKey))
+        return weekday(value.toInt());
+    if (Columns::isYesNo(columnKey))
+        return value.toInt() == 1 ? FormatText::tr("Yes") : QString();
     switch (value.metaType().id()) {
     case QMetaType::QDate:
         return date(value.toDate());

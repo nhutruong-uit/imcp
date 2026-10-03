@@ -72,11 +72,12 @@ Result<QString> SqlStudentRepository::add(const Student& s) {
         "SET NOCOUNT ON; DECLARE @NewId VARCHAR(10); "
         "EXEC dbo.usp_Student_Add @FullName = ?, @DateOfBirth = ?, @Gender = ?, @Phone = ?, @Email = ?, "
         "@Address = ?, @Occupation = ?, @GuardianName = ?, @GuardianPhone = ?, @BranchId = ?, @Notes = ?, "
-        "@StudentId = @NewId OUTPUT; SELECT @NewId;");
+        "@RegisteredOn = ?, @StudentId = @NewId OUTPUT; SELECT @NewId;");
     if (!execPrepared(q, m_db, sql,
                       {s.fullName, s.dateOfBirth, s.gender, stringOrNull(s.phone), stringOrNull(s.email),
                        stringOrNull(s.address), stringOrNull(s.occupation), stringOrNull(s.guardianName),
-                       stringOrNull(s.guardianPhone), s.branchId, stringOrNull(s.notes)}))
+                       stringOrNull(s.guardianPhone), s.branchId, stringOrNull(s.notes),
+                       dateOrNull(s.registeredOn)}))
         return Result<QString>::failure(errorOf(q));
     if (!q.next())
         return Result<QString>::failure(tr("The new student ID was not returned."));
@@ -103,4 +104,31 @@ VoidResult SqlStudentRepository::remove(const QString& id) {
     if (!execPrepared(q, m_db, QStringLiteral("EXEC dbo.usp_Student_Delete @StudentId = ?"), {id}))
         return VoidResult::failure(errorOf(q));
     return VoidResult::success();
+}
+
+Result<QString> SqlStudentRepository::exportXml(const QString& branchId) {
+    // The procedure returns one value of type xml; the batch keeps it in a table variable and returns it as
+    // text, which every ODBC driver can read
+    QSqlQuery q = makeQuery(m_db.db());
+    const QString sql = QStringLiteral("SET NOCOUNT ON; DECLARE @Export TABLE (XmlData XML); "
+                                       "INSERT INTO @Export EXEC dbo.usp_Student_ExportXml @BranchId = ?; "
+                                       "SELECT CAST(XmlData AS NVARCHAR(MAX)) FROM @Export;");
+    if (!execPrepared(q, m_db, sql, {stringOrNull(branchId)}))
+        return Result<QString>::failure(errorOf(q));
+    return Result<QString>::success(q.next() ? q.value(0).toString() : QString());
+}
+
+Result<ImportResult> SqlStudentRepository::importXml(const QString& xml, const QString& branchId) {
+    // The text becomes the XML parameter @Data; the procedure shreds it with .nodes() and returns
+    // ImportedRows, SkippedRows
+    QSqlQuery q = makeQuery(m_db.db());
+    if (!execPrepared(q, m_db, QStringLiteral("EXEC dbo.usp_Student_ImportXml @Data = ?, @BranchId = ?"),
+                      {xml, branchId}))
+        return Result<ImportResult>::failure(errorOf(q));
+    ImportResult r;
+    if (q.next()) {
+        r.imported = q.value(0).toInt();
+        r.skipped = q.value(1).toInt();
+    }
+    return Result<ImportResult>::success(r);
 }
