@@ -213,13 +213,13 @@ src/infrastructure/  ODBC connection, repositories that call stored procedures, 
 src/presentation/    Qt Widgets UI (role-based menu, forms, PDF/CSV export of reports, i18n)
 src/app/             Composition root (creates and wires the layers)
 tests/               Unit tests (fake repositories), convention and translation checks, end-to-end GUI test
-tools/               Screenshot generator used for the report
+tools/               Screenshot generator used for the report and the user guide
 resources/           Icons, the QSS style sheet and translations/qlttta_vi.ts (Vietnamese UI)
 packaging/           Icons, Info.plist, Inno Setup installer, end-user install notes
 scripts/             Dev machine setup, database init, change checks, full test run, macOS/Windows packaging
 .github/             Workflows: Checks (PRs into develop), CI, Release (installers); the PR template
 .claude/             Claude Code team setup: rules per area, skills, shared settings, C++ format hook
-docs/                Documentation + the project report (docs/report)
+docs/                Documentation, the project report (docs/report) and the user guide (docs/user-guide)
 AGENTS.md            Instructions for AI coding agents (read by Claude Code)
 docker-compose.yml   SQL Server 2022 Developer for local development
 ```
@@ -235,6 +235,7 @@ docker-compose.yml   SQL Server 2022 Developer for local development
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Git/GitHub workflow, coding conventions, pull request checklist, working with Claude Code |
 | [docs/PLAN.md](docs/PLAN.md) | Schedule up to the submission date, member assignments, oral-defense preparation |
 | [docs/report/](docs/report/) | The project report (.docx, .pdf; written in Vietnamese for the course) and the script that generates it |
+| [docs/user-guide/](docs/user-guide/) | Installation and user guide for end users on macOS/Windows (.docx, .pdf; Vietnamese) and the script that generates it |
 | [AGENTS.md](AGENTS.md) | Common commands and mandatory rules for AI coding agents, pointers to `.claude/rules/` |
 
 ## Contributing
@@ -243,7 +244,8 @@ docker-compose.yml   SQL Server 2022 Developer for local development
   `main` is protected and receives only releases.
 - Everything in the repository is written in English: code, database objects and messages, docs, scripts and commit
   messages ([Conventional Commits](https://www.conventionalcommits.org/), e.g. `feat(students): ...`). The UI is
-  translated into Vietnamese in `resources/translations/qlttta_vi.ts`; only the course report is in Vietnamese.
+  translated into Vietnamese in `resources/translations/qlttta_vi.ts`; only the course report and the user guide
+  are in Vietnamese.
 - Run `scripts/test_all` before opening a pull request and paste its result line into the description.
 - AI-assisted work follows [AGENTS.md](AGENTS.md) and `.claude/rules/`; the `/imcp-create-pr` and `/imcp-review`
   skills give every pull request the same shape.

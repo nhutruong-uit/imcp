@@ -29,7 +29,7 @@ kind of report**, so the team lead can merge it without rework and everyone can 
   CMake, scripts, CI, docs, the database (objects, columns, stored values, business messages, SQL comments) - is
   **English**; comments explain *why*. Every file and database object starts with a header comment that a member
   who does not program can follow: what it is for, who uses it, which course concept it shows
-  (`docs/CODE_TOUR.md`). Only the report (`docs/report/`) is Vietnamese.
+  (`docs/CODE_TOUR.md`). Only the report (`docs/report/`) and the user guide (`docs/user-guide/`) are Vietnamese.
 - UI strings: English in `tr("...")`, translated to Vietnamese in `resources/translations/qlttta_vi.ts`; stored
   database values and database messages are translated there too (`DbValues`, `DbMessages`).
 - Database naming (`STUDENT`, `usp_Enrollment_Create`, `StudentId`): see `01-sql.md`.
@@ -73,4 +73,5 @@ Never write "tested" when nothing ran; paste the real numbers.
 - [ ] New UI strings are in `tr()` and translated in `qlttta_vi.ts` (`tst_i18n` green)
 - [ ] `scripts/check_changes` clean (format of the changed lines, commit messages); the build adds no warnings
 - [ ] Tests were run and their real result reported; docs (and the numbers they quote) / report updated when the
-      design changed (`06-docs.md`, `/imcp-update-report`)
+      design changed (`06-docs.md`, `/imcp-update-report`); user guide updated when users would notice the
+      change (`/imcp-update-guide`)

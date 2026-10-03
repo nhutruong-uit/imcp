@@ -45,7 +45,8 @@ Everyone contributes through GitHub (the commit history is the evidence of who d
 ### Language
 - Everything in the repository is written in **English**: C++ code, CMake, scripts, CI configuration, docs, commit
   messages and the database (objects, columns, stored values, business messages, SQL comments). People's names and
-  addresses in the demo data stay Vietnamese. Only the course report (`docs/report/`) is Vietnamese.
+  addresses in the demo data stay Vietnamese. Only the course report (`docs/report/`) and the user guide
+  (`docs/user-guide/`) are Vietnamese.
 - The UI is bilingual: English source strings in the code, Vietnamese translation in
   `resources/translations/qlttta_vi.ts` (including the stored database values and the database messages);
   Vietnamese is the default UI language.

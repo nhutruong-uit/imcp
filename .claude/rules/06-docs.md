@@ -8,7 +8,8 @@ paths:
 ---
 # Rules for the repository docs (docs/*.md, README, AGENTS.md, rules and skills)
 
-The report (`docs/report/`) has its own rules (`05-report.md`). Everything here is **English**.
+The report (`docs/report/`) and the user guide (`docs/user-guide/`) have their own rules (`05-report.md`).
+Everything here is **English**.
 
 ## Which doc to update
 | Change | Doc |

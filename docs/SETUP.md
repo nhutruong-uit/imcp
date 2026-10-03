@@ -208,7 +208,7 @@ QLTTTA_E2E_PASSWORD='Demo@2026' ctest --preset macos-debug -R e2e --output-on-fa
 
 CI does the same when something is merged into `main` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
-### Taking screenshots for the report
+### Taking screenshots for the report and the user guide
 ```bash
 cmake --preset macos-debug -DQLTTTA_BUILD_TOOLS=ON && cmake --build --preset macos-debug
 QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' ./build/macos-debug/tools/qlttta_screenshots
@@ -217,8 +217,17 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' ./build/macos-debug/t
 Optional: `QLTTTA_SHOT_USERS` (comma-separated accounts), `QLTTTA_SHOT_DIR` (output folder), `QLTTTA_SERVER`,
 `QLTTTA_SHOT_LANG` (`vi` by default - the report needs Vietnamese screenshots; with `en` the images go to
 `build/screenshots/en` unless `QLTTTA_SHOT_DIR` is set, so the report images are never overwritten). File names are
-fixed and do not depend on the UI language: `login.png`, `<account>_<feature>.png` (e.g. `gvu_lan_students.png`),
-`<account>_student_form.png`.
+fixed and do not depend on the UI language: `login.png`, `login_server_settings.png`, `change_password.png`,
+`<account>_<feature>.png` (e.g. `gvu_lan_students.png`), `<account>_student_form.png`.
+
+### Updating the user guide
+The installation and user guide for end users ([docs/user-guide/](user-guide/README.md), Vietnamese) is generated
+the same way as the report:
+```bash
+python3 docs/user-guide/build_user_guide.py
+./docs/report/tools/export_pdf.sh docs/user-guide/QLTTTA_User_Guide.docx
+swift docs/report/tools/check_pdf.swift check docs/user-guide/QLTTTA_User_Guide.pdf
+```
 
 ### Translations (multi-language UI)
 UI strings are written in English inside `tr("...")`; the Vietnamese texts live in

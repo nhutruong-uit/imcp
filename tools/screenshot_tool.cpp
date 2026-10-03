@@ -1,7 +1,8 @@
 // Takes screenshots of every screen automatically (for the report and for visual checks with real data).
-// What it produces: PNG files of the login screen, of every feature each account may open and of the student
-// form. The Vietnamese set in docs/report/images/screens is used by Chapter 6 of the report (the application,
-// docs/report/content/chapter6_8.py). It signs in to the real database, so the seed data must be loaded.
+// What it produces: PNG files of the login screen (also with the server settings open), of every feature each
+// account may open, of the student form and of the change password dialog. The Vietnamese set in
+// docs/report/images/screens is used by Chapter 6 of the report (docs/report/content/chapter6_8.py) and by
+// the user guide (docs/user-guide). It signs in to the real database, so the seed data must be loaded.
 // Developer tool, not part of the application: built only with -DQLTTTA_BUILD_TOOLS=ON (see AGENTS.md).
 // Environment variables:
 //   QLTTTA_SERVER        (default localhost,1433)
@@ -12,8 +13,9 @@
 //                        build/screenshots/en for en, so English screenshots never overwrite the images
 //                        of the Vietnamese report)
 // The default folders are relative: run it from the repository root.
-// File names are stable and independent of the UI language: login.png, <account>_<feature>.png,
-// <account>_student_form.png (the report refers to them by name).
+// File names are stable and independent of the UI language: login.png, login_server_settings.png,
+// change_password.png, <account>_<feature>.png, <account>_student_form.png (the report and the user guide
+// refer to them by name).
 // Runs without a display: QT_QPA_PLATFORM=offscreen ./qlttta_screenshots
 // Exit code: 0 = every account signed in, 1 = some sign-in failed, 2 = no password given.
 #include "app/AppContainer.h"
@@ -22,12 +24,14 @@
 #include "presentation/common/Labels.h"
 #include "presentation/common/Theme.h"
 #include "presentation/login/LoginDialog.h"
+#include "presentation/main/ChangePasswordDialog.h"
 #include "presentation/main/MainWindow.h"
 #include "presentation/students/StudentFormDialog.h"
 
 #include <QApplication>
 #include <QDir>
 #include <QElapsedTimer>
+#include <QPushButton>
 #include <QTextStream>
 #include <QThread>
 
@@ -112,6 +116,19 @@ int main(int argc, char* argv[]) {
         login.show();
         wait(300);
         login.grab().save(QDir(folder).filePath(QStringLiteral("login.png")));
+        // Same screen with the server settings opened (user guide: connecting to SQL Server)
+        if (auto* toggle = login.findChild<QPushButton*>(QStringLiteral("LinkButton"))) {
+            toggle->click();
+            login.resize(960, 640); // wide enough for the whole certificate option label
+            wait(300);
+            login.grab().save(QDir(folder).filePath(QStringLiteral("login_server_settings.png")));
+        }
+    }
+    { // Change password dialog (opened from the header of the main window)
+        ChangePasswordDialog dialog(container.auth());
+        dialog.show();
+        wait(300);
+        dialog.grab().save(QDir(folder).filePath(QStringLiteral("change_password.png")));
     }
 
     int failures = 0;
