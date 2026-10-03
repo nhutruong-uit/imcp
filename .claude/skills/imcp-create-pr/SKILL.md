@@ -111,9 +111,11 @@ After creating:
 - In the Claude desktop app: call the `ccd_pr` tools (`get_status`; `bind_pr` if it is not bound), read the CI
   result once and offer Auto-fix. Elsewhere: `gh pr checks <url>` once. Do not poll CI in a loop and never
   enable auto-merge unless the user asks.
-- `develop` and `main` are both protected, including for admins: a pull request, the branch up to date with the base,
-  and one approval from the code owner `nhutruong-uit`. `develop` (the default branch, so `gh pr create` targets it)
-  also requires `Checks (conventions + unit tests)`. `main` also requires green CI on `macOS (Apple Silicon)`,
-  `Windows (Qt + MinGW)` and `Full tests (Linux + SQL Server)`.
+- `develop` and `main` are both protected by rulesets: a pull request, the branch up to date with the base, and one
+  approval from the code owner `nhutruong-uit`. `develop` (the default branch, so `gh pr create` targets it) also
+  requires `Checks (conventions + unit tests)`. `main` also requires green CI on `macOS (Apple Silicon)`,
+  `Windows (Qt + MinGW)` and `Full tests (Linux + SQL Server)`. When the code owner is the PR author, they cannot
+  approve it themselves: only then, and only with green checks, merge with bypass (`gh pr merge --admin`; GitHub
+  records the bypass on the PR). Never bypass for a PR of another member - they need the review.
 - Reply to the user in Vietnamese with the PR link (`[owner/repo#N](url)`), the test result and anything
   that still needs their decision.

@@ -20,11 +20,14 @@ docs/<short-name>               CI runs after the merge)
   `/imcp-review`.
 - PR `develop → main` = release: `release.yml` packages `.exe` / `.zip` / `.dmg` and creates a Release tagged
   `vX.Y.Z-build.N`. Before releasing, bump `project(VERSION ...)` in `CMakeLists.txt` if there are new features.
-- *Branch protection* is enabled for `develop` and `main`, including for admins. A pull request is required, the
-  branch must be up to date with the base, and one approving review from the code owner (`nhutruong-uit`,
-  `.github/CODEOWNERS`) is required. The pull request author cannot approve their own pull request. Force pushes and
-  branch deletion are blocked. `develop` also requires the Checks job (`Checks (conventions + unit tests)`). `main`
-  also requires the three CI jobs (`macOS (Apple Silicon)`, `Windows (Qt + MinGW)`, `Full tests (Linux + SQL Server)`).
+- *Rulesets* (`protect-develop`, `protect-main`, Settings > Rules) protect `develop` and `main`. A pull request is
+  required, the branch must be up to date with the base, and one approving review from the code owner
+  (`nhutruong-uit`, `.github/CODEOWNERS`) is required. Force pushes and branch deletion are blocked. `develop` also
+  requires the Checks job (`Checks (conventions + unit tests)`). `main` also requires the three CI jobs
+  (`macOS (Apple Silicon)`, `Windows (Qt + MinGW)`, `Full tests (Linux + SQL Server)`). GitHub does not let an
+  author approve their own pull request, so the repository admin (the team lead) may *bypass* the rules to merge
+  their own PRs once the checks are green (`gh pr merge --admin`, or "Merge with bypass" on GitHub; the bypass is
+  recorded on the PR). Nobody else can bypass.
 - PR title, description and commit messages are written **in English**. With Claude Code: type
   `/imcp-create-pr`. (A private repo needs GitHub Pro; students can get it for free via the GitHub Student Developer
   Pack.)
