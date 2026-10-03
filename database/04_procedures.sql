@@ -506,7 +506,10 @@ GO
                 4. Entry requirement (50023), only when the course has a prerequisite or a minimum score. It is
                    met when EITHER a Passed enrollment in a class of the prerequisite course exists OR the
                    LATEST placement test (TOP (1) ... ORDER BY TestDate DESC) reaches the minimum score. The
-                   message contains values, so it is built in @Msg first (THROW takes no format arguments).
+                   placement test only counts when the course sets a minimum score: with a prerequisite and no
+                   minimum score, the prerequisite course is the only way in (test T33). The message contains
+                   values, so it is built in @Msg first (THROW takes no format arguments); it only mentions the
+                   placement score when the course has one.
                 5. Schedule clash (50024): CLASS_SCHEDULE is joined twice (cs = this class, cs2 = the other
                    class) to find a Studying enrollment of the student in an active class on the same weekday
                    with overlapping hours (start1 < end2 AND start2 < end1) and overlapping periods.
@@ -563,11 +566,12 @@ BEGIN
        AND NOT EXISTS (   -- or the latest placement test reaches the minimum score
             SELECT 1 FROM (SELECT TOP (1) OverallScore FROM dbo.PLACEMENT_TEST
                            WHERE StudentId = @StudentId ORDER BY TestDate DESC, TestId DESC) pl
-            WHERE pl.OverallScore >= ISNULL(@MinScore, 0))
+            WHERE pl.OverallScore >= @MinScore)
     BEGIN
         SET @Msg = N'The student does not meet the entry requirement of course ' + @CourseId
-                 + N' (complete the prerequisite course or score at least '
-                 + ISNULL(CAST(@MinScore AS NVARCHAR(10)), N'0') + N' in the placement test).';
+                 + CASE WHEN @MinScore IS NULL THEN N' (complete the prerequisite course first).'
+                        ELSE N' (complete the prerequisite course or score at least '
+                             + CAST(@MinScore AS NVARCHAR(10)) + N' in the placement test).' END;
         THROW 50023, @Msg, 1;
     END;
 
@@ -614,9 +618,12 @@ GO
 
 /* C2. usp_Enrollment_TransferClass: move a student to another class of the SAME course,
        keeping the payment history (ClassId is updated in one transaction).
-       Used by: roles rl_Manager, rl_AcademicStaff; test T14 (a class of another course is rejected).
+       Used by: roles rl_Manager, rl_AcademicStaff; tests T14 (a class of another course is rejected), T34 (a
+                class that clashes with another class of the student is rejected).
        Rules:   only a Studying / On hold enrollment can move (50026); the new class must be of the same course
-                and still open, Enrolling / In progress (50027); the student must not be in it already (50022).
+                and still open, Enrolling / In progress (50027); the student must not be in it already (50022);
+                its weekly schedule must not clash with another class the student is taking (50024, the same
+                check as usp_Enrollment_Create, leaving out the enrollment that moves).
                 The enrollment row is kept (same EnrollmentId), so receipts, grades and the tuition stay
                 attached to it; only the attendance of the old class is removed. The capacity trigger
                 (trg_ENROLLMENT_CheckCapacity) checks the new class because ClassId changes.
@@ -631,7 +638,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
-    DECLARE @OldClassId VARCHAR(10), @StudentId VARCHAR(10);
+    DECLARE @OldClassId VARCHAR(10), @StudentId VARCHAR(10), @StartDate DATE, @EndDate DATE;
 
     -- 1. Read the active enrollment (old class and student); still NULL => none
     SELECT @OldClassId = ClassId, @StudentId = StudentId FROM dbo.ENROLLMENT
@@ -646,7 +653,24 @@ BEGIN
     IF EXISTS (SELECT 1 FROM dbo.ENROLLMENT WHERE StudentId = @StudentId AND ClassId = @NewClassId)
         THROW 50022, N'The student is already enrolled in this class.', 1;
 
-    -- 3. Two writes that must succeed together (SET XACT_ABORT ON + TRY/CATCH, see the file header)
+    -- 3. No schedule clash with the other classes of the student (same test as usp_Enrollment_Create; the
+    --    enrollment that moves is left out, its old class no longer counts)
+    SELECT @StartDate = StartDate, @EndDate = ISNULL(EndDate, DATEADD(MONTH, 6, StartDate))
+    FROM dbo.CLASS WHERE ClassId = @NewClassId;
+    IF EXISTS (
+        SELECT 1
+        FROM dbo.ENROLLMENT en
+        JOIN dbo.CLASS cl2           ON cl2.ClassId = en.ClassId
+        JOIN dbo.CLASS_SCHEDULE cs2  ON cs2.ClassId = cl2.ClassId
+        JOIN dbo.CLASS_SCHEDULE cs   ON cs.ClassId = @NewClassId AND cs.Weekday = cs2.Weekday
+        WHERE en.StudentId = @StudentId AND en.Status = N'Studying' AND en.EnrollmentId <> @EnrollmentId
+          AND cl2.Status IN (N'Enrolling', N'In progress')
+          AND cs.StartTime < cs2.EndTime AND cs2.StartTime < cs.EndTime
+          AND cl2.StartDate <= @EndDate
+          AND ISNULL(cl2.EndDate, DATEADD(MONTH, 6, cl2.StartDate)) >= @StartDate)
+        THROW 50024, N'The class schedule clashes with another class the student is taking.', 1;
+
+    -- 4. Two writes that must succeed together (SET XACT_ABORT ON + TRY/CATCH, see the file header)
     BEGIN TRY
         BEGIN TRANSACTION;
         -- Attendance in the old class means nothing for the new class
@@ -970,8 +994,10 @@ GO
 /* E5. usp_Class_EvaluateResults: end-of-course results for the whole class with a CURSOR.
        For each student: final grade + attendance rate; Passed when grade >= 5 and
        attendance >= 80%; a certificate is issued to students who passed.
+       Running it again on a Finished class (after a correction) keeps the certificates in line with the new
+       results: a student who now fails loses the certificate, a student who still passes gets the new grade.
        Used by: 07_seed_data.sql (closes the finished demo classes); roles rl_Manager, rl_AcademicStaff;
-                test T23.
+                tests T23, T35 (re-evaluation).
        Steps:   1. The class must be In progress or Finished (50043) and the weights of its course must add up
                    to 100% (view vw_CourseInvalidWeights, 50044). Certificates are dated with the class
                    EndDate, else today.
@@ -984,6 +1010,9 @@ GO
                    enrollment stores FinalGrade and Result and gets the status Completed.
                 4. A student who passed and has no certificate yet gets one: serial EC<year>-<EnrollmentId>,
                    classification from fn_Classification; trg_CERTIFICATE_CheckResult checks Passed again.
+                   A student who passed and already has one (re-evaluation) gets its grade and classification
+                   updated; a student who failed loses an earlier certificate (only a Passed enrollment may
+                   hold one - the trigger only checks new or changed certificates, not this case).
                 5. Close the cursor, mark the class Finished (E4 then refuses grade changes), commit, and return
                    PassedCount / FailedCount (the seed and T23 read it with INSERT ... EXEC).
        Cursor:  DECLARE cur CURSOR LOCAL FAST_FORWARD FOR <query>; OPEN cur; FETCH NEXT FROM cur INTO @var;
@@ -1051,9 +1080,16 @@ BEGIN
                     INSERT INTO dbo.CERTIFICATE (EnrollmentId, SerialNumber, IssuedOn, FinalGrade, Classification)
                     VALUES (@EnrollmentId, 'EC' + CONVERT(VARCHAR(4), YEAR(@IssuedOn)) + '-' + @EnrollmentId,
                             @IssuedOn, @Grade, dbo.fn_Classification(@Grade));
+                ELSE
+                    UPDATE dbo.CERTIFICATE SET FinalGrade = @Grade, Classification = dbo.fn_Classification(@Grade)
+                    WHERE EnrollmentId = @EnrollmentId AND FinalGrade <> @Grade;
             END
             ELSE
+            BEGIN
                 SET @FailedCount += 1;
+                -- Failed after a re-evaluation: an earlier certificate is withdrawn
+                DELETE FROM dbo.CERTIFICATE WHERE EnrollmentId = @EnrollmentId;
+            END;
 
             FETCH NEXT FROM cur_Enrollment INTO @EnrollmentId;
         END;
@@ -1451,9 +1487,12 @@ GO
        Used by: rl_Manager only (schema grant); 07_seed_data.sql (demo accounts), 13_server_tests.sql
                 (temporary account t_lockout); tests P09 (academic staff are refused), P10 (the manager creates
                 an account, rolled back).
-       Steps:   1. Validate: the username matches the LIKE pattern (only letters, digits, dot and underscore)
-                   and has at least 3 characters (50060); the password has at least 8 characters (50061); the
-                   name is neither a database principal (user or role) nor an ACCOUNT row yet (50062).
+       Steps:   1. Validate: the username matches the LIKE pattern (only letters a-z/A-Z without diacritics,
+                   digits, dot and underscore) and has at least 3 characters (50060); the password has at
+                   least 8 characters (50061); the name is neither a database principal (user or role) nor an
+                   ACCOUNT row yet (50062). The pattern is compared with the binary collation
+                   Latin1_General_BIN: under the database collation Vietnamese_CI_AS the range a-z would also
+                   accept letters such as "ấ" or "đ" (test T36).
                 2. Map the role code stored in ACCOUNT.Role to its database role (CASE; NULL = unknown, 50063).
                 3. In one transaction: insert the ACCOUNT row (CK_ACCOUNT_Owner: a TEACHER account needs
                    @TeacherId, the other roles @EmployeeId), then build and run with sys.sp_executesql:
@@ -1479,7 +1518,7 @@ BEGIN
     SET XACT_ABORT ON;
     DECLARE @DbRole SYSNAME, @Sql NVARCHAR(MAX);
 
-    IF @Username IS NULL OR @Username LIKE N'%[^a-zA-Z0-9_.]%' OR LEN(@Username) < 3
+    IF @Username IS NULL OR @Username COLLATE Latin1_General_BIN LIKE N'%[^a-zA-Z0-9_.]%' OR LEN(@Username) < 3
         THROW 50060, N'A username may only contain letters without diacritics, digits, dots and underscores (at least 3 characters).', 1;
     IF LEN(ISNULL(@Password, N'')) < 8
         THROW 50061, N'The password must be at least 8 characters long.', 1;
@@ -1570,7 +1609,7 @@ GO
 
 /* I4. usp_Account_ChangePassword: users change their own password (runs as the caller;
        SQL Server requires the correct current password - OLD_PASSWORD)
-       Used by: Change password dialog (SqlAuthGateway::changePassword); all four roles; test P12,
+       Used by: Change password dialog (SqlAuthGateway::changePassword); all four roles; tests P12, P13,
                 e2e changePassword_wrongCurrentPassword_showsError.
        Rules:   no EXECUTE AS here: USER_NAME() must be the caller, and every user may change their own
                 password when they give the current one. System errors become business messages:
@@ -1589,6 +1628,10 @@ BEGIN
     -- 1. Length check here (clear message); SQL Server checks the old password and its policy in step 2
     IF LEN(ISNULL(@NewPassword, N'')) < 8
         THROW 50061, N'The password must be at least 8 characters long.', 1;
+    -- A NULL current password would make the whole statement text NULL, and sp_executesql runs a NULL
+    -- statement without any error - the call would "succeed" without changing anything (test P13)
+    IF @OldPassword IS NULL
+        THROW 50066, N'The current password is incorrect.', 1;
 
     -- 2. ALTER USER for the caller; both passwords become literals with doubled quotes
     SET @Sql = N'ALTER USER ' + QUOTENAME(USER_NAME())

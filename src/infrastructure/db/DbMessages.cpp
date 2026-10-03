@@ -34,6 +34,9 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages",
                       "The student does not meet the entry requirement of course %1 (complete the "
                       "prerequisite course or score at least %2 in the placement test)."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "The student does not meet the entry requirement of course %1 (complete the "
+                      "prerequisite course first)."),
     QT_TRANSLATE_NOOP("DbMessages", "The class schedule clashes with another class the student is taking."),
     QT_TRANSLATE_NOOP("DbMessages", "The promotion code does not exist or has expired."),
     QT_TRANSLATE_NOOP("DbMessages", "Active enrollment not found."),

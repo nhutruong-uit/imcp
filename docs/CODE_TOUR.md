@@ -253,21 +253,25 @@ case proves it. Use this table to find the code behind a rule during the defense
 | A student under 18 needs a guardian name and phone | `Student::validate` | `CK_STUDENT_Guardian` | `T01` |
 | Phone numbers have 9-11 digits | `Student::validate`, digits-only fields | `CK_STUDENT_Phone` | `T02` |
 | No double enrollment in a class | - | `usp_Enrollment_Create`, `UQ_ENROLLMENT_StudentId_ClassId` | `T03` |
-| Entry requirement (prerequisite course or placement score) | - | `usp_Enrollment_Create` | `T04` |
-| A student cannot take two classes at the same time | - | `usp_Enrollment_Create` | `T05` |
+| Entry requirement (prerequisite course or placement score) | - | `usp_Enrollment_Create` | `T04`, `T33` |
+| A student cannot take two classes at the same time | - | `usp_Enrollment_Create`, `usp_Enrollment_TransferClass` | `T05`, `T34` |
 | Amount paid = sum of valid receipts, never above the tuition | - | `trg_RECEIPT_UpdateAmountPaid` | `T06`, `T20` |
 | Receipts are never deleted | - | `trg_RECEIPT_PreventDelete`, `DENY DELETE` | `T07`, `P08` |
 | No room or teacher double-booking | - | `trg_CLASS_SCHEDULE_CheckConflict` | `T08` |
 | A class uses a room of its own branch | - | `trg_CLASS_CheckRoom` | `T09` |
 | Grades are between 0 and 10 | - | `CK_GRADE_Score` | `T10` |
 | The audit log is append-only | - | `trg_AUDIT_LOG_ReadOnly`, `DENY UPDATE, DELETE` | `T11` |
-| Certificates only for students who passed | - | `trg_CERTIFICATE_CheckResult` | `T12` |
+| Certificates only for students who passed, also after a re-evaluation | - | `trg_CERTIFICATE_CheckResult`, `usp_Class_EvaluateResults` | `T12`, `T23`, `T35` |
+| Attendance only for students of the session's class | - | `trg_ATTENDANCE_CheckClass` | `T37` |
+| A grade belongs to a component of the class's course | - | `trg_GRADE_CheckComponent` | `T38` |
+| Every change of a grade is logged | - | `trg_GRADE_Audit` | `T39` |
 | A taught session cannot be moved | - | `trg_CLASS_SESSION_LockTaught` | `T13` |
 | A full class accepts nobody else | - | `trg_ENROLLMENT_CheckCapacity` | `T21` |
 | A teacher sees only their own classes and students | teacher menu (`Permissions`) | `DENY SELECT` on `STUDENT`, the `vw_Teacher_My*` views | `P01`, `P02` |
 | A teacher enters grades only for their own classes | - | `usp_Grade_Save` | `P03` |
 | An accountant cannot enroll students | no menu entry | `DENY EXECUTE` on `usp_Enrollment_Create` | `P04` |
 | Only academic staff and managers edit students | `Permissions::canEditStudents` | `GRANT EXECUTE` on `usp_Student_*` | end-to-end test |
+| Usernames use letters without diacritics, digits, `.` and `_` | - | `usp_Account_Create` | `T36` |
 
 ## 7. Glossary
 
