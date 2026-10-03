@@ -16,6 +16,8 @@
 // File names are stable and independent of the UI language: login.png, login_server_settings.png,
 // change_password.png, <account>_<feature>.png, <account>_student_form.png (the report and the user guide
 // refer to them by name).
+// Repeated runs give the same pictures for the same data: the login screen always shows the username
+// ql_quan, never the account remembered from the previous run.
 // Runs without a display: QT_QPA_PLATFORM=offscreen ./qlttta_screenshots
 // Exit code: 0 = every account signed in, 1 = some sign-in failed, 2 = no password given.
 #include "app/AppContainer.h"
@@ -31,6 +33,7 @@
 #include <QApplication>
 #include <QDir>
 #include <QElapsedTimer>
+#include <QLineEdit>
 #include <QPushButton>
 #include <QTextStream>
 #include <QThread>
@@ -112,6 +115,15 @@ int main(int argc, char* argv[]) {
 
     { // Login screen
         LoginDialog login(container.auth(), container.language());
+        // The dialog pre-fills the username saved by the last sign-in (the last account of the previous run),
+        // so the picture would change between runs. Show a fixed account instead, with the focus where the
+        // application puts it for a remembered username.
+        if (auto* usernameEdit = login.findChild<QLineEdit*>(QStringLiteral("usernameEdit"))) {
+            usernameEdit->setText(QStringLiteral("ql_quan"));
+        }
+        if (auto* passwordEdit = login.findChild<QLineEdit*>(QStringLiteral("passwordEdit"))) {
+            passwordEdit->setFocus();
+        }
         login.resize(860, 520);
         login.show();
         wait(300);
