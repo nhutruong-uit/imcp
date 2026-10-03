@@ -271,10 +271,15 @@ class Report:
     # ----- paragraphs
     def _inline(self, p, text: str, size=None, base_bold=False):
         # **bold**, *italic*, `code`, __underlined__ (primary keys)
-        for part in re.split(r"(\*\*[^*]+\*\*|__[^_]+__|`[^`]+`|\*[^*]+\*)", text):
+        for i, part in enumerate(re.split(r"(\*\*[^*]+\*\*|__[^_]+__|`[^`]+`|\*[^*]+\*)", text)):
             if not part:
                 continue
-            if part.startswith("__"):
+            if i % 2 == 0:
+                # Plain text between the markers stays as it is, even when it starts with "*" (masked student IDs)
+                r = p.add_run(part)
+                if base_bold:
+                    r.bold = True
+            elif part.startswith("__"):
                 r = p.add_run(part[2:-2])
                 r.underline = True
                 r.bold = True if base_bold else None
@@ -284,14 +289,10 @@ class Report:
             elif part.startswith("`"):
                 r = p.add_run(part[1:-1])
                 r.font.color.rgb = RGBColor.from_string(INLINE_CODE)
-            elif part.startswith("*"):
+            else:
                 r = p.add_run(part[1:-1])
                 r.italic = True
                 r.bold = base_bold or None
-            else:
-                r = p.add_run(part)
-                if base_bold:
-                    r.bold = True
             if size:
                 r.font.size = Pt(size)
         return p
