@@ -42,6 +42,10 @@ SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" python3 docs/re
 python3 docs/report/build_report.py && ./docs/report/tools/export_pdf.sh
 swift docs/report/tools/check_pdf.swift check docs/report/IE103_Group1_Report.pdf
 
+# Update the user guide (or type /imcp-update-guide; Vietnamese, for end users): docx -> PDF (macOS + Word)
+python3 docs/user-guide/build_user_guide.py
+./docs/report/tools/export_pdf.sh docs/user-guide/QLTTTA_User_Guide.docx
+
 # Screenshots (visual check with real data; QLTTTA_SHOT_LANG=en for the English UI)
 cmake --preset macos-debug -DQLTTTA_BUILD_TOOLS=ON && cmake --build --preset macos-debug
 QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/tools/qlttta_screenshots
@@ -51,11 +55,12 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
 - `.claude/rules/` (numbered in reading order): `00-general-workflow.md` (workflow, **result report template**,
   Definition of Done - always applies), then one file per area, loaded when such a file is touched: `01-sql.md`
   (database/), `02-cpp-qt.md` (src/), `03-tests.md` (tests/, test scripts), `04-scripts-ci.md` (scripts/, .github/),
-  `05-report.md` (docs/report/), `06-docs.md` (other docs). The detailed rules live there, not here.
+  `05-report.md` (docs/report/, docs/user-guide/), `06-docs.md` (other docs). The detailed rules live there, not here.
 - `.claude/settings.json`: no AI attribution in commits/PRs, asks before `gh workflow run` / `gh pr merge` / force
   push, and a hook that formats every C++ file Claude edits (`.claude/hooks/format-cpp.sh`).
 - Skills: `/imcp-create-pr` (English PR after `test_all`), `/imcp-review` (review a PR or branch against these rules),
-  `/imcp-update-report` (report: data from the database, screenshots, diagrams, docx, PDF, checks).
+  `/imcp-update-report` (report: data from the database, screenshots, diagrams, docx, PDF, checks),
+  `/imcp-update-guide` (user guide: follow app changes, screenshots, Windows placeholders, docx, PDF).
 
 ## Mandatory rules (all areas)
 - **Language**: everything in the repository is **English** - C++ code, CMake, scripts, CI, docs, commit messages,
@@ -63,7 +68,7 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
   business messages, SQL comments). People's names and addresses in the demo data stay Vietnamese. UI strings are
   English in `tr()` and translated in `resources/translations/qlttta_vi.ts` (also the labels of stored database
   values `DbValues` and the database messages `DbMessages`); Vietnamese is the default UI language. Only the report
-  (`docs/report/`) is Vietnamese.
+  (`docs/report/`) and the user guide (`docs/user-guide/`) are Vietnamese.
 - **Architecture**: `presentation → application → domain ← infrastructure` (`app` wires them); SQL only in
   `src/infrastructure/repositories`, every database write through a procedure, values through
   `SqlHelpers::execPrepared`. Reference module: Students; cookbook: `docs/ARCHITECTURE.md` section 4.
