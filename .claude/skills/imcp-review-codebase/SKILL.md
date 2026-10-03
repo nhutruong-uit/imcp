@@ -122,8 +122,9 @@ closes them.
    ```
 3. Add a row to the history table of `docs/reviews/README.md`, then commit only `docs/reviews/`:
    `docs(reviews): record the codebase review of <DATE>`.
-4. Never write the marker after merging `develop` into the review branch: the merged commits were not reviewed and
-   would become ancestors of the marker. Update the branch (conflicts) only after the marker commit.
+4. A merge of `develop` into the review branch makes its commits ancestors of the marker: write the marker after such
+   a merge only when those commits were reviewed too (list them in the log, section "Merged develop commits").
+   Otherwise update the branch (conflicts) only after the marker commit.
 5. "mark" alone (the review was done elsewhere): only steps 2-3 on a `docs/...` branch from `origin/develop`.
 6. Open the PR with `/imcp-create-pr` (it runs `test_all`). The marker becomes the team's baseline once the PR is
    merged into `develop`; until then the next run still starts from the old marker on `origin/develop`.
