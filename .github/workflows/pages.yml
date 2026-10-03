@@ -1,0 +1,49 @@
+# Pages: publishes docs/data-map.html (the interactive map of the tables and the app flow) to GitHub Pages, so the
+# team can open it at https://nhutruong-uit.github.io/imcp/ without cloning the repository.
+#   - Only this one page is published, as the site's index.html. The site is PUBLIC even though the repository is
+#     private (GitHub Pages of a personal account), so never add the report, the user guide or other docs here.
+#   - Runs when the page or this workflow changes on develop (Settings > Pages > Source: GitHub Actions; the
+#     github-pages environment only accepts deployments from develop).
+name: Pages
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - docs/data-map.html
+      - .github/workflows/pages.yml
+
+permissions:
+  contents: read
+  pages: write # publish the site
+  id-token: write # prove to Pages that the deployment comes from this workflow
+
+concurrency:
+  group: pages
+  cancel-in-progress: false # let a running deployment finish
+
+jobs:
+  deploy:
+    name: Publish the data map
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Collect the page (docs/data-map.html only, served as index.html)
+        run: |
+          mkdir -p "$RUNNER_TEMP/site"
+          cp docs/data-map.html "$RUNNER_TEMP/site/index.html"
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ runner.temp }}/site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
