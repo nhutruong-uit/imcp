@@ -1,3 +1,15 @@
+// Unit tests of the application layer (the use cases): StudentService, AuthService, Permissions and
+// LanguageService. No database is needed.
+// The fake repository pattern: a use case only knows its ports (interfaces such as IStudentRepository or
+// IAuthGateway), never SQL Server. So the test hands it small in-memory "fake" classes (written below)
+// instead of the real Sql* classes, then checks what the service did - e.g. that an invalid student never
+// reaches the repository (addCalls stays 0).
+// Why not the real database: the tests run in milliseconds, on CI without SQL Server, need no seed data and
+// fail only when the use case itself is wrong. The real repositories and the database rules are covered by
+// tst_e2e_gui and database/12_tests.sql.
+// Reference for new use cases: FakeStudentRepository (see .claude/rules/03-tests.md).
+// Run only this suite:
+//   ctest --preset macos-debug -R tst_application --output-on-failure
 #include "application/services/AuthService.h"
 #include "application/services/LanguageService.h"
 #include "application/services/Permissions.h"
@@ -6,6 +18,8 @@
 #include <QtTest>
 
 // ===== Fakes that replace SQL Server =====
+// The STUDENT table as a list in memory; addCalls counts the calls, so a test can prove whether the service
+// reached the "database" at all. The generated IDs are fake (the real ones come from a SEQUENCE).
 class FakeStudentRepository : public IStudentRepository {
 public:
     QList<Student> data;
@@ -31,6 +45,7 @@ public:
     VoidResult remove(const QString&) override { return VoidResult::success(); }
 };
 
+// The branch list (normally the BRANCH table): one branch is enough here
 class FakeCatalog : public ICatalogRepository {
 public:
     Result<QList<Branch>> branches() override {
@@ -39,6 +54,9 @@ public:
     }
 };
 
+// Plays SQL Server during sign-in: only gvu_lan / right-password is accepted. locked = true simulates an
+// account whose password is right but whose ACCOUNT row is locked; logoutCalls shows whether the
+// connection was closed.
 class FakeAuthGateway : public IAuthGateway {
 public:
     bool locked = false;
@@ -59,6 +77,7 @@ public:
     VoidResult changePassword(const QString&, const QString&) override { return VoidResult::success(); }
 };
 
+// The saved settings (normally QSettings) kept in members; languageSaves counts the language saves
 class FakeSettings : public ISettingsStore {
 public:
     ServerConfig config;
@@ -80,6 +99,7 @@ class TestApplication : public QObject {
     Q_OBJECT
 
 private slots:
+    // A valid student reaches the repository exactly once, with the name normalized (extra spaces removed)
     void addStudent_valid_callsRepository() {
         FakeStudentRepository repository;
         FakeCatalog catalog;
@@ -96,6 +116,7 @@ private slots:
         QCOMPARE(repository.data.first().fullName, QStringLiteral("Trần Thị Bích")); // whitespace normalized
     }
 
+    // An empty student fails the domain validation, so the service never calls the repository (the database)
     void addStudent_invalid_doesNotCallRepository() {
         FakeStudentRepository repository;
         FakeCatalog catalog;
@@ -105,6 +126,7 @@ private slots:
         QCOMPARE(repository.addCalls, 0);
     }
 
+    // Accepted sign-in: the session keeps the role, the username is remembered, logout ends the session
     void login_success_keepsSession() {
         FakeAuthGateway gateway;
         FakeSettings settings;
@@ -117,6 +139,7 @@ private slots:
         QVERIFY(!auth.isLoggedIn());
     }
 
+    // An empty username/password and a wrong password are both refused
     void login_missingInput_fails() {
         FakeAuthGateway gateway;
         FakeSettings settings;
@@ -138,6 +161,8 @@ private slots:
         QVERIFY(settings.username.isEmpty()); // a refused login is not remembered
     }
 
+    // The quick checks of AuthService before the database: at least 8 characters, the confirmation must
+    // match; a valid change reaches the gateway (the fake accepts it)
     void changePassword_validatesInput() {
         FakeAuthGateway gateway;
         FakeSettings settings;
@@ -153,6 +178,8 @@ private slots:
                     .ok());
     }
 
+    // Spot checks of the role -> feature matrix of Permissions (it decides what the menu shows; the GRANTs of
+    // 06_security.sql are the real check)
     void permissions_teacherCannotSeeStudents() {
         QVERIFY(!Permissions::isAllowed(Role::Teacher, Feature::Students));
         QVERIFY(Permissions::isAllowed(Role::Teacher, Feature::MyTeachingSchedule));
@@ -173,5 +200,6 @@ private slots:
     }
 };
 
+// main() without a Qt application object: the use cases are plain logic
 QTEST_APPLESS_MAIN(TestApplication)
 #include "tst_application.moc"

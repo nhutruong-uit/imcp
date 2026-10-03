@@ -2,6 +2,10 @@
 // qlttta_vi.ts, embedded as :/i18n/qlttta_vi.qm), the display catalogs of database values, columns and
 // database messages. Runs without a database (it reads the SQL scripts as text), so CI checks all of this on
 // every run.
+// The SQL scripts are read raw, comments included: a THROW/RAISERROR message or a CHECK ... IN list
+// written in a SQL comment is checked like real code.
+// Run only this suite:
+//   ctest --preset macos-debug -R tst_i18n --output-on-failure
 #include "infrastructure/db/DbMessages.h"
 #include "infrastructure/db/SqlErrorMapper.h"
 #include "presentation/common/Columns.h"
@@ -19,6 +23,7 @@ class TestI18n : public QObject {
     Q_OBJECT
 
 private:
+    // A script of database/ (QLTTTA_DATABASE_DIR is set in tests/CMakeLists.txt)
     static QString readDatabaseScript(const QString& fileName) {
         QFile file(QStringLiteral(QLTTTA_DATABASE_DIR "/") + fileName);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -52,8 +57,10 @@ private:
     }
 
 private slots:
+    // Qt Test calls cleanup() after every test function: back to English, so each test starts the same way
     void cleanup() { I18n::apply(Language::English); }
 
+    // Without a translation the English source texts and English number/month formats are used
     void english_isTheSourceLanguage() {
         QVERIFY(I18n::apply(Language::English));
         QCOMPARE(I18n::current(), Language::English);
@@ -69,6 +76,7 @@ private slots:
                  QStringLiteral("Academic staff"));
     }
 
+    // The embedded .qm file loads and changes texts and formats (thousands separator, month/weekday names)
     void vietnamese_translationIsLoaded() {
         QVERIFY2(I18n::apply(Language::Vietnamese), "cannot load :/i18n/qlttta_vi.qm");
         QCOMPARE(I18n::current(), Language::Vietnamese);
@@ -199,6 +207,7 @@ private slots:
         }
     }
 
+    // The language picker always shows each language in its own name, whatever the UI language
     void languageNames_areNeverTranslated() {
         QVERIFY(I18n::apply(Language::Vietnamese));
         QCOMPARE(Labels::language(Language::English), QStringLiteral("English"));
@@ -236,5 +245,6 @@ private slots:
     }
 };
 
+// main() with a QCoreApplication (no windows): enough for translators and locales
 QTEST_GUILESS_MAIN(TestI18n)
 #include "tst_i18n.moc"
