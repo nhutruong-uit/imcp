@@ -9,7 +9,9 @@
   integrity constraints and triggers, stored procedures as the only write path, role-based authorization.
   Data: the constants TABLES, FKS and TRIGGERS copy database/01_tables.sql and database/05_triggers.sql. The test
   tst_conventions (docs_dataMap_matchesScripts) fails when they differ - update them in the same commit as the
-  scripts. STEPS, SCREENS and the flows describe 04_procedures.sql and src/ and are updated by hand.
+  scripts. STEPS, SCREENS and the flows describe 04_procedures.sql and src/: tst_conventions also checks that every
+  database object they name exists (docs_dataMapNames_existInScripts) and that SCREENS is the role menu of
+  Permissions.cpp (docs_dataMapScreens_matchPermissions); the explanations themselves are updated by hand.
   Libraries: ELK (elkjs, layered layout) from jsDelivr and Google Fonts; offline, a simpler built-in layout is used.
 -->
 <html lang="en">
