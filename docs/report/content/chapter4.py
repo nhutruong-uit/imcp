@@ -117,6 +117,9 @@ def chapter4(r):
     # ------------------------------------------------------------------ 4.5
     r.h2("4.5. Function")
     r.table(["Hàm", "Loại", "Mục đích"], [
+        ["fn_CenterUtcOffset, fn_UtcToCenterTime, fn_CenterTimeToUtc", "Scalar, SCHEMABINDING",
+         "Múi giờ của trung tâm (UTC+07:00): đổi giữa giờ UTC và giờ trung tâm"],
+        ["fn_Today", "Scalar", "Ngày hôm nay theo giờ trung tâm, không phụ thuộc múi giờ của máy chủ"],
         ["fn_Weekday", "Scalar, SCHEMABINDING", "Thứ trong tuần không phụ thuộc DATEFIRST"],
         ["fn_CurrentRole, fn_CurrentTeacherId, fn_CurrentEmployeeId", "Scalar", "Ánh xạ USER đang đăng nhập sang vai trò/hồ sơ"],
         ["fn_EnrolledCount", "Scalar", "Số học viên đang học của lớp"],
@@ -135,6 +138,14 @@ def chapter4(r):
     r.p("**Inline TVF** (một câu SELECT) được bộ tối ưu mở rộng như view có tham số nên hiệu năng tốt; **multi-statement "
         "TVF** cần khi phải xử lý nhiều bước (ở đây: tạo trước 12 dòng tháng rồi cập nhật số liệu) nhưng bộ tối ưu không "
         "ước lượng được số dòng, nên chỉ dùng cho tập kết quả nhỏ.")
+    r.p("**Lưu thời gian theo UTC.** Các cột mốc thời gian (`PaidAtUtc`, `CreatedAtUtc`, `LoggedAtUtc`...) lưu giờ UTC "
+        "bằng `GETUTCDATE()`; ứng dụng đổi sang múi giờ của máy người dùng khi hiển thị. Các ngày nghiệp vụ (kiểu `DATE`: "
+        "ngày ghi danh, ngày học, kỳ lương) là ngày theo giờ trung tâm (UTC+07:00), lấy bằng `fn_Today()`. Khi lọc hay "
+        "gom nhóm doanh thu, nhóm đổi khoảng ngày/tháng của trung tâm sang khoảng UTC bằng `fn_CenterTimeToUtc` (vẫn dùng "
+        "được chỉ mục trên `PaidAtUtc`), nên phiếu thu lúc 17:30 UTC ngày 31/01 - tức 00:30 ngày 01/02 giờ Việt Nam - "
+        "được tính vào tháng 2 (ca kiểm thử T31). Nhờ đó kết quả không phụ thuộc múi giờ đặt trên máy chủ SQL Server. "
+        "Việt Nam không dùng giờ mùa hè nên độ lệch cố định là chính xác; các hàm dùng `TODATETIMEOFFSET`/`SWITCHOFFSET` "
+        "(có từ SQL Server 2008) thay cho `AT TIME ZONE` (cần SQL Server 2016).")
 
     # ------------------------------------------------------------------ 4.6
     r.h2("4.6. Trigger")
@@ -199,7 +210,10 @@ def chapter4(r):
     r.p(f"Script `12_tests.sql` chạy {len(cases)} ca kiểm thử (cùng {len(database_tests()) - len(cases)} ca phân quyền ở mục 5.7), "
         "mỗi ca thực hiện trong giao dịch rồi ROLLBACK nên không làm thay đổi dữ liệu. T01-T15 kiểm tra ràng buộc và "
         "quy tắc nghiệp vụ; T16-T27 kiểm tra **kết quả xử lý** của hàm, trigger, cursor và XML bằng cách so với giá trị "
-        "tính độc lập hoặc kịch bản dựng sẵn (ví dụ dựng 2 buổi có mặt + 1 đi trễ + các buổi vắng rồi so tỷ lệ chuyên cần).")
+        "tính độc lập hoặc kịch bản dựng sẵn (ví dụ dựng 2 buổi có mặt + 1 đi trễ + các buổi vắng rồi so tỷ lệ chuyên cần); "
+        "T31 kiểm tra cách lưu thời gian theo UTC (phiếu thu lúc 00:30 giờ Việt Nam thuộc ngày và tháng của trung tâm). "
+        "T28-T30 và T32 đọc các view hệ thống (catalog) để kiểm tra quy ước lược đồ: đặt tên, ma trận quyền tối thiểu, "
+        "`SET NOCOUNT ON` và quy ước thời gian.")
     r.p("Cách chấm được thiết kế để dùng làm **kiểm thử hồi quy**: bảng `#Expected` liệt kê mọi ca phải chạy và mẫu "
         "thông báo của ca “Rejected” (từ chối) - ca chỉ đạt khi bị từ chối **đúng lý do** (một thủ tục hỏng vì lỗi khác không thể "
         "“đạt” nhầm); có ca không đạt hoặc không chạy thì file kết thúc bằng `THROW 50099`, lệnh `scripts/test_all.sh` "

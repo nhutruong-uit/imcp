@@ -249,8 +249,6 @@ else
       report OK "SQL Server container" "$CONTAINER, signed in as sa"
       [[ -n "$(docker port "$CONTAINER" 1433/tcp 2> /dev/null)" ]] ||
         report WARN "SQL Server port" "$CONTAINER does not publish 1433: the app and the e2e test use localhost,1433"
-      [[ "$(docker exec "$CONTAINER" printenv TZ 2> /dev/null || true)" == Asia/Ho_Chi_Minh ]] ||
-        report WARN "SQL Server time zone" "$CONTAINER runs on UTC: dates can be one day off (docs/SETUP.md)"
     elif [[ -z "$SQL_PW" ]]; then
       report ACTION "SQL Server container" "cannot read the sa password of $CONTAINER: set SQL_PASSWORD and re-run"
     else

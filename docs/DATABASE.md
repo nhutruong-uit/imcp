@@ -102,7 +102,7 @@ run `usp_Account_RecordLogin` and `usp_Account_ChangePassword`, and read the cat
 | SQL queries | JOIN, GROUP BY/HAVING, NOT EXISTS, relational division, CTE, recursion, window functions, PIVOT | `08_demo_queries.sql` |
 | XPath/XQuery | `.value() .query() .exist() .nodes() .modify()`, FLWOR, `sql:variable`, `FOR XML PATH` | `04`, `08` |
 | Stored procedures | 38 procedures: business logic, transactions, OUTPUT parameters, safe dynamic SQL, `EXECUTE AS OWNER` | `04_procedures.sql` |
-| Functions | 10 scalar, 2 inline table-valued, 1 multi-statement table-valued | `02_functions.sql` |
+| Functions | 14 scalar, 2 inline table-valued, 1 multi-statement table-valued (incl. the center time zone functions, section 7) | `02_functions.sql` |
 | Triggers | 13 triggers: AFTER/INSTEAD OF, inter-relation constraints, derived attributes, audit | `05_triggers.sql` |
 | Cursors | Course-result evaluation (`usp_Class_EvaluateResults`), monthly payroll closing (`usp_Payroll_Finalize`), seed-data loading | `04`, `07` |
 | Views | 13 views, including 5 security views filtered by the logged-in teacher | `03_views.sql` |
@@ -112,7 +112,7 @@ run `usp_Account_RecordLogin` and `usp_Account_ChangePassword`, and read the cat
 | Menu / form / report | Qt application: role-based menu, Qt Designer forms, PDF reports with header/footer/totals | `src/presentation` |
 | Distributed database | Horizontal fragmentation by branch, replicated catalog tables, distributed view, completeness/disjointness check | `11_distributed_demo.sql` |
 | Object-oriented DB, NoSQL | Model conversion and comparison | report Ch.7 |
-| Automated database tests | 42 cases: `T01`-`T27` (integrity constraints and business rules, functions, triggers, cursors, XML), `T28`-`T30` (schema conventions: naming, least-privilege permission matrix, `SET NOCOUNT ON` / no `SELECT *`) and `P01`-`P12` (permissions, via `EXECUTE AS USER`); each case runs in a transaction that is rolled back | `12_tests.sql` |
+| Automated database tests | 44 cases: `T01`-`T27` and `T31` (integrity constraints and business rules, functions, triggers, cursors, XML, UTC times), `T28`-`T30` and `T32` (schema conventions: naming, least-privilege permission matrix, `SET NOCOUNT ON` / no `SELECT *`, time conventions) and `P01`-`P12` (permissions, via `EXECUTE AS USER`); each case runs in a transaction that is rolled back | `12_tests.sql` |
 | Automated server-level tests | 18 cases `S01`-`S18`: backup chain + restore into a new database (contained users sign in to the copy), `usp_Backup`, BULK INSERT of the sample CSV, fragmentation/replication/partition elimination/linked server for `11_distributed_demo.sql`, account lockout with real sign-ins through a loopback linked server | `13_server_tests.sql` |
 
 `db_init` runs scripts `00`-`07` (create database, tables, functions, views, procedures, triggers, security, seed
@@ -135,3 +135,21 @@ data). Scripts `08`-`11` are demonstrations to run by hand; `12` and `13` are th
    certificate.
 8. A session that has already been taught cannot change time/room/teacher (this keeps payroll data correct).
 9. The audit log is append-only (INSTEAD OF UPDATE, DELETE, plus `DENY` even for managers).
+
+## 7. Time: UTC instants and center dates
+
+- **Instants** (when something happened) are stored in **UTC**: `DATETIME` columns named `...Utc` (`PaidAtUtc`,
+  `CreatedAtUtc`, `LastLoginAtUtc`, `EnteredAtUtc`, `FinalizedAtUtc`, `LoggedAtUtc`) with `DEFAULT (GETUTCDATE())`.
+  The application shows them in the time zone of the computer it runs on (`Format::dateTime`).
+- **Business dates** (`DATE`: registration, enrollment, sessions, certificates, payroll months) are calendar days of the
+  center, whose time zone is UTC+07:00. `dbo.fn_CenterUtcOffset()` is the one place that defines it;
+  `dbo.fn_Today()` gives today's date in the center, `dbo.fn_UtcToCenterTime` / `dbo.fn_CenterTimeToUtc` convert
+  between the two. Reports group and filter receipts by the center's days and months: a receipt at 17:30 UTC on
+  31 January counts on 1 February.
+- The time zone of the SQL Server machine therefore does not matter: nothing reads its local clock (`GETDATE()`,
+  `SYSDATETIME()`, `CURRENT_TIMESTAMP`). Vietnam has no daylight saving time, so a fixed offset is exact and works on
+  SQL Server 2012 (`TODATETIMEOFFSET`/`SWITCHOFFSET`; `AT TIME ZONE` needs 2016). The `DATE` defaults of
+  `01_tables.sql` repeat the offset because a `DEFAULT` cannot call a function created later by `02_functions.sql`.
+- Checked by `T31` (the month and day of a receipt paid just after local midnight), `T32` (catalog: `...Utc` names, no
+  server-local clock, `DATE` defaults use the center offset) and `tst_conventions` (no server-local clock in any
+  script).

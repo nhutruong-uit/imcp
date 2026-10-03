@@ -15,7 +15,7 @@ graph ERD2 {
   EMPLOYEE [label=<<B>EMPLOYEE</B><BR/><U>EmployeeId</U>, ...>, fillcolor="#F1F5F9"];
   BRANCH [label=<<B>BRANCH</B><BR/><U>BranchId</U>, ...>, fillcolor="#F1F5F9"];
   PROMOTION [label=<<B>PROMOTION</B><BR/><U>PromotionId</U>, DiscountType, DiscountValue,<BR/>StartDate, EndDate>];
-  RECEIPT [label=<<B>RECEIPT</B><BR/><U>ReceiptId</U>, PaidAt, Amount,<BR/>PaymentMethod, Status>];
+  RECEIPT [label=<<B>RECEIPT</B><BR/><U>ReceiptId</U>, PaidAtUtc, Amount,<BR/>PaymentMethod, Status>];
   CERTIFICATE [label=<<B>CERTIFICATE</B><BR/><U>CertificateId</U>, SerialNumber, IssuedOn, Classification>];
   AUDIT_LOG [label=<<B>AUDIT_LOG</B><BR/><U>LogId</U>, TableName, Action,<BR/>OldData (XML), NewData (XML)>, fillcolor="#FCE7F3"];
 

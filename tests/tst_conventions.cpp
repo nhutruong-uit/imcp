@@ -174,6 +174,21 @@ private slots:
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 
+    // 01-sql.md: instants are UTC (GETUTCDATE) and dates follow the center (dbo.fn_Today) - the scripts never
+    // read the server's local clock, whose time zone depends on the machine (T32 checks the same in the
+    // catalog)
+    void sqlScripts_serverLocalClock_notUsed() {
+        const QRegularExpression clock(
+            QStringLiteral("\\b(GETDATE|SYSDATETIME)\\s*\\(|\\bCURRENT_TIMESTAMP\\b"),
+            QRegularExpression::CaseInsensitiveOption);
+        QStringList problems;
+        for (const QString& file : filesIn(QStringLiteral("database"), {QStringLiteral("*.sql")}, false))
+            problems << findAll(
+                file, withoutComments(readText(file), true), clock,
+                QStringLiteral("use GETUTCDATE() for an instant or dbo.fn_Today() for a date"));
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
+
     // AGENTS.md: a script starts with USE QLTTTA; GO; SET ANSI_NULLS ON; SET QUOTED_IDENTIFIER ON;
     // (server-level scripts - create database, backup, distributed demo - start with USE master;)
     void sqlScripts_header_startsWithUseAndSetOptions() {

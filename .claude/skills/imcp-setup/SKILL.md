@@ -75,7 +75,6 @@ The script only installs what is missing, so re-run it after each fix until the 
 | `ACTION Demo sign-in` (Windows) | the instance accepts Windows Authentication only: the user switches to mixed mode in SSMS (*server Properties > Security*) and restarts the service - a server security setting, so it is their decision |
 | `FAILED ... port 1433` | another SQL Server uses the port: reuse it with `--container <name>` / `-Docker <name>`, or stop it |
 | `FAILED scripts/test_all...` | read `build/test-results/` and the `docs/SETUP.md` Troubleshooting table; fix the cause, never a test |
-| `WARN SQL Server time zone` | the container has no `TZ`; recreate it with `docker-compose.yml` when dates look one day off |
 
 Never do on the user's behalf: type or ask for passwords, run `sudo`, accept a license without their yes, change system
 security settings (group membership, SQL Server authentication mode), run `gh workflow run`.
