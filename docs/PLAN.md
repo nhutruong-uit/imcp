@@ -44,9 +44,11 @@ Legend: `[x]` done, `[~]` partly done.
 - [x] Triggers, stored procedures, functions, cursors (Lab 2)
 - [x] Authorization, authentication, backup/restore, import/export (Lab 3)
 - [x] XQuery, XPath (Lab 5)
-- [~] Reports: PDF/CSV export of lists from the app is done - parameterized reports and receipts are still needed
-- [~] Application: Menu/Form - Students (full add/edit/delete), the dashboard and read-only list screens for every role
-      are done; classes, enrollment, tuition, attendance and grades still need their data-entry forms
+- [x] Reports: PDF/CSV export of every list, a revenue report of a period (by branch, program and course), the
+      results of a class and a printable tuition receipt
+- [x] Application: Menu/Form - a data-entry screen for every step of the business flow (catalogs, accounts, students,
+      placement tests, classes and weekly schedules, enrollments, tuition collection, timetable and attendance, grade
+      book, result evaluation, teacher payroll, backup), the dashboard and read-only reports for every role
 - [x] Advanced databases: distributed (demo), object-oriented, NoSQL (report)
 
 ## 5. Oral-defense preparation - frequently asked questions by area
