@@ -1,0 +1,1208 @@
+<!doctype html>
+<!--
+  docs/data-map.html - interactive map of the QLTTTA database and of how the app reaches it.
+  What it is for: open it in a browser (double-click, or `open docs/data-map.html`) to see how the tables relate,
+  which procedure writes which table, which rule or trigger rejects bad data, and which app screen reads what.
+  Who uses it: every team member - before changing the schema, when planning a new screen, and to prepare the
+  oral defense.
+  Course concepts: ERD and relational schema (primary/foreign keys, cardinality, recursive and n-n relationships),
+  integrity constraints and triggers, stored procedures as the only write path, role-based authorization.
+  Data: the constants TABLES, FKS and TRIGGERS copy database/01_tables.sql and database/05_triggers.sql. The test
+  tst_conventions (docs_dataMap_matchesScripts) fails when they differ - update them in the same commit as the
+  scripts. STEPS, SCREENS and the flows describe 04_procedures.sql and src/ and are updated by hand.
+  Libraries: ELK (elkjs, layered layout) from jsDelivr and Google Fonts; offline, a simpler built-in layout is used.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QLTTTA Data Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: header + tab bar; "Table relationships" = drafting canvas (dot grid) with a sticky detail rail;
+   the two flow tabs are a single reading column. Identifiers (tables, columns, procedures) are always mono. */
+:root {
+  --bg: #F2F4F8; --surface: #FFFFFF; --surface-2: #EBEFF5; --ink: #0E1A2E; --ink-2: #43506A; --ink-3: #6F7B92;
+  --line: #D3DAE5; --line-2: #E3E8EF; --grid: #D6DDE8; --accent: #1F3864; --accent-2: #2E75B6; --accent-soft: #DCE7F6;
+  --edge: #8693A8; --ok: #13723A; --ok-soft: #DCF2E3; --info: #1F5FA8; --info-soft: #E0ECFA; --idle: #5D6676; --idle-soft: #E8EBF0;
+  --g-org: #0F766E; --g-people: #7E22CE; --g-training: #1D4ED8; --g-classes: #A16207;
+  --g-students: #C2410C; --g-finance: #15803D; --g-results: #BE123C; --g-system: #64748B;
+  --tint: 13%;
+  --font-body: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r: 8px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C1320; --surface: #131C2C; --surface-2: #1A2537; --ink: #E5EBF4; --ink-2: #A8B4C8; --ink-3: #7C899F;
+    --line: #2A3850; --line-2: #212D41; --grid: #1E2A3D; --accent: #8DB5F2; --accent-2: #6AA8EC; --accent-soft: #1D2E4A;
+    --edge: #6A7C9B; --ok: #5BD08A; --ok-soft: #13301F; --info: #7DB2F0; --info-soft: #16283F; --idle: #A0A9B8; --idle-soft: #1F2735;
+    --g-org: #2DD4BF; --g-people: #C084FC; --g-training: #7AA7FF; --g-classes: #E3B341;
+    --g-students: #FB923C; --g-finance: #4ADE80; --g-results: #FB7185; --g-system: #94A3B8;
+    --tint: 20%;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C1320; --surface: #131C2C; --surface-2: #1A2537; --ink: #E5EBF4; --ink-2: #A8B4C8; --ink-3: #7C899F;
+  --line: #2A3850; --line-2: #212D41; --grid: #1E2A3D; --accent: #8DB5F2; --accent-2: #6AA8EC; --accent-soft: #1D2E4A;
+  --edge: #6A7C9B; --ok: #5BD08A; --ok-soft: #13301F; --info: #7DB2F0; --info-soft: #16283F; --idle: #A0A9B8; --idle-soft: #1F2735;
+  --g-org: #2DD4BF; --g-people: #C084FC; --g-training: #7AA7FF; --g-classes: #E3B341;
+  --g-students: #FB923C; --g-finance: #4ADE80; --g-results: #FB7185; --g-system: #94A3B8;
+  --tint: 20%;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 14.5px/1.6 var(--font-body); -webkit-font-smoothing: antialiased; }
+code, .mono { font-family: var(--font-mono); font-size: .88em; }
+button { font: inherit; color: inherit; }
+h1, h2, h3, h4 { text-wrap: balance; margin: 0; }
+.wrap { max-width: 1520px; margin-inline: auto; padding-inline: 16px; }
+@media (min-width: 720px) { .wrap { padding-inline: 28px; } }
+:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
+/* ---------- header ---------- */
+.top { background: var(--surface); border-bottom: 1px solid var(--line); }
+.top .wrap { padding-block: 26px 0; }
+.eyebrow { margin: 0 0 6px; font: 600 11.5px/1.2 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+h1 { font-size: clamp(26px, 3.4vw, 36px); font-weight: 700; letter-spacing: -.015em; line-height: 1.15; }
+.lede { margin: 8px 0 0; max-width: 68ch; color: var(--ink-2); }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 18px 0 0; padding: 0; }
+.stats div { display: flex; align-items: baseline; gap: 6px; }
+.stats dt { order: 2; color: var(--ink-3); font-size: 13px; }
+.stats dd { order: 1; margin: 0; font: 600 20px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.src { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.tabs { display: flex; gap: 4px; margin-top: 18px; overflow-x: auto; scrollbar-width: none; }
+.tabs button { flex: none; border: 0; background: none; padding: 10px 14px 12px; font-weight: 600; font-size: 14px; color: var(--ink-3); border-bottom: 2.5px solid transparent; cursor: pointer; }
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+
+main.wrap { padding-block: 22px 64px; }
+section[role="tabpanel"] > h2, .sec-h { font-size: 19px; font-weight: 700; letter-spacing: -.01em; margin: 34px 0 6px; }
+.sec-sub { margin: 0 0 16px; color: var(--ink-2); max-width: 78ch; }
+
+/* ---------- toolbar ---------- */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; }
+.search { flex: 1 1 260px; max-width: 420px; position: relative; }
+.search input { width: 100%; height: 36px; padding: 0 12px 0 34px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); color: var(--ink); font: 400 13.5px var(--font-body); }
+.search svg { position: absolute; left: 11px; top: 10px; width: 16px; height: 16px; stroke: var(--ink-3); fill: none; stroke-width: 2; }
+.seg, .zoom { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); overflow: hidden; }
+.seg button, .zoom button { border: 0; background: none; height: 34px; padding: 0 12px; font-size: 13px; font-weight: 500; color: var(--ink-2); cursor: pointer; }
+.seg button + button, .zoom button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.zoom button:hover, .seg button:hover { color: var(--ink); }
+.zoom .val { display: inline-flex; align-items: center; padding: 0 10px; border-left: 1px solid var(--line); font: 500 12px var(--font-mono); color: var(--ink-3); min-width: 54px; justify-content: center; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 12px; }
+.gchip { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px 4px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 12.5px; color: var(--ink-2); cursor: pointer; }
+.gchip i { width: 10px; height: 10px; border-radius: 3px; background: var(--g); flex: none; }
+.gchip[aria-pressed="true"] { border-color: var(--g); color: var(--ink); background: color-mix(in srgb, var(--g) var(--tint), var(--surface)); }
+
+/* ---------- ERD ---------- */
+.erd-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
+@media (max-width: 980px) { .erd-layout { grid-template-columns: minmax(0, 1fr); } }
+.canvas { position: relative; height: clamp(460px, 74vh, 940px); overflow: auto; border: 1px solid var(--line); border-radius: 10px;
+  background-color: var(--surface-2); background-image: radial-gradient(var(--grid) 1.1px, transparent 1.2px); background-size: 22px 22px; background-attachment: local; cursor: grab; touch-action: auto; }
+@media (max-width: 720px) { .canvas { height: 62vh; } }
+.canvas.panning { cursor: grabbing; user-select: none; }
+.canvas svg { display: block; }
+.canvas .msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-3); font-size: 13.5px; }
+.node { cursor: pointer; outline: none; }
+.node .box { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+.node .hdr { fill: color-mix(in srgb, var(--g) var(--tint), var(--surface)); }
+.node .hdr-rule { stroke: color-mix(in srgb, var(--g) 40%, var(--line)); stroke-width: 1; }
+.node .tname { font: 600 13px var(--font-mono); fill: color-mix(in srgb, var(--g) 55%, var(--ink)); }
+.node .tcount { font: 500 10.5px var(--font-mono); fill: var(--ink-3); }
+.node .cname { font: 400 12px var(--font-mono); fill: var(--ink); }
+.node .cname.nul { fill: var(--ink-3); }
+.node .ctype { font: 400 10.5px var(--font-mono); fill: var(--ink-3); }
+.node .badge { font: 600 9px var(--font-mono); letter-spacing: .03em; fill: var(--ink-3); }
+.node .badge.pk { fill: var(--accent-2); }
+.node .badge.fk { fill: var(--ink-2); }
+.node .more { font: italic 400 10.5px var(--font-body); fill: var(--ink-3); }
+.node .rowbg { fill: transparent; }
+.node .row.on .rowbg { fill: var(--accent-soft); }
+.node:hover .box { stroke: var(--ink-3); }
+.node.sel .box, .node:focus-visible .box { stroke: var(--accent); stroke-width: 2; }
+.edge .line, .edge .mk { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+.edge circle { fill: var(--surface); stroke: var(--edge); stroke-width: 1.25; }
+.edge .hit { fill: none; stroke: transparent; stroke-width: 11; pointer-events: stroke; cursor: pointer; }
+.edge:hover .line, .edge:hover .mk, .edge.on .line, .edge.on .mk { stroke: var(--accent); stroke-width: 2; }
+.edge:hover circle, .edge.on circle { stroke: var(--accent); stroke-width: 1.6; }
+.node, .edge { transition: opacity .15s ease; }
+.has-focus .node:not(.on) { opacity: .2; }
+.has-focus .edge:not(.on) { opacity: .07; }
+@media (prefers-reduced-motion: reduce) { .node, .edge { transition: none; } }
+.tip { position: fixed; z-index: 10; pointer-events: none; max-width: 340px; padding: 8px 10px; border-radius: 7px; background: var(--ink); color: var(--bg); font-size: 12.5px; line-height: 1.45; box-shadow: 0 6px 20px rgb(0 0 0 / .18); }
+.tip code { color: inherit; }
+
+/* ---------- detail panel ---------- */
+.panel { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: clamp(460px, 74vh, 940px); overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px 18px; min-width: 0; }
+@media (max-width: 980px) { .panel { position: static; max-height: none; } }
+.panel h3 { font-size: 15.5px; font-weight: 700; }
+.panel h3.mono { font: 600 19px/1.25 var(--font-mono); letter-spacing: -.01em; word-break: break-word; }
+.panel h4 { margin: 18px 0 7px; font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); }
+.panel p { margin: 8px 0 0; color: var(--ink-2); font-size: 13.5px; }
+.panel ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.panel li { font-size: 13px; color: var(--ink-2); }
+.p-group { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+.p-group i { width: 10px; height: 10px; border-radius: 3px; background: var(--g); }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.facts div { background: var(--surface-2); border-radius: 7px; padding: 7px 9px; min-width: 0; }
+.facts dt { font-size: 11px; color: var(--ink-3); }
+.facts dd { margin: 0; font: 600 13px/1.3 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
+.rel li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; padding: 7px 9px; border: 1px solid var(--line-2); border-radius: 7px; }
+.rel .card { font: 600 11px var(--font-mono); color: var(--accent-2); background: var(--accent-soft); padding: 1px 6px; border-radius: 4px; }
+.rel .mean { flex-basis: 100%; font-size: 12.5px; color: var(--ink-3); }
+.cols { width: 100%; border-collapse: collapse; font-size: 12px; }
+.cols td { padding: 5px 4px; border-top: 1px solid var(--line-2); vertical-align: top; }
+.cols td:first-child { font-family: var(--font-mono); color: var(--ink); white-space: nowrap; }
+.cols td:nth-child(2) { font-family: var(--font-mono); color: var(--ink-3); font-size: 11px; white-space: nowrap; }
+.cols td:last-child { color: var(--ink-2); }
+.tag { display: inline-block; font: 600 9.5px/1.5 var(--font-mono); letter-spacing: .03em; padding: 0 5px; border-radius: 4px; margin: 0 3px 2px 0; background: var(--surface-2); color: var(--ink-2); }
+.tag.pk { background: var(--accent-soft); color: var(--accent-2); }
+.notation li { display: flex; align-items: center; gap: 10px; }
+.notation svg { flex: none; width: 54px; height: 20px; }
+.notation svg path, .notation svg line { stroke: var(--ink-2); stroke-width: 1.4; fill: none; }
+.notation svg circle { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1.4; }
+.hint { font-size: 12.5px !important; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* table references, used everywhere */
+.tref { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 0 6px; font: 500 11.5px/1.7 var(--font-mono); color: var(--ink); cursor: pointer; vertical-align: baseline; }
+.tref::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: var(--g, var(--ink-3)); }
+.tref:hover { border-color: var(--g, var(--ink-3)); background: color-mix(in srgb, var(--g, var(--ink-3)) var(--tint), var(--surface)); }
+.pchip { display: inline-block; font: 500 11.5px/1.7 var(--font-mono); color: var(--ink-2); background: var(--surface-2); border-radius: 5px; padding: 0 6px; }
+.rich code { color: var(--ink); }
+
+/* FK table */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.data th { text-align: left; font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding: 10px 12px; background: var(--surface-2); border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.data td { padding: 8px 12px; border-top: 1px solid var(--line-2); vertical-align: top; color: var(--ink-2); }
+table.data tr:first-child td { border-top: 0; }
+table.data td.num { font: 500 12px var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+table.data td .mono { color: var(--ink); white-space: nowrap; }
+#fk-table tbody tr { cursor: pointer; }
+#fk-table tbody tr:hover td { background: var(--accent-soft); }
+.card-pill { font: 600 11.5px var(--font-mono); color: var(--ink); white-space: nowrap; }
+.muted { color: var(--ink-3); }
+
+/* ---------- business flow ---------- */
+.reading { max-width: 1120px; }
+.phases { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 26px; }
+.phases button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.phases button span { font-weight: 400; color: var(--ink-3); margin-left: 5px; font-size: 12px; }
+.phases button:hover { border-color: var(--accent-2); }
+.phases .arr { color: var(--ink-3); font-size: 13px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.step { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 14px; position: relative; padding-bottom: 14px; }
+.step::before { content: ""; position: absolute; left: 19px; top: 34px; bottom: 0; width: 2px; background: var(--line); }
+.step:last-child::before { display: none; }
+.step .no { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 2px solid var(--accent); color: var(--accent); font: 700 14px var(--font-mono); position: relative; z-index: 1; }
+.step .body { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px 16px; min-width: 0; scroll-margin-top: 16px; }
+.step .head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.step h3 { font-size: 16px; font-weight: 700; margin-right: 4px; }
+.step .phase { font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); width: 100%; }
+.role { font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); background: var(--surface-2); }
+.status { flex: none; white-space: nowrap; margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+.status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.status.yes { background: var(--ok-soft); color: var(--ok); }
+.status.view { background: var(--info-soft); color: var(--info); }
+.status.no { background: var(--idle-soft); color: var(--idle); }
+.step .app { margin: 8px 0 0; font-size: 13px; color: var(--ink-2); }
+.step .grid3 { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1fr) minmax(0, 1.5fr); gap: 14px 20px; margin-top: 12px; }
+@media (max-width: 820px) { .step .grid3 { grid-template-columns: minmax(0, 1fr); } .status { margin-left: 0; } }
+.step h4 { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); }
+.step .stack { display: flex; flex-wrap: wrap; gap: 5px; }
+.step ul { margin: 0; padding-left: 16px; font-size: 13px; color: var(--ink-2); display: grid; gap: 3px; }
+.step .rd { margin-top: 8px; font-size: 12px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+
+.states { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 12px; }
+.sm { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.sm h3 { font: 600 14px var(--font-mono); margin-bottom: 10px; }
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.st { font: 500 12px/1 var(--font-mono); padding: 6px 9px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); white-space: nowrap; }
+.st.start { border-color: var(--accent-2); }
+.st.end { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.st.bad { background: var(--idle-soft); color: var(--idle); border-style: dashed; }
+.flow .to { color: var(--ink-3); font-size: 13px; }
+.sm ul { margin: 10px 0 0; padding-left: 16px; font-size: 12.5px; color: var(--ink-2); display: grid; gap: 3px; }
+
+/* ---------- app ---------- */
+.callout { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; max-width: 1120px; }
+.callout .ico { width: 28px; height: 28px; border-radius: 50%; background: var(--info-soft); color: var(--info); display: grid; place-items: center; font: 700 14px var(--font-mono); }
+.callout p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+.callout p + p { margin-top: 6px; }
+.arch { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; max-width: 1120px; }
+.layer { flex: 1 1 170px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.layer .k { font: 600 11px var(--font-mono); letter-spacing: .04em; color: var(--ink-3); }
+.layer h3 { font-size: 15px; margin: 2px 0 6px; }
+.layer p { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+.layer .eg { margin-top: 8px; font: 400 11.5px/1.55 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
+.layer.db { background: var(--accent-soft); border-color: transparent; }
+.arch .ar { align-self: center; flex: none; font: 600 16px var(--font-mono); color: var(--ink-3); }
+@media (max-width: 760px) { .arch { flex-direction: column; } .arch .ar { transform: rotate(90deg); } }
+.lanes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 10px; row-gap: 8px; position: relative; max-width: 1120px; }
+.lane-h { font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); padding: 8px 10px 6px; z-index: 1; }
+.lane-bg { background: var(--surface-2); border-radius: 10px; }
+.lstep { z-index: 1; margin-inline: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; min-width: 0; }
+.lstep .t { display: flex; align-items: baseline; gap: 8px; }
+.lstep .n { flex: none; font: 700 11px var(--font-mono); color: var(--accent); }
+.lstep .c { font: 600 12.5px/1.35 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
+.lstep p { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.lstep .ln { display: none; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.lstep.l3 { border-color: color-mix(in srgb, var(--accent-2) 45%, var(--line)); }
+@media (max-width: 760px) {
+  .lanes { grid-template-columns: minmax(0, 1fr); }
+  .lane-h, .lane-bg { display: none; }
+  .lstep { grid-column: 1 !important; grid-row: auto !important; margin-inline: 0; }
+  .lstep .ln { display: block; margin-bottom: 2px; }
+}
+.matrix td.role-c { text-align: center; font: 600 13px var(--font-mono); color: var(--ok); }
+.matrix td.role-c.off { color: var(--line); }
+.matrix th.role-c { text-align: center; }
+.matrix td:nth-child(2) { color: var(--ink); font-weight: 500; white-space: nowrap; }
+.foot { margin-top: 40px; font-size: 12.5px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <p class="eyebrow">IE103 · QLTTTA · SQL Server + Qt</p>
+    <h1>QLTTTA Data Map</h1>
+    <p class="lede">How the tables relate, how the business flow moves through the database, and how the Qt app reaches the data, in one place for the whole team.</p>
+    <dl class="stats">
+      <div><dt>tables</dt><dd id="n-tables">-</dd></div>
+      <div><dt>foreign keys</dt><dd id="n-fks">-</dd></div>
+      <div><dt>triggers</dt><dd id="n-triggers">-</dd></div>
+      <div><dt>app screens</dt><dd id="n-screens">-</dd></div>
+    </dl>
+    <p class="src">Tables, columns, foreign keys and triggers are checked against <code>database/01_tables.sql</code> and <code>database/05_triggers.sql</code> by <code>tst_conventions</code>. The flows describe <code>database/04_procedures.sql</code> and <code>src/</code>.</p>
+    <nav class="tabs" role="tablist" aria-label="Content">
+      <button role="tab" id="tab-erd" aria-controls="erd" aria-selected="true">Table relationships</button>
+      <button role="tab" id="tab-flow" aria-controls="flow" aria-selected="false">Business flow</button>
+      <button role="tab" id="tab-app" aria-controls="app" aria-selected="false">App flow</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ===================== ERD ===================== -->
+  <section id="erd" role="tabpanel" aria-labelledby="tab-erd">
+    <div class="toolbar">
+      <label class="search" for="q">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <input id="q" type="search" placeholder="Find a table or column, e.g. StudentId" autocomplete="off">
+      </label>
+      <div class="seg" role="group" aria-label="Columns shown in each table">
+        <button id="mode-keys" aria-pressed="true">Key columns</button>
+        <button id="mode-all" aria-pressed="false">All columns</button>
+      </div>
+      <div class="zoom" role="group" aria-label="Zoom">
+        <button id="z-out" aria-label="Zoom out">−</button>
+        <button id="z-fit">Fit</button>
+        <button id="z-in" aria-label="Zoom in">+</button>
+        <span class="val" id="z-val">100%</span>
+      </div>
+    </div>
+    <div class="legend" id="legend" aria-label="Table groups"></div>
+    <div class="erd-layout">
+      <div class="canvas" id="canvas">
+        <svg id="erd-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Relationship map of the tables"></svg>
+        <div class="msg" id="canvas-msg">Laying out the map…</div>
+      </div>
+      <aside class="panel" id="panel" aria-live="polite"></aside>
+    </div>
+
+    <h2>Foreign keys</h2>
+    <p class="sec-sub">Click a row to show that relationship on the map. Cardinalities are what the database guarantees: a <code>NOT NULL</code> foreign key is "1", a nullable one is "0..1", and a foreign key with a <code>UNIQUE</code> constraint on the child side is "0..1".</p>
+    <div class="tablewrap">
+      <table class="data" id="fk-table">
+        <thead><tr><th>#</th><th>Parent table</th><th>Child table · foreign key</th><th>Cardinality</th><th>Meaning</th><th>Notes</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== BUSINESS FLOW ===================== -->
+  <section id="flow" role="tabpanel" aria-labelledby="tab-flow" hidden>
+    <div class="reading">
+      <h2 class="sec-h" style="margin-top:6px">A student's way through the system</h2>
+      <p class="sec-sub">The steps in the order the data is created. Each step names the procedure it calls, the tables it writes, the constraints and triggers that reject bad data, and whether the app already has it or only the database does. Click a table name to open it on the map.</p>
+      <div class="phases" id="phases"></div>
+      <ol class="steps" id="steps"></ol>
+
+      <h2 class="sec-h">Status life cycles</h2>
+      <p class="sec-sub">The important <code>Status</code> columns and the procedures that change them. The database stores English values; the app translates them through <code>DbValues</code>.</p>
+      <div class="states">
+        <div class="sm">
+          <h3>CLASS.Status</h3>
+          <div class="flow"><span class="st start">Enrolling</span><span class="to">→</span><span class="st">In progress</span><span class="to">→</span><span class="st end">Finished</span></div>
+          <ul class="rich" data-rich>
+            <li>usp_Class_Create creates the class as Enrolling; usp_Class_UpdateStatus moves it to In progress.</li>
+            <li>usp_Class_EvaluateResults sets Finished after computing the results; grades and attendance are then locked.</li>
+            <li>Cancelled through usp_Class_UpdateStatus, refused while the class has valid receipts (error 50015).</li>
+          </ul>
+        </div>
+        <div class="sm">
+          <h3>STUDENT.Status</h3>
+          <div class="flow"><span class="st start">Prospective</span><span class="to">→</span><span class="st end">Studying</span><span class="to">→</span><span class="st">On hold</span><span class="st bad">Dropped out</span></div>
+          <ul class="rich" data-rich>
+            <li>A new student is Prospective; usp_Enrollment_Create moves a Prospective or On hold student to Studying.</li>
+            <li>usp_Enrollment_UpdateStatus: putting on hold or leaving, with no other Studying enrollment, makes the student On hold or Dropped out.</li>
+          </ul>
+        </div>
+        <div class="sm">
+          <h3>ENROLLMENT.Status</h3>
+          <div class="flow"><span class="st start">Studying</span><span class="to">⇄</span><span class="st">On hold</span><span class="to">→</span><span class="st bad">Left</span><span class="st end">Completed</span></div>
+          <ul class="rich" data-rich>
+            <li>usp_Enrollment_UpdateStatus switches between Studying, On hold and Left.</li>
+            <li>usp_Enrollment_TransferClass keeps the EnrollmentId (receipts and grades stay attached), sets Studying and the tuition of the new class.</li>
+            <li>usp_Class_EvaluateResults writes FinalGrade and Result and sets Completed.</li>
+          </ul>
+        </div>
+        <div class="sm">
+          <h3>RECEIPT.Status</h3>
+          <div class="flow"><span class="st start">Valid</span><span class="to">→</span><span class="st bad">Cancelled</span></div>
+          <ul class="rich" data-rich>
+            <li>usp_Receipt_Cancel requires a CancelReason; trg_RECEIPT_UpdateAmountPaid lowers ENROLLMENT.AmountPaid again.</li>
+            <li>No DELETE: trg_RECEIPT_PreventDelete blocks it, and even the manager is denied DELETE.</li>
+          </ul>
+        </div>
+        <div class="sm">
+          <h3>CLASS_SESSION.Status</h3>
+          <div class="flow"><span class="st start">Scheduled</span><span class="to">→</span><span class="st end">Taught</span><span class="st bad">Cancelled</span></div>
+          <ul class="rich" data-rich>
+            <li>usp_Class_GenerateSessions creates Scheduled sessions; usp_Session_Update changes the status and records the content.</li>
+            <li>trg_CLASS_SESSION_LockTaught locks the date, time, room and teacher of a Taught session; usp_Payroll_Finalize pays it.</li>
+          </ul>
+        </div>
+        <div class="sm">
+          <h3>ACCOUNT.Status</h3>
+          <div class="flow"><span class="st start">Active</span><span class="to">⇄</span><span class="st bad">Locked</span></div>
+          <ul class="rich" data-rich>
+            <li>usp_Account_Lock (manager only) changes Status and denies or grants CONNECT, so a locked account cannot connect.</li>
+            <li>AuthService checks Status again at sign-in.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== APP ===================== -->
+  <section id="app" role="tabpanel" aria-labelledby="tab-app" hidden>
+    <div class="reading">
+      <div class="callout" style="margin-top:6px">
+        <div class="ico" aria-hidden="true">i</div>
+        <div>
+          <p><strong>What the app has today:</strong> sign-in, change password, language switch, the Overview page, the Students screen (read and write) and read-only lists for the other menu entries. Every write the app makes goes through the <code>usp_Student_*</code> procedures.</p>
+          <p>The later steps of the business flow already have procedures in the database but no form in the app yet; today they run from the seed data <code>07_seed_data.sql</code>, the test suites and SSMS.</p>
+        </div>
+      </div>
+
+      <h2 class="sec-h">Layers of the app</h2>
+      <p class="sec-sub">Dependencies go one way: user interface → application → domain ← infrastructure. <code>src/app</code> (<code>main.cpp</code>, <code>AppContainer</code>) creates the objects of every layer and wires them together.</p>
+      <div class="arch" id="arch"></div>
+
+      <h2 class="sec-h">Sign-in → role-based menu</h2>
+      <p class="sec-sub">Every user connects to SQL Server with their own account, so what they may read or change is decided by the <code>GRANT</code> / <code>DENY</code> of their role. The app only decides which menu entries to show.</p>
+      <div class="lanes" id="lane-login"></div>
+
+      <h2 class="sec-h">Roles × screens</h2>
+      <p class="sec-sub">From <code>Permissions::allowedFeatures</code>. The last column lists the tables each screen really reads (through a view or a procedure); click a table to open it on the map.</p>
+      <div class="tablewrap">
+        <table class="data matrix" id="matrix">
+          <thead><tr><th>Group</th><th>Screen</th><th class="role-c">Manager</th><th class="role-c">Academic staff</th><th class="role-c">Accountant</th><th class="role-c">Teacher</th><th>Data source</th><th>Tables read</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h2 class="sec-h">One write, end to end: add a student</h2>
+      <p class="sec-sub">The Students module is the team's reference implementation. New write screens should follow the same path.</p>
+      <div class="lanes" id="lane-add"></div>
+    </div>
+  </section>
+
+  <p class="foot">The map is laid out automatically with ELK (layered): parent tables on the left, child tables on the right. Drag the background to move; use the zoom buttons when the map is larger than the frame. Offline, a simpler built-in layout is used.</p>
+</main>
+
+<div class="tip" id="tip" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/elkjs@0.9.3/lib/elk.bundled.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* ======================= DATA ======================= */
+const ROLES = { M: 'Manager', S: 'Academic staff', A: 'Accountant', T: 'Teacher' };
+const GROUPS = {
+  org: 'Organization', people: 'People & accounts', training: 'Training', classes: 'Classes & schedules',
+  students: 'Students & enrollment', finance: 'Finance', results: 'Learning results', system: 'System'
+};
+const CATALOG = ['Manager INSERT / UPDATE directly (table GRANT on the catalog tables)', '07_seed_data.sql'];
+
+// Copy of database/01_tables.sql, checked by tst_conventions (docs_dataMap_matchesScripts).
+// Column: "Name|TYPE|FLAGS|note" - FLAGS: PK SEQ ID UQ NULL CALC TRG XML (FK comes from FKS). No "]" in a note.
+const TABLES = {
+  BRANCH: { g: 'org', d: 'A branch of the center. Root of the distributed design: students, classes, rooms and staff all belong to one branch.',
+    cols: ['BranchId|VARCHAR(10)|PK', 'BranchName|NVARCHAR(100)|UQ', 'Address|NVARCHAR(200)|', 'Phone|VARCHAR(15)|NULL|9-11 digits', 'Email|VARCHAR(100)|NULL', 'FoundedOn|DATE|NULL', 'Status|NVARCHAR(20)||Active · Suspended'],
+    notes: ['UQ_BRANCH_BranchName: branch names are unique', 'CK_BRANCH_Phone: 9-11 digits only'], writes: CATALOG },
+  ROOM: { g: 'org', d: 'A classroom of one branch, with a capacity and a room type.',
+    cols: ['RoomId|VARCHAR(10)|PK', 'BranchId|VARCHAR(10)|', 'RoomName|NVARCHAR(50)||unique within a branch', 'Capacity|INT||1-100', 'RoomType|NVARCHAR(30)||Lecture · Lab · Multi-purpose', 'Status|NVARCHAR(20)||Available · Maintenance'],
+    notes: ['UQ_ROOM_BranchId_RoomName', 'CK_ROOM_Capacity: 1-100 seats'], writes: CATALOG },
+  EMPLOYEE: { g: 'people', d: 'Office staff: managers, academic staff, accountants, consultants.', id: 'EM0001',
+    cols: ['EmployeeId|VARCHAR(10)|PK SEQ|EM0001 from seq_EMPLOYEE', 'FullName|NVARCHAR(100)|', 'DateOfBirth|DATE||at least 18 at the hire date', 'Gender|NVARCHAR(10)||Male · Female · Other', 'Phone|VARCHAR(15)|UQ', 'Email|VARCHAR(100)|NULL UQ|filtered UNIQUE (WHERE Email IS NOT NULL)', 'Address|NVARCHAR(200)|NULL', 'Position|NVARCHAR(30)||Manager · Academic staff · Accountant · Consultant', 'BranchId|VARCHAR(10)|', 'HireDate|DATE||defaults to today (UTC+7)', 'BaseSalary|DECIMAL(12,0)||≥ 0', 'Status|NVARCHAR(20)||Working · Left'],
+    notes: ['CK_EMPLOYEE_Age: at least 18 years old at the hire date', 'UQ_EMPLOYEE_Phone, UX_EMPLOYEE_Email'], writes: CATALOG },
+  TEACHER: { g: 'people', d: 'A Vietnamese or native teacher, with an XML skills profile and an hourly rate.', id: 'TE0001',
+    cols: ['TeacherId|VARCHAR(10)|PK SEQ|TE0001 from seq_TEACHER', 'FullName|NVARCHAR(100)|', 'DateOfBirth|DATE|', 'Gender|NVARCHAR(10)|', 'Nationality|NVARCHAR(50)||defaults to Vietnam', 'Phone|VARCHAR(15)|UQ', 'Email|VARCHAR(100)|UQ', 'Degree|NVARCHAR(20)||Bachelor · Master · PhD', 'TeacherType|NVARCHAR(20)||Vietnamese · Native', 'HourlyRate|DECIMAL(12,0)||> 0; academic staff cannot read this column', 'ProfileXml|XML|NULL XML|skills profile (untyped XML)', 'BranchId|VARCHAR(10)|', 'HireDate|DATE|', 'Status|NVARCHAR(20)||Teaching · On leave · Left'],
+    notes: ['CK_TEACHER_Native: a native teacher is not of Vietnamese nationality', 'Column-level GRANT: academic staff read TEACHER without HourlyRate'], writes: CATALOG },
+  ACCOUNT: { g: 'people', d: 'A sign-in account. Each row is a contained user of SQL Server and belongs to exactly one employee or one teacher.',
+    cols: ['Username|NVARCHAR(50)|PK|same name as the contained user', 'Role|VARCHAR(20)||MANAGER · ACADEMIC_STAFF · ACCOUNTANT · TEACHER', 'EmployeeId|VARCHAR(10)|NULL UQ|required when the role is not TEACHER', 'TeacherId|VARCHAR(10)|NULL UQ|required when the role is TEACHER', 'Status|NVARCHAR(20)||Active · Locked', 'CreatedAtUtc|DATETIME||UTC', 'LastLoginAtUtc|DATETIME|NULL|written by usp_Account_RecordLogin'],
+    notes: ['CK_ACCOUNT_Owner: a TEACHER account has only TeacherId, the other roles only EmployeeId', 'UX_ACCOUNT_EmployeeId, UX_ACCOUNT_TeacherId: at most one account per person', 'Every account is a member of exactly one role: rl_Manager, rl_AcademicStaff, rl_Accountant, rl_Teacher'],
+    writes: ['usp_Account_Create', 'usp_Account_Lock', 'usp_Account_RecordLogin'] },
+  STUDENT: { g: 'students', d: 'A student of the center, registered at one branch.', id: 'ST00001',
+    cols: ['StudentId|VARCHAR(10)|PK SEQ|ST00001 from seq_STUDENT', 'FullName|NVARCHAR(100)|', 'DateOfBirth|DATE||at least 4 years old at registration', 'Gender|NVARCHAR(10)|', 'Phone|VARCHAR(15)|NULL UQ|filtered UNIQUE', 'Email|VARCHAR(100)|NULL UQ|filtered UNIQUE', 'Address|NVARCHAR(200)|NULL', 'Occupation|NVARCHAR(50)|NULL', 'GuardianName|NVARCHAR(100)|NULL|required under 18', 'GuardianPhone|VARCHAR(15)|NULL|required under 18', 'BranchId|VARCHAR(10)|', 'RegisteredOn|DATE||defaults to today (UTC+7)', 'Status|NVARCHAR(20)||Prospective · Studying · On hold · Dropped out', 'Notes|NVARCHAR(500)|NULL'],
+    notes: ['CK_STUDENT_Guardian: a student under 18 needs a guardian name and phone', 'CK_STUDENT_Contact: at least one phone number', 'UX_STUDENT_Phone, UX_STUDENT_Email: filtered UNIQUE, several NULLs allowed'],
+    writes: ['usp_Student_Add', 'usp_Student_Update', 'usp_Student_Delete', 'usp_Student_ImportXml', 'usp_Enrollment_Create', 'usp_Enrollment_UpdateStatus'] },
+  PROGRAM: { g: 'training', d: 'A training program made of several courses.',
+    cols: ['ProgramId|VARCHAR(10)|PK', 'ProgramName|NVARCHAR(100)|UQ', 'TargetLearners|NVARCHAR(100)|NULL', 'Description|NVARCHAR(500)|NULL'],
+    notes: ['UQ_PROGRAM_ProgramName'], writes: CATALOG },
+  COURSE: { g: 'training', d: 'A course of level A1-C2: number of sessions, tuition, entry requirement (prerequisite course or placement score) and an XML syllabus.',
+    cols: ['CourseId|VARCHAR(10)|PK', 'ProgramId|VARCHAR(10)|', 'CourseName|NVARCHAR(100)|UQ', 'Level|VARCHAR(2)||A1 · A2 · B1 · B2 · C1 · C2', 'SessionCount|INT||1-200 sessions', 'SessionMinutes|INT||30-240, default 90', 'Tuition|DECIMAL(12,0)||≥ 0', 'MinPlacementScore|DECIMAL(4,2)|NULL|minimum placement score', 'PrerequisiteCourseId|VARCHAR(10)|NULL|prerequisite course (recursive relationship)', 'SyllabusXml|XML|NULL XML|typed XML, validated by the XSD xsc_CourseSyllabus', 'Status|NVARCHAR(20)||Open · Discontinued'],
+    notes: ['CK_COURSE_Prerequisite: a course is not its own prerequisite', 'SyllabusXml is validated against the XSD xsc_CourseSyllabus', 'CK_COURSE_Level: A1-C2'], writes: CATALOG },
+  GRADE_COMPONENT: { g: 'training', d: 'The grade columns of a course and their weights (%).',
+    cols: ['ComponentId|INT|PK ID|IDENTITY(1,1)', 'CourseId|VARCHAR(10)|', 'ComponentName|NVARCHAR(50)||unique within a course', 'Weight|DECIMAL(5,2)||weight in %, 0 < Weight ≤ 100'],
+    notes: ['UQ_GRADE_COMPONENT_CourseId_ComponentName', 'vw_CourseInvalidWeights lists the courses whose weights do not add up to 100; usp_Class_EvaluateResults refuses them'],
+    writes: ['Manager INSERT / UPDATE / DELETE directly', '07_seed_data.sql'] },
+  CLASS: { g: 'classes', d: 'A class: one run of a course at one branch, with a teacher in charge and a main room.', id: 'CL0001',
+    cols: ['ClassId|VARCHAR(10)|PK SEQ|CL0001 from seq_CLASS', 'ClassName|NVARCHAR(100)|', 'CourseId|VARCHAR(10)|', 'BranchId|VARCHAR(10)|', 'TeacherId|VARCHAR(10)||teacher in charge', 'RoomId|VARCHAR(10)||main room, same branch', 'StartDate|DATE|', 'EndDate|DATE|NULL|date of the last session (usp_Class_GenerateSessions)', 'MaxStudents|INT||1-50, not above the room capacity', 'Tuition|DECIMAL(12,0)||defaults to the course tuition', 'Status|NVARCHAR(20)||Enrolling · In progress · Finished · Cancelled'],
+    notes: ['CK_CLASS_Dates: EndDate ≥ StartDate', 'CK_CLASS_MaxStudents: 1-50'],
+    writes: ['usp_Class_Create', 'usp_Class_UpdateStatus', 'usp_Class_GenerateSessions', 'usp_Class_EvaluateResults'] },
+  CLASS_SCHEDULE: { g: 'classes', d: 'The weekly timetable of a class (ISO weekdays: 1 = Monday ... 7 = Sunday).',
+    cols: ['ClassId|VARCHAR(10)|PK|ON DELETE CASCADE', 'Weekday|TINYINT|PK|1 = Monday ... 7 = Sunday', 'StartTime|TIME(0)||from 07:00', 'EndTime|TIME(0)||until 22:00, after StartTime'],
+    notes: ['Primary key (ClassId, Weekday): one time slot per class and weekday', 'CK_CLASS_SCHEDULE_Time: within 07:00-22:00'], writes: ['usp_ClassSchedule_Add'] },
+  CLASS_SESSION: { g: 'classes', d: 'One concrete session, generated from the weekly timetable. Each session has its own room and teacher (room change, substitute teacher).',
+    cols: ['SessionId|INT|PK ID|IDENTITY(1,1)', 'ClassId|VARCHAR(10)||ON DELETE CASCADE', 'SessionNo|INT||session number, unique within the class', 'SessionDate|DATE|', 'StartTime|TIME(0)|', 'EndTime|TIME(0)|', 'RoomId|VARCHAR(10)||room of the session', 'TeacherId|VARCHAR(10)||teacher of the session, used for the payroll', 'Description|NVARCHAR(200)|NULL|content of the session', 'Status|NVARCHAR(20)||Scheduled · Taught · Cancelled'],
+    notes: ['UQ_CLASS_SESSION_ClassId_SessionNo', 'IX_CLASS_SESSION_SessionDate for the day-by-day timetable'], writes: ['usp_Class_GenerateSessions', 'usp_Session_Update'] },
+  PROMOTION: { g: 'finance', d: 'A promotion that lowers the tuition by a percentage or an amount, for a period.',
+    cols: ['PromotionId|VARCHAR(10)|PK', 'PromotionName|NVARCHAR(100)|', 'DiscountType|VARCHAR(10)||PERCENT · AMOUNT', 'DiscountValue|DECIMAL(12,2)||> 0; PERCENT at most 50', 'StartDate|DATE|', 'EndDate|DATE||≥ StartDate'],
+    notes: ['CK_PROMOTION_DiscountValue: a percentage discount is at most 50', 'CK_PROMOTION_Dates'], writes: CATALOG },
+  ENROLLMENT: { g: 'students', d: 'An enrollment: the n-n link between STUDENT and CLASS. Tuition, attendance, grades and certificates all hang on it.', id: 'EN000001',
+    cols: ['EnrollmentId|VARCHAR(10)|PK SEQ|EN000001 from seq_ENROLLMENT', 'StudentId|VARCHAR(10)||(StudentId, ClassId) is UNIQUE', 'ClassId|VARCHAR(10)|', 'EnrolledOn|DATE|', 'BaseTuition|DECIMAL(12,0)||tuition of the class at enrollment', 'PromotionId|VARCHAR(10)|NULL', 'DiscountAmount|DECIMAL(12,0)||computed by fn_DiscountAmount', 'TuitionDue|computed|CALC|= BaseTuition − DiscountAmount (PERSISTED)', 'AmountPaid|DECIMAL(12,0)|TRG|= sum of the Valid receipts, kept by trg_RECEIPT_UpdateAmountPaid', 'Status|NVARCHAR(20)||Studying · On hold · Left · Completed', 'FinalGrade|DECIMAL(4,2)|NULL|written by usp_Class_EvaluateResults', 'Result|NVARCHAR(20)|NULL|Passed · Failed', 'EnrolledByEmployeeId|VARCHAR(10)|NULL|employee who enrolled the student'],
+    notes: ['UQ_ENROLLMENT_StudentId_ClassId: no double enrollment in a class', 'CK_ENROLLMENT_AmountPaid: 0 ≤ AmountPaid ≤ TuitionDue', 'CK_ENROLLMENT_DiscountAmount: not above BaseTuition'],
+    writes: ['usp_Enrollment_Create', 'usp_Enrollment_TransferClass', 'usp_Enrollment_UpdateStatus', 'usp_Class_EvaluateResults', 'trg_RECEIPT_UpdateAmountPaid'] },
+  RECEIPT: { g: 'finance', d: 'A tuition receipt (payment in several installments allowed). Never deleted, only cancelled with a reason.', id: 'RC000001',
+    cols: ['ReceiptId|VARCHAR(10)|PK SEQ|RC000001 from seq_RECEIPT', 'EnrollmentId|VARCHAR(10)|', 'PaidAtUtc|DATETIME||UTC; reports use the day of the center', 'Amount|DECIMAL(12,0)||> 0', 'PaymentMethod|NVARCHAR(20)||Cash · Bank transfer · Card', 'CollectedByEmployeeId|VARCHAR(10)||employee who collected the money', 'Description|NVARCHAR(200)|NULL', 'Status|NVARCHAR(20)||Valid · Cancelled', 'CancelReason|NVARCHAR(200)|NULL|required when Cancelled'],
+    notes: ['CK_RECEIPT_CancelReason: a cancellation needs a reason', 'DENY DELETE on RECEIPT, even for the manager'], writes: ['usp_Receipt_Create', 'usp_Receipt_Cancel'] },
+  ATTENDANCE: { g: 'results', d: 'The attendance of one enrollment at one session.',
+    cols: ['SessionId|INT|PK|ON DELETE CASCADE', 'EnrollmentId|VARCHAR(10)|PK', 'Status|NVARCHAR(20)||Present · Late · Excused absence · Unexcused absence', 'Notes|NVARCHAR(200)|NULL'],
+    notes: ['Primary key (SessionId, EnrollmentId)', 'Only Present and Late count as present in fn_AttendanceRate'], writes: ['usp_Attendance_Save'] },
+  GRADE: { g: 'results', d: 'The score of one enrollment for one grade component.',
+    cols: ['EnrollmentId|VARCHAR(10)|PK', 'ComponentId|INT|PK', 'Score|DECIMAL(4,2)||0-10', 'EnteredAtUtc|DATETIME||UTC', 'EnteredBy|NVARCHAR(128)||ORIGINAL_LOGIN()'],
+    notes: ['Primary key (EnrollmentId, ComponentId)', 'CK_GRADE_Score: 0-10'], writes: ['usp_Grade_Save'] },
+  PLACEMENT_TEST: { g: 'students', d: 'An entry test of four skills. The overall score is computed and a trigger recommends a course.', id: 'PT00001',
+    cols: ['TestId|VARCHAR(10)|PK SEQ|PT00001 from seq_PLACEMENT_TEST', 'StudentId|VARCHAR(10)|', 'TestDate|DATE|', 'ListeningScore|DECIMAL(4,2)||0-10', 'SpeakingScore|DECIMAL(4,2)||0-10', 'ReadingScore|DECIMAL(4,2)||0-10', 'WritingScore|DECIMAL(4,2)||0-10', 'OverallScore|DECIMAL(4,2)|CALC|= average of the 4 skills (PERSISTED)', 'RecommendedCourseId|VARCHAR(10)|NULL TRG|filled by trg_PLACEMENT_TEST_Recommend', 'GradedByTeacherId|VARCHAR(10)|NULL', 'Notes|NVARCHAR(200)|NULL'],
+    notes: ['CK_PLACEMENT_TEST_Scores: every skill 0-10'], writes: ['usp_PlacementTest_Add', 'trg_PLACEMENT_TEST_Recommend'] },
+  CERTIFICATE: { g: 'results', d: 'A course completion certificate, issued to a passed enrollment (grade ≥ 5 and attendance ≥ 80%).', id: 'CE00001',
+    cols: ['CertificateId|VARCHAR(10)|PK SEQ|CE00001 from seq_CERTIFICATE', 'EnrollmentId|VARCHAR(10)|UQ|at most one certificate per enrollment', 'SerialNumber|VARCHAR(20)|UQ|EC<year>-<EnrollmentId>', 'IssuedOn|DATE|', 'FinalGrade|DECIMAL(4,2)||5-10', 'Classification|NVARCHAR(20)||Excellent · Very good · Good · Average'],
+    notes: ['UQ_CERTIFICATE_EnrollmentId: 1-1 relationship with ENROLLMENT', 'UQ_CERTIFICATE_SerialNumber', 'CK_CERTIFICATE_FinalGrade: 5-10'], writes: ['usp_Class_EvaluateResults'] },
+  PAYROLL: { g: 'finance', d: 'The monthly pay of a teacher, finalized with a CURSOR from the sessions taught.',
+    cols: ['PayrollId|INT|PK ID|IDENTITY(1,1)', 'TeacherId|VARCHAR(10)||(TeacherId, Month, Year) is UNIQUE', 'Month|TINYINT||1-12', 'Year|SMALLINT||≥ 2020', 'SessionCount|INT||Taught sessions in the month', 'Hours|DECIMAL(6,2)|', 'HourlyRate|DECIMAL(12,0)||copied from TEACHER when finalized', 'Bonus|DECIMAL(12,0)||500,000 for 20 sessions or more', 'Deduction|DECIMAL(12,0)|', 'TotalPay|computed|CALC|= Hours × HourlyRate + Bonus − Deduction', 'FinalizedAtUtc|DATETIME||UTC', 'Status|NVARCHAR(20)||Finalized · Paid'],
+    notes: ['UQ_PAYROLL_TeacherId_Month_Year: one row per teacher and month', 'Academic staff: DENY SELECT; teachers read their own pay through vw_Teacher_MyPay'], writes: ['usp_Payroll_Finalize'] },
+  AUDIT_LOG: { g: 'system', d: 'Append-only audit trail: old and new values as XML whenever a grade or a receipt changes. No foreign key: it points to the source row by TableName + RecordKey.',
+    cols: ['LogId|BIGINT|PK ID|IDENTITY(1,1)', 'LoggedAtUtc|DATETIME||UTC', 'PerformedBy|NVARCHAR(128)||ORIGINAL_LOGIN()', 'TableName|NVARCHAR(50)||GRADE or RECEIPT', 'Action|VARCHAR(10)||INSERT · UPDATE · DELETE', 'RecordKey|NVARCHAR(100)||key of the changed row', 'OldData|XML|NULL XML|old values', 'NewData|XML|NULL XML|new values'],
+    notes: ['No foreign key: points to the source row by TableName + RecordKey', 'DENY UPDATE, DELETE for every role, the manager included'], writes: ['trg_GRADE_Audit', 'trg_RECEIPT_Audit'] },
+};
+
+// Foreign keys of database/01_tables.sql: [child, child column, parent, parent column, flags (null | uq | cascade), meaning]
+const FKS = [
+  ['ROOM', 'BranchId', 'BRANCH', 'BranchId', '', 'A branch has classrooms'],
+  ['EMPLOYEE', 'BranchId', 'BRANCH', 'BranchId', '', 'An employee works at a branch'],
+  ['TEACHER', 'BranchId', 'BRANCH', 'BranchId', '', 'A teacher belongs to a branch'],
+  ['ACCOUNT', 'EmployeeId', 'EMPLOYEE', 'EmployeeId', 'null uq', 'An employee signs in with an account'],
+  ['ACCOUNT', 'TeacherId', 'TEACHER', 'TeacherId', 'null uq', 'A teacher signs in with an account'],
+  ['STUDENT', 'BranchId', 'BRANCH', 'BranchId', '', 'A student registers at a branch'],
+  ['COURSE', 'ProgramId', 'PROGRAM', 'ProgramId', '', 'A program consists of courses'],
+  ['COURSE', 'PrerequisiteCourseId', 'COURSE', 'CourseId', 'null', 'The prerequisite of a course (recursive relationship)'],
+  ['GRADE_COMPONENT', 'CourseId', 'COURSE', 'CourseId', '', 'A course is assessed by grade components'],
+  ['CLASS', 'CourseId', 'COURSE', 'CourseId', '', 'A course is opened as classes'],
+  ['CLASS', 'BranchId', 'BRANCH', 'BranchId', '', 'A branch opens the class'],
+  ['CLASS', 'TeacherId', 'TEACHER', 'TeacherId', '', 'The teacher in charge of the class'],
+  ['CLASS', 'RoomId', 'ROOM', 'RoomId', '', 'The main room of the class'],
+  ['CLASS_SCHEDULE', 'ClassId', 'CLASS', 'ClassId', 'cascade', 'A class meets on a weekly timetable'],
+  ['CLASS_SESSION', 'ClassId', 'CLASS', 'ClassId', 'cascade', 'A class consists of sessions'],
+  ['CLASS_SESSION', 'RoomId', 'ROOM', 'RoomId', '', 'The room of each session'],
+  ['CLASS_SESSION', 'TeacherId', 'TEACHER', 'TeacherId', '', 'The teacher of each session'],
+  ['ENROLLMENT', 'StudentId', 'STUDENT', 'StudentId', '', 'A student enrolls in classes'],
+  ['ENROLLMENT', 'ClassId', 'CLASS', 'ClassId', '', 'A class has enrollments'],
+  ['ENROLLMENT', 'PromotionId', 'PROMOTION', 'PromotionId', 'null', 'The promotion applied to the enrollment'],
+  ['ENROLLMENT', 'EnrolledByEmployeeId', 'EMPLOYEE', 'EmployeeId', 'null', 'The employee who enrolled the student'],
+  ['RECEIPT', 'EnrollmentId', 'ENROLLMENT', 'EnrollmentId', '', 'An enrollment is paid by receipts'],
+  ['RECEIPT', 'CollectedByEmployeeId', 'EMPLOYEE', 'EmployeeId', '', 'The employee who collected the money'],
+  ['ATTENDANCE', 'SessionId', 'CLASS_SESSION', 'SessionId', 'cascade', 'A session has attendance rows'],
+  ['ATTENDANCE', 'EnrollmentId', 'ENROLLMENT', 'EnrollmentId', '', 'An enrollment is marked present or absent'],
+  ['GRADE', 'EnrollmentId', 'ENROLLMENT', 'EnrollmentId', '', 'An enrollment has component grades'],
+  ['GRADE', 'ComponentId', 'GRADE_COMPONENT', 'ComponentId', '', 'A grade belongs to one grade component'],
+  ['PLACEMENT_TEST', 'StudentId', 'STUDENT', 'StudentId', '', 'A student takes placement tests'],
+  ['PLACEMENT_TEST', 'RecommendedCourseId', 'COURSE', 'CourseId', 'null', 'The course recommended by the test score'],
+  ['PLACEMENT_TEST', 'GradedByTeacherId', 'TEACHER', 'TeacherId', 'null', 'The teacher who graded the test'],
+  ['CERTIFICATE', 'EnrollmentId', 'ENROLLMENT', 'EnrollmentId', 'uq', 'A passed enrollment receives a certificate'],
+  ['PAYROLL', 'TeacherId', 'TEACHER', 'TeacherId', '', 'A teacher receives a monthly payroll'],
+];
+
+// Triggers of database/05_triggers.sql, by the table they are created ON
+const TRIGGERS = {
+  CLASS: [['trg_CLASS_CheckRoom', 'The room belongs to the branch of the class; MaxStudents is not above the room capacity']],
+  CLASS_SCHEDULE: [['trg_CLASS_SCHEDULE_CheckConflict', 'No room or teacher clash with an active class on the same weekday and overlapping hours']],
+  CLASS_SESSION: [['trg_CLASS_SESSION_LockTaught', 'A Taught session cannot change its date, time, room or teacher']],
+  ENROLLMENT: [['trg_ENROLLMENT_CheckCapacity', 'The number of students never exceeds MaxStudents']],
+  RECEIPT: [['trg_RECEIPT_UpdateAmountPaid', 'Recomputes ENROLLMENT.AmountPaid = sum of the Valid receipts; above the tuition due it rolls back'],
+            ['trg_RECEIPT_PreventDelete', 'INSTEAD OF DELETE: receipts are never deleted, only cancelled'],
+            ['trg_RECEIPT_Audit', 'Writes AUDIT_LOG when a receipt is created or cancelled']],
+  ATTENDANCE: [['trg_ATTENDANCE_CheckClass', 'The student must belong to the class of the session']],
+  GRADE: [['trg_GRADE_CheckComponent', 'The grade component must belong to the course of the class'], ['trg_GRADE_Audit', 'Writes every grade change to AUDIT_LOG (old / new XML)']],
+  PLACEMENT_TEST: [['trg_PLACEMENT_TEST_Recommend', 'Fills RecommendedCourseId with fn_RecommendCourse']],
+  CERTIFICATE: [['trg_CERTIFICATE_CheckResult', 'Only an enrollment with Result = Passed gets a certificate']],
+  AUDIT_LOG: [['trg_AUDIT_LOG_ReadOnly', 'INSTEAD OF UPDATE, DELETE: the log is append-only']],
+};
+
+// Screens of the Qt app (Permissions::allowedFeatures, names = tr() source texts) and what they read
+const SCREENS = [
+  { grp: 'General', name: 'Overview', roles: 'MSA', src: ['usp_Dashboard_Stats', 'fn_MonthlyRevenue'], tables: ['STUDENT', 'CLASS', 'CLASS_SESSION', 'ENROLLMENT', 'RECEIPT'], note: 'Academic staff see "No permission" for the revenue: the procedure returns NULL.' },
+  { grp: 'Training', name: 'Students', roles: 'MSA', src: ['usp_Student_Search', 'usp_Student_Details', 'usp_Student_Add', 'usp_Student_Update', 'usp_Student_Delete'], tables: ['STUDENT', 'BRANCH', 'ENROLLMENT'], note: 'Add / Edit / Delete only for the manager and academic staff; the accountant can only search.' },
+  { grp: 'Training', name: 'Classes', roles: 'MS', src: ['vw_ClassDetails'], tables: ['CLASS', 'COURSE', 'PROGRAM', 'BRANCH', 'TEACHER', 'ROOM', 'CLASS_SCHEDULE', 'ENROLLMENT'] },
+  { grp: 'Training', name: "This week's schedule", roles: 'MS', src: ['vw_SessionDetails'], tables: ['CLASS_SESSION', 'CLASS', 'ROOM', 'TEACHER'] },
+  { grp: 'Training', name: 'Learning results', roles: 'MS', src: ['vw_LearningResults', 'fn_FinalGrade', 'fn_AttendanceRate'], tables: ['ENROLLMENT', 'STUDENT', 'CLASS', 'GRADE', 'GRADE_COMPONENT', 'ATTENDANCE', 'CLASS_SESSION'] },
+  { grp: 'Finance', name: 'Outstanding tuition', roles: 'MSA', src: ['vw_OutstandingTuition'], tables: ['ENROLLMENT', 'STUDENT', 'CLASS'] },
+  { grp: 'Finance', name: 'Revenue', roles: 'MA', src: ['vw_MonthlyRevenue'], tables: ['RECEIPT', 'ENROLLMENT', 'CLASS', 'BRANCH'] },
+  { grp: 'Finance', name: 'Teacher payroll', roles: 'MA', src: ['PAYROLL ⋈ TEACHER'], tables: ['PAYROLL', 'TEACHER'], note: 'The accountant reads TEACHER through a column-level GRANT (TeacherId, FullName).' },
+  { grp: 'System', name: 'Accounts', roles: 'M', src: ['usp_Account_List'], tables: ['ACCOUNT', 'EMPLOYEE', 'TEACHER'] },
+  { grp: 'Teaching', name: 'My classes', roles: 'T', src: ['vw_Teacher_MyClasses'], tables: ['CLASS', 'COURSE', 'ROOM', 'BRANCH', 'ENROLLMENT'], note: 'Filtered by the signed-in teacher (fn_CurrentTeacherId).' },
+  { grp: 'Teaching', name: 'Teaching schedule', roles: 'T', src: ['vw_Teacher_MySchedule'], tables: ['CLASS_SESSION', 'CLASS', 'ROOM'] },
+  { grp: 'Teaching', name: 'My pay', roles: 'T', src: ['vw_Teacher_MyPay'], tables: ['PAYROLL'] },
+];
+const LOGIN_SCREEN = { name: 'Login', roles: 'MSAT', tables: ['ACCOUNT', 'EMPLOYEE', 'TEACHER'] };
+
+// The business flow (04_procedures.sql); app: [state, label, where the app shows it]
+const STEPS = [
+  { phase: 'Admission', title: 'Register a student', roles: 'MS', procs: ['usp_Student_Add', 'usp_Student_Update', 'usp_Student_Delete'], writes: ['STUDENT'], reads: ['BRANCH'],
+    rules: ['ID ST00001 generated by the SEQUENCE seq_STUDENT', 'Phone and email are unique (errors 50002, 50003 and UX_STUDENT_Phone, UX_STUDENT_Email)', 'A student under 18 needs a guardian (CK_STUDENT_Guardian)', 'Only a student who never enrolled can be deleted'],
+    app: ['yes', 'In the app', 'Students screen: add, edit, delete, search, export to Excel / PDF.'] },
+  { phase: 'Admission', title: 'Placement test', roles: 'MS', procs: ['usp_PlacementTest_Add'], writes: ['PLACEMENT_TEST'], reads: ['STUDENT', 'COURSE'],
+    rules: ['OverallScore is a computed column: the average of the 4 skills', 'trg_PLACEMENT_TEST_Recommend fills the recommended course with fn_RecommendCourse'],
+    app: ['no', 'Not in the app', 'Only through SSMS or the seed data.'] },
+  { phase: 'Open a class', title: 'Open a class', roles: 'MS', procs: ['usp_Class_Create'], writes: ['CLASS'], reads: ['COURSE', 'TEACHER', 'ROOM'],
+    rules: ['The course must be Open (50010) and the teacher Teaching (50011)', 'trg_CLASS_CheckRoom: a room of the same branch, a size within the room capacity', 'The tuition defaults to the course tuition; a new class starts as Enrolling'],
+    app: ['view', 'View only', 'Shown on the Classes screen.'] },
+  { phase: 'Open a class', title: 'Weekly timetable', roles: 'MS', procs: ['usp_ClassSchedule_Add'], writes: ['CLASS_SCHEDULE'], reads: ['CLASS'],
+    rules: ['One time slot per class and weekday, within 07:00-22:00', 'trg_CLASS_SCHEDULE_CheckConflict: no room clash, no teacher clash'],
+    app: ['view', 'View only', 'Shown in the Schedule column of the Classes screen.'] },
+  { phase: 'Open a class', title: 'Generate the sessions', roles: 'MS', procs: ['usp_Class_GenerateSessions'], writes: ['CLASS_SESSION', 'CLASS'], reads: ['CLASS_SCHEDULE', 'COURSE'],
+    rules: ['Creates SessionCount sessions from the weekly timetable, starting at StartDate', 'Stores the date of the last session in CLASS.EndDate', 'Refused while the class has no weekly timetable (50013)'],
+    app: ['view', 'View only', "Shown on This week's schedule; teachers see it on Teaching schedule."] },
+  { phase: 'Enrollment', title: 'Enroll, transfer, put on hold', roles: 'MS', procs: ['usp_Enrollment_Create', 'usp_Enrollment_TransferClass', 'usp_Enrollment_UpdateStatus'], writes: ['ENROLLMENT', 'STUDENT'], reads: ['CLASS', 'PLACEMENT_TEST', 'PROMOTION', 'CLASS_SCHEDULE'],
+    rules: ['Passed the prerequisite course OR a high enough placement score (50023)', 'No time clash with another class of the student (50024)', 'Discount from fn_DiscountAmount; an expired code is refused (50025)', 'trg_ENROLLMENT_CheckCapacity: the class has free seats', 'The student becomes Studying; the accountant is denied'],
+    app: ['view', 'View only', 'Shown on Outstanding tuition and Learning results.'] },
+  { phase: 'Tuition', title: 'Collect tuition', roles: 'MA', procs: ['usp_Receipt_Create', 'usp_Receipt_Cancel'], writes: ['RECEIPT', 'ENROLLMENT', 'AUDIT_LOG'], reads: [],
+    rules: ['trg_RECEIPT_UpdateAmountPaid: ENROLLMENT.AmountPaid = sum of the Valid receipts, never above TuitionDue', 'trg_RECEIPT_PreventDelete: no delete, only cancel with a reason', 'trg_RECEIPT_Audit writes the audit log', 'Academic staff are denied: they do not collect money'],
+    app: ['view', 'View only', 'Shown on Outstanding tuition, Revenue and Overview.'] },
+  { phase: 'Teaching & assessment', title: 'Teach and take attendance', roles: 'MST', procs: ['usp_Session_Update', 'usp_Attendance_Save'], writes: ['CLASS_SESSION', 'ATTENDANCE'], reads: ['ENROLLMENT'],
+    rules: ['A teacher only updates and marks the sessions they teach', 'trg_CLASS_SESSION_LockTaught: a taught session keeps its time, room and teacher', 'trg_ATTENDANCE_CheckClass: the student belongs to the class of the session', 'No attendance change once the class is Finished'],
+    app: ['view', 'View only', 'No attendance form yet; the attendance rate is shown on Learning results.'] },
+  { phase: 'Teaching & assessment', title: 'Enter component grades', roles: 'MST', procs: ['usp_Grade_Save'], writes: ['GRADE', 'AUDIT_LOG'], reads: ['GRADE_COMPONENT', 'ENROLLMENT'],
+    rules: ['Scores 0-10; a teacher only grades their own classes', 'trg_GRADE_CheckComponent: the grade component belongs to the course of the class', 'trg_GRADE_Audit writes the old and new XML to AUDIT_LOG', 'The accountant is denied; grades are locked once the class is Finished'],
+    app: ['view', 'View only', 'No grade form yet; the final grade is shown on Learning results.'] },
+  { phase: 'End of course', title: 'Evaluate results, issue certificates', roles: 'MS', procs: ['usp_Class_EvaluateResults'], writes: ['ENROLLMENT', 'CERTIFICATE', 'CLASS'], reads: ['GRADE', 'GRADE_COMPONENT', 'ATTENDANCE'],
+    rules: ['A CURSOR walks the enrollments and computes fn_FinalGrade and fn_AttendanceRate', 'Passed when the final grade is ≥ 5 and the attendance ≥ 80%', 'Issues a CERTIFICATE with serial EC<year>-<EnrollmentId>; trg_CERTIFICATE_CheckResult blocks the others', 'The class becomes Finished'],
+    app: ['view', 'View only', 'Shown on Learning results.'] },
+  { phase: 'Teacher pay', title: 'Finalize the teacher payroll', roles: 'MA', procs: ['usp_Payroll_Finalize'], writes: ['PAYROLL'], reads: ['CLASS_SESSION', 'TEACHER'],
+    rules: ['A CURSOR per teacher: hours of the Taught sessions of the month', 'A bonus of 500,000 VND for 20 sessions or more', 'TotalPay = Hours × HourlyRate + Bonus − Deduction (computed column)', 'A future month is refused (50050)'],
+    app: ['view', 'View only', 'Shown on Teacher payroll; teachers see My pay.'] },
+];
+
+const ARCH = [
+  { k: 'src/presentation', name: 'User interface', p: 'Qt Widgets; tr() texts are translated in qlttta_vi.ts.', eg: 'MainWindow · LoginDialog · DashboardPage · StudentPage · ListPage' },
+  { ar: '→' },
+  { k: 'src/application', name: 'Application', p: 'Use cases and the menu rules; only knows the I…Repository ports.', eg: 'AuthService · StudentService · ListService · Permissions' },
+  { ar: '→' },
+  { k: 'src/domain', name: 'Domain', p: 'Entities and validation, no SQL.', eg: 'Student · Account · Role · Result' },
+  { ar: '←' },
+  { k: 'src/infrastructure', name: 'Infrastructure', p: 'The only place with SQL; every write calls a procedure.', eg: 'SqlStudentRepository · SqlListRepository · SqlAuthGateway · DatabaseManager' },
+  { ar: '→' },
+  { k: 'database/', name: 'SQL Server', db: true, p: 'Procedures, views, triggers and GRANT / DENY. The real permissions live here.', eg: 'usp_* · vw_* · trg_* · rl_*' },
+];
+const LANES = ['User interface', 'Application', 'Infrastructure', 'SQL Server'];
+const LOGIN_FLOW = [
+  [0, 'main.cpp', 'Creates QApplication and AppContainer (wires the layers) and loads the last UI language.'],
+  [0, 'LoginDialog', 'Username and password; the language and the server settings can be changed here.'],
+  [1, 'AuthService::login', 'Checks for empty fields and for the server settings before connecting.'],
+  [2, 'SqlAuthGateway::login', "DatabaseManager::open connects with the user's own account."],
+  [3, 'Contained user', 'SQL Server checks the password (hashed in the database). A locked account was denied CONNECT.'],
+  [3, 'usp_Account_RecordLogin', 'Writes ACCOUNT.LastLoginAtUtc and returns one row of vw_CurrentAccount (ACCOUNT joined with EMPLOYEE / TEACHER).'],
+  [2, 'Account · Role', 'Reads the row; roleFromCode(ACCOUNT.Role) gives one of the 4 roles.'],
+  [1, 'AuthService', 'Refuses a Locked account or an account without a role; remembers the username for the next start.'],
+  [0, 'MainWindow', 'Permissions::allowedFeatures(role) builds the left menu by group and opens the first entry.'],
+  [0, 'One page per menu entry', 'Overview → DashboardPage, Students → StudentPage, every other entry → ListPage (read-only, quick filter, Excel / PDF export).'],
+  [3, 'GRANT / DENY', "Every query runs with the rights of the user's rl_* role: the app only hides menu entries, SQL Server does the real blocking."],
+  [0, 'Log out · language · password', 'Log out closes the connection and shows LoginDialog again. Switching the language rebuilds the window and keeps the session. Change password calls usp_Account_ChangePassword.'],
+];
+const ADD_FLOW = [
+  [0, 'StudentPage', 'Click Add; the button exists only for the manager and academic staff (Permissions::canEditStudents).'],
+  [0, 'StudentFormDialog', 'Fill in the student profile and pick the branch.'],
+  [1, 'StudentService::add', 'Normalizes the input (spaces, lower-case email), then Student::validate checks the age, the guardian and the phone.'],
+  [2, 'SqlStudentRepository::add', 'Through the IStudentRepository port; SqlHelpers::execPrepared runs EXEC dbo.usp_Student_Add … @StudentId OUTPUT.'],
+  [3, 'usp_Student_Add', 'Checks again: name (50001), duplicate phone (50002), duplicate email (50003); INSERT STUDENT, the SEQUENCE makes the ID, CHECK constraints reject bad data.'],
+  [2, 'SqlErrorMapper · DbMessages', 'When the database THROWs a 500xx error, its English message becomes a translatable text (qlttta_vi.ts).'],
+  [0, 'StudentPage', 'On success, searches again (usp_Student_Search) and selects the new student.'],
+];
+
+/* ======================= DERIVED ======================= */
+const IDS = Object.keys(TABLES);
+const FK = FKS.map(([child, ccol, parent, pcol, flags, mean], i) => {
+  const nullable = flags.includes('null'), unique = flags.includes('uq'), cascade = flags.includes('cascade');
+  return { i, child, ccol, parent, pcol, nullable, unique, cascade, mean, name: `FK_${child}_${parent}`,
+           pSide: nullable ? '0..1' : '1', cSide: unique ? '0..1' : '0..n' };
+});
+IDS.forEach(t => {
+  TABLES[t].c = TABLES[t].cols.map(s => {
+    const [name, type, flags = '', note = ''] = s.split('|');
+    const fl = flags.split(' ').filter(Boolean);
+    return { name, type, note, pk: fl.includes('PK'), seq: fl.includes('SEQ'), ident: fl.includes('ID'), uq: fl.includes('UQ'),
+             nul: fl.includes('NULL'), calc: fl.includes('CALC'), trg: fl.includes('TRG'), xml: fl.includes('XML'),
+             fk: FK.some(f => f.child === t && f.ccol === name), ref: FK.some(f => f.parent === t && f.pcol === name) };
+  });
+  TABLES[t].degree = FK.filter(f => f.child === t || f.parent === t).length;
+});
+const known = IDS.slice().sort((a, b) => b.length - a.length);
+
+/* ======================= HELPERS ======================= */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const gv = t => `--g:var(--g-${TABLES[t].g})`;
+const tref = (t, label) => `<button type="button" class="tref" data-t="${t}" style="${gv(t)}">${esc(label || t)}</button>`;
+const reIdent = new RegExp(`\\b(${known.join('|')})(\\.[A-Za-z]+)?\\b|\\b((?:usp|trg|fn|vw|CK|UQ|UX|IX|FK|rl|seq|xsc)_[A-Za-z_]+)\\b`, 'g');
+// escape, then turn table names into clickable references and other identifiers into <code>
+const rich = s => esc(s).replace(reIdent, (m, t, col, id) => t ? tref(t, t + (col || '')) : `<code>${id}</code>`);
+const f1 = n => Math.round(n * 10) / 10;
+const roleNames = codes => codes.split('').map(r => ROLES[r]).join(', ');
+
+$('#n-tables').textContent = IDS.length;
+$('#n-fks').textContent = FK.length;
+$('#n-triggers').textContent = Object.values(TRIGGERS).reduce((n, list) => n + list.length, 0);
+$('#n-screens').textContent = SCREENS.length;
+
+/* ======================= TABS ======================= */
+const TABS = ['erd', 'flow', 'app'];
+let current = 'erd';
+function showTab(id) {
+  current = id;
+  TABS.forEach(t => {
+    $('#' + t).hidden = t !== id;
+    $('#tab-' + t).setAttribute('aria-selected', String(t === id));
+  });
+  try { history.replaceState(null, '', '#' + id); } catch (e) { /* the hash is optional */ }
+  if (id === 'erd') onErdVisible();
+}
+TABS.forEach(t => $('#tab-' + t).addEventListener('click', () => showTab(t)));
+$('.tabs').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const k = (TABS.indexOf(current) + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length;
+  showTab(TABS[k]); $('#tab-' + TABS[k]).focus();
+});
+
+/* ======================= ERD: measuring + layout ======================= */
+const HDR = 32, ROW = 21, FOOT = 20, PADB = 5, BADGE = 38, PADX = 12;
+const meas = document.createElement('canvas').getContext('2d');
+const tw = (s, font) => { meas.font = font; return meas.measureText(s).width; };
+const F_HDR = '600 13px "JetBrains Mono", ui-monospace, monospace';
+const F_ROW = '400 12px "JetBrains Mono", ui-monospace, monospace';
+const F_TYPE = '400 10.5px "JetBrains Mono", ui-monospace, monospace';
+
+let mode = 'keys';
+function rowsFor(t) { const c = TABLES[t].c; return mode === 'all' ? c : c.filter(x => x.pk || x.fk); }
+function dims(t) {
+  const rows = rowsFor(t), hidden = TABLES[t].c.length - rows.length;
+  let w = tw(t, F_HDR) + PADX * 2 + 30;
+  rows.forEach(r => {
+    let rw = PADX + BADGE + tw(r.name, F_ROW) + PADX;
+    if (mode === 'all') rw += 16 + tw(r.type, F_TYPE);
+    w = Math.max(w, rw);
+  });
+  return { rows, hidden, w: Math.ceil(Math.max(w, 176)), h: HDR + rows.length * ROW + (hidden ? FOOT : 0) + PADB };
+}
+const portY = (dm, t, col) => HDR + dm[t].rows.findIndex(r => r.name === col) * ROW + ROW / 2;
+
+async function computeLayout() {
+  const dm = {};
+  IDS.forEach(t => { dm[t] = dims(t); });
+  if (typeof ELK === 'function') {
+    try {
+      const children = IDS.map(t => {
+        const d = dm[t], ports = [];
+        d.rows.forEach((r, k) => {
+          const y = HDR + k * ROW + ROW / 2;
+          if (r.ref) ports.push({ id: `${t}.${r.name}.o`, x: d.w, y, width: 0, height: 0, layoutOptions: { 'elk.port.side': 'EAST' } });
+          if (r.fk) ports.push({ id: `${t}.${r.name}.i`, x: 0, y, width: 0, height: 0, layoutOptions: { 'elk.port.side': 'WEST' } });
+        });
+        return { id: t, width: d.w, height: d.h, ports, layoutOptions: { 'elk.portConstraints': 'FIXED_POS' } };
+      });
+      const edges = FK.map(f => ({ id: 'e' + f.i, sources: [`${f.parent}.${f.pcol}.o`], targets: [`${f.child}.${f.ccol}.i`] }));
+      const res = await new ELK().layout({
+        id: 'root',
+        layoutOptions: {
+          'elk.algorithm': 'layered', 'elk.direction': 'RIGHT', 'elk.edgeRouting': 'ORTHOGONAL',
+          'elk.layered.spacing.nodeNodeBetweenLayers': '64', 'elk.layered.spacing.edgeNodeBetweenLayers': '18',
+          'elk.layered.spacing.edgeEdgeBetweenLayers': '9', 'elk.spacing.nodeNode': '30', 'elk.spacing.edgeEdge': '9',
+          'elk.spacing.edgeNode': '16', 'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+          'elk.spacing.componentComponent': '40', 'elk.padding': '[top=24,left=24,bottom=24,right=24]'
+        },
+        children, edges
+      });
+      const pos = {};
+      res.children.forEach(n => { pos[n.id] = { x: n.x, y: n.y }; });
+      const routes = {};
+      res.edges.forEach(e => {
+        const s = e.sections && e.sections[0];
+        if (!s) return;
+        const pts = [s.startPoint, ...(s.bendPoints || []), s.endPoint].filter((p, k, a) => k === 0 || Math.hypot(p.x - a[k - 1].x, p.y - a[k - 1].y) > .5);
+        routes[+e.id.slice(1)] = { pts, d: roundPath(pts, 7) };
+      });
+      if (Object.keys(routes).length === FK.length) return { W: Math.ceil(res.width), H: Math.ceil(res.height), dm, pos, routes };
+    } catch (err) { console.warn('ELK layout failed, using the built-in layout', err); }
+  }
+  return fallbackLayout(dm);
+}
+
+// Built-in layered layout (no ELK, e.g. offline): layer = longest foreign-key path from a root table
+function fallbackLayout(dm) {
+  const layer = {};
+  const L = t => {
+    if (layer[t] !== undefined) return layer[t];
+    const ps = FK.filter(f => f.child === t && f.parent !== t).map(f => f.parent);
+    return (layer[t] = ps.length ? 1 + Math.max(...ps.map(L)) : 0);
+  };
+  IDS.forEach(L);
+  const cols = [];
+  IDS.forEach(t => (cols[layer[t]] = cols[layer[t]] || []).push(t));
+  const pos = {};
+  let x = 24, H = 0;
+  cols.forEach(col => {
+    let y = 24;
+    col.forEach(t => { pos[t] = { x, y }; y += dm[t].h + 34; });
+    H = Math.max(H, y);
+    x += Math.max(...col.map(t => dm[t].w)) + 150;
+  });
+  const routes = {};
+  FK.forEach(f => {
+    const a = { x: pos[f.parent].x + dm[f.parent].w, y: pos[f.parent].y + portY(dm, f.parent, f.pcol) };
+    const b = { x: pos[f.child].x, y: pos[f.child].y + portY(dm, f.child, f.ccol) };
+    let d, pts;
+    if (f.parent === f.child) {
+      const top = pos[f.child].y - 14;
+      pts = [a, { x: a.x + 18, y: a.y }, { x: a.x + 18, y: top }, { x: b.x - 18, y: top }, { x: b.x - 18, y: b.y }, b];
+      d = roundPath(pts, 7);
+    } else {
+      const k = Math.max(50, (b.x - a.x) / 2);
+      pts = [a, { x: a.x + 1, y: a.y }, { x: b.x - 1, y: b.y }, b];
+      d = `M${f1(a.x)},${f1(a.y)} C${f1(a.x + k)},${f1(a.y)} ${f1(b.x - k)},${f1(b.y)} ${f1(b.x)},${f1(b.y)}`;
+    }
+    routes[f.i] = { pts, d };
+  });
+  return { W: Math.ceil(x), H: Math.ceil(H), dm, pos, routes };
+}
+
+function roundPath(pts, r) {
+  let d = `M${f1(pts[0].x)},${f1(pts[0].y)}`;
+  for (let k = 1; k < pts.length - 1; k++) {
+    const p0 = pts[k - 1], p1 = pts[k], p2 = pts[k + 1];
+    const d1 = Math.hypot(p1.x - p0.x, p1.y - p0.y), d2 = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    const rr = Math.min(r, d1 / 2, d2 / 2);
+    if (rr < .5) { d += ` L${f1(p1.x)},${f1(p1.y)}`; continue; }
+    const a = { x: p1.x + (p0.x - p1.x) * rr / d1, y: p1.y + (p0.y - p1.y) * rr / d1 };
+    const b = { x: p1.x + (p2.x - p1.x) * rr / d2, y: p1.y + (p2.y - p1.y) * rr / d2 };
+    d += ` L${f1(a.x)},${f1(a.y)} Q${f1(p1.x)},${f1(p1.y)} ${f1(b.x)},${f1(b.y)}`;
+  }
+  const z = pts[pts.length - 1];
+  return d + ` L${f1(z.x)},${f1(z.y)}`;
+}
+
+// Crow's-foot marks. p = point on the box edge, u = unit vector pointing INTO the box.
+function marker(p, u, kind) {
+  const n = { x: -u.y, y: u.x };
+  const at = (s, o = 0) => ({ x: p.x - u.x * s + n.x * o, y: p.y - u.y * s + n.y * o });
+  const seg = (a, b) => `M${f1(a.x)},${f1(a.y)} L${f1(b.x)},${f1(b.y)}`;
+  let d = '', c = null;
+  if (kind === '0..n') { const heel = at(12); d = seg(heel, at(0, 6)) + seg(heel, at(0, -6)); c = at(17); }
+  else if (kind === '0..1') { d = seg(at(7, 6), at(7, -6)); c = at(14); }
+  else { d = seg(at(6, 6), at(6, -6)) + seg(at(10, 6), at(10, -6)); }
+  return `<path class="mk" d="${d}"/>` + (c ? `<circle cx="${f1(c.x)}" cy="${f1(c.y)}" r="3.6"/>` : '');
+}
+const unit = (a, b) => { const l = Math.hypot(b.x - a.x, b.y - a.y) || 1; return { x: (b.x - a.x) / l, y: (b.y - a.y) / l }; };
+
+/* ======================= ERD: render ======================= */
+const svg = $('#erd-svg'), canvas = $('#canvas'), panel = $('#panel'), tip = $('#tip');
+let L = null, scale = 1, fitted = false, selection = null, pendingSelect = null;
+
+function renderErd() {
+  const { W, H, dm, pos, routes } = L;
+  let edges = '', nodes = '';
+  FK.forEach(f => {
+    const r = routes[f.i];
+    const pts = r.pts, a = pts[0], b = pts[pts.length - 1];
+    const uStart = unit(pts[1], a);           // into the parent box
+    const uEnd = unit(pts[pts.length - 2], b); // into the child box
+    edges += `<g class="edge" data-i="${f.i}"><path class="hit" d="${r.d}"/><path class="line" d="${r.d}"/>` +
+             marker(a, uStart, f.pSide === '1' ? '1' : '0..1') + marker(b, uEnd, f.cSide) + `</g>`;
+  });
+  IDS.forEach(t => {
+    const T = TABLES[t], d = dm[t], p = pos[t];
+    let rows = '';
+    d.rows.forEach((r, k) => {
+      const ry = HDR + k * ROW, by = ry + 14.5;
+      const badge = r.pk && r.fk ? 'PK·FK' : r.pk ? 'PK' : r.fk && r.uq ? 'FK·UQ' : r.fk ? 'FK' : r.uq ? 'UQ' : r.calc ? 'CALC' : r.trg ? 'TRG' : '';
+      const bcls = r.pk ? 'pk' : r.fk ? 'fk' : '';
+      rows += `<g class="row" data-c="${r.name}"><rect class="rowbg" x="1" y="${ry}" width="${d.w - 2}" height="${ROW}"/>` +
+        (badge ? `<text class="badge ${bcls}" x="${PADX}" y="${by}">${badge}</text>` : '') +
+        `<text class="cname${r.nul ? ' nul' : ''}" x="${PADX + BADGE}" y="${by}">${r.name}</text>` +
+        (mode === 'all' ? `<text class="ctype" x="${d.w - PADX}" y="${by}" text-anchor="end">${esc(r.type)}</text>` : '') + `</g>`;
+    });
+    const more = d.hidden ? `<text class="more" x="${PADX}" y="${HDR + d.rows.length * ROW + 14}">+ ${d.hidden} more columns</text>` : '';
+    nodes += `<g class="node" data-t="${t}" transform="translate(${f1(p.x)},${f1(p.y)})" style="${gv(t)}" tabindex="0" role="button" aria-label="Table ${t}, ${T.c.length} columns">` +
+      `<rect class="box" width="${d.w}" height="${d.h}" rx="7"/>` +
+      `<path class="hdr" d="M0.5,7.5 a7,7 0 0 1 7,-7 h${d.w - 15} a7,7 0 0 1 7,7 v${HDR - 7.5} h-${d.w - 1} z"/>` +
+      `<line class="hdr-rule" x1="0.5" y1="${HDR}" x2="${d.w - .5}" y2="${HDR}"/>` +
+      `<text class="tname" x="${PADX}" y="21">${t}</text><text class="tcount" x="${d.w - PADX}" y="21" text-anchor="end">${T.c.length}</text>` +
+      rows + more + `</g>`;
+  });
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = `<g id="edges">${edges}</g><g id="nodes">${nodes}</g>`;
+  applyScale(scale, false);
+  $('#canvas-msg').hidden = true;
+  if (selection) applySelection(selection, false);
+}
+
+function applyScale(s, keepCenter = true) {
+  if (!L) return;
+  const old = scale;
+  scale = Math.min(2, Math.max(.3, s));
+  const cx = (canvas.scrollLeft + canvas.clientWidth / 2) / old, cy = (canvas.scrollTop + canvas.clientHeight / 2) / old;
+  svg.setAttribute('width', Math.round(L.W * scale));
+  svg.setAttribute('height', Math.round(L.H * scale));
+  if (keepCenter) { canvas.scrollLeft = cx * scale - canvas.clientWidth / 2; canvas.scrollTop = cy * scale - canvas.clientHeight / 2; }
+  $('#z-val').textContent = Math.round(scale * 100) + '%';
+}
+function fitScale() { return L ? Math.min(1, Math.max(.45, (canvas.clientWidth - 6) / L.W)) : 1; }
+function onErdVisible() {
+  if (L && !fitted && canvas.clientWidth > 0) { fitted = true; applyScale(fitScale(), false); canvas.scrollLeft = 0; canvas.scrollTop = 0; }
+}
+async function layoutAndRender() {
+  L = await computeLayout();
+  renderErd();
+  onErdVisible();
+}
+$('#z-in').addEventListener('click', () => applyScale(scale * 1.2));
+$('#z-out').addEventListener('click', () => applyScale(scale / 1.2));
+$('#z-fit').addEventListener('click', () => { applyScale(fitScale(), false); canvas.scrollLeft = 0; canvas.scrollTop = 0; });
+function setMode(m) {
+  if (m === mode) return;
+  mode = m;
+  $('#mode-keys').setAttribute('aria-pressed', String(m === 'keys'));
+  $('#mode-all').setAttribute('aria-pressed', String(m === 'all'));
+  fitted = false;
+  layoutAndRender();
+}
+$('#mode-keys').addEventListener('click', () => setMode('keys'));
+$('#mode-all').addEventListener('click', () => setMode('all'));
+
+/* ======================= ERD: selection ======================= */
+function clearMarks() {
+  svg.classList.remove('has-focus');
+  svg.querySelectorAll('.on, .sel').forEach(el => el.classList.remove('on', 'sel'));
+}
+function mark(tables, edges, rows = []) {
+  clearMarks();
+  svg.classList.add('has-focus');
+  tables.forEach(t => { const n = svg.querySelector(`.node[data-t="${t}"]`); if (n) n.classList.add('on'); });
+  const eg = svg.querySelector('#edges');
+  edges.forEach(i => { const e = eg && eg.querySelector(`.edge[data-i="${i}"]`); if (e) { e.classList.add('on'); eg.appendChild(e); } });
+  rows.forEach(([t, c]) => { const r = svg.querySelector(`.node[data-t="${t}"] .row[data-c="${c}"]`); if (r) r.classList.add('on'); });
+}
+function centerOn(tables) {
+  if (!L || !tables.length) return;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  tables.forEach(t => { const p = L.pos[t], d = L.dm[t]; x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x + d.w); y1 = Math.max(y1, p.y + d.h); });
+  const left = ((x0 + x1) / 2) * scale - canvas.clientWidth / 2, top = ((y0 + y1) / 2) * scale - canvas.clientHeight / 2;
+  const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  canvas.scrollTo({ left, top, behavior: smooth ? 'smooth' : 'auto' });
+}
+function applySelection(sel, center) {
+  selection = sel;
+  if (!sel) { clearMarks(); renderIntro(); }
+  else if (sel.type === 'table') {
+    const t = sel.id, es = FK.filter(f => f.child === t || f.parent === t);
+    const ts = new Set([t]); es.forEach(f => { ts.add(f.child); ts.add(f.parent); });
+    mark([...ts], es.map(f => f.i));
+    const n = svg.querySelector(`.node[data-t="${t}"]`); if (n) n.classList.add('sel');
+    renderTable(t);
+    if (center) centerOn([t]);
+  } else if (sel.type === 'edge') {
+    const f = FK[sel.id];
+    mark([f.parent, f.child], [f.i], [[f.parent, f.pcol], [f.child, f.ccol]]);
+    renderEdge(f);
+    if (center) centerOn([f.parent, f.child]);
+  } else if (sel.type === 'group') {
+    const ts = IDS.filter(t => TABLES[t].g === sel.id);
+    mark(ts, FK.filter(f => ts.includes(f.child) && ts.includes(f.parent)).map(f => f.i));
+    renderGroup(sel.id);
+    if (center) centerOn(ts);
+  }
+  document.querySelectorAll('.gchip').forEach(b => b.setAttribute('aria-pressed', String(!!sel && sel.type === 'group' && b.dataset.g === sel.id)));
+}
+function selectTable(t, center = true) { applySelection({ type: 'table', id: t }, center); }
+
+// Pan with the mouse, select with a click or a tap
+let drag = null, suppressClick = false;
+canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'mouse' || e.button !== 0) return;
+  drag = { x: e.clientX, y: e.clientY, sl: canvas.scrollLeft, st: canvas.scrollTop, moved: false };
+});
+window.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (!drag.moved && Math.hypot(dx, dy) > 4) { drag.moved = true; canvas.classList.add('panning'); }
+  if (drag.moved) { canvas.scrollLeft = drag.sl - dx; canvas.scrollTop = drag.st - dy; }
+});
+window.addEventListener('pointerup', () => {
+  if (!drag) return;
+  if (drag.moved) suppressClick = true;
+  drag = null; canvas.classList.remove('panning');
+});
+canvas.addEventListener('click', e => {
+  if (suppressClick) { suppressClick = false; return; }
+  const n = e.target.closest('.node'), ed = e.target.closest('.edge');
+  if (n) selectTable(n.dataset.t, false);
+  else if (ed) applySelection({ type: 'edge', id: +ed.dataset.i }, false);
+  else { $('#q').value = ''; applySelection(null); }
+});
+svg.addEventListener('keydown', e => {
+  const n = e.target.closest && e.target.closest('.node');
+  if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); selectTable(n.dataset.t, true); }
+});
+svg.addEventListener('mousemove', e => {
+  const ed = e.target.closest('.edge');
+  if (!ed) { tip.hidden = true; return; }
+  const f = FK[+ed.dataset.i];
+  tip.innerHTML = `<code>${f.child}.${f.ccol}</code> → <code>${f.parent}.${f.pcol}</code><br>${esc(f.parent)} <b>${f.pSide}</b> : <b>${f.cSide}</b> ${esc(f.child)}<br>${esc(f.mean)}`;
+  tip.hidden = false;
+  const x = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8), y = Math.min(e.clientY + 16, window.innerHeight - tip.offsetHeight - 8);
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+});
+svg.addEventListener('mouseleave', () => { tip.hidden = true; });
+
+// Search tables and columns
+$('#q').addEventListener('input', () => {
+  const q = $('#q').value.trim().toLowerCase();
+  if (!q) { applySelection(selection); return; }
+  const byName = IDS.filter(t => t.toLowerCase().includes(q));
+  const rows = [];
+  IDS.forEach(t => TABLES[t].c.forEach(c => { if (c.name.toLowerCase().includes(q)) rows.push([t, c.name]); }));
+  const ts = [...new Set([...byName, ...rows.map(r => r[0])])];
+  const es = FK.filter(f => (f.ccol.toLowerCase().includes(q) || f.pcol.toLowerCase().includes(q)) && ts.includes(f.child) && ts.includes(f.parent)).map(f => f.i);
+  mark(ts, es, rows);
+  renderSearch(q, ts, rows);
+});
+$('#q').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const q = $('#q').value.trim().toLowerCase();
+  const hit = IDS.find(t => t.toLowerCase() === q) || IDS.find(t => t.toLowerCase().includes(q)) ||
+              IDS.find(t => TABLES[t].c.some(c => c.name.toLowerCase().includes(q)));
+  if (hit) selectTable(hit, true);
+});
+
+// Group legend
+$('#legend').innerHTML = Object.entries(GROUPS).map(([g, name]) =>
+  `<button type="button" class="gchip" data-g="${g}" aria-pressed="false" style="--g:var(--g-${g})"><i></i>${esc(name)}<span class="muted">${IDS.filter(t => TABLES[t].g === g).length}</span></button>`).join('');
+$('#legend').addEventListener('click', e => {
+  const b = e.target.closest('.gchip'); if (!b) return;
+  const on = selection && selection.type === 'group' && selection.id === b.dataset.g;
+  applySelection(on ? null : { type: 'group', id: b.dataset.g }, !on);
+});
+
+/* ======================= ERD: panel ======================= */
+const cardText = f => `${f.pSide} : ${f.cSide}`;
+function relItem(f, other) {
+  return `<li>${tref(other)}<code>${f.child}.${f.ccol}</code><span class="muted">→</span><code>${f.parent}.${f.pcol}</code><span class="card">${cardText(f)}</span><span class="mean">${esc(f.mean)}${f.cascade ? ' · ON DELETE CASCADE' : ''}</span></li>`;
+}
+const NOTE_SVG = {
+  one: '<svg viewBox="0 0 54 20"><line x1="0" y1="10" x2="54" y2="10"/><path d="M42,4 L42,16 M46,4 L46,16"/></svg>',
+  opt: '<svg viewBox="0 0 54 20"><line x1="0" y1="10" x2="54" y2="10"/><path d="M47,4 L47,16"/><circle cx="40" cy="10" r="3.6"/></svg>',
+  many: '<svg viewBox="0 0 54 20"><line x1="0" y1="10" x2="54" y2="10"/><path d="M42,10 L54,4 M42,10 L54,16"/><circle cx="37" cy="10" r="3.6"/></svg>',
+};
+function renderIntro() {
+  const top = IDS.slice().sort((a, b) => TABLES[b].degree - TABLES[a].degree).slice(0, 6);
+  panel.innerHTML = `
+    <h3>How to read the map</h3>
+    <p>Each box is a table; the color of its header is its business group. A line runs from the key column of the parent table (left) to the foreign-key column of the child table (right).</p>
+    <h4>Line ends</h4>
+    <ul class="notation">
+      <li>${NOTE_SVG.one}<span><b>Exactly 1</b>: a <code>NOT NULL</code> foreign key</span></li>
+      <li>${NOTE_SVG.opt}<span><b>0 or 1</b>: a nullable foreign key, or a <code>UNIQUE</code> one on the child side</span></li>
+      <li>${NOTE_SVG.many}<span><b>0..n</b>: many rows in the child table</span></li>
+    </ul>
+    <h4>Column marks</h4>
+    <p class="hint"><span class="tag pk">PK</span>primary key <span class="tag">FK</span>foreign key <span class="tag">UQ</span>unique <span class="tag">CALC</span>computed column <span class="tag">TRG</span>kept by a trigger. A light column name allows <code>NULL</code>. The number in the header is the number of columns.</p>
+    <h4>Most connected tables</h4>
+    <div class="chips">${top.map(t => tref(t, `${t} · ${TABLES[t].degree}`)).join('')}</div>
+    <p class="hint">Click a table for its columns, relationships, triggers and the screens that use it. Click a line for its foreign key. Click the empty background to clear.</p>`;
+}
+function renderTable(t) {
+  const T = TABLES[t];
+  const out = FK.filter(f => f.child === t), inc = FK.filter(f => f.parent === t);
+  const pk = T.c.filter(c => c.pk).map(c => c.name).join(', ');
+  const screens = [LOGIN_SCREEN, ...SCREENS].filter(s => s.tables.includes(t));
+  const colsRows = T.c.map(c => {
+    const tags = [c.pk && '<span class="tag pk">PK</span>', c.fk && '<span class="tag">FK</span>', c.uq && '<span class="tag">UQ</span>',
+      c.nul && '<span class="tag">NULL</span>', c.calc && '<span class="tag">CALC</span>', c.trg && '<span class="tag">TRG</span>',
+      c.xml && '<span class="tag">XML</span>', c.seq && '<span class="tag">SEQ</span>', c.ident && '<span class="tag">IDENTITY</span>'].filter(Boolean).join('');
+    return `<tr><td>${c.name}</td><td>${esc(c.type)}</td><td class="rich">${tags}${c.note ? ' ' + rich(c.note) : ''}</td></tr>`;
+  }).join('');
+  panel.innerHTML = `
+    <div class="p-group" style="${gv(t)}"><i></i>${esc(GROUPS[T.g])}</div>
+    <h3 class="mono">${t}</h3>
+    <p>${rich(T.d)}</p>
+    <dl class="facts"><div><dt>Columns</dt><dd>${T.c.length}</dd></div><div><dt>Primary key</dt><dd>${pk}</dd></div><div><dt>Generated ID</dt><dd>${T.id || (T.c.some(c => c.ident) ? 'IDENTITY' : '-')}</dd></div></dl>
+    ${out.length ? `<h4>References (parent tables) · ${out.length}</h4><ul class="rel">${out.map(f => relItem(f, f.parent)).join('')}</ul>` : ''}
+    ${inc.length ? `<h4>Referenced by (child tables) · ${inc.length}</h4><ul class="rel">${inc.map(f => relItem(f, f.child)).join('')}</ul>` : ''}
+    ${!out.length && !inc.length ? '<h4>Relationships</h4><p class="hint">This table has no foreign key.</p>' : ''}
+    <h4>Columns</h4><table class="cols"><tbody>${colsRows}</tbody></table>
+    <h4>Notable constraints</h4><ul class="rich">${T.notes.map(n => `<li>${rich(n)}</li>`).join('')}</ul>
+    ${TRIGGERS[t] ? `<h4>Triggers on the table · ${TRIGGERS[t].length}</h4><ul class="rich">${TRIGGERS[t].map(([n, d]) => `<li><code>${n}</code>: ${rich(d)}</li>`).join('')}</ul>` : ''}
+    <h4>Who writes it</h4><div class="chips">${T.writes.map(w => /^(usp|trg)_/.test(w) || w.endsWith('.sql') ? `<span class="pchip">${esc(w)}</span>` : `<span class="hint">${esc(w)}</span>`).join('')}</div>
+    <h4>App screens that read it</h4>${screens.length ? `<ul>${screens.map(s => `<li><b>${esc(s.name)}</b> <span class="muted">· ${roleNames(s.roles)}</span></li>`).join('')}</ul>` : '<p class="hint">No screen of the app reads this table yet.</p>'}`;
+}
+function renderEdge(f) {
+  const self = f.parent === f.child;
+  panel.innerHTML = `
+    <div class="p-group" style="${gv(f.child)}"><i></i>Foreign key</div>
+    <h3 class="mono">${f.name}</h3>
+    <p>${esc(f.mean)}.</p>
+    <dl class="facts"><div><dt>Parent</dt><dd>${f.parent}</dd></div><div><dt>Child</dt><dd>${f.child}</dd></div><div><dt>Cardinality</dt><dd>${cardText(f)}</dd></div></dl>
+    <h4>Columns</h4>
+    <ul class="rel"><li>${tref(f.child)}<code>${f.ccol}</code><span class="muted">→</span>${tref(f.parent)}<code>${f.pcol}</code></li></ul>
+    <h4>Read it as</h4>
+    <ul>
+      <li>Each ${f.child} row has <b>${f.nullable ? '0 or 1' : 'exactly 1'}</b> ${f.parent}${f.nullable ? ` (<code>${f.ccol}</code> allows NULL)` : ''}.</li>
+      <li>Each ${f.parent} row has <b>${f.unique ? 'at most 1' : '0..n'}</b> ${f.child}${self ? ' pointing to it' : ''}${f.unique ? ` (UNIQUE on <code>${f.ccol}</code>)` : ''}.</li>
+      <li>${f.cascade ? `<b>ON DELETE CASCADE</b>: deleting a ${f.parent} row also deletes its ${f.child} rows.` : `No cascade: a ${f.parent} row cannot be deleted while ${f.child} rows point to it.`}</li>
+    </ul>`;
+}
+function renderGroup(g) {
+  const ts = IDS.filter(t => TABLES[t].g === g);
+  panel.innerHTML = `
+    <div class="p-group" style="--g:var(--g-${g})"><i></i>Group</div>
+    <h3>${esc(GROUPS[g])}</h3>
+    <ul class="rel" style="margin-top:12px">${ts.map(t => `<li>${tref(t)}<span class="mean">${rich(TABLES[t].d)}</span></li>`).join('')}</ul>`;
+}
+function renderSearch(q, ts, rows) {
+  panel.innerHTML = `
+    <h3>Results for "${esc(q)}"</h3>
+    <p>${ts.length} table${ts.length === 1 ? '' : 's'}${rows.length ? `, ${rows.length} column${rows.length === 1 ? '' : 's'}` : ''}. Press Enter to open the first table.</p>
+    ${ts.length ? `<h4>Tables</h4><div class="chips">${ts.map(t => tref(t)).join('')}</div>` : ''}
+    ${rows.length ? `<h4>Columns</h4><ul>${rows.slice(0, 40).map(([t, c]) => `<li><code>${t}.${c}</code></li>`).join('')}</ul>` : ''}`;
+}
+
+/* ======================= FK table ======================= */
+$('#fk-table tbody').innerHTML = FK.map(f => `<tr data-i="${f.i}">
+  <td class="num">${f.i + 1}</td>
+  <td>${tref(f.parent)} <span class="mono">.${f.pcol}</span></td>
+  <td>${tref(f.child)} <span class="mono">.${f.ccol}</span></td>
+  <td><span class="card-pill">${cardText(f)}</span></td>
+  <td>${esc(f.mean)}</td>
+  <td class="muted">${[f.nullable && 'nullable', f.unique && 'UNIQUE, so 1-1', f.cascade && 'ON DELETE CASCADE', f.parent === f.child && 'self-reference'].filter(Boolean).join(' · ') || '-'}</td>
+</tr>`).join('');
+$('#fk-table tbody').addEventListener('click', e => {
+  if (e.target.closest('.tref')) return;
+  const tr = e.target.closest('tr'); if (!tr) return;
+  applySelection({ type: 'edge', id: +tr.dataset.i }, true);
+  canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+/* ======================= BUSINESS FLOW tab ======================= */
+const phases = [];
+STEPS.forEach((s, k) => { const p = phases.find(x => x.name === s.phase); if (p) p.steps.push(k + 1); else phases.push({ name: s.phase, steps: [k + 1] }); });
+$('#phases').innerHTML = phases.map((p, k) =>
+  `${k ? '<span class="arr" aria-hidden="true">→</span>' : ''}<button type="button" data-step="${p.steps[0]}">${esc(p.name)}<span>${p.steps.length > 1 ? `steps ${p.steps[0]}-${p.steps[p.steps.length - 1]}` : `step ${p.steps[0]}`}</span></button>`).join('');
+$('#phases').addEventListener('click', e => {
+  const b = e.target.closest('button[data-step]'); if (!b) return;
+  document.getElementById('step-' + b.dataset.step).scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+$('#steps').innerHTML = STEPS.map((s, k) => `
+  <li class="step">
+    <div class="no" aria-hidden="true">${k + 1}</div>
+    <div class="body" id="step-${k + 1}">
+      <div class="head">
+        <span class="phase">${esc(s.phase)}</span>
+        <h3>${esc(s.title)}</h3>
+        ${s.roles.split('').map(r => `<span class="role">${ROLES[r]}</span>`).join('')}
+        <span class="status ${s.app[0]}">${esc(s.app[1])}</span>
+      </div>
+      <p class="app">${esc(s.app[2])}</p>
+      <div class="grid3">
+        <div><h4>Procedure</h4><div class="stack">${s.procs.map(p => `<span class="pchip">${p}</span>`).join('')}</div></div>
+        <div><h4>Writes</h4><div class="stack">${s.writes.map(t => tref(t)).join('')}</div>
+          ${s.reads.length ? `<div class="rd">also reads: ${s.reads.map(t => tref(t)).join('')}</div>` : ''}</div>
+        <div><h4>Constraints &amp; triggers</h4><ul class="rich">${s.rules.map(r => `<li>${rich(r)}</li>`).join('')}</ul></div>
+      </div>
+    </div>
+  </li>`).join('');
+document.querySelectorAll('[data-rich] li').forEach(li => { li.innerHTML = rich(li.textContent); });
+
+/* ======================= APP tab ======================= */
+$('#arch').innerHTML = ARCH.map(a => a.ar ? `<span class="ar" aria-hidden="true">${a.ar}</span>` :
+  `<div class="layer${a.db ? ' db' : ''}"><div class="k">${esc(a.k)}</div><h3>${esc(a.name)}</h3><p class="rich">${rich(a.p)}</p><div class="eg">${esc(a.eg)}</div></div>`).join('');
+function lanes(el, flow) {
+  const n = flow.length;
+  el.style.gridTemplateRows = `auto repeat(${n}, auto)`;
+  el.innerHTML = LANES.map((l, k) => `<div class="lane-bg" style="grid-column:${k + 1};grid-row:1 / span ${n + 1}"></div><div class="lane-h" style="grid-column:${k + 1};grid-row:1">${esc(l)}</div>`).join('') +
+    flow.map(([lane, code, text], k) => `<div class="lstep l${lane}" style="grid-column:${lane + 1};grid-row:${k + 2}">
+      <span class="ln">${esc(LANES[lane])}</span>
+      <div class="t"><span class="n">${String(k + 1).padStart(2, '0')}</span><span class="c">${esc(code)}</span></div>
+      <p class="rich">${rich(text)}</p></div>`).join('');
+}
+lanes($('#lane-login'), LOGIN_FLOW);
+lanes($('#lane-add'), ADD_FLOW);
+$('#matrix tbody').innerHTML = SCREENS.map(s => `<tr>
+  <td class="muted">${esc(s.grp)}</td><td>${esc(s.name)}${s.note ? `<div class="muted" style="font-weight:400;font-size:12px;white-space:normal;max-width:30ch">${esc(s.note)}</div>` : ''}</td>
+  ${'MSAT'.split('').map(r => `<td class="role-c${s.roles.includes(r) ? '' : ' off'}" aria-label="${ROLES[r]}: ${s.roles.includes(r) ? 'yes' : 'no'}">${s.roles.includes(r) ? '✓' : '·'}</td>`).join('')}
+  <td>${s.src.map(x => `<span class="pchip">${esc(x)}</span>`).join(' ')}</td>
+  <td><div class="chips">${s.tables.map(t => tref(t)).join('')}</div></td></tr>`).join('');
+
+/* ======================= cross-links ======================= */
+document.addEventListener('click', e => {
+  const b = e.target.closest('.tref');
+  if (!b || b.closest('svg')) return;
+  const fromOther = current !== 'erd';
+  if (fromOther) showTab('erd');
+  $('#q').value = '';
+  const go = () => selectTable(b.dataset.t, true);
+  if (L) go(); else pendingSelect = go;
+  if (fromOther || b.closest('#fk-table')) document.getElementById('erd').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+/* ======================= start ======================= */
+renderIntro();
+const hash = (location.hash || '').slice(1);
+showTab(TABS.includes(hash) ? hash : 'erd');
+const fontsReady = document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2500))]) : Promise.resolve();
+fontsReady.then(layoutAndRender).then(() => { if (pendingSelect) { pendingSelect(); pendingSelect = null; } })
+  .catch(err => { console.error(err); $('#canvas-msg').textContent = 'The map could not be laid out. The foreign-key list below is complete.'; });
+window.addEventListener('resize', () => { if (!fitted) onErdVisible(); });
+})();
+</script>
+</body>
+</html>
