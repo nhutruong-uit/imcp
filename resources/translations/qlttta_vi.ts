@@ -1227,7 +1227,7 @@ Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ 
     </message>
     <message>
         <source>Guardian name must be at most %1 characters.</source>
-        <translation>Tên người giám hộ tối đa %1 ký tự.</translation>
+        <translation>Họ tên phụ huynh tối đa %1 ký tự.</translation>
     </message>
     <message>
         <source>Notes must be at most %1 characters.</source>
