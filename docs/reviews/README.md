@@ -32,4 +32,4 @@ git diff --stat "$BASE" origin/develop -- . ':(exclude)docs/reviews'
 
 | Date | Reviewed `develop` | Marker (last reviewed commit) | Log | Fix PR |
 |---|---|---|---|---|
-| 2026-10-03 | `024144d` | `e13bc53` | [2026-10-03-codebase.md](2026-10-03-codebase.md) | branch `fix/codebase-review` |
+| 2026-10-03 | `024144d`, merged up to `aec45e0` | `66eba99` | [2026-10-03-codebase.md](2026-10-03-codebase.md) | branch `fix/codebase-review` |
