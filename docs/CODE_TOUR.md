@@ -35,7 +35,7 @@ The folders you will meet:
 | `database/` | SQL scripts that build the whole database, plus demo and test scripts | everyone |
 | `src/` | The desktop application (C++ and the Qt library) | the application owner; others only the flows of section 5 |
 | `tests/`, `database/12_tests.sql`, `database/13_server_tests.sql` | Automatic proofs that the rules work | everyone (good evidence at the defense) |
-| `docs/` | Documentation and the course report (`docs/report/`, in Vietnamese) | everyone |
+| `docs/` | Documentation, the course report (`docs/report/`) and the installation and user guide (`docs/user-guide/`), both in Vietnamese | everyone |
 | `scripts/` | One-command tools: create the database, run every test, build installers | whoever runs them |
 
 ## 2. Where to start for your area
