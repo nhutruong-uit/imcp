@@ -23,7 +23,8 @@ flowchart LR
 - The **database is the heart of the project** (and of the grade). Every business rule is guaranteed there:
   constraints, triggers and stored procedures reject bad data even when someone types SQL directly in SSMS.
 - The **application only shows screens**. It never writes to a table itself: every change is an `EXEC` of a
-  stored procedure, and every list is a `SELECT` on a view.
+  stored procedure, and almost every list is a `SELECT` on a view (the account list calls a procedure, the payroll
+  list reads `PAYROLL` with a column-level `GRANT`).
 - Every user signs in as a **real SQL Server user** (a contained database user). SQL Server, not the application,
   decides what that user may read or change (`GRANT`/`DENY` in `06_security.sql`). Hiding a menu entry in the
   application is only a convenience.
@@ -295,7 +296,7 @@ case proves it. Use this table to find the code behind a rule during the defense
 | `EXECUTE AS OWNER` | a procedure runs with the rights of its owner (used for accounts and backups) |
 | Stored procedure (`usp_`) | named T-SQL code with parameters; the only way the application changes data |
 | Function (`fn_`) | returns a value (scalar) or a table (inline or multi-statement table-valued); used inside queries |
-| View (`vw_`) | a saved `SELECT`; the application reads lists through views |
+| View (`vw_`) | a saved `SELECT`; the application reads most lists through views |
 | Trigger (`trg_`) | code run automatically by `INSERT`/`UPDATE`/`DELETE`; `inserted`/`deleted` hold the rows |
 | Cursor | reads a result row by row (used where each row needs its own steps: results, payroll) |
 | Transaction, `XACT_ABORT` | a group of changes that succeed or fail together; `XACT_ABORT ON` cancels it on any error |

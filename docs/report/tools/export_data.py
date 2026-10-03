@@ -8,8 +8,8 @@ the database:
   database_tests.txt   results of database/12_tests.sql - ONLY written when every test case PASSED
 
 Usage (the sa password is read from SQL_PASSWORD, never passed on the command line):
-  SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" \\
-      python3 docs/report/tools/export_data.py --docker sql2022
+  SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" \\
+      python3 docs/report/tools/export_data.py --docker imcp-mssql
   SQL_PASSWORD='<sa password>' python3 docs/report/tools/export_data.py --server localhost,1433
 
 Run scripts/test_all.sh first: it re-creates the database, so the figures match the seed data.
@@ -194,7 +194,7 @@ def export_tests(runner):
 
 def main():
     ap = argparse.ArgumentParser(description="Export the QLTTTA database data used by the report")
-    ap.add_argument("--docker", help="SQL Server container name (e.g. sql2022, imcp-mssql)")
+    ap.add_argument("--docker", help="SQL Server container name (e.g. imcp-mssql)")
     ap.add_argument("--server", default="localhost,1433", help="server when sqlcmd runs on this machine")
     ap.add_argument("--user", default="sa")
     ap.add_argument("--only", choices=["schema", "queries", "tests"], help="export only one part")
