@@ -26,7 +26,7 @@ lines) and the `.claude/settings.json` hook (formats every C++ file Claude edits
 | infrastructure | `src/infrastructure/repositories/SqlEnrollmentRepository.{h,cpp}` | **the only place with SQL**, calls `usp_` |
 | presentation | `src/presentation/enrollments/EnrollmentPage.{h,cpp}` (+ `.ui` for a form) | never includes `infrastructure/` |
 | app | `AppContainer` + `AppServices` | wires repository → service → page |
-| permissions | `Feature::...` in `Permissions.cpp`, label/icon in `Labels::feature`, page in `MainWindow::pageFor` | role-based menu |
+| permissions | `Feature::...` in `Permissions.cpp`, label/icon in `Labels::feature`, page in `MainWindow::pageFor`, row of `SCREENS` in `docs/data-map.html` (✔ `tst_conventions`) | role-based menu |
 Add new files to the `CMakeLists.txt` of the right layer. Read-only lists need no page: see "Read-only list screens"
 in `docs/ARCHITECTURE.md`.
 
