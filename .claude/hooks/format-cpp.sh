@@ -20,8 +20,11 @@ fi
 case "$FILE" in *.cpp | *.h) ;; *) exit 0 ;; esac
 [[ -f "$FILE" ]] || exit 0
 command -v clang-format > /dev/null 2>&1 || exit 0
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 FILE="$(cd "$(dirname "$FILE")" && pwd)/$(basename "$FILE")"
+# The repository of the FILE, not of this script: a session working in a git worktree (.claude/worktrees/...) runs
+# the hook of the main checkout, and the main checkout does not track the worktree's files (they would otherwise be
+# taken for new files and formatted as a whole)
+ROOT="$(git -C "$(dirname "$FILE")" rev-parse --show-toplevel 2> /dev/null)" || exit 0
 case "$FILE" in "$ROOT"/build/* | "$ROOT"/dist/*) exit 0 ;; "$ROOT"/*) ;; *) exit 0 ;; esac
 
 cd "$ROOT"

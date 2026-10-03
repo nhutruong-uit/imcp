@@ -75,8 +75,9 @@ in `docs/ARCHITECTURE.md`.
 
 ## Format and includes
 - ✔ Format with `.clang-format` (LLVM, 4 spaces, 110 columns), clang-format version `.clang-format-version`
-  (`brew install clang-format` or `pip install clang-format==<version>`). Format only what you changed:
-  `git clang-format` (or `git clang-format --staged`); `clang-format -i` only for new files. Claude Code does this
-  by itself through the hook `.claude/hooks/format-cpp.sh`; `check_changes` fails on unformatted changed lines.
+  (`pipx install clang-format==<version>` or `pip install ...`; `brew` installs the newest LLVM). Format only what you
+  changed: `git clang-format` (or `git clang-format --staged`); `clang-format -i` only for new files. Claude Code does
+  this by itself through the hook `.claude/hooks/format-cpp.sh` (also in a git worktree); `check_changes` fails on
+  unformatted changed lines.
 - Include order: the file's own header → project headers (`"domain/..."`, `"application/..."`) → Qt (`<QString>`) → STL.
 - C++17, Qt ≥ 6.7; include everything GCC/MinGW needs (Windows CI) - do not rely on Clang's indirect includes.

@@ -13,7 +13,7 @@
 - **Docs / Report**:
 
 ## Testing
-- `scripts/test_all.sh` (Windows: `scripts\test_all.ps1`): <!-- paste the last line, e.g. "ALL TESTS PASSED: database 60/60 cases ..." -->
+- `scripts/test_all.sh` (Windows: `scripts\test_all.ps1`): <!-- paste the real last line: "ALL TESTS PASSED: database x/y cases ..." -->
 - Manual: <!-- roles/screens tried with the demo accounts, Vietnamese and English -->
 - Not tested: <!-- be explicit, e.g. Windows-only paths -->
 

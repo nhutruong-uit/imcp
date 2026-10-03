@@ -22,6 +22,7 @@ Everything here is **English**.
 | Repository layout | `README.md` |
 | A flow, layer or business rule that a non-programmer must be able to follow (who checks what, which test) | `docs/CODE_TOUR.md` (sections 5-6) |
 | A convention | the numbered rule of its area in `.claude/rules/` - never only in `AGENTS.md` |
+| A codebase review (`/imcp-review-codebase`) | `docs/reviews/<date>-codebase.md` (findings, status) and `docs/reviews/LAST_REVIEWED` |
 
 ## One fact in one place
 - `AGENTS.md` keeps the cross-cutting rules and pointers; the details live in the numbered rule files. When a fact
