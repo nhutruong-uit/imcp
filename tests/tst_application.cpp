@@ -126,6 +126,16 @@ private slots:
         QCOMPARE(repository.addCalls, 0);
     }
 
+    // Update and delete need the ID of a student; without it the repository is never reached
+    void updateOrRemoveStudent_missingId_fails() {
+        FakeStudentRepository repository;
+        FakeCatalog catalog;
+        StudentService service(repository, catalog);
+        QVERIFY(!service.update(Student{}, QDate(2026, 10, 1)).ok());
+        QVERIFY(!service.remove(QString()).ok());
+        QVERIFY(!service.details(QString()).ok());
+    }
+
     // Accepted sign-in: the session keeps the role, the username is remembered, logout ends the session
     void login_success_keepsSession() {
         FakeAuthGateway gateway;

@@ -5,6 +5,7 @@
 #include "presentation/common/Icons.h"
 #include "presentation/common/Labels.h"
 #include "presentation/common/TableDataModel.h"
+#include "presentation/common/Theme.h"
 #include "presentation/common/UiHelpers.h"
 
 #include <QApplication>
@@ -27,7 +28,7 @@ ListPage::ListPage(AppServices services, Feature feature, QWidget* parent)
     m_filter = new QLineEdit(this);
     m_filter->setObjectName(QStringLiteral("quickFilter"));
     m_filter->setPlaceholderText(tr("Quick filter..."));
-    m_filter->addAction(Icons::get(QStringLiteral("search"), QStringLiteral("#94A3B8"), 16),
+    m_filter->addAction(Icons::get(QStringLiteral("search"), QLatin1String(Theme::kIconMuted), 16),
                         QLineEdit::LeadingPosition);
     m_filter->setClearButtonEnabled(true);
     auto* refreshButton = UiHelpers::secondaryButton(tr("Refresh"), QStringLiteral("refresh"), this);
@@ -78,7 +79,7 @@ ListPage::ListPage(AppServices services, Feature feature, QWidget* parent)
             [this] { UiHelpers::exportCsv(this, *m_proxy, Labels::feature(m_feature).name); });
     connect(pdfButton, &QPushButton::clicked, this, [this] {
         UiHelpers::exportPdf(this, *m_proxy, Labels::feature(m_feature).name,
-                             m_services.auth.account().fullName);
+                             Labels::accountName(m_services.auth.account()));
     });
     reload();
 }

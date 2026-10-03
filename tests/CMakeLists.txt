@@ -24,6 +24,10 @@ qlttta_add_test(tst_sqlerrormapper qlttta_infrastructure)
 # FreeTDS Unicode workaround of SqlHelpers (infrastructure layer, no connection is opened)
 qlttta_add_test(tst_sqlhelpers qlttta_infrastructure)
 
+# CSV and PDF export of a table (presentation layer, no database); offscreen = no display needed for QPdfWriter
+qlttta_add_test(tst_exporter qlttta_presentation)
+set_tests_properties(tst_exporter PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${QLTTTA_TEST_ENV}")
+
 # Repository conventions read from the files (no database): SQL syntax/headers, layers, scripts, numbers in the docs
 qlttta_add_test(tst_conventions)
 target_compile_definitions(tst_conventions PRIVATE QLTTTA_SOURCE_DIR="${PROJECT_SOURCE_DIR}")

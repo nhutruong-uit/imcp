@@ -2,6 +2,8 @@
 
 #include "presentation/common/DbValues.h"
 #include "presentation/common/Icons.h"
+#include "presentation/common/Labels.h"
+#include "presentation/common/Theme.h"
 #include "presentation/common/UiHelpers.h"
 #include "presentation/students/StudentFormDialog.h"
 #include "presentation/students/StudentTableModel.h"
@@ -30,7 +32,7 @@ StudentPage::StudentPage(AppServices services, QWidget* parent) : QWidget(parent
     m_keyword = new QLineEdit(this);
     m_keyword->setObjectName(QStringLiteral("searchEdit"));
     m_keyword->setPlaceholderText(tr("Search by ID, name, phone..."));
-    m_keyword->addAction(Icons::get(QStringLiteral("search"), QStringLiteral("#94A3B8"), 16),
+    m_keyword->addAction(Icons::get(QStringLiteral("search"), QLatin1String(Theme::kIconMuted), 16),
                          QLineEdit::LeadingPosition);
     m_keyword->setClearButtonEnabled(true);
     m_keyword->setMinimumWidth(220);
@@ -108,7 +110,8 @@ StudentPage::StudentPage(AppServices services, QWidget* parent) : QWidget(parent
     connect(csvButton, &QPushButton::clicked, this,
             [this] { UiHelpers::exportCsv(this, *m_proxy, tr("StudentList")); });
     connect(pdfButton, &QPushButton::clicked, this, [this] {
-        UiHelpers::exportPdf(this, *m_proxy, tr("Student list"), m_services.auth.account().fullName);
+        UiHelpers::exportPdf(this, *m_proxy, tr("Student list"),
+                             Labels::accountName(m_services.auth.account()));
     });
 
     const auto branches = m_services.students.branches();
@@ -116,6 +119,8 @@ StudentPage::StudentPage(AppServices services, QWidget* parent) : QWidget(parent
         m_branches = branches.value();
         for (const Branch& b : m_branches)
             m_branchFilter->addItem(b.name, b.id);
+    } else {
+        UiHelpers::showError(this, branches.error()); // otherwise the form has no branch to choose
     }
     search();
 }
@@ -176,7 +181,9 @@ void StudentPage::edit() {
         UiHelpers::showError(this, details.error());
         return;
     }
-    StudentFormDialog dialog(m_services.students, m_branches, details.value(), this);
+    Student student = details.value();
+    student.branchName = selected->branchName; // usp_Student_Details has only the BranchId
+    StudentFormDialog dialog(m_services.students, m_branches, student, this);
     if (dialog.exec() == QDialog::Accepted) {
         search();
         selectById(dialog.savedStudentId());
@@ -184,14 +191,18 @@ void StudentPage::edit() {
 }
 
 void StudentPage::remove() {
+    m_searchDelay->stop(); // a pending search would reload the list while the confirmation is open
     const Student* selected = selectedStudent();
     if (!selected) {
         UiHelpers::showError(this, tr("Please select a student in the list."));
         return;
     }
-    if (!UiHelpers::confirm(this, tr("Delete student %1 - %2?").arg(selected->id, selected->fullName)))
+    // Copies: the pointer points into the model, which must not be read again after the dialog's event loop
+    const QString id = selected->id;
+    const QString name = selected->fullName;
+    if (!UiHelpers::confirm(this, tr("Delete student %1 - %2?").arg(id, name)))
         return;
-    const auto result = m_services.students.remove(selected->id);
+    const auto result = m_services.students.remove(id);
     if (!result.ok()) {
         UiHelpers::showError(this, result.error());
         return;

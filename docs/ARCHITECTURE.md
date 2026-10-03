@@ -38,14 +38,18 @@ flowchart LR
 | `presentation` | `qlttta_presentation` | application, Qt Widgets, Qt SVG | Qt SQL, SQL statements |
 | `app` | `QLTTTA` (executable) | all of the above | - |
 
-The dependency direction is enforced by `target_link_libraries` in CMake: `presentation` does not link
-`infrastructure`, so the UI cannot call SQL directly. The `app` target (and the end-to-end test and the screenshot tool,
-which reuse `AppContainer.cpp`) are the only places that see both sides.
+The dependency direction is enforced in two ways. `target_link_libraries` in CMake: `presentation` does not link
+`infrastructure` or Qt SQL, so the UI cannot run SQL. And `tst_conventions`, which checks every `#include`: the
+include path `src/` is shared by all layers, so only that test stops a header of another layer from being included.
+The `app` target (and the end-to-end test and the screenshot tool, which reuse `AppContainer.cpp`) are the only places
+that see both sides.
 
 **What this buys the project**
 - All SQL lives in `infrastructure/repositories`, so it is easy to compare against the procedures in `database/`.
 - The unit tests in `tests/tst_application.cpp` exercise the use cases with **fake repositories**; no SQL Server needed.
-- Switching DBMS (e.g. to PostgreSQL) means rewriting the `Sql*Repository` classes only; the UI stays unchanged.
+- Switching DBMS (e.g. to PostgreSQL) means rewriting the `infrastructure` layer only (`Sql*Repository`, and the
+  SQL Server specific `DatabaseManager`, `SqlErrorMapper` and `DbMessages`); the use cases stay unchanged and the UI
+  only needs the column keys of the new views in `Columns`.
 - Adding a UI language touches only the presentation layer and a translation file (section 5).
 
 ## 2. Example flow: adding a student
@@ -127,7 +131,9 @@ payroll are all rendered by the generic `ListPage`. To add one: add a `Feature` 
 `SqlListRepository.cpp` (a view or procedure granted to the role). The result columns are identified by their
 **column keys** (column names or `AS` aliases); every new key needs a row in the column catalog
 (`src/presentation/common/Columns.cpp`) with its English title, money/total flags and, for summable columns, the label of
-the totals line. The end-to-end test fails when a displayed column has no catalog entry.
+the totals line. The end-to-end test fails when a displayed column has no catalog entry. Like every feature, it also
+needs step 7 above (the `Permissions` matrix, its menu text, icon and `FeatureGroup` in `Labels::feature`) and a file
+name in `fileName(Feature)` of `tools/screenshot_tool.cpp` (the compiler warns while it is missing).
 
 ## 5. Multi-language UI (English / Vietnamese)
 
@@ -183,8 +189,12 @@ as its UTF-16LE bytes and turns it back into `NVARCHAR` on the server
 parameter. Reading is not affected (FreeTDS converts results to UTF-8, `ClientCharset=UTF-8`). CI runs the end-to-end
 test through both ODBC Driver 18 and FreeTDS.
 
-If SQL Server answers with a login failure (wrong password, or the database cannot be opened) the search stops
-immediately because another driver would fail the same way. Other errors (missing driver, TLS, network) make it try
-the next driver. Connections request encryption (all drivers except the legacy Windows "SQL Server" one). The "Trust
-server certificate" option is on by default because the Docker image uses a self-signed certificate; it is stored in the
-settings and should be turned off in the login dialog when the server has a certificate from a trusted CA.
+The search stops at once when another driver could not do better: a login failure (wrong password, or the database
+cannot be opened), a rejected server certificate, or a login timeout (the server does not answer). Other errors
+(missing driver, TLS version, network) make it try the next driver. Connections request encryption (all drivers except
+the legacy Windows "SQL Server" one). The "Trust server certificate" option is on by default because the Docker image
+uses a self-signed certificate; it is stored in the settings and should be turned off in the login dialog when the
+server has a certificate from a trusted CA. With the option off, the Microsoft drivers check the certificate, and a
+rejected certificate stops the search, so the drivers that do not check certificates are never tried as a way around
+it. FreeTDS (the driver of the macOS .dmg) encrypts the connection but does not check the certificate unless a CA file
+is configured for it, so the option has no effect there.

@@ -949,6 +949,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Hệ thống</translation>
     </message>
     <message>
+        <source>%1 (database administrator)</source>
+        <translation>%1 (quản trị CSDL)</translation>
+    </message>
+    <message>
         <source>My classes</source>
         <translation>Lớp của tôi</translation>
     </message>
@@ -1085,13 +1089,6 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     </message>
 </context>
 <context>
-    <name>SqlAuthGateway</name>
-    <message>
-        <source> (database administrator)</source>
-        <translation> (quản trị CSDL)</translation>
-    </message>
-</context>
-<context>
     <name>SqlErrorMapper</name>
     <message>
         <source>Students under 18 need guardian information.</source>
@@ -1215,6 +1212,22 @@ Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ 
     <message>
         <source>Invalid email address.</source>
         <translation>Email không đúng định dạng.</translation>
+    </message>
+    <message>
+        <source>Address must be at most %1 characters.</source>
+        <translation>Địa chỉ tối đa %1 ký tự.</translation>
+    </message>
+    <message>
+        <source>Occupation must be at most %1 characters.</source>
+        <translation>Nghề nghiệp tối đa %1 ký tự.</translation>
+    </message>
+    <message>
+        <source>Guardian name must be at most %1 characters.</source>
+        <translation>Tên người giám hộ tối đa %1 ký tự.</translation>
+    </message>
+    <message>
+        <source>Notes must be at most %1 characters.</source>
+        <translation>Ghi chú tối đa %1 ký tự.</translation>
     </message>
     <message>
         <source>Students under 18 need a guardian name and phone number.</source>

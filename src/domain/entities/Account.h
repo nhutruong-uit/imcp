@@ -16,4 +16,7 @@ struct Account {
     QString teacherId;  // teachers
     QString branchId;
     bool active = true; // false = the account is locked (ACCOUNT.Status)
+    // A database owner (sa / db_owner) without an ACCOUNT row, let in as Manager; fullName is then the login
+    // name, and the UI adds "(database administrator)" in its own language (Labels::accountName)
+    bool databaseOwner = false;
 };

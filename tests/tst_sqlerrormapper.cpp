@@ -86,6 +86,17 @@ private slots:
         QVERIFY(s.contains(QStringLiteral("PWD={a;b}}c};")));
         QVERIFY(s.contains(QStringLiteral("TrustServerCertificate=yes")));
     }
+
+    // FreeTDS: the port typed after the comma of the server name is one value too, it cannot add a keyword
+    void connectionString_freeTdsPort_cannotAddKeywords() {
+        ServerConfig c;
+        c.host = QStringLiteral("db.example.com,1433;Encryption=off");
+        const QString s =
+            DatabaseManager::connectionString(QStringLiteral("/opt/freetds/lib/libtdsodbc.so"), c,
+                                              QStringLiteral("gvu_lan"), QStringLiteral("x"));
+        QVERIFY(s.contains(QStringLiteral("PORT={1433;Encryption=off};")));
+        QVERIFY(s.contains(QStringLiteral("Encryption=require;")));
+    }
 };
 
 QTEST_APPLESS_MAIN(TestSqlErrorMapper)

@@ -37,10 +37,6 @@ std::optional<ListKind> listFor(Feature feature) {
 ListService::ListService(IListRepository& repository, const AuthService& auth)
     : m_repository(repository), m_auth(auth) {}
 
-bool ListService::hasList(Feature feature) {
-    return listFor(feature).has_value();
-}
-
 Result<TableData> ListService::fetch(Feature feature) {
     if (!Permissions::isAllowed(m_auth.role(), feature))
         return Result<TableData>::failure(tr("You are not allowed to view this feature."));

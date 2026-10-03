@@ -4,6 +4,7 @@
 #include "application/services/LanguageService.h"
 #include "presentation/common/I18n.h"
 #include "presentation/common/Icons.h"
+#include "presentation/common/Theme.h"
 #include "presentation/common/UiHelpers.h"
 
 #include <QApplication>
@@ -45,7 +46,7 @@ QWidget* LoginDialog::buildBrandPanel() {
     v->setContentsMargins(40, 48, 40, 40);
 
     auto* logo = new QLabel(panel);
-    logo->setPixmap(Icons::pixmap(QStringLiteral("logo"), QStringLiteral("#FFFFFF"), 56));
+    logo->setPixmap(Icons::pixmap(QStringLiteral("logo"), QLatin1String(Theme::kIconOnDark), 56));
     auto* brand =
         new QLabel(QStringLiteral("English Center\nManager"), panel); // product name, not translated
     brand->setObjectName(QStringLiteral("BrandTitle"));
@@ -86,13 +87,13 @@ QWidget* LoginDialog::buildFormPanel() {
     m_username = new QLineEdit(panel);
     m_username->setObjectName(QStringLiteral("usernameEdit"));
     m_username->setPlaceholderText(tr("Username"));
-    m_username->addAction(Icons::get(QStringLiteral("user"), QStringLiteral("#94A3B8"), 16),
+    m_username->addAction(Icons::get(QStringLiteral("user"), QLatin1String(Theme::kIconMuted), 16),
                           QLineEdit::LeadingPosition);
     m_password = new QLineEdit(panel);
     m_password->setObjectName(QStringLiteral("passwordEdit"));
     m_password->setPlaceholderText(tr("Password"));
     m_password->setEchoMode(QLineEdit::Password);
-    m_password->addAction(Icons::get(QStringLiteral("key"), QStringLiteral("#94A3B8"), 16),
+    m_password->addAction(Icons::get(QStringLiteral("key"), QLatin1String(Theme::kIconMuted), 16),
                           QLineEdit::LeadingPosition);
     v->addWidget(m_username);
     v->addWidget(m_password);

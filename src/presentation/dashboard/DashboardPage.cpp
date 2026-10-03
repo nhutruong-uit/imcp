@@ -2,6 +2,8 @@
 
 #include "presentation/common/Format.h"
 #include "presentation/common/Icons.h"
+#include "presentation/common/Labels.h"
+#include "presentation/common/Theme.h"
 #include "presentation/common/UiHelpers.h"
 #include "presentation/dashboard/RevenueChart.h"
 
@@ -19,7 +21,7 @@ DashboardPage::DashboardPage(AppServices services, QWidget* parent) : QWidget(pa
     v->setSpacing(16);
 
     auto* top = new QHBoxLayout;
-    auto* greeting = new QLabel(tr("Hello, %1").arg(m_services.auth.account().fullName), this);
+    auto* greeting = new QLabel(tr("Hello, %1").arg(Labels::accountName(m_services.auth.account())), this);
     greeting->setObjectName(QStringLiteral("PageTitle"));
     // Weekday name in the UI language (default QLocale set by I18n)
     auto* today =
@@ -69,7 +71,7 @@ QWidget* DashboardPage::buildCard(const QString& title, const QString& icon, QLa
     h->setContentsMargins(18, 16, 18, 16);
     auto* iconLabel = new QLabel(card);
     iconLabel->setObjectName(QStringLiteral("KpiIcon"));
-    iconLabel->setPixmap(Icons::pixmap(icon, QStringLiteral("#2E75B6"), 24));
+    iconLabel->setPixmap(Icons::pixmap(icon, QLatin1String(Theme::kAccent), 24));
     iconLabel->setFixedSize(44, 44);
     iconLabel->setAlignment(Qt::AlignCenter);
     auto* column = new QVBoxLayout;
@@ -101,9 +103,15 @@ void DashboardPage::reload() {
         m_error->show();
     }
 
+    // A role without the revenue right gets NULL from usp_Dashboard_Stats: that is not an error. Any other
+    // failure (lost connection, missing GRANT) shows its real message instead of "no permission".
+    if (stats.ok() && !stats.value().revenueThisMonth) {
+        m_chart->setMessage(tr("No permission to view revenue, or no data yet."));
+        return;
+    }
     const auto revenue = m_services.statistics.monthlyRevenue(QDate::currentDate().year());
     if (revenue.ok())
         m_chart->setData(revenue.value());
     else
-        m_chart->setMessage(tr("No permission to view revenue, or no data yet."));
+        m_chart->setMessage(revenue.error());
 }

@@ -44,7 +44,7 @@ private:
         QStringList texts;
         for (int f = static_cast<int>(Feature::Dashboard); f <= static_cast<int>(Feature::MyPay); ++f) {
             const FeatureInfo info = Labels::feature(static_cast<Feature>(f));
-            texts << info.name << info.group;
+            texts << info.name << Labels::group(info.group);
         }
         for (Role r : {Role::Manager, Role::AcademicStaff, Role::Accountant, Role::Teacher, Role::Unknown})
             texts << Labels::role(r);

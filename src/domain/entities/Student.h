@@ -14,6 +14,18 @@ QStringList statuses(); // Prospective, Studying, On hold, Dropped out
 QString activeStatus(); // "Studying"
 } // namespace StudentValues
 
+// Longest text each column of table STUDENT holds (NVARCHAR(100) ...). A longer value would be cut silently
+// by the parameters of usp_Student_Add/Update, so Student::validate refuses it and the form limits what can
+// be typed.
+namespace StudentLimits {
+inline constexpr int fullName = 100;
+inline constexpr int email = 100;
+inline constexpr int address = 200;
+inline constexpr int occupation = 50;
+inline constexpr int guardianName = 100;
+inline constexpr int notes = 500;
+} // namespace StudentLimits
+
 // Student entity (table STUDENT) plus a few aggregated fields shown in the list.
 // One field per column, same names in camelCase (FullName -> fullName). A struct is a plain record: the data
 // travels through every layer (form -> StudentService -> SqlStudentRepository -> usp_Student_* procedures).

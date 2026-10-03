@@ -29,6 +29,13 @@ StudentFormDialog::StudentFormDialog(StudentService& service, const QList<Branch
     ui->phoneEdit->setValidator(digitsOnly);
     ui->guardianPhoneEdit->setValidator(digitsOnly);
     ui->dateOfBirthEdit->setMaximumDate(QDate::currentDate());
+    // No more characters than the database columns hold (Student::validate checks the notes, a plain text
+    // edit)
+    ui->fullNameEdit->setMaxLength(StudentLimits::fullName);
+    ui->emailEdit->setMaxLength(StudentLimits::email);
+    ui->addressEdit->setMaxLength(StudentLimits::address);
+    ui->occupationEdit->setMaxLength(StudentLimits::occupation);
+    ui->guardianNameEdit->setMaxLength(StudentLimits::guardianName);
 
     // Combo boxes show translated labels but keep the value stored in the database as item data
     for (const QString& gender : StudentValues::genders())
@@ -62,6 +69,10 @@ void StudentFormDialog::fillForm(const Student& s) {
     ui->emailEdit->setText(s.email);
     ui->addressEdit->setText(s.address);
     ui->occupationEdit->setText(s.occupation);
+    // The combo lists the Active branches only; a student of a suspended branch keeps it (index 0 would move
+    // the student to another branch on Save)
+    if (!s.branchId.isEmpty() && ui->branchCombo->findData(s.branchId) < 0)
+        ui->branchCombo->addItem(s.branchName.isEmpty() ? s.branchId : s.branchName, s.branchId);
     ui->branchCombo->setCurrentIndex(qMax(0, ui->branchCombo->findData(s.branchId)));
     ui->statusCombo->setCurrentIndex(qMax(0, ui->statusCombo->findData(s.status)));
     ui->guardianNameEdit->setText(s.guardianName);

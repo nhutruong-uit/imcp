@@ -8,7 +8,7 @@ paths:
 
 ## Names and structure of C++ tests (Qt Test)
 - Test function names: `subject_condition_expectedResult` - e.g. `addStudent_invalid_doesNotCallRepository`.
-- Unit tests (`tst_domain`, `tst_application`, `tst_sqlerrormapper`, `tst_sqlhelpers`, `tst_i18n`,
+- Unit tests (`tst_domain`, `tst_application`, `tst_sqlerrormapper`, `tst_sqlhelpers`, `tst_exporter`, `tst_i18n`,
   `tst_conventions`): no database needed; use cases are tested with **fake repositories** written in the test file
   (reference: `FakeStudentRepository` in `tst_application.cpp`).
 - `tst_conventions` reads the repository files (like `tst_i18n`) and checks the conventions of the rules: SQL Server

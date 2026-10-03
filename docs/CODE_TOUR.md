@@ -281,6 +281,8 @@ case proves it. Use this table to find the code behind a rule during the defense
 | An accountant cannot enroll students or change grades | no menu entry | `DENY EXECUTE` on `usp_Enrollment_Create`, `usp_Grade_Save` | `P04`, `P17` |
 | Only academic staff and managers edit students | `Permissions::canEditStudents` | `GRANT EXECUTE` on `usp_Student_*` | end-to-end test |
 | Usernames use letters without diacritics, digits, `.` and `_` | - | `usp_Account_Create` | `T36` |
+| No account for an employee or teacher who has left | - | `usp_Account_Create` | `T62` |
+| Texts fit their columns (no silent cut) | `Student::validate`, field lengths | column sizes | `tst_domain` |
 
 ## 7. Glossary
 
