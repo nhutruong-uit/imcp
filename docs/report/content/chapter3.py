@@ -14,7 +14,7 @@ COLUMN_DESCRIPTIONS = {
     "Degree": "Trình độ học vấn", "TeacherType": "Giáo viên Việt Nam / bản ngữ", "HourlyRate": "Đơn giá một giờ dạy (VNĐ)",
     "ProfileXml": "Hồ sơ năng lực dạng XML (chứng chỉ, kinh nghiệm, chuyên môn)",
     "Username": "Tên đăng nhập = tên USER trong SQL Server", "Role": "Vai trò trong ứng dụng",
-    "CreatedAt": "Thời điểm tạo", "LastLoginAt": "Lần đăng nhập gần nhất", "StudentId": "Mã học viên",
+    "CreatedAtUtc": "Thời điểm tạo (UTC)", "LastLoginAtUtc": "Lần đăng nhập gần nhất (UTC)", "StudentId": "Mã học viên",
     "Occupation": "Nghề nghiệp", "GuardianName": "Họ tên phụ huynh", "GuardianPhone": "SĐT phụ huynh",
     "RegisteredOn": "Ngày đăng ký hồ sơ", "Notes": "Ghi chú", "ProgramId": "Mã chương trình", "ProgramName": "Tên chương trình",
     "TargetLearners": "Đối tượng học viên", "Description": "Mô tả / nội dung", "CourseId": "Mã khóa học", "CourseName": "Tên khóa học",
@@ -30,16 +30,16 @@ COLUMN_DESCRIPTIONS = {
     "BaseTuition": "Học phí của lớp tại thời điểm ghi danh", "DiscountAmount": "Số tiền được giảm",
     "TuitionDue": "Học phí phải đóng (cột tính toán)", "AmountPaid": "Tổng tiền đã đóng (dẫn xuất, trigger duy trì)",
     "FinalGrade": "Điểm tổng kết", "Result": "Kết quả cuối khóa", "EnrolledByEmployeeId": "Nhân viên thực hiện ghi danh",
-    "ReceiptId": "Mã phiếu thu", "PaidAt": "Thời điểm thu", "Amount": "Số tiền thu", "PaymentMethod": "Hình thức thanh toán",
+    "ReceiptId": "Mã phiếu thu", "PaidAtUtc": "Thời điểm thu (UTC)", "Amount": "Số tiền thu", "PaymentMethod": "Hình thức thanh toán",
     "CollectedByEmployeeId": "Nhân viên thu tiền", "CancelReason": "Lý do hủy phiếu", "Score": "Điểm (thang 10)",
-    "EnteredAt": "Thời điểm nhập điểm", "EnteredBy": "Người nhập điểm", "TestId": "Mã bài kiểm tra",
+    "EnteredAtUtc": "Thời điểm nhập điểm (UTC)", "EnteredBy": "Người nhập điểm", "TestId": "Mã bài kiểm tra",
     "TestDate": "Ngày kiểm tra", "ListeningScore": "Điểm Nghe", "SpeakingScore": "Điểm Nói", "ReadingScore": "Điểm Đọc",
     "WritingScore": "Điểm Viết", "OverallScore": "Điểm trung bình 4 kỹ năng (cột tính toán)",
     "RecommendedCourseId": "Khóa học được đề xuất (trigger)", "GradedByTeacherId": "Giáo viên chấm", "CertificateId": "Mã chứng nhận",
     "SerialNumber": "Số hiệu chứng nhận", "IssuedOn": "Ngày cấp", "Classification": "Xếp loại", "PayrollId": "Mã bảng lương",
     "Month": "Tháng", "Year": "Năm", "Hours": "Số giờ đã dạy", "Bonus": "Thưởng", "Deduction": "Khấu trừ",
-    "TotalPay": "Tổng lương (cột tính toán)", "FinalizedAt": "Thời điểm chốt", "LogId": "Mã nhật ký",
-    "LoggedAt": "Thời điểm thao tác", "PerformedBy": "Người thực hiện (ORIGINAL_LOGIN)",
+    "TotalPay": "Tổng lương (cột tính toán)", "FinalizedAtUtc": "Thời điểm chốt (UTC)", "LogId": "Mã nhật ký",
+    "LoggedAtUtc": "Thời điểm thao tác (UTC)", "PerformedBy": "Người thực hiện (ORIGINAL_LOGIN)",
     "TableName": "Bảng bị tác động", "Action": "INSERT / UPDATE / DELETE", "RecordKey": "Khóa của dòng bị tác động",
     "OldData": "Dữ liệu trước khi thay đổi (XML)", "NewData": "Dữ liệu sau khi thay đổi (XML)",
     "Status": "Trạng thái",
@@ -86,7 +86,8 @@ def _pretty_check(defn: str) -> str:
     m = re.fullmatch(r"\(\[(\w+)\]>=\(?([\d.]+)\)? AND \[\1\]<=\(?([\d.]+)\)?\)", d)
     if m:
         return f"{m.group(2)} ≤ {m.group(1)} ≤ {m.group(3)}"
-    known = {"(CONVERT([date],getdate()))": "ngày hiện tại", "(getdate())": "thời điểm hiện tại",
+    known = {"(CONVERT([date],switchoffset(sysdatetimeoffset(),'+07:00')))": "ngày hiện tại theo giờ trung tâm (UTC+07:00)",
+             "(getutcdate())": "thời điểm hiện tại (UTC)",
              "(original_login())": "người đăng nhập (ORIGINAL_LOGIN)"}
     if d in known:
         return known[d]

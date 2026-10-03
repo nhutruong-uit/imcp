@@ -5,6 +5,7 @@
      - Inline table-valued (ITVF) : returns the result of one SELECT
      - Multi-statement TVF        : fills a table variable with several statements
    What   : the user-defined functions (fn_) reused by views, procedures, triggers and tests:
+            the time zone of the center (UTC <-> local time, today's date),
             an ISO weekday helper, who is signed in, final grade / classification / attendance,
             discounts, course recommendation, and table-valued functions for a teacher's
             schedule, a student's balance and the monthly revenue.
@@ -19,11 +20,68 @@
             - a function cannot change table data (only its own table variable), so every write
               stays in the procedures of 04_procedures.sql
             - fn_CurrentTeacherId + USER_NAME(): the row filter of the teacher views (03_views.sql)
+            - fn_Today / fn_UtcToCenterTime / fn_CenterTimeToUtc (section 0): one definition of the
+              center's time zone, so the scripts never read the server's local clock (checked by
+              tst_conventions and test T32)
    ===================================================================== */
 USE QLTTTA;
 GO
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
+GO
+
+/* 0. Time zone of the center. Instants are stored in UTC (columns ...Utc); business dates and reports ("today",
+      revenue per month, payroll month) follow the center's local time. Vietnam has no daylight saving time, so a
+      fixed offset is exact; TODATETIMEOFFSET/SWITCHOFFSET exist since SQL Server 2008 (AT TIME ZONE needs 2016).
+        fn_CenterUtcOffset : offset of the center - the one place to change it (T32 checks the DATE defaults of
+                             01_tables.sql, which cannot call a function, use the same offset)
+        fn_UtcToCenterTime : UTC instant -> local date and time of the center
+        fn_CenterTimeToUtc : local date and time of the center -> UTC instant (e.g. the start of a local day)
+        fn_Today           : today's date in the center, whatever the time zone of the server
+      Used by: fn_Today gives "today" to the procedures (default dates of students, enrollments, placement tests,
+      certificates; the payroll month check; the dashboard), vw_OutstandingTuition and the seed data;
+      fn_CenterTimeToUtc turns a local day or month into a UTC range for the revenue reports (usp_Dashboard_Stats,
+      usp_Report_Revenue, fn_MonthlyRevenue); fn_UtcToCenterTime shows a stored instant in local time
+      (vw_MonthlyRevenue, backup file names). Tests T31 (a receipt just after local midnight) and T32.
+      Concepts: scalar functions, WITH SCHEMABINDING (the functions that call fn_CenterUtcOffset are bound to it,
+      which is why they are dropped first above), DATETIMEOFFSET (TODATETIMEOFFSET attaches an offset to a
+      date and time, SWITCHOFFSET moves it to another offset). */
+IF OBJECT_ID(N'dbo.fn_Today', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_Today;
+IF OBJECT_ID(N'dbo.fn_UtcToCenterTime', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_UtcToCenterTime;
+IF OBJECT_ID(N'dbo.fn_CenterTimeToUtc', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_CenterTimeToUtc;
+IF OBJECT_ID(N'dbo.fn_CenterUtcOffset', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_CenterUtcOffset;
+GO
+CREATE FUNCTION dbo.fn_CenterUtcOffset ()
+RETURNS VARCHAR(6)
+WITH SCHEMABINDING
+AS
+BEGIN
+    RETURN '+07:00';   -- Asia/Ho_Chi_Minh
+END;
+GO
+CREATE FUNCTION dbo.fn_UtcToCenterTime (@Utc DATETIME)
+RETURNS DATETIME
+WITH SCHEMABINDING
+AS
+BEGIN
+    RETURN CAST(SWITCHOFFSET(TODATETIMEOFFSET(@Utc, '+00:00'), dbo.fn_CenterUtcOffset()) AS DATETIME);
+END;
+GO
+CREATE FUNCTION dbo.fn_CenterTimeToUtc (@CenterTime DATETIME)
+RETURNS DATETIME
+WITH SCHEMABINDING
+AS
+BEGIN
+    RETURN CAST(SWITCHOFFSET(TODATETIMEOFFSET(@CenterTime, dbo.fn_CenterUtcOffset()), '+00:00') AS DATETIME);
+END;
+GO
+CREATE FUNCTION dbo.fn_Today ()
+RETURNS DATE
+AS
+BEGIN
+    -- Same expression as the DATE defaults of 01_tables.sql
+    RETURN CAST(SWITCHOFFSET(SYSDATETIMEOFFSET(), dbo.fn_CenterUtcOffset()) AS DATE);
+END;
 GO
 
 /* 1. fn_Weekday: ISO 8601 day of the week (1 = Monday ... 7 = Sunday),
@@ -303,9 +361,12 @@ GO
 
 /* 11. fn_MonthlyRevenue (multi-statement TVF): revenue of the 12 months of a year;
        months without receipts still return 0 (used by reports and the chart).
+       Months are those of the center: a receipt at 23:30 UTC on the 31st belongs to the next month.
        Steps: (1) the WHILE loop inserts 12 rows (Month 1-12 with 0 receipts and 0 revenue) into
-       the table variable @Result; (2) UPDATE ... FROM joins @Result with the valid receipts of the
-       year grouped by month and overwrites the months that have receipts; (3) RETURN hands back
+       the table variable @Result; (2) the local year is turned into a UTC range (@FromUtc, @ToUtc)
+       so the filter on PaidAtUtc can use the index IX_RECEIPT_PaidAtUtc; (3) UPDATE ... FROM joins
+       @Result with the valid receipts of that range grouped by their local month
+       (fn_UtcToCenterTime) and overwrites the months that have receipts; (4) RETURN hands back
        @Result. A plain GROUP BY query has no row for a month without receipts; filling the 12
        months first and then updating them takes several statements, which an inline TVF (one
        SELECT only) cannot have.
@@ -315,7 +376,8 @@ GO
        through db_datareader. Academic staff have no right on it, so their Dashboard chart shows a
        message instead. The report quotes this function verbatim.
        Concepts: multi-statement table-valued function, table variable, WHILE loop, UPDATE with a
-       JOIN to a derived table. */
+       JOIN to a derived table, a sargable date range (the column is compared, not wrapped in a
+       function). */
 IF OBJECT_ID(N'dbo.fn_MonthlyRevenue', N'TF') IS NOT NULL DROP FUNCTION dbo.fn_MonthlyRevenue;
 GO
 CREATE FUNCTION dbo.fn_MonthlyRevenue (@Year INT, @BranchId VARCHAR(10) = NULL)
@@ -333,17 +395,22 @@ BEGIN
         SET @Month += 1;
     END;
 
+    -- The local year as a UTC range keeps the filter on PaidAtUtc sargable
+    DECLARE @FromUtc DATETIME = dbo.fn_CenterTimeToUtc(DATEFROMPARTS(@Year, 1, 1)),
+            @ToUtc   DATETIME = dbo.fn_CenterTimeToUtc(DATEFROMPARTS(@Year + 1, 1, 1));
+
     UPDATE r
     SET ReceiptCount = t.ReceiptCount, Revenue = t.Revenue
     FROM @Result r
     JOIN (
-        SELECT MONTH(rc.PaidAt) AS Month, COUNT(*) AS ReceiptCount, SUM(rc.Amount) AS Revenue
+        SELECT MONTH(dbo.fn_UtcToCenterTime(rc.PaidAtUtc)) AS Month, COUNT(*) AS ReceiptCount,
+               SUM(rc.Amount) AS Revenue
         FROM dbo.RECEIPT rc
         JOIN dbo.ENROLLMENT en ON en.EnrollmentId = rc.EnrollmentId
         JOIN dbo.CLASS cl      ON cl.ClassId = en.ClassId
-        WHERE YEAR(rc.PaidAt) = @Year AND rc.Status = N'Valid'
+        WHERE rc.PaidAtUtc >= @FromUtc AND rc.PaidAtUtc < @ToUtc AND rc.Status = N'Valid'
           AND (@BranchId IS NULL OR cl.BranchId = @BranchId)
-        GROUP BY MONTH(rc.PaidAt)
+        GROUP BY MONTH(dbo.fn_UtcToCenterTime(rc.PaidAtUtc))
     ) t ON t.Month = r.Month;
 
     RETURN;

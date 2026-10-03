@@ -282,7 +282,7 @@ GO
          - (SELECT ... FOR XML PATH('Grade'), TYPE) turns the old (d) or new (i) values into a small XML
            document <Grade><Score>..</Score><EnteredBy>..</EnteredBy></Grade>; NULL columns are left
            out, so the missing side of an INSERT/DELETE becomes an empty <Grade/>.
-         - LoggedAt and PerformedBy come from the defaults of AUDIT_LOG (GETDATE(), ORIGINAL_LOGIN()).
+         - LoggedAtUtc and PerformedBy come from the defaults of AUDIT_LOG (GETUTCDATE(), ORIGINAL_LOGIN()).
        The log cannot be changed afterwards (T10 trg_AUDIT_LOG_ReadOnly + DENY in 06_security.sql).
        Concepts: audit trail, FULL OUTER JOIN of inserted/deleted, FOR XML PATH, XML column. */
 IF OBJECT_ID(N'dbo.trg_GRADE_Audit', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_GRADE_Audit;

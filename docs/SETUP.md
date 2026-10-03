@@ -6,7 +6,7 @@ There are three levels of use; pick the one that fits you:
 |---|---|---|
 | A. Try it out / grading | Instructor, non-programming members | SQL Server + the QLTTTA installer (GitHub Releases) |
 | B. Work with the database | Every member (presenting the database part) | SQL Server + SSMS or VS Code (mssql extension) |
-| C. Develop the application | Team lead (+ Claude Code) | Level B + Qt 6, CMake, Ninja, an ODBC driver |
+| C. Develop the application | Team lead (+ Claude Code), every member who changes code | Level B + Qt 6, CMake, Ninja, an ODBC driver - one command: `scripts/setup_dev` (section 3) |
 
 ---
 
@@ -25,8 +25,9 @@ There are three levels of use; pick the one that fits you:
 SQL Server runs in Docker:
 1. Install Docker Desktop and enable *Settings > General > Use Rosetta for x86_64/amd64 emulation*.
 2. Create a `.env` file in the repo root: `MSSQL_SA_PASSWORD=<strong password>`, then run `docker compose up -d`
-   (this means you accept the SQL Server Developer Edition license terms). The container is named `imcp-mssql` and is
-   set to the Vietnam time zone.
+   (this means you accept the SQL Server Developer Edition license terms). The container is named `imcp-mssql`; its
+   time zone does not matter (the database stores UTC and computes the center's dates, see
+   [DATABASE.md](DATABASE.md#time-utc-instants-and-center-dates)).
 3. Initialize the database (uses the `sqlcmd` that is already inside the container):
    ```bash
    SQL_PASSWORD='<sa password>' ./scripts/db_init.sh --docker imcp-mssql
@@ -89,6 +90,29 @@ language chosen last in the app).
 
 ## 3. Development environment (level C)
 
+### One-command setup (recommended)
+`scripts/setup_dev` checks the machine and installs only what is missing: the toolchain of the manual steps below,
+clang-format of the team version (through `pipx`), SQL Server (macOS: a Docker container; Windows: the installed
+instance, a running container or SQL Server 2022 Developer) and the recommended VS Code extensions. It then
+initializes the database, signs in as a demo account and runs `test_all`. It is safe to re-run. In Claude Code, type
+`/imcp-setup`: it runs the script, asks before installing anything and explains what is left to do.
+```bash
+./scripts/setup_dev.sh --check             # macOS: report what is missing, change nothing
+./scripts/setup_dev.sh --accept-licenses   # macOS: set up everything
+```
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup_dev.ps1 -Check
+powershell -ExecutionPolicy Bypass -File scripts\setup_dev.ps1 -AcceptLicenses
+```
+`--accept-licenses` (`-AcceptLicenses`) means you accept the SQL Server Developer Edition license and, on macOS, the
+Docker Desktop terms; without it those steps are skipped. Other options: `--container <name>` (`-Docker <name>`),
+`-Server <instance>` (Windows), `--with-msodbc` (`-WithMsOdbc`: Microsoft ODBC Driver 18, optional) and `--skip-tests`
+(`-SkipTests`). On macOS a missing SQL Server becomes the `imcp-mssql` container of `docker-compose.yml`, with a random
+sa password written to `.env`. On Windows, Qt 6.8 + MinGW, CMake and Ninja are installed into `C:\Qt` with aqtinstall
+(the tool CI uses, no Qt account needed) and `QT_ROOT_DIR` and `PATH` are set for your user. What only you can do -
+install Homebrew, sign in with `gh auth login`, set your git name, restart Windows - is listed at the end with the
+command to run. Linux is not covered: install the tools of the "Full tests" job in `.github/workflows/ci.yml`.
+
 ### macOS
 ```bash
 brew install qt qt-unixodbc unixodbc freetds cmake ninja
@@ -107,7 +131,8 @@ Open the project with **Qt Creator** (*File > Open File or Project > CMakeLists.
 1. Install the **Qt Online Installer** (a free Qt account is required) and select:
    *Qt 6.8.x > MinGW 64-bit*, *Developer and Designer Tools > MinGW 13.1 64-bit, CMake, Ninja*, *Qt Creator*.
 2. Open Qt Creator → *Open Project* → choose `CMakeLists.txt` → choose the kit *Desktop Qt 6.8.x MinGW 64-bit* → Run.
-3. Command line (PowerShell, with `C:\Qt\Tools\mingw1310_64\bin`, `C:\Qt\Tools\Ninja` and `C:\Qt\Tools\CMake_64\bin` on PATH):
+3. Command line (PowerShell, with `C:\Qt\Tools\mingw1310_64\bin`, `C:\Qt\Tools\Ninja`, `C:\Qt\Tools\CMake_64\bin` and,
+   for running the tests and the app outside Qt Creator, `C:\Qt\6.8.3\mingw_64\bin` on PATH):
    ```powershell
    $env:QT_ROOT_DIR = "C:\Qt\6.8.3\mingw_64"
    cmake --preset windows-debug; cmake --build --preset windows-debug; ctest --preset windows-debug
@@ -123,7 +148,7 @@ SQL_PASSWORD='<sa password>' ./scripts/test_all.sh --docker sql2022   # or drop 
 ```
 It runs, in order: change checks against `origin/develop` (`scripts/check_changes.sh`: format of the changed C++
 lines, commit messages, no build output / `.env` in the repository) → re-initialize the database →
-`database/12_tests.sql` (42 cases: constraints, business rules, functions/triggers/cursors, XML, authorization, schema
+`database/12_tests.sql` (44 cases: constraints, business rules, functions/triggers/cursors, XML, authorization, schema
 conventions) → `database/13_server_tests.sql` (18 server-level cases: backup and restore, BULK INSERT of the sample
 CSV, the distributed database of `11_distributed_demo.sql`, account lockout with real sign-ins) → build → unit tests
 (incl. `tst_conventions`) → end-to-end GUI tests. It stops at the first failing step and exits with a non-zero code; details are written to `build/test-results/`. Add `--no-init` to skip the
@@ -135,7 +160,7 @@ The change checks need `clang-format` and `git clang-format` of the team version
 LLVM installer). Run them alone with `./scripts/check_changes.sh` (Windows: `.\scripts\check_changes.ps1`).
 A skipped end-to-end test counts as a failure, so a missing password or an unreachable database cannot pass silently.
 The last line is
-`ALL TESTS PASSED: database 60/60 cases (12_tests + 13_server_tests), unit tests + end-to-end GUI tests passed.`
+`ALL TESTS PASSED: database 62/62 cases (12_tests + 13_server_tests), unit tests + end-to-end GUI tests passed.`
 
 The server-level step needs a **sysadmin** login (`sa`, or a Windows account that is sysadmin) and the MSOLEDBSQL
 provider (installed with SQL Server 2019+, also in the Docker image): it creates scratch databases `QLTTTA_T_*`, backup
@@ -216,5 +241,5 @@ is unfinished. Details: [ARCHITECTURE.md](ARCHITECTURE.md#5-multi-language-ui-en
 | The app says "Cannot connect to SQL Server" ("Không kết nối được máy chủ SQL Server") | Check the SQL Server container/service, port 1433 and the firewall; on Windows Express use `localhost\SQLEXPRESS` and enable TCP/IP in SQL Server Configuration Manager |
 | `Login failed for user '...'` when signing in to SSMS as a demo user (the app shows "Wrong username or password, or the account is locked") | Select the `QLTTTA` database in Connection Properties (the user lives inside the database; it is not a server-level login) |
 | `EXECUTE permission was denied on fn_...` on SQL Server 2019+ | Re-run `00_create_database.sql` (it turns off Scalar UDF Inlining) or run `ALTER DATABASE SCOPED CONFIGURATION SET TSQL_SCALAR_UDF_INLINING = OFF` |
-| Dashboard "today's sessions", account creation dates, ... are off by one day / 7 hours (SQL Server in Docker) | The container runs on UTC. `docker-compose.yml` sets `TZ=Asia/Ho_Chi_Minh`; for a container created with `docker run` add `-e TZ=Asia/Ho_Chi_Minh` (the container must be recreated), then re-run `db_init` |
+| Account creation / last login times are off by some hours | They are stored in UTC and shown in the time zone of the computer running the app: check the computer's time zone setting |
 | Vietnamese text is garbled in scripts run with sqlcmd | Add `-f 65001` (UTF-8) and `-I` (QUOTED_IDENTIFIER), as `scripts/db_init` does |

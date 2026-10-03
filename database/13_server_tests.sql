@@ -213,7 +213,8 @@ GO
 DECLARE @Full NVARCHAR(400) = (SELECT Value FROM #Ctx WHERE Name = 'FullBackup'),
         @Diff NVARCHAR(400) = (SELECT Value FROM #Ctx WHERE Name = 'DiffBackup'),
         @Log  NVARCHAR(400) = (SELECT Value FROM #Ctx WHERE Name = 'LogBackup'),
-        @StartedAt DATETIME = DATEADD(SECOND, -1, GETDATE()), @Recorded INT;
+        -- Backups of this run = backup sets after the latest one recorded so far (no clock: msdb times are local)
+        @LastSetId INT = (SELECT ISNULL(MAX(backup_set_id), 0) FROM msdb.dbo.backupset), @Recorded INT;
 BEGIN TRY
     BACKUP DATABASE QLTTTA TO DISK = @Full WITH INIT, FORMAT, CHECKSUM, NAME = N'QLTTTA - Test full';
     -- Data written after the FULL backup: only the DIFF and the LOG can bring it back
@@ -229,7 +230,7 @@ BEGIN TRY
     SELECT @Recorded = COUNT(*)
     FROM msdb.dbo.backupset bs
     JOIN msdb.dbo.backupmediafamily bmf ON bmf.media_set_id = bs.media_set_id
-    WHERE bs.database_name = N'QLTTTA' AND bs.has_backup_checksums = 1 AND bs.backup_start_date >= @StartedAt
+    WHERE bs.database_name = N'QLTTTA' AND bs.has_backup_checksums = 1 AND bs.backup_set_id > @LastSetId
       AND ((bs.type = 'D' AND bmf.physical_device_name = @Full)
         OR (bs.type = 'I' AND bmf.physical_device_name = @Diff)
         OR (bs.type = 'L' AND bmf.physical_device_name = @Log));

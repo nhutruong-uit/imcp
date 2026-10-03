@@ -36,7 +36,7 @@ SET QUOTED_IDENTIFIER ON;
 SET NOCOUNT ON;
 GO
 
-DECLARE @Today DATE = CAST(GETDATE() AS DATE);
+DECLARE @Today DATE = dbo.fn_Today();   -- today in the center (the times below are its local times)
 DECLARE @Monday DATE = DATEADD(DAY, 1 - dbo.fn_Weekday(@Today), @Today);   -- Monday of this week
 
 /* ---------------------------------------------------------------------
@@ -430,12 +430,12 @@ BEGIN
         JOIN @ClassIdByNo m     ON m.ClassId = se.ClassId
         WHERE m.ClassNo IN (1, 2);
 
-        INSERT INTO dbo.GRADE (EnrollmentId, ComponentId, Score, EnteredAt, EnteredBy)
+        INSERT INTO dbo.GRADE (EnrollmentId, ComponentId, Score, EnteredAtUtc, EnteredBy)
         SELECT en.EnrollmentId, gc.ComponentId,
                CASE WHEN en.StudentId IN ('ST00011', 'ST00019')   -- low scores => fails
                     THEN 3.0 + (ABS(CHECKSUM(en.EnrollmentId, gc.ComponentId)) % 18) / 10.0
                     ELSE 6.0 + (ABS(CHECKSUM(en.EnrollmentId, gc.ComponentId)) % 36) / 10.0 END,
-               cl.EndDate, N'seed'
+               dbo.fn_CenterTimeToUtc(cl.EndDate), N'seed'
         FROM dbo.ENROLLMENT en
         JOIN dbo.CLASS cl            ON cl.ClassId = en.ClassId
         JOIN dbo.GRADE_COMPONENT gc  ON gc.CourseId = cl.CourseId
@@ -493,7 +493,8 @@ WHERE c.FinalStatus = N'In progress'
    --------------------------------------------------------------------- */
 -- E numbers the enrollments 1, 2, 3... with ROW_NUMBER() (window function). n % 3 chooses the payment method
 -- and makes every third enrollment pay half; in classes still Enrolling only every second enrollment pays a
--- deposit. PaidAt = date + 09:00 + (n % 7) hours: adding a number to a DATETIME adds days, so / 24 gives hours.
+-- deposit. Payment time = date + 09:00 + (n % 7) hours in the center (adding a number to a DATETIME adds days,
+-- so / 24 gives hours), stored in PaidAtUtc through fn_CenterTimeToUtc.
 -- The leading ; ends the previous statement, which a CTE (WITH) requires.
 -- Each INSERT ... SELECT below fires trg_RECEIPT_UpdateAmountPaid and trg_RECEIPT_Audit ONCE for all its rows.
 ;WITH E AS (
@@ -501,10 +502,10 @@ WHERE c.FinalStatus = N'In progress'
            ROW_NUMBER() OVER (ORDER BY en.EnrollmentId) AS n
     FROM dbo.ENROLLMENT en JOIN dbo.CLASS cl ON cl.ClassId = en.ClassId
 )
-INSERT INTO dbo.RECEIPT (EnrollmentId, PaidAt, Amount, PaymentMethod, CollectedByEmployeeId, Description)
+INSERT INTO dbo.RECEIPT (EnrollmentId, PaidAtUtc, Amount, PaymentMethod, CollectedByEmployeeId, Description)
 SELECT EnrollmentId,
-       CAST(CASE WHEN ClassStatus = N'Enrolling' THEN @Today ELSE EnrolledOn END AS DATETIME)
-           + CAST('09:00' AS DATETIME) + CAST(n % 7 AS FLOAT) / 24,
+       dbo.fn_CenterTimeToUtc(CAST(CASE WHEN ClassStatus = N'Enrolling' THEN @Today ELSE EnrolledOn END AS DATETIME)
+                              + CAST('09:00' AS DATETIME) + CAST(n % 7 AS FLOAT) / 24),
        CASE WHEN ClassStatus = N'Enrolling' THEN 1000000
             WHEN n % 3 = 0 THEN ROUND(TuitionDue / 2, -3)
             ELSE TuitionDue END,
@@ -516,9 +517,11 @@ FROM E
 WHERE NOT (ClassStatus = N'Enrolling' AND n % 2 = 0);
 
 -- Second installment of the 50% payments (due after 30 days); newly started classes still owe
--- (TuitionDue - AmountPaid uses the AmountPaid the trigger has just updated for installment 1)
-INSERT INTO dbo.RECEIPT (EnrollmentId, PaidAt, Amount, PaymentMethod, CollectedByEmployeeId, Description)
-SELECT en.EnrollmentId, DATEADD(DAY, 30, CAST(en.EnrolledOn AS DATETIME)) + CAST('10:30' AS DATETIME),
+-- (TuitionDue - AmountPaid uses the AmountPaid the trigger has just updated for installment 1;
+-- the payment time is 10:30 in the center, stored as UTC by fn_CenterTimeToUtc)
+INSERT INTO dbo.RECEIPT (EnrollmentId, PaidAtUtc, Amount, PaymentMethod, CollectedByEmployeeId, Description)
+SELECT en.EnrollmentId,
+       dbo.fn_CenterTimeToUtc(DATEADD(DAY, 30, CAST(en.EnrolledOn AS DATETIME)) + CAST('10:30' AS DATETIME)),
        en.TuitionDue - en.AmountPaid, N'Bank transfer',
        CASE cl.BranchId WHEN 'BR01' THEN 'EM0003' ELSE 'EM0005' END, N'Tuition installment 2'
 FROM dbo.ENROLLMENT en JOIN dbo.CLASS cl ON cl.ClassId = en.ClassId

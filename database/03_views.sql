@@ -134,30 +134,34 @@ SELECT en.EnrollmentId, st.StudentId, st.FullName AS StudentName,
        COALESCE(st.Phone, st.GuardianPhone) AS ContactPhone,
        cl.ClassId, cl.ClassName, cl.BranchId, en.EnrolledOn, en.TuitionDue, en.AmountPaid,
        en.TuitionDue - en.AmountPaid AS Balance,
-       DATEDIFF(DAY, en.EnrolledOn, CAST(GETDATE() AS DATE)) AS DaysSinceEnrollment
+       DATEDIFF(DAY, en.EnrolledOn, dbo.fn_Today()) AS DaysSinceEnrollment
 FROM dbo.ENROLLMENT en
 JOIN dbo.STUDENT st ON st.StudentId = en.StudentId
 JOIN dbo.CLASS cl   ON cl.ClassId = en.ClassId
 WHERE en.TuitionDue > en.AmountPaid AND en.Status <> N'Left';
 GO
 
-/* 5. vw_MonthlyRevenue: revenue per month and branch
+/* 5. vw_MonthlyRevenue: revenue per month (of the center's local time) and branch
       Only valid receipts count (cancelled ones are left out); the branch is the branch of the
       class the receipt pays for. Unlike fn_MonthlyRevenue, a month without receipts has no row.
+      CROSS APPLY converts PaidAtUtc to the center's local time once per receipt (PaidAtCenter),
+      and that value gives the year and month to group by.
       Used by: the Revenue screen (SqlListRepository); SELECT is GRANTed to rl_Accountant.
-      Concepts: GROUP BY over several joined tables, YEAR() / MONTH() as grouping keys. */
+      Concepts: GROUP BY over several joined tables, CROSS APPLY to compute a value once, YEAR() /
+      MONTH() as grouping keys. */
 IF OBJECT_ID(N'dbo.vw_MonthlyRevenue', N'V') IS NOT NULL DROP VIEW dbo.vw_MonthlyRevenue;
 GO
 CREATE VIEW dbo.vw_MonthlyRevenue
 AS
-SELECT YEAR(rc.PaidAt) AS Year, MONTH(rc.PaidAt) AS Month, cl.BranchId, br.BranchName,
+SELECT YEAR(ct.PaidAtCenter) AS Year, MONTH(ct.PaidAtCenter) AS Month, cl.BranchId, br.BranchName,
        COUNT(*) AS ReceiptCount, SUM(rc.Amount) AS Revenue
 FROM dbo.RECEIPT rc
+CROSS APPLY (SELECT dbo.fn_UtcToCenterTime(rc.PaidAtUtc) AS PaidAtCenter) ct   -- converted once per receipt
 JOIN dbo.ENROLLMENT en ON en.EnrollmentId = rc.EnrollmentId
 JOIN dbo.CLASS cl      ON cl.ClassId = en.ClassId
 JOIN dbo.BRANCH br     ON br.BranchId = cl.BranchId
 WHERE rc.Status = N'Valid'
-GROUP BY YEAR(rc.PaidAt), MONTH(rc.PaidAt), cl.BranchId, br.BranchName;
+GROUP BY YEAR(ct.PaidAtCenter), MONTH(ct.PaidAtCenter), cl.BranchId, br.BranchName;
 GO
 
 /* 6. vw_LearningResults: final grade, attendance and classification of every enrollment

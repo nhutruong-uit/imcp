@@ -89,7 +89,7 @@ SELECT ClassId, Rank, FullName, FinalGrade FROM Ranking WHERE Rank <= 3 ORDER BY
 --     receipt; NULL as branch = every branch.
 SELECT Month, Revenue,
        SUM(Revenue) OVER (ORDER BY Month ROWS UNBOUNDED PRECEDING) AS YearToDate
-FROM dbo.fn_MonthlyRevenue(YEAR(GETDATE()), NULL)
+FROM dbo.fn_MonthlyRevenue(YEAR(dbo.fn_Today()), NULL)
 ORDER BY Month;
 
 -- Q7. (PIVOT) Number of enrollments per program x branch
@@ -127,8 +127,8 @@ SELECT Depth, CourseId, CourseName FROM Path ORDER BY Depth DESC;
 SELECT TOP (3) te.TeacherId, te.FullName, COUNT(*) AS SessionCount
 FROM dbo.TEACHER te
 CROSS APPLY dbo.fn_TeacherSchedule(te.TeacherId,
-                                   DATEADD(MONTH, -1, DATEADD(DAY, 1 - DAY(GETDATE()), CAST(GETDATE() AS DATE))),
-                                   DATEADD(DAY, -DAY(GETDATE()), CAST(GETDATE() AS DATE))) ts
+                                   DATEADD(MONTH, -1, DATEADD(DAY, 1 - DAY(dbo.fn_Today()), dbo.fn_Today())),
+                                   DATEADD(DAY, -DAY(dbo.fn_Today()), dbo.fn_Today())) ts
 WHERE ts.Status = N'Taught'
 GROUP BY te.TeacherId, te.FullName
 ORDER BY SessionCount DESC;
@@ -223,8 +223,8 @@ FOR XML PATH('Class'), ROOT('Center');
 
 -- X9. Audit trail: old/new data (XML) of the grade changes
 --     Reads the XML written by the trigger trg_GRADE_Audit with .value(); for an INSERT the old side is an
---     empty Grade element, so OldScore is NULL.
-SELECT TOP (10) LoggedAt, PerformedBy, Action, RecordKey,
+--     empty Grade element, so OldScore is NULL. LoggedAtUtc is shown in the center's local time.
+SELECT TOP (10) dbo.fn_UtcToCenterTime(LoggedAtUtc) AS LoggedAtCenter, PerformedBy, Action, RecordKey,
        OldData.value('(/Grade/Score)[1]', 'DECIMAL(4,2)') AS OldScore,
        NewData.value('(/Grade/Score)[1]', 'DECIMAL(4,2)') AS NewScore
 FROM dbo.AUDIT_LOG
@@ -240,5 +240,5 @@ EXEC dbo.usp_Course_FindBySkill @Skill = N'Speaking';
 EXEC dbo.usp_Course_Syllabus @CourseId = 'IE-55';
 EXEC dbo.usp_Teacher_FindByCertificate @CertificateType = N'IELTS', @MinScore = 8.0;
 SELECT * FROM dbo.fn_StudentBalance('ST00031');
-SELECT dbo.fn_Classification(8.25) AS Classification, dbo.fn_Weekday(GETDATE()) AS TodayWeekday;
+SELECT dbo.fn_Classification(8.25) AS Classification, dbo.fn_Weekday(dbo.fn_Today()) AS TodayWeekday;
 GO

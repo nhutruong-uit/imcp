@@ -37,3 +37,8 @@ T24|usp_Payroll_Finalize: sessions, hours, bonus, total pay|Succeeded|Succeeded|
 T25|Finalizing the payroll of a future month|Rejected|Rejected|PASSED|Payroll cannot be finalized for a future month.
 T26|Student XML export/import, duplicates skipped|Succeeded|Succeeded|PASSED|Exported 72/72 students; imported 1 row(s), skipped 1 duplicate phone row(s)
 T27|Course syllabus that violates the XML schema|Rejected|Rejected|PASSED|XML Validation: Invalid content. Expected element(s): 'Textbook'. Found: element 'ElementNotInSchema' instead. Location: /*:Syllabus[1]/*:ElementNotInSchema[1].
+T28|Naming conventions of tables, columns, objects, constraints and indexes|Succeeded|Succeeded|PASSED|Every name follows the conventions
+T29|Least privilege: table permissions of the roles = 06_security.sql|Succeeded|Succeeded|PASSED|42 expected permissions, no extra and none missing
+T30|Procedures/triggers set NOCOUNT ON, no SELECT * in modules|Succeeded|Succeeded|PASSED|81 modules checked, all follow the conventions
+T31|Receipt at 00:30 center time counts in the center's day and month|Succeeded|Succeeded|PASSED|paid 2024-01-31 17:30 UTC: fn_MonthlyRevenue Jan/Feb = 0/1, vw_MonthlyRevenue Feb = 1, usp_Report_Revenue rows on 31 Jan = 0, revenue on 1 Feb = 100000
+T32|Instants in UTC (...Utc), no server-local clock, DATE defaults in center time|Succeeded|Succeeded|PASSED|81 modules and 44 defaults checked; center offset +07:00

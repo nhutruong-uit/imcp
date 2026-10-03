@@ -3,6 +3,13 @@
    Naming : tables in UPPER_SNAKE_CASE; columns in PascalCase; constraints
             PK_<TABLE>, FK_<CHILD>_<PARENT>, UQ_<TABLE>_<Column>,
             CK_<TABLE>_<Column>, DF_<TABLE>_<Column>
+   Time   : instants are UTC - DATETIME columns named ...Utc, DEFAULT
+            (GETUTCDATE()); the application converts them to the user's
+            time zone. Business dates (DATE) are calendar days of the
+            center (UTC+07:00): their DEFAULTs repeat the offset of
+            dbo.fn_CenterUtcOffset, because a DEFAULT cannot call a function
+            that 02_functions.sql creates later and drops when re-run (T32
+            checks that the offsets match).
    What   : the physical schema of QLTTTA (the ERD of docs/DATABASE.md): the sequences that
             generate the IDs, the XML schema of the course syllabuses, the tables with their
             PRIMARY KEY, FOREIGN KEY, UNIQUE, CHECK and DEFAULT constraints, and the indexes.
@@ -24,6 +31,9 @@
             - recursive relationship: COURSE.PrerequisiteCourseId references COURSE
             - a CHECK constraint rejects a row only when its condition is FALSE; NULL makes the
               condition UNKNOWN, so an optional column left NULL always passes its CHECK
+            - time: an instant (when a receipt was paid) is stored in UTC, a business date (the day a
+              student registered) as the center's calendar day, so nothing depends on the time zone
+              of the server
    ===================================================================== */
 USE QLTTTA;
 GO
@@ -167,7 +177,8 @@ CREATE TABLE dbo.EMPLOYEE (
     Address      NVARCHAR(200)  NULL,
     Position     NVARCHAR(30)   NOT NULL,
     BranchId     VARCHAR(10)    NOT NULL,
-    HireDate     DATE           NOT NULL CONSTRAINT DF_EMPLOYEE_HireDate DEFAULT (CAST(GETDATE() AS DATE)),
+    HireDate     DATE           NOT NULL CONSTRAINT DF_EMPLOYEE_HireDate
+                     DEFAULT (CAST(SWITCHOFFSET(SYSDATETIMEOFFSET(), '+07:00') AS DATE)),
     BaseSalary   DECIMAL(12,0)  NOT NULL CONSTRAINT DF_EMPLOYEE_BaseSalary DEFAULT (0),
     Status       NVARCHAR(20)   NOT NULL CONSTRAINT DF_EMPLOYEE_Status DEFAULT (N'Working'),
     CONSTRAINT PK_EMPLOYEE PRIMARY KEY (EmployeeId),
@@ -214,7 +225,8 @@ CREATE TABLE dbo.TEACHER (
     HourlyRate   DECIMAL(12,0)  NOT NULL,
     ProfileXml   XML            NULL,
     BranchId     VARCHAR(10)    NOT NULL,
-    HireDate     DATE           NOT NULL CONSTRAINT DF_TEACHER_HireDate DEFAULT (CAST(GETDATE() AS DATE)),
+    HireDate     DATE           NOT NULL CONSTRAINT DF_TEACHER_HireDate
+                     DEFAULT (CAST(SWITCHOFFSET(SYSDATETIMEOFFSET(), '+07:00') AS DATE)),
     Status       NVARCHAR(20)   NOT NULL CONSTRAINT DF_TEACHER_Status DEFAULT (N'Teaching'),
     CONSTRAINT PK_TEACHER PRIMARY KEY (TeacherId),
     CONSTRAINT FK_TEACHER_BRANCH FOREIGN KEY (BranchId) REFERENCES dbo.BRANCH (BranchId),
@@ -246,13 +258,13 @@ GO
       at most one account.
    --------------------------------------------------------------------- */
 CREATE TABLE dbo.ACCOUNT (
-    Username     NVARCHAR(50)  NOT NULL,
-    Role         VARCHAR(20)   NOT NULL,
-    EmployeeId   VARCHAR(10)   NULL,
-    TeacherId    VARCHAR(10)   NULL,
-    Status       NVARCHAR(20)  NOT NULL CONSTRAINT DF_ACCOUNT_Status DEFAULT (N'Active'),
-    CreatedAt    DATETIME      NOT NULL CONSTRAINT DF_ACCOUNT_CreatedAt DEFAULT (GETDATE()),
-    LastLoginAt  DATETIME      NULL,
+    Username        NVARCHAR(50)  NOT NULL,
+    Role            VARCHAR(20)   NOT NULL,
+    EmployeeId      VARCHAR(10)   NULL,
+    TeacherId       VARCHAR(10)   NULL,
+    Status          NVARCHAR(20)  NOT NULL CONSTRAINT DF_ACCOUNT_Status DEFAULT (N'Active'),
+    CreatedAtUtc    DATETIME      NOT NULL CONSTRAINT DF_ACCOUNT_CreatedAtUtc DEFAULT (GETUTCDATE()),
+    LastLoginAtUtc  DATETIME      NULL,
     CONSTRAINT PK_ACCOUNT PRIMARY KEY (Username),
     CONSTRAINT FK_ACCOUNT_EMPLOYEE FOREIGN KEY (EmployeeId) REFERENCES dbo.EMPLOYEE (EmployeeId),
     CONSTRAINT FK_ACCOUNT_TEACHER FOREIGN KEY (TeacherId) REFERENCES dbo.TEACHER (TeacherId),
@@ -296,7 +308,8 @@ CREATE TABLE dbo.STUDENT (
     GuardianName   NVARCHAR(100)  NULL,
     GuardianPhone  VARCHAR(15)    NULL,
     BranchId       VARCHAR(10)    NOT NULL,
-    RegisteredOn   DATE           NOT NULL CONSTRAINT DF_STUDENT_RegisteredOn DEFAULT (CAST(GETDATE() AS DATE)),
+    RegisteredOn   DATE           NOT NULL CONSTRAINT DF_STUDENT_RegisteredOn
+                       DEFAULT (CAST(SWITCHOFFSET(SYSDATETIMEOFFSET(), '+07:00') AS DATE)),
     Status         NVARCHAR(20)   NOT NULL CONSTRAINT DF_STUDENT_Status DEFAULT (N'Prospective'),
     Notes          NVARCHAR(500)  NULL,
     CONSTRAINT PK_STUDENT PRIMARY KEY (StudentId),
@@ -543,7 +556,8 @@ CREATE TABLE dbo.ENROLLMENT (
                               DEFAULT ('EN' + RIGHT('000000' + CAST(NEXT VALUE FOR dbo.seq_ENROLLMENT AS VARCHAR(10)), 6)),
     StudentId             VARCHAR(10)    NOT NULL,
     ClassId               VARCHAR(10)    NOT NULL,
-    EnrolledOn            DATE           NOT NULL CONSTRAINT DF_ENROLLMENT_EnrolledOn DEFAULT (CAST(GETDATE() AS DATE)),
+    EnrolledOn            DATE           NOT NULL CONSTRAINT DF_ENROLLMENT_EnrolledOn
+                              DEFAULT (CAST(SWITCHOFFSET(SYSDATETIMEOFFSET(), '+07:00') AS DATE)),
     BaseTuition           DECIMAL(12,0)  NOT NULL,
     PromotionId           VARCHAR(10)    NULL,
     DiscountAmount        DECIMAL(12,0)  NOT NULL CONSTRAINT DF_ENROLLMENT_DiscountAmount DEFAULT (0),
@@ -579,13 +593,15 @@ GO
        complete. CK_RECEIPT_CancelReason (cross-column): a cancelled receipt must say why.
        Every new or cancelled receipt recomputes ENROLLMENT.AmountPaid (trg_RECEIPT_UpdateAmountPaid)
        and is written to AUDIT_LOG (trg_RECEIPT_Audit).
-       IX_RECEIPT_PaidAt: index for queries on a range of payment dates (usp_Report_Revenue).
+       PaidAtUtc is the payment instant in UTC; reports turn local days/months into UTC ranges.
+       IX_RECEIPT_PaidAtUtc: index for those range queries (usp_Report_Revenue, usp_Dashboard_Stats,
+       fn_MonthlyRevenue).
    --------------------------------------------------------------------- */
 CREATE TABLE dbo.RECEIPT (
     ReceiptId              VARCHAR(10)    NOT NULL CONSTRAINT DF_RECEIPT_ReceiptId
                                DEFAULT ('RC' + RIGHT('000000' + CAST(NEXT VALUE FOR dbo.seq_RECEIPT AS VARCHAR(10)), 6)),
     EnrollmentId           VARCHAR(10)    NOT NULL,
-    PaidAt                 DATETIME       NOT NULL CONSTRAINT DF_RECEIPT_PaidAt DEFAULT (GETDATE()),
+    PaidAtUtc              DATETIME       NOT NULL CONSTRAINT DF_RECEIPT_PaidAtUtc DEFAULT (GETUTCDATE()),
     Amount                 DECIMAL(12,0)  NOT NULL,
     PaymentMethod          NVARCHAR(20)   NOT NULL CONSTRAINT DF_RECEIPT_PaymentMethod DEFAULT (N'Cash'),
     CollectedByEmployeeId  VARCHAR(10)    NOT NULL,
@@ -603,7 +619,7 @@ CREATE TABLE dbo.RECEIPT (
 );
 GO
 CREATE INDEX IX_RECEIPT_EnrollmentId ON dbo.RECEIPT (EnrollmentId) INCLUDE (Amount, Status);
-CREATE INDEX IX_RECEIPT_PaidAt ON dbo.RECEIPT (PaidAt) INCLUDE (Amount, Status, EnrollmentId);
+CREATE INDEX IX_RECEIPT_PaidAtUtc ON dbo.RECEIPT (PaidAtUtc) INCLUDE (Amount, Status, EnrollmentId);
 GO
 
 /* ---------------------------------------------------------------------
@@ -641,7 +657,7 @@ CREATE TABLE dbo.GRADE (
     EnrollmentId  VARCHAR(10)    NOT NULL,
     ComponentId   INT            NOT NULL,
     Score         DECIMAL(4,2)   NOT NULL,
-    EnteredAt     DATETIME       NOT NULL CONSTRAINT DF_GRADE_EnteredAt DEFAULT (GETDATE()),
+    EnteredAtUtc  DATETIME       NOT NULL CONSTRAINT DF_GRADE_EnteredAtUtc DEFAULT (GETUTCDATE()),
     EnteredBy     NVARCHAR(128)  NOT NULL CONSTRAINT DF_GRADE_EnteredBy DEFAULT (ORIGINAL_LOGIN()),
     CONSTRAINT PK_GRADE PRIMARY KEY (EnrollmentId, ComponentId),
     CONSTRAINT FK_GRADE_ENROLLMENT FOREIGN KEY (EnrollmentId) REFERENCES dbo.ENROLLMENT (EnrollmentId),
@@ -662,7 +678,8 @@ CREATE TABLE dbo.PLACEMENT_TEST (
     TestId               VARCHAR(10)    NOT NULL CONSTRAINT DF_PLACEMENT_TEST_TestId
                              DEFAULT ('PT' + RIGHT('00000' + CAST(NEXT VALUE FOR dbo.seq_PLACEMENT_TEST AS VARCHAR(10)), 5)),
     StudentId            VARCHAR(10)    NOT NULL,
-    TestDate             DATE           NOT NULL CONSTRAINT DF_PLACEMENT_TEST_TestDate DEFAULT (CAST(GETDATE() AS DATE)),
+    TestDate             DATE           NOT NULL CONSTRAINT DF_PLACEMENT_TEST_TestDate
+                             DEFAULT (CAST(SWITCHOFFSET(SYSDATETIMEOFFSET(), '+07:00') AS DATE)),
     ListeningScore       DECIMAL(4,2)   NOT NULL,
     SpeakingScore        DECIMAL(4,2)   NOT NULL,
     ReadingScore         DECIMAL(4,2)   NOT NULL,
@@ -695,7 +712,8 @@ CREATE TABLE dbo.CERTIFICATE (
                         DEFAULT ('CE' + RIGHT('00000' + CAST(NEXT VALUE FOR dbo.seq_CERTIFICATE AS VARCHAR(10)), 5)),
     EnrollmentId    VARCHAR(10)   NOT NULL,
     SerialNumber    VARCHAR(20)   NOT NULL,
-    IssuedOn        DATE          NOT NULL CONSTRAINT DF_CERTIFICATE_IssuedOn DEFAULT (CAST(GETDATE() AS DATE)),
+    IssuedOn        DATE          NOT NULL CONSTRAINT DF_CERTIFICATE_IssuedOn
+                        DEFAULT (CAST(SWITCHOFFSET(SYSDATETIMEOFFSET(), '+07:00') AS DATE)),
     FinalGrade      DECIMAL(4,2)  NOT NULL,
     Classification  NVARCHAR(20)  NOT NULL,
     CONSTRAINT PK_CERTIFICATE PRIMARY KEY (CertificateId),
@@ -717,18 +735,18 @@ GO
        Teachers see only their own rows, through vw_Teacher_MyPay.
    --------------------------------------------------------------------- */
 CREATE TABLE dbo.PAYROLL (
-    PayrollId     INT IDENTITY(1,1)  NOT NULL,
-    TeacherId     VARCHAR(10)        NOT NULL,
-    Month         TINYINT            NOT NULL,
-    Year          SMALLINT           NOT NULL,
-    SessionCount  INT                NOT NULL,
-    Hours         DECIMAL(6,2)       NOT NULL,
-    HourlyRate    DECIMAL(12,0)      NOT NULL,
-    Bonus         DECIMAL(12,0)      NOT NULL CONSTRAINT DF_PAYROLL_Bonus DEFAULT (0),
-    Deduction     DECIMAL(12,0)      NOT NULL CONSTRAINT DF_PAYROLL_Deduction DEFAULT (0),
-    TotalPay      AS (CAST(Hours * HourlyRate AS DECIMAL(14,0)) + Bonus - Deduction) PERSISTED,
-    FinalizedAt   DATETIME           NOT NULL CONSTRAINT DF_PAYROLL_FinalizedAt DEFAULT (GETDATE()),
-    Status        NVARCHAR(20)       NOT NULL CONSTRAINT DF_PAYROLL_Status DEFAULT (N'Finalized'),
+    PayrollId       INT IDENTITY(1,1)  NOT NULL,
+    TeacherId       VARCHAR(10)        NOT NULL,
+    Month           TINYINT            NOT NULL,
+    Year            SMALLINT           NOT NULL,
+    SessionCount    INT                NOT NULL,
+    Hours           DECIMAL(6,2)       NOT NULL,
+    HourlyRate      DECIMAL(12,0)      NOT NULL,
+    Bonus           DECIMAL(12,0)      NOT NULL CONSTRAINT DF_PAYROLL_Bonus DEFAULT (0),
+    Deduction       DECIMAL(12,0)      NOT NULL CONSTRAINT DF_PAYROLL_Deduction DEFAULT (0),
+    TotalPay        AS (CAST(Hours * HourlyRate AS DECIMAL(14,0)) + Bonus - Deduction) PERSISTED,
+    FinalizedAtUtc  DATETIME           NOT NULL CONSTRAINT DF_PAYROLL_FinalizedAtUtc DEFAULT (GETUTCDATE()),
+    Status          NVARCHAR(20)       NOT NULL CONSTRAINT DF_PAYROLL_Status DEFAULT (N'Finalized'),
     CONSTRAINT PK_PAYROLL PRIMARY KEY (PayrollId),
     CONSTRAINT FK_PAYROLL_TEACHER FOREIGN KEY (TeacherId) REFERENCES dbo.TEACHER (TeacherId),
     CONSTRAINT UQ_PAYROLL_TeacherId_Month_Year UNIQUE (TeacherId, Month, Year),
@@ -748,7 +766,7 @@ GO
    --------------------------------------------------------------------- */
 CREATE TABLE dbo.AUDIT_LOG (
     LogId        BIGINT IDENTITY(1,1)  NOT NULL,
-    LoggedAt     DATETIME              NOT NULL CONSTRAINT DF_AUDIT_LOG_LoggedAt DEFAULT (GETDATE()),
+    LoggedAtUtc  DATETIME              NOT NULL CONSTRAINT DF_AUDIT_LOG_LoggedAtUtc DEFAULT (GETUTCDATE()),
     PerformedBy  NVARCHAR(128)         NOT NULL CONSTRAINT DF_AUDIT_LOG_PerformedBy DEFAULT (ORIGINAL_LOGIN()),
     TableName    NVARCHAR(50)          NOT NULL,
     Action       VARCHAR(10)           NOT NULL,

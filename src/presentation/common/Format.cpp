@@ -35,6 +35,14 @@ QString Format::date(const QDate& d) {
     return d.isValid() ? d.toString(QStringLiteral("dd/MM/yyyy")) : QString();
 }
 
+QString Format::dateTime(const QDateTime& utc, const QTimeZone& zone) {
+    if (!utc.isValid())
+        return QString();
+    // ODBC returns a DATETIME without a time zone: rebuild it from its fields as UTC, then convert
+    const QDateTime instant(utc.date(), utc.time(), QTimeZone::utc());
+    return instant.toTimeZone(zone).toString(QStringLiteral("dd/MM/yyyy HH:mm"));
+}
+
 QString Format::month(int month) {
     const QLocale locale;
     // Vietnamese readers expect T1..T12 (the CLDR abbreviation "thg 1" is longer); other languages use the
@@ -75,8 +83,8 @@ QString Format::cell(const QVariant& value, const QString& columnKey) {
     switch (value.metaType().id()) {
     case QMetaType::QDate:
         return date(value.toDate());
-    case QMetaType::QDateTime:
-        return value.toDateTime().toString(QStringLiteral("dd/MM/yyyy HH:mm"));
+    case QMetaType::QDateTime: // every DATETIME column is UTC (T32 in 12_tests.sql)
+        return dateTime(value.toDateTime());
     case QMetaType::Double:
     case QMetaType::Float: {
         const double d = value.toDouble();

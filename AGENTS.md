@@ -12,6 +12,11 @@ changed.
 ## Common commands
 
 ```bash
+# New machine (or type /imcp-setup): install what is missing, init the database, run test_all; --check changes nothing
+# (Windows: powershell -ExecutionPolicy Bypass -File scripts/setup_dev.ps1 -Check, then -AcceptLicenses)
+./scripts/setup_dev.sh --check
+./scripts/setup_dev.sh --accept-licenses
+
 # Database (SQL Server in Docker, container sql2022 or imcp-mssql)
 SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/db_init.sh --docker sql2022
 
@@ -54,8 +59,9 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
   `05-report.md` (docs/report/), `06-docs.md` (other docs). The detailed rules live there, not here.
 - `.claude/settings.json`: no AI attribution in commits/PRs, asks before `gh workflow run` / `gh pr merge` / force
   push, and a hook that formats every C++ file Claude edits (`.claude/hooks/format-cpp.sh`).
-- Skills: `/imcp-create-pr` (English PR after `test_all`), `/imcp-review` (review a PR or branch against these rules),
-  `/imcp-update-report` (report: data from the database, screenshots, diagrams, docx, PDF, checks).
+- Skills: `/imcp-setup` (set up a member's machine for this OS: tools, database, `test_all`), `/imcp-create-pr`
+  (English PR after `test_all`), `/imcp-review` (review a PR or branch against these rules), `/imcp-update-report`
+  (report: data from the database, screenshots, diagrams, docx, PDF, checks).
 
 ## Mandatory rules (all areas)
 - **Language**: everything in the repository is **English** - C++ code, CMake, scripts, CI, docs, commit messages,
@@ -72,9 +78,9 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
   `13_server_tests.sql` for server-level features) registered in `#Expected`. Never change the expectation of an
   existing case to make the tests green unless the specification really changed - then say so in the PR.
 - **Enforced by tests** (`test_all`, CI): `tst_conventions` (SQL syntax and headers, layers, SQL location, scripts,
-  numbers quoted in the docs), `12_tests.sql` T28-T30 (naming, permission matrix, `SET NOCOUNT ON`), `tst_i18n`
-  (translations and database messages), `check_changes` (format of the changed lines, commit messages). Fix the code,
-  not the check.
+  numbers quoted in the docs), `12_tests.sql` T28-T30 and T32 (naming, permission matrix, `SET NOCOUNT ON`, UTC
+  times), `tst_i18n` (translations and database messages), `check_changes` (format of the changed lines, commit
+  messages). Fix the code, not the check.
 - **Git**: default branch `develop`; work on `feature/...`/`fix/...`/`docs/...`/`chore/...` branches and PR into
   `develop`; never push directly to `main` (protected: PR + green CI on macOS, Windows and the Linux full tests +
   branch up to date). Conventional Commits in English (`feat(students): ...`, `fix(db): ...`), no AI attribution

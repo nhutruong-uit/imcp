@@ -286,6 +286,7 @@ case proves it. Use this table to find the code behind a rule during the defense
 | Transaction, `XACT_ABORT` | a group of changes that succeed or fail together; `XACT_ABORT ON` cancels it on any error |
 | `THROW` / `RAISERROR` | raise an error with a message (procedures use `THROW`, triggers `RAISERROR`) |
 | Sequence | a number generator, used in `DEFAULT` values to build IDs such as `ST00001` |
+| UTC instant, center date | a moment (when a receipt was paid) is stored in UTC in a column named `...Utc`; a business date (the day a student registered) is a day of the center (UTC+07:00), given by `fn_Today` - nothing depends on the time zone of the server |
 | Filtered unique index (`UX_`) | uniqueness only for rows that have a value (several students may have no email) |
 | Typed XML, XSD, XQuery | XML checked against a schema; `.value()`, `.query()`, `.nodes()`, `.exist()`, `.modify()` read or change it |
 | Derived attribute | a value computable from others but stored (e.g. `AmountPaid`), kept correct by a trigger |

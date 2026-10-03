@@ -40,7 +40,7 @@ WITH INIT, CHECKSUM, NAME = N'QLTTTA - Full', STATS = 25;
 
 /* Simulate new data after the FULL backup */
 INSERT INTO QLTTTA.dbo.PROMOTION (PromotionId, PromotionName, DiscountType, DiscountValue, StartDate, EndDate)
-VALUES ('PR-DEMO', N'Backup demo promotion', 'AMOUNT', 200000, CAST(GETDATE() AS DATE), DATEADD(DAY, 7, CAST(GETDATE() AS DATE)));
+VALUES ('PR-DEMO', N'Backup demo promotion', 'AMOUNT', 200000, QLTTTA.dbo.fn_Today(), DATEADD(DAY, 7, QLTTTA.dbo.fn_Today()));
 
 /* 2. DIFFERENTIAL backup: only the extents changed since the latest FULL */
 BACKUP DATABASE QLTTTA TO DISK = @Diff
