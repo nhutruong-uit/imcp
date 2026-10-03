@@ -29,7 +29,9 @@ def chapter4(g):
         "Ô **Máy chủ**: nhập địa chỉ theo Bảng 4.1.",
         "Ô **CSDL**: giữ `QLTTTA` (tên CSDL do script tạo ra).",
         "Ô **Tin cậy chứng chỉ máy chủ (TrustServerCertificate)**: giữ **bật** khi dùng Docker hoặc SQL Server "
-        "cài trên máy (chứng chỉ tự ký). Chỉ tắt khi máy chủ có chứng chỉ do tổ chức tin cậy cấp.",
+        "cài trên máy (chứng chỉ tự ký). Chỉ tắt khi máy chủ có chứng chỉ do tổ chức tin cậy cấp. Khi đã tắt, "
+        "ứng dụng không tự chuyển sang driver khác để bỏ qua bước kiểm tra chứng chỉ. Bản macOS dùng driver "
+        "FreeTDS: kết nối vẫn được mã hóa nhưng driver này không kiểm tra chứng chỉ, nên ô này không có tác dụng.",
     ])
     g.figure(SCREENS / "login_server_settings.png", "Khung cấu hình máy chủ SQL Server", width_cm=14.0)
     g.table(["SQL Server đang chạy ở đâu", "Nhập vào ô Máy chủ"], [
@@ -112,7 +114,8 @@ def chapter4(g):
         ["Nút **Làm mới**", "Đọc lại dữ liệu mới nhất từ CSDL (khi người khác vừa cập nhật)."],
         ["Nút **Excel**", "Lưu các dòng đang hiển thị ra file `.csv` (mặc định trong thư mục Documents/Tài "
                           "liệu) rồi mở bằng Excel hoặc ứng dụng bảng tính mặc định. File dùng mã UTF-8 nên "
-                          "Excel hiển thị đúng tiếng Việt."],
+                          "Excel hiển thị đúng tiếng Việt. Ô bắt đầu bằng `=`, `+` hoặc `@` được thêm dấu `'` ở "
+                          "đầu để Excel không chạy nội dung đó như công thức."],
         ["Nút **Xuất báo cáo PDF**", "Tạo báo cáo PDF khổ A4 (tự xoay ngang khi bảng có hơn 7 cột) gồm tiêu đề "
                                      "trung tâm, tên báo cáo, ngày lập, người lập, cột STT, dòng **TỔNG CỘNG** và "
                                      "tổng số dòng; mở ngay sau khi lưu."],
@@ -130,7 +133,7 @@ def chapter5(g):
     g.p("*Vai trò: Quản lý, Giáo vụ, Kế toán.* Trang mở đầu sau khi đăng nhập, gồm lời chào, ngày hôm nay, "
         "sáu thẻ số liệu và biểu đồ doanh thu theo tháng của năm hiện tại. Bấm **Làm mới** để cập nhật số liệu.")
     g.table(["Thẻ số liệu", "Ý nghĩa"], [
-        ["Học viên đang học", "Số học viên có trạng thái Đang học"],
+        ["Học viên đang học", "Số học viên đang theo học ít nhất một lớp (có lượt ghi danh Đang học)"],
         ["Lớp đang học", "Số lớp có trạng thái Đang học"],
         ["Lớp đang tuyển sinh", "Số lớp có trạng thái Đang tuyển sinh (đang nhận ghi danh)"],
         ["Doanh thu tháng này", "Tổng tiền thu trong tháng; hiện \"Không có quyền\" với vai trò không được xem "
@@ -151,7 +154,7 @@ def chapter5(g):
         "Gõ mã học viên, họ tên hoặc số điện thoại vào ô **Tìm mã, họ tên, SĐT...**: danh sách tự lọc sau khi "
         "ngừng gõ khoảng nửa giây (tìm trực tiếp trong CSDL).",
         "Chọn chi nhánh ở ô **Tất cả chi nhánh** và trạng thái ở ô **Tất cả trạng thái** (Tiềm năng, Đang "
-        "học, Bảo lưu, Ngừng học) để thu hẹp kết quả.",
+        "học, Bảo lưu, Ngừng học, Hoàn thành) để thu hẹp kết quả.",
         "Nút **Excel** và **PDF** xuất danh sách đang hiển thị như mục 4.8.",
     ])
     g.h3("5.2.2. Thêm học viên")
@@ -168,7 +171,9 @@ def chapter5(g):
     g.h3("5.2.3. Sửa thông tin")
     g.p("Chọn một học viên rồi bấm **Sửa** (hoặc nhấp đúp vào dòng đó). Hộp thoại **Sửa thông tin học viên** "
         "cho phép đổi mọi thông tin trừ mã học viên, kể cả **Trạng thái** (ví dụ chuyển sang **Bảo lưu** hoặc "
-        "**Ngừng học**). Bấm **Lưu** để ghi, **Hủy** để bỏ qua.")
+        "**Ngừng học**). Bấm **Lưu** để ghi, **Hủy** để bỏ qua. Trạng thái **Hoàn thành** do hệ thống tự đặt khi "
+        "học viên học xong lớp cuối cùng (không còn lớp nào đang học); khi ghi danh lớp mới, học viên tự chuyển "
+        "lại **Đang học**. Các ô chữ không cho gõ quá độ dài tối đa của CSDL.")
     g.figure(SCREENS / "gvu_lan_student_form.png", "Hộp thoại sửa thông tin học viên", width_cm=10.5)
     g.p("Khi dữ liệu chưa hợp lệ, hộp thoại không đóng và hiện thông báo màu đỏ. Các quy tắc được kiểm tra "
         "ở ứng dụng và một lần nữa trong CSDL:")
@@ -180,7 +185,10 @@ def chapter5(g):
          "Cần ít nhất một số điện thoại liên lạc (học viên hoặc phụ huynh)."],
         ["Dưới 18 tuổi phải có họ tên và SĐT phụ huynh",
          "Học viên dưới 18 tuổi phải có họ tên và số điện thoại phụ huynh."],
-        ["Email đúng định dạng", "Email không đúng định dạng."],
+        ["Email đúng định dạng, không dấu, tối đa 100 ký tự", "Email không đúng định dạng."],
+        ["Địa chỉ tối đa 200 ký tự, nghề nghiệp tối đa 50 ký tự, họ tên phụ huynh tối đa 100 ký tự, ghi chú tối "
+         "đa 500 ký tự", "Địa chỉ tối đa 200 ký tự. / Nghề nghiệp tối đa 50 ký tự. / Họ tên phụ huynh tối đa 100 "
+         "ký tự. / Ghi chú tối đa 500 ký tự."],
         ["Số điện thoại, email không trùng với học viên khác",
          "Số điện thoại đã được dùng cho học viên khác. / Email đã được dùng cho học viên khác."],
         ["Phải chọn chi nhánh", "Chưa chọn chi nhánh."],
@@ -280,6 +288,8 @@ def chapter5(g):
         ["Lập / hủy phiếu thu học phí", "`usp_Receipt_Create`, `usp_Receipt_Cancel`", "Quản lý, Kế toán"],
         ["Điểm danh, nhập điểm", "`usp_Attendance_Save`, `usp_Grade_Save`", "Quản lý, Giáo vụ, Giáo viên"],
         ["Mở lớp, sinh lịch học", "`usp_Class_Create`, `usp_Class_GenerateSessions`", "Quản lý, Giáo vụ"],
+        ["Bắt đầu / hủy lớp", "`usp_Class_UpdateStatus`", "Quản lý, Giáo vụ"],
+        ["Xét kết quả cuối khóa, cấp chứng nhận", "`usp_Class_EvaluateResults`", "Quản lý, Giáo vụ"],
     ], widths_cm=[5.0, 7.0, 4.0], caption="Nghiệp vụ thực hiện bằng thủ tục trong CSDL", size=10)
     g.p("Mỗi thủ tục tự kiểm tra quy tắc nghiệp vụ trước khi ghi. Khi vi phạm, SSMS hiện thông báo lỗi (tiếng "
         "Anh, ví dụ `The student is already enrolled in this class.`) và dữ liệu không thay đổi. Các quy tắc "
@@ -291,13 +301,19 @@ def chapter5(g):
          "học viên phải **Đạt** khóa tiên quyết, hoặc có bài kiểm tra xếp lớp gần nhất đủ điểm tối thiểu (chỉ khi "
          "khóa có quy định điểm tối thiểu)."],
         ["Chuyển lớp",
-         "Chỉ chuyển lượt ghi danh **Đang học** hoặc **Bảo lưu**, sang lớp **cùng khóa học** đang tuyển sinh hoặc "
-         "đang học, còn chỗ và không trùng giờ. Học phí tính lại theo lớp mới (áp dụng lại khuyến mãi của lượt "
-         "ghi danh); nếu học viên đã đóng nhiều hơn học phí mới thì phải hủy bớt phiếu thu trước. Phiếu thu và "
-         "điểm được giữ, điểm danh ở lớp cũ bị xóa."],
+         "Chỉ chuyển lượt ghi danh **Đang học** hoặc **Bảo lưu**, sang lớp **cùng khóa học và cùng chi nhánh** "
+         "đang tuyển sinh hoặc đang học, còn chỗ và không trùng giờ. Học phí tính lại theo lớp mới (áp dụng lại "
+         "khuyến mãi của lượt ghi danh); nếu học viên đã đóng nhiều hơn học phí mới thì phải hủy bớt phiếu thu "
+         "trước. Phiếu thu và điểm được giữ, điểm danh ở lớp cũ bị xóa; tỷ lệ chuyên cần ở lớp mới tính từ ngày "
+         "chuyển."],
+        ["Bắt đầu / hủy lớp",
+         "Lớp đi theo thứ tự **Đang tuyển sinh** → **Đang học** → **Đã kết thúc** (khi xét kết quả), hoặc **Đã "
+         "hủy**. Lớp đã kết thúc hoặc đã hủy không mở lại được: hãy mở lớp mới. Không hủy được lớp đã có học viên "
+         "đóng tiền; khi hủy, các lượt ghi danh còn lại chuyển sang **Đã nghỉ**."],
         ["Điểm danh, nhập điểm",
-         "Giáo viên chỉ điểm danh các buổi mình dạy và chỉ nhập điểm lớp mình dạy. Lớp **Đã kết thúc** đã được "
-         "xét kết quả nên không sửa điểm danh và điểm được nữa."],
-    ], widths_cm=[3.6, 12.4], caption="Quy tắc CSDL kiểm tra khi ghi danh, chuyển lớp, điểm danh và nhập điểm",
+         "Giáo viên chỉ điểm danh các buổi mình dạy và chỉ nhập điểm lớp mình dạy. Buổi học chỉ được đánh dấu "
+         "**Đã dạy** từ ngày học trở đi và không đổi lại được. Lớp **Đã kết thúc** đã được xét kết quả nên không "
+         "sửa buổi học, điểm danh và điểm được nữa; chỉ xét kết quả khi lớp không còn buổi **Chưa dạy**."],
+    ], widths_cm=[3.6, 12.4], caption="Quy tắc CSDL kiểm tra khi ghi danh, chuyển lớp, mở/hủy lớp, điểm danh và nhập điểm",
         size=10)
     g.p("Tham số và ví dụ của từng thủ tục nằm trong `database/04_procedures.sql` và Chương 4 của báo cáo đồ án.")
