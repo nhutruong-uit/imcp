@@ -1,16 +1,23 @@
 // Takes screenshots of every screen automatically (for the report and for visual checks with real data).
+// What it produces: PNG files of the login screen (also with the server settings open), of every feature each
+// account may open, of the student form and of the change password dialog. The Vietnamese set in
+// docs/report/images/screens is used by Chapter 6 of the report (docs/report/content/chapter6_8.py) and by
+// the user guide (docs/user-guide). It signs in to the real database, so the seed data must be loaded.
+// Developer tool, not part of the application: built only with -DQLTTTA_BUILD_TOOLS=ON (see AGENTS.md).
 // Environment variables:
 //   QLTTTA_SERVER        (default localhost,1433)
 //   QLTTTA_SHOT_USERS    comma-separated accounts (default ql_quan,gvu_lan,kt_minh,gv_john)
 //   QLTTTA_SHOT_PASSWORD shared password of the demo accounts (required)
 //   QLTTTA_SHOT_LANG     UI language: vi (default, used by the report) or en
-//   QLTTTA_SHOT_DIR      output folder (default docs/report/images/screens for vi, build/screenshots/en for
-//   en,
-//                        so English screenshots never overwrite the images of the Vietnamese report)
+//   QLTTTA_SHOT_DIR      output folder (default: docs/report/images/screens for vi,
+//                        build/screenshots/en for en, so English screenshots never overwrite the images
+//                        of the Vietnamese report)
+// The default folders are relative: run it from the repository root.
 // File names are stable and independent of the UI language: login.png, login_server_settings.png,
 // change_password.png, <account>_<feature>.png, <account>_student_form.png (the report and the user guide
 // refer to them by name).
 // Runs without a display: QT_QPA_PLATFORM=offscreen ./qlttta_screenshots
+// Exit code: 0 = every account signed in, 1 = some sign-in failed, 2 = no password given.
 #include "app/AppContainer.h"
 #include "application/services/Permissions.h"
 #include "presentation/common/I18n.h"
@@ -29,6 +36,7 @@
 #include <QThread>
 
 namespace {
+// Waits while still processing events, so the page can load its data and paint before the screenshot
 void wait(int ms) {
     QElapsedTimer t;
     t.start();
@@ -73,6 +81,7 @@ QString fileName(Feature feature) {
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
+    // Own settings organization: the tool never changes the settings of the real application
     QApplication::setOrganizationName(QStringLiteral("UIT-IE103-Screenshots"));
     QApplication::setApplicationName(QStringLiteral("QLTTTA"));
     QApplication::setApplicationVersion(QStringLiteral(QLTTTA_VERSION));

@@ -3,6 +3,8 @@
 class QApplication;
 
 // Same look on Windows and macOS: Fusion style + light palette + style sheet (QSS)
+// The style sheet resources/styles/app.qss (a CSS-like file) styles widgets by object name (PageTitle,
+// ErrorText, Sidebar...) and by property (variant=primary, card), which is why the pages set those names.
 namespace Theme {
 void apply(QApplication& app);
 

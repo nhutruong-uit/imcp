@@ -437,6 +437,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Học viên chưa đạt điều kiện đầu vào của khóa %1 (cần hoàn thành khóa tiên quyết hoặc điểm kiểm tra đầu vào &gt;= %2).</translation>
     </message>
     <message>
+        <source>The student does not meet the entry requirement of course %1 (complete the prerequisite course first).</source>
+        <translation>Học viên chưa đạt điều kiện đầu vào của khóa %1 (cần hoàn thành khóa tiên quyết trước).</translation>
+    </message>
+    <message>
         <source>The class schedule clashes with another class the student is taking.</source>
         <translation>Lịch học của lớp bị trùng với một lớp khác học viên đang theo học.</translation>
     </message>

@@ -39,6 +39,9 @@ ListPage::ListPage(AppServices services, Feature feature, QWidget* parent)
     toolbar->addWidget(pdfButton);
     v->addLayout(toolbar);
 
+    // The proxy model sits between the data and the table: it filters and sorts the rows without changing
+    // the data (filter key column -1 = search in every column; sort by the raw value of Qt::UserRole, so
+    // money and dates sort as numbers/dates, not as text)
     m_model = new TableDataModel(this);
     m_proxy = new QSortFilterProxyModel(this);
     m_proxy->setSourceModel(m_model);
@@ -93,6 +96,7 @@ void ListPage::reload() {
     updateTotals();
 }
 
+// "N rows - Total ...: x" line under the table, computed on the rows that pass the quick filter
 void ListPage::updateTotals() {
     QStringList parts{tr("%1 rows").arg(m_proxy->rowCount())};
     const QStringList& keys = m_model->tableData().columns;

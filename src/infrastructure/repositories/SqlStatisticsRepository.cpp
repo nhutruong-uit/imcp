@@ -10,6 +10,8 @@ Result<DashboardStats> SqlStatisticsRepository::dashboard() {
     QSqlQuery q = makeQuery(m_db.db());
     if (!q.exec(QStringLiteral("EXEC dbo.usp_Dashboard_Stats")))
         return Result<DashboardStats>::failure(errorOf(q));
+    // Columns: ActiveStudents, ActiveClasses, EnrollingClasses, RevenueThisMonth, TotalOutstanding,
+    //          SessionsToday (one row)
     DashboardStats stats;
     if (q.next()) {
         stats.activeStudents = q.value(0).toInt();

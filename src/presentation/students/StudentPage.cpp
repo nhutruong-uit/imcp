@@ -120,6 +120,7 @@ StudentPage::StudentPage(AppServices services, QWidget* parent) : QWidget(parent
     search();
 }
 
+// Runs usp_Student_Search with the current filters (typing waits 300 ms, see m_searchDelay)
 void StudentPage::search() {
     StudentFilter filter;
     filter.keyword = m_keyword->text();
@@ -144,6 +145,7 @@ const Student* StudentPage::selectedStudent() const {
     return m_model->studentAt(m_proxy->mapToSource(index).row());
 }
 
+// After add/edit: select the saved student in the refreshed list so the user sees the result
 void StudentPage::selectById(const QString& id) {
     for (int r = 0; r < m_proxy->rowCount(); ++r) {
         const QModelIndex index = m_proxy->index(r, StudentTableModel::Id);

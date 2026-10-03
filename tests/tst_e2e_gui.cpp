@@ -6,6 +6,22 @@
 // Run: QLTTTA_E2E_PASSWORD='...' ctest --preset macos-debug -R e2e --output-on-failure
 // The scenarios run in Vietnamese (the default UI language);
 // language_switchToEnglish_rebuildsUi covers English.
+// What it covers: login, the menu of every role and every feature it may open (with data), add/edit/delete
+// of a student, the totals line and the quick filter, PDF/CSV export, the password dialog, switching the
+// language. Data changed by a test is restored at its end, because the other tests rely on the seed data.
+// Qt Test tools used below:
+// - QTRY_VERIFY / QTRY_COMPARE[_WITH_TIMEOUT]: repeat the check while processing events until it is true
+//   or the timeout (default 5 s) runs out. Pages load their data through the event loop, so a single check
+//   would come too early; no fixed QTest::qWait is needed.
+// - QTimer::singleShot(300, ...) before a click that opens a modal dialog: exec() blocks the test until the
+//   dialog closes, so the code that fills and closes the dialog is scheduled first and runs inside it.
+// - MessageBoxCatcher: records and closes every message box, so an unexpected error box fails the test
+//   instead of blocking it.
+// - typeText: types Vietnamese letters (QTest::keyClicks converts each character to Latin-1, which has no
+//   code for most of them).
+// - *_data() function: a data-driven test. QTest::addColumn/newRow build a table; the test with the same
+//   name runs once per row and reads the values with QFETCH.
+// - QSignalSpy: counts how often a signal was emitted.
 #include "app/AppContainer.h"
 #include "application/services/Permissions.h"
 #include "presentation/common/Columns.h"
@@ -127,6 +143,7 @@ class TestE2EGui : public QObject {
     Q_OBJECT
 
 private:
+    // The real application wiring (repositories, services) as in main.cpp
     std::unique_ptr<AppContainer> m_app;
     QString m_password;
 
@@ -157,6 +174,7 @@ private:
     }
 
 private slots:
+    // Runs once before the first test: without a password the whole suite is skipped (QSKIP)
     void initTestCase() {
         m_password = qEnvironmentVariable("QLTTTA_E2E_PASSWORD");
         if (m_password.isEmpty())
@@ -170,6 +188,7 @@ private slots:
         useVietnamese();
     }
 
+    // Runs after every test: sign out and back to Vietnamese, so each test starts from the same state
     void cleanup() {
         if (!m_app)
             return;
@@ -185,6 +204,8 @@ private slots:
         QVERIFY(!m_app->auth().isLoggedIn());
     }
 
+    // Main flow of the Students module as academic staff: menu of the role, hidden revenue, search, add with
+    // the guardian rule (first save refused), then delete the new student again
     void academicStaff_searchAddDeleteStudent() {
         QVERIFY(login(QStringLiteral("gvu_lan"), m_password));
         QCOMPARE(m_app->auth().role(), Role::AcademicStaff);
@@ -304,6 +325,7 @@ private slots:
         }
     }
 
+    // Accountant: revenue visible, students read-only, outstanding tuition with totals, PDF/CSV export
     void accountant_outstandingTuition_exportsPdf() {
         QVERIFY(login(QStringLiteral("kt_minh"), m_password));
         MainWindow w(m_app->services());
@@ -338,6 +360,7 @@ private slots:
                                          &error));
     }
 
+    // Different new password and confirmation: the dialog shows the error and stays open
     void changePassword_mismatch_showsError() {
         QVERIFY(login(QStringLiteral("gvu_ha"), m_password));
         ChangePasswordDialog dialog(m_app->auth());
@@ -377,6 +400,7 @@ private slots:
 
     // Every role opens EVERY allowed feature: right title, data present, no error, every column has a title.
     // Also catches database permission bugs (a missing GRANT in 06_security.sql leaves the page empty).
+    // Data for the test below: one row per demo account (row name, username, role)
     void everyRole_opensEveryFeature_withData_data() {
         QTest::addColumn<QString>("username");
         QTest::addColumn<int>("role");
@@ -585,5 +609,6 @@ private slots:
     }
 };
 
+// main() with a full QApplication, needed for widgets
 QTEST_MAIN(TestE2EGui)
 #include "tst_e2e_gui.moc"

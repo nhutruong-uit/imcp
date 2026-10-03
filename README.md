@@ -228,6 +228,7 @@ docker-compose.yml   SQL Server 2022 Developer for local development
 
 | Document | Content |
 |---|---|
+| [docs/CODE_TOUR.md](docs/CODE_TOUR.md) | **Start here if you do not program**: reading the SQL scripts and the C++ code, one action followed from the click to the database, where each business rule lives, glossary |
 | [docs/SETUP.md](docs/SETUP.md) | Environment setup on macOS/Windows, database initialization, demo accounts, tests, packaging, troubleshooting |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Clean Architecture, request flow, naming conventions, adding a module, multi-language UI |
 | [docs/DATABASE.md](docs/DATABASE.md) | Database design, object catalog, roles and permissions, mapping to the course syllabus |

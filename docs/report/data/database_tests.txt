@@ -1,5 +1,5 @@
 P01|Teacher SELECTs the STUDENT table|Rejected|Rejected|PASSED|The SELECT permission was denied on the object 'STUDENT', database 'QLTTTA', schema 'dbo'.
-P02|Teacher SELECTs the views of their classes/students|Succeeded|Succeeded|PASSED|2 classes, 14 students (only the classes of TE0001)
+P02|Teacher SELECTs the views of their classes/students|Succeeded|Succeeded|PASSED|2 classes, 14 students of TE0001 (expected 2 / 14)
 P03|Teacher grades a class of another teacher|Rejected|Rejected|PASSED|You can only enter grades for classes you teach.
 P04|Accountant enrolls a student|Rejected|Rejected|PASSED|The EXECUTE permission was denied on the object 'usp_Enrollment_Create', database 'QLTTTA', schema 'dbo'.
 P05|Accountant SELECTs the TEACHER.HourlyRate column|Succeeded|Succeeded|PASSED|Read hourly rate 450,000
@@ -10,6 +10,7 @@ P09|Academic staff create a sign-in account|Rejected|Rejected|PASSED|The EXECUTE
 P10|Manager creates an account (user + role)|Succeeded|Succeeded|PASSED|Created the contained user tuvan_mai in rl_AcademicStaff (rolled back)
 P11|Academic staff see the monthly revenue on the Dashboard|Rejected|Rejected|PASSED|usp_Dashboard_Stats returns RevenueThisMonth = NULL for the ACADEMIC_STAFF role
 P12|Password change with a wrong current password|Rejected|Rejected|PASSED|The current password is incorrect.
+P13|Password change without the current password|Rejected|Rejected|PASSED|The current password is incorrect.
 T01|Student under 18 without guardian details|Rejected|Rejected|PASSED|The INSERT statement conflicted with the CHECK constraint "CK_STUDENT_Guardian". The conflict occurred in database "QLTTTA", table "dbo.STUDENT".
 T02|Invalid phone number format (domain CHECK)|Rejected|Rejected|PASSED|The INSERT statement conflicted with the CHECK constraint "CK_STUDENT_Phone". The conflict occurred in database "QLTTTA", table "dbo.STUDENT", column 'Phone'.
 T03|Enrolling twice in the same class|Rejected|Rejected|PASSED|The student is already enrolled in this class.
@@ -24,7 +25,7 @@ T11|Changing the audit log|Rejected|Rejected|PASSED|The audit log is append-only
 T12|Certificate for a student who failed|Rejected|Rejected|PASSED|Certificates are only issued to students who passed.
 T13|Changing the time of a taught session|Rejected|Rejected|PASSED|The date, time, room and teacher of a taught session cannot be changed.
 T14|Transfer to a class of another course|Rejected|Rejected|PASSED|A student can only be transferred to an open class of the same course.
-T15|Valid enrollment with a promotion|Succeeded|Succeeded|PASSED|ID EN000087, tuition due 3,300,000 VND
+T15|Valid enrollment with a promotion|Succeeded|Succeeded|PASSED|ID EN000091, tuition due 3,300,000 VND (expected 3,300,000)
 T16|fn_Classification: thresholds at 9 / 8 / 6.5 / 5|Succeeded|Succeeded|PASSED|11/11 grades (NULL included) classified correctly
 T17|fn_FinalGrade: weighted grade, NULL when a score is missing|Succeeded|Succeeded|PASSED|22/22 enrollments match; one score of EN000001 removed => NULL
 T18|fn_AttendanceRate: late counts as present, excused absence does not|Succeeded|Succeeded|PASSED|2 present + 1 late out of 24 taught sessions => 12.50% (expected 12.50%)
@@ -42,3 +43,11 @@ T29|Least privilege: table permissions of the roles = 06_security.sql|Succeeded|
 T30|Procedures/triggers set NOCOUNT ON, no SELECT * in modules|Succeeded|Succeeded|PASSED|81 modules checked, all follow the conventions
 T31|Receipt at 00:30 center time counts in the center's day and month|Succeeded|Succeeded|PASSED|paid 2024-01-31 17:30 UTC: fn_MonthlyRevenue Jan/Feb = 0/1, vw_MonthlyRevenue Feb = 1, usp_Report_Revenue rows on 31 Jan = 0, revenue on 1 Feb = 100000
 T32|Instants in UTC (...Utc), no server-local clock, DATE defaults in center time|Succeeded|Succeeded|PASSED|81 modules and 44 defaults checked; center offset +07:00
+T33|Prerequisite course required when no minimum score is set|Rejected|Rejected|PASSED|The student does not meet the entry requirement of course IE-65 (complete the prerequisite course first).
+T34|Transfer into a class that clashes with another class of the student|Rejected|Rejected|PASSED|The class schedule clashes with another class the student is taking.
+T35|Re-evaluation: certificates follow the corrected results|Succeeded|Succeeded|PASSED|CL0001: EN000001 failed and lost the certificate = 1, EN000002 re-graded 10 = 1; 9 certificates for 9 passed; 0 mismatch(es)
+T36|Username with diacritics|Rejected|Rejected|PASSED|A username may only contain letters without diacritics, digits, dots and underscores (at least 3 characters).
+T37|Attendance for a session of another class|Rejected|Rejected|PASSED|The student does not belong to the class of this session.
+T38|Grade for a component of another course|Rejected|Rejected|PASSED|The grade component does not belong to the course of the class.
+T39|trg_GRADE_Audit: one XML audit row per changed score|Succeeded|Succeeded|PASSED|EN000001/13: 7.90 -> 8.90 logged (1 row(s); unchanged score: 0)
+T40|trg_PLACEMENT_TEST_Recommend: course recommended from the score|Succeeded|Succeeded|PASSED|5.75 => IE-55 (expected IE-55), then 3.00 => TO-450 (expected TO-450)

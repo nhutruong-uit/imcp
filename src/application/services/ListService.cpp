@@ -3,6 +3,7 @@
 #include <optional>
 
 namespace {
+// Which database list a menu feature shows. std::nullopt ("no value") = the feature has its own page.
 std::optional<ListKind> listFor(Feature feature) {
     switch (feature) {
     case Feature::Classes:

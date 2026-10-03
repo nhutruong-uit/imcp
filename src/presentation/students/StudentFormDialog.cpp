@@ -69,6 +69,7 @@ void StudentFormDialog::fillForm(const Student& s) {
     ui->notesEdit->setPlainText(s.notes);
 }
 
+// Starts from the original student so fields the form does not show (registration date, ID) are kept
 Student StudentFormDialog::readForm() const {
     Student s = m_original;
     s.fullName = ui->fullNameEdit->text();
@@ -86,6 +87,8 @@ Student StudentFormDialog::readForm() const {
     return s;
 }
 
+// Marks the guardian fields as required while the date of birth makes the student a minor (same age rule as
+// Student::validate); the check itself happens on Save
 void StudentFormDialog::updateGuardianGroup() {
     Student probe;
     probe.dateOfBirth = ui->dateOfBirthEdit->date();

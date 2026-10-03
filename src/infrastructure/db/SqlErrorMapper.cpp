@@ -58,6 +58,10 @@ QString SqlErrorMapper::constraintMessage(const QString& constraintName) {
     return tr("The data violates an integrity constraint: %1").arg(constraintName);
 }
 
+// Checks run from the most specific to the most general. SQL Server error numbers used below:
+//   18456 login failed, 4060 cannot open the database, 229/230/262/297 permission denied,
+//   2627 duplicate key (PRIMARY KEY/UNIQUE), 2601 duplicate key in a unique index, 547 CHECK/FOREIGN KEY
+// Anything else is a business message of THROW/RAISERROR (English), translated by DbMessages.
 QString SqlErrorMapper::message(const QSqlError& error) {
     if (!error.isValid())
         return QString();

@@ -17,6 +17,9 @@ enum class ListKind {
     MyPay               // vw_Teacher_MyPay
 };
 
+// Port (interface, see IStudentRepository.h) of the read-only lists: implemented by SqlListRepository (one
+// query per ListKind), used by ListService. A new list = a new ListKind value + its query + a Feature mapped
+// to it in ListService.cpp (recipe: docs/ARCHITECTURE.md, "Read-only list screens need no new page").
 class IListRepository {
 public:
     virtual ~IListRepository() = default;

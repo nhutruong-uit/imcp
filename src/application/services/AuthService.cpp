@@ -15,6 +15,8 @@ QString AuthService::lastUsername() const {
     return m_settings.lastUsername();
 }
 
+// Steps: 1. check the input, 2. check the server settings, 3. let SQL Server authenticate the user (gateway),
+// 4. refuse locked accounts and accounts without a role, 5. remember the username for the next start.
 Result<Account> AuthService::login(const QString& username, const QString& password) {
     const QString name = username.trimmed();
     if (name.isEmpty() || password.isEmpty())
@@ -50,6 +52,9 @@ void AuthService::logout() {
     m_account.reset();
 }
 
+// Quick checks in the application (clear messages, no round trip). The database decides in the end:
+// usp_Account_ChangePassword checks the length again, then ALTER USER ... OLD_PASSWORD lets SQL Server verify
+// the current password and apply its password policy.
 VoidResult AuthService::changePassword(const QString& oldPassword, const QString& newPassword,
                                        const QString& confirmation) {
     if (!isLoggedIn())

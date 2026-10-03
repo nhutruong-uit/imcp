@@ -1,3 +1,6 @@
+// Unit tests of SqlHelpers::withUnicodeText and DatabaseManager::isFreeTds (infrastructure), no database.
+// Run only this suite:
+//   ctest --preset macos-debug -R tst_sqlhelpers --output-on-failure
 #include "infrastructure/db/DatabaseManager.h"
 #include "infrastructure/db/SqlHelpers.h"
 
@@ -5,6 +8,7 @@
 
 // SqlHelpers::withUnicodeText is the FreeTDS workaround (Qt sends text parameters as VARCHAR with FreeTDS):
 // pure string/value rewriting, so it is tested without a database.
+// Background: docs/ARCHITECTURE.md section 6.
 namespace {
 const QString kDeclaration = QStringLiteral(
     "DECLARE @UnicodeText%1 NVARCHAR(MAX) = CAST(CAST(? AS VARBINARY(MAX)) AS NVARCHAR(MAX)); ");
@@ -30,6 +34,8 @@ private slots:
         QCOMPARE(s.values, values);
     }
 
+    // A text with a non-ASCII letter is sent as UTF-16LE bytes into DECLARE @UnicodeText1 NVARCHAR(MAX),
+    // and its ? marker is replaced by that variable
     void withUnicodeText_vietnameseText_movesValueIntoNvarcharVariable() {
         const SqlHelpers::BoundStatement s =
             SqlHelpers::withUnicodeText(QStringLiteral("EXEC dbo.usp_X @Id = ?, @Address = ?"),
@@ -70,6 +76,7 @@ private slots:
         QCOMPARE(s.values.at(0).toByteArray(), bytes({0x3D, 0xD8, 0x00, 0xDE}));
     }
 
+    // Only real ? markers count: a ? inside quotes, [brackets] or comments is SQL text, not a parameter
     void withUnicodeText_markersInLiteralsAndComments_areIgnored() {
         const QString sql = QStringLiteral("SELECT '?' AS A, N'it''s ?' AS B, [col?] AS C, \"x?\" AS D -- ?\n"
                                            "/* ? /* nested ? */ ? */ FROM dbo.T WHERE Name = ?");
@@ -80,6 +87,7 @@ private slots:
         QCOMPARE(s.values.size(), 1);
     }
 
+    // NULLs, numbers and dates are not text, so they stay ordinary ? parameters
     void withUnicodeText_nullsAndOtherTypes_stayParameters() {
         const QVariantList values{QVariant(QMetaType::fromType<QString>()), 2026, QDate(2026, 1, 1),
                                   QVariant(QMetaType::fromType<QDate>())};
@@ -89,6 +97,7 @@ private slots:
         QCOMPARE(s.values, values);
     }
 
+    // More markers than values: nothing is rewritten, the driver reports the mismatch
     void withUnicodeText_markerCountMismatch_returnsStatementUnchanged() {
         const QString sql = QStringLiteral("EXEC dbo.usp_X @A = ?, @B = ?");
         const QVariantList values{QStringLiteral("Số")};
@@ -97,6 +106,7 @@ private slots:
         QCOMPARE(s.values, values);
     }
 
+    // The workaround is needed with FreeTDS only, recognized by its library name libtdsodbc
     void isFreeTds_detectsTheFreeTdsLibraryOnly() {
         QVERIFY(DatabaseManager::isFreeTds(QStringLiteral("/opt/homebrew/opt/freetds/lib/libtdsodbc.so")));
         QVERIFY(DatabaseManager::isFreeTds(QStringLiteral("/usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so")));

@@ -1,6 +1,8 @@
 /* =====================================================================
    File   : 12_tests.sql - Tests of the constraints, business rules and permissions
-   - Every test case runs in a transaction that is ROLLED BACK => the data never changes.
+   - Every test case leaves the data unchanged: every case that writes - or would write if the rule
+     under test were broken - runs in a transaction that is ROLLED BACK, so a failing case cannot leave
+     data behind for the next run. Only the read-only checks (catalog views, functions) need none.
    - Permissions are tested with EXECUTE AS USER (impersonating a user) ... REVERT.
    - Run as sa / db_owner after 07_seed_data.sql. The summary table is at the end of the output.
    - A "Rejected" case only PASSES when it is rejected for the RIGHT REASON (the message matches the
@@ -8,6 +10,37 @@
      #Expected that did not run also FAILS.
    - If any case FAILS the script ends with THROW 50099 (sqlcmd -b returns exit code 1), which
      scripts/test_all.sh uses to block changes that break the business rules.
+
+   How this test script works (read this before the cases):
+   1. #Results gets one row per case: TestId, Description, Expected (what must happen: Rejected or
+      Succeeded), Actual (what really happened) and Message (the error text, or for a success case
+      a short summary of the computed result).
+   2. #Expected is the specification: every case code that must run and, for a "Rejected" case, the
+      LIKE pattern its error message must match. Business errors are matched on their English text
+      (e.g. %is full%), system errors on the object/constraint name (e.g. %CK_STUDENT_Guardian%).
+      NULL = no message check (success cases).
+   3. Every case is its own batch ending with GO (so the DECLAREd variables of one case do not clash
+      with the next one) and has the same shape:
+        BEGIN TRY    the statement under test  -> it reached the end   => Actual = Succeeded
+        BEGIN CATCH  an error was raised       -> Actual = Rejected, Message = ERROR_MESSAGE()
+      "IF @@TRANCOUNT > 0 ROLLBACK" in both branches undoes whatever the case wrote. When a tested
+      procedure has its own BEGIN TRANSACTION ... COMMIT, that COMMIT inside the test transaction
+      only lowers @@TRANCOUNT (nested transaction); the outer ROLLBACK still undoes everything.
+   4. A success case does not stop at "it ran": it compares the result with a value computed
+      independently in the test or with a prepared scenario (section C), and sets Actual to
+      "Wrong result" (or "Error") when they differ.
+   5. SUMMARY: #Results FULL OUTER JOIN #Expected on TestId. Verdict = PASSED only when Actual equals
+      Expected and the message matches the pattern; a case missing on either side is FAILED.
+      THROW 50099 then makes the whole script fail when any Verdict is FAILED.
+   Sections: A. constraints and business rules, C. functions/triggers/cursors/XML results,
+   D. schema conventions (catalog views), B. permissions (EXECUTE AS USER), then the summary.
+   How to run it:
+   - SSMS: open this file, connect as sa (or a db_owner of QLTTTA) and press Execute (F5). Read the
+     last two result grids (Verdict per case, then TotalCases / PassedCases). The run passed when it
+     ends without error 50099.
+   - Command line: scripts/test_all.sh (Windows: scripts\test_all.ps1) re-creates the database, runs
+     this file with sqlcmd -b, counts the PASSED rows and stops the suite on error 50099. The exact
+     command is in docs/SETUP.md ("Running the full test suite").
    ===================================================================== */
 USE QLTTTA;
 GO
@@ -21,12 +54,13 @@ CREATE TABLE #Results (
     TestId       VARCHAR(5)     NOT NULL,
     Description  NVARCHAR(200)  NOT NULL,
     Expected     NVARCHAR(20)   NOT NULL,   -- 'Rejected' or 'Succeeded'
-    Actual       NVARCHAR(20)   NULL,
+    Actual       NVARCHAR(20)   NULL,       -- also 'Wrong result' / 'Wrong error' / 'Error' (always FAILED)
     Message      NVARCHAR(400)  NULL
 );
 
 -- Specification: the cases that must run and the message pattern (LIKE) a "Rejected" case must return.
 -- System errors are matched on the object/constraint name only (independent of the SQL Server message language).
+-- Keep the two-value form (code, pattern-or-NULL): tst_conventions counts these pairs for the numbers in the docs.
 IF OBJECT_ID('tempdb..#Expected') IS NOT NULL DROP TABLE #Expected;
 CREATE TABLE #Expected (TestId VARCHAR(5) PRIMARY KEY, MessagePattern NVARCHAR(200) NULL);
 INSERT #Expected VALUES
@@ -41,17 +75,24 @@ INSERT #Expected VALUES
     ('T21', N'%is full%'),                      ('T22', NULL), ('T23', NULL), ('T24', NULL),
     ('T25', N'%future month%'),                 ('T26', NULL), ('T27', N'%XML%'),
     ('T28', NULL), ('T29', NULL), ('T30', NULL), ('T31', NULL), ('T32', NULL),
+    ('T33', N'%prerequisite course first%'),    ('T34', N'%clashes with another class%'),
+    ('T35', NULL),                              ('T36', N'%letters without diacritics%'),
+    ('T37', N'%does not belong to the class of this session%'),
+    ('T38', N'%does not belong to the course of the class%'),
+    ('T39', NULL), ('T40', NULL),
     ('P01', N'%STUDENT%'),                      ('P02', NULL),
     ('P03', N'%only enter grades%'),            ('P04', N'%usp_Enrollment_Create%'),
     ('P05', NULL),                              ('P06', N'%HourlyRate%'),
     ('P07', N'%PAYROLL%'),                      ('P08', N'%RECEIPT%'),
     ('P09', N'%usp_Account_Create%'),           ('P10', NULL), ('P11', NULL),
-    ('P12', N'%current password is incorrect%');
+    ('P12', N'%current password is incorrect%'), ('P13', N'%current password is incorrect%');
 GO
 
 /* ---------------- A. INTEGRITY CONSTRAINTS & BUSINESS RULES ---------------- */
 
 -- T01: a 12-year-old student without guardian details
+--      Proves CK_STUDENT_Guardian: a student under 18 needs a guardian name and phone. Concept: CHECK constraint
+--      across several columns - it applies even though usp_Student_Add has no check of its own for it.
 BEGIN TRY
     BEGIN TRAN;
     DECLARE @Id VARCHAR(10);
@@ -67,6 +108,8 @@ END CATCH;
 GO
 
 -- T02: a phone number containing letters
+--      Proves CK_STUDENT_Phone (9-11 digits only) on a direct INSERT that bypasses every procedure.
+--      Concept: domain constraint (CHECK with LIKE and a [^0-9] character class).
 BEGIN TRY
     BEGIN TRAN;
     INSERT INTO dbo.STUDENT (FullName, DateOfBirth, Gender, Phone, BranchId)
@@ -81,10 +124,15 @@ END CATCH;
 GO
 
 -- T03: duplicate enrollment (the student is already enrolled in this class)
+--      Proves usp_Enrollment_Create refuses a second enrollment of the same student in the same class (THROW 50022;
+--      the UNIQUE constraint UQ_ENROLLMENT_StudentId_ClassId backs it up). Concept: business check in a procedure
+--      before any write. The transaction only matters if the rule breaks: the extra enrollment is then undone.
 BEGIN TRY
+    BEGIN TRAN;
     DECLARE @EnrollmentId VARCHAR(10);
     EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00001', @ClassId = 'CL0003', @EmployeeId = 'EM0002',
          @EnrollmentId = @EnrollmentId OUTPUT;
+    ROLLBACK;
     INSERT #Results VALUES ('T03', N'Enrolling twice in the same class', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
@@ -94,10 +142,15 @@ END CATCH;
 GO
 
 -- T04: enrolling without meeting the entry requirement (placement score 2.63 into IELTS 6.5)
+--      Proves the entry requirement of usp_Enrollment_Create: passed the prerequisite course OR a high enough
+--      latest placement score (THROW 50023, message built from values). Concept: rule over several tables with
+--      NOT EXISTS subqueries.
 BEGIN TRY
+    BEGIN TRAN;
     DECLARE @EnrollmentId VARCHAR(10);
     EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00070', @ClassId = 'CL0008', @EmployeeId = 'EM0002',
          @EnrollmentId = @EnrollmentId OUTPUT;
+    ROLLBACK;
     INSERT #Results VALUES ('T04', N'Prerequisite course / placement score not met', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
@@ -107,10 +160,14 @@ END CATCH;
 GO
 
 -- T05: enrolling in a class at the same time as a class the student takes (ST00023 takes CL0003 Mon-Wed-Fri 18:00)
+--      Proves usp_Enrollment_Create refuses a class whose weekly slots overlap a class the student is taking
+--      (THROW 50024). Concept: interval overlap test (start1 < end2 AND start2 < end1) on the same weekday.
 BEGIN TRY
+    BEGIN TRAN;
     DECLARE @EnrollmentId VARCHAR(10);
     EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00023', @ClassId = 'CL0007', @EmployeeId = 'EM0004',
          @EnrollmentId = @EnrollmentId OUTPUT;
+    ROLLBACK;
     INSERT #Results VALUES ('T05', N'A student in 2 classes with clashing schedules', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
@@ -120,6 +177,8 @@ END CATCH;
 GO
 
 -- T06: a payment above the tuition (EN000001 is fully paid) - derived-attribute trigger
+--      Proves trg_RECEIPT_UpdateAmountPaid: the valid receipts of an enrollment never add up to more than its
+--      tuition due. Concept: AFTER INSERT trigger that keeps a derived attribute and rolls the statement back.
 BEGIN TRY
     BEGIN TRAN;
     DECLARE @ReceiptId VARCHAR(10);
@@ -135,6 +194,9 @@ END CATCH;
 GO
 
 -- T07: deleting a receipt (INSTEAD OF DELETE)
+--      Proves trg_RECEIPT_PreventDelete: receipts are cancelled, never deleted. Concept: INSTEAD OF trigger - the
+--      DELETE is replaced by the trigger body, which only raises an error. @Remaining double-checks that the row
+--      is still there; without the error message the case still FAILS (the pattern needs the message).
 BEGIN TRY
     BEGIN TRAN;
     DELETE FROM dbo.RECEIPT WHERE ReceiptId = 'RC000001';
@@ -150,6 +212,9 @@ END CATCH;
 GO
 
 -- T08: a schedule slot in a busy room (CL0010 uses D1-102 like CL0004, on Tuesday 19:00-20:30)
+--      Proves trg_CLASS_SCHEDULE_CheckConflict: two active classes with overlapping periods cannot use the same
+--      room (or teacher) at overlapping hours of the same weekday. The two classes have different teachers, so
+--      only the room clashes. Concept: AFTER trigger for a rule across rows and tables.
 BEGIN TRY
     BEGIN TRAN;
     EXEC dbo.usp_ClassSchedule_Add @ClassId = 'CL0010', @Weekday = 2, @StartTime = '19:00', @EndTime = '20:30';
@@ -163,6 +228,8 @@ END CATCH;
 GO
 
 -- T09: moving a class to a room of another branch (rule across CLASS - ROOM)
+--      Proves trg_CLASS_CheckRoom: the room of a class belongs to the branch of the class (TD-301 is a BR02 room).
+--      Concept: trigger for a rule a CHECK constraint cannot express (it needs another table).
 BEGIN TRY
     BEGIN TRAN;
     UPDATE dbo.CLASS SET RoomId = 'TD-301' WHERE ClassId = 'CL0010';
@@ -176,6 +243,8 @@ END CATCH;
 GO
 
 -- T10: a score of 11 (outside the 0-10 domain)
+--      Proves CK_GRADE_Score (0 to 10) also when the score is saved through usp_Grade_Save.
+--      Concept: CHECK constraint on the domain of an attribute.
 BEGIN TRY
     BEGIN TRAN;
     DECLARE @EnrollmentId VARCHAR(10) = (SELECT TOP 1 EnrollmentId FROM dbo.ENROLLMENT WHERE ClassId = 'CL0006');
@@ -191,6 +260,8 @@ END CATCH;
 GO
 
 -- T11: changing the audit log (INSTEAD OF UPDATE)
+--      Proves trg_AUDIT_LOG_ReadOnly: the audit log is append-only. Concept: INSTEAD OF UPDATE trigger;
+--      @Changed checks that the value really did not change.
 BEGIN TRY
     BEGIN TRAN;
     UPDATE dbo.AUDIT_LOG SET PerformedBy = N'someone' WHERE LogId = 1;
@@ -206,6 +277,8 @@ END CATCH;
 GO
 
 -- T12: issuing a certificate to a student who failed
+--      Proves trg_CERTIFICATE_CheckResult: a certificate needs ENROLLMENT.Result = Passed.
+--      Concept: AFTER INSERT trigger that checks a row of another table.
 BEGIN TRY
     BEGIN TRAN;
     INSERT INTO dbo.CERTIFICATE (EnrollmentId, SerialNumber, FinalGrade, Classification)
@@ -220,6 +293,8 @@ END CATCH;
 GO
 
 -- T13: moving the date of a taught session
+--      Proves trg_CLASS_SESSION_LockTaught: date, time, room and teacher of a taught session are frozen (payroll
+--      and attendance rely on them). Concept: AFTER UPDATE trigger comparing inserted (new) with deleted (old).
 BEGIN TRY
     BEGIN TRAN;
     UPDATE TOP (1) dbo.CLASS_SESSION SET SessionDate = DATEADD(DAY, 1, SessionDate) WHERE Status = N'Taught';
@@ -233,6 +308,8 @@ END CATCH;
 GO
 
 -- T14: transferring a student to a class of another course
+--      Proves usp_Enrollment_TransferClass only moves a student to an open class of the SAME course
+--      (THROW 50027; CL0004 is TOEIC, CL0010 is Communication). Concept: business rule checked in a procedure.
 BEGIN TRY
     BEGIN TRAN;
     DECLARE @EnrollmentId VARCHAR(10) = (SELECT TOP 1 EnrollmentId FROM dbo.ENROLLMENT WHERE ClassId = 'CL0004');
@@ -247,15 +324,30 @@ END CATCH;
 GO
 
 -- T15: a valid enrollment (class without entry requirement, with a promotion), then rolled back
+--      Success case: usp_Enrollment_Create with a promotion code runs to the end. The stored BaseTuition,
+--      DiscountAmount and TuitionDue are compared with the class tuition and the discount computed here from the
+--      PROMOTION row (AMOUNT = the value, PERCENT = rounded to thousands, never above the tuition); Message shows
+--      the new ID from the OUTPUT parameter and the tuition due. Concept: multi-step transaction, OUTPUT parameter.
 BEGIN TRY
+    DECLARE @Tuition15 DECIMAL(12,0) = (SELECT Tuition FROM dbo.CLASS WHERE ClassId = 'CL0010');
+    DECLARE @ExpectedDiscount15 DECIMAL(12,0) =
+        (SELECT CASE DiscountType WHEN 'AMOUNT' THEN DiscountValue ELSE ROUND(@Tuition15 * DiscountValue / 100, -3) END
+         FROM dbo.PROMOTION WHERE PromotionId = 'PR-REFER');
+    IF @ExpectedDiscount15 > @Tuition15 SET @ExpectedDiscount15 = @Tuition15;
+    DECLARE @Base15 DECIMAL(12,0), @Discount15 DECIMAL(12,0), @Due15 DECIMAL(12,0);
     BEGIN TRAN;
     DECLARE @EnrollmentId VARCHAR(10);
     EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00071', @ClassId = 'CL0010', @PromotionId = 'PR-REFER',
          @EmployeeId = 'EM0002', @EnrollmentId = @EnrollmentId OUTPUT;
-    DECLARE @Info NVARCHAR(200) = (SELECT N'ID ' + EnrollmentId + N', tuition due ' + FORMAT(TuitionDue, 'N0') + N' VND'
-                                   FROM dbo.ENROLLMENT WHERE EnrollmentId = @EnrollmentId);
+    SELECT @Base15 = BaseTuition, @Discount15 = DiscountAmount, @Due15 = TuitionDue
+    FROM dbo.ENROLLMENT WHERE EnrollmentId = @EnrollmentId;
+    DECLARE @Info NVARCHAR(200) = N'ID ' + ISNULL(@EnrollmentId, N'?') + N', tuition due '
+                                  + ISNULL(FORMAT(@Due15, 'N0'), N'?') + N' VND (expected '
+                                  + FORMAT(@Tuition15 - @ExpectedDiscount15, 'N0') + N')';
     ROLLBACK;
-    INSERT #Results VALUES ('T15', N'Valid enrollment with a promotion', N'Succeeded', N'Succeeded', @Info);
+    INSERT #Results VALUES ('T15', N'Valid enrollment with a promotion', N'Succeeded',
+        CASE WHEN @Base15 = @Tuition15 AND @Discount15 = @ExpectedDiscount15 AND @Due15 = @Tuition15 - @ExpectedDiscount15
+             THEN N'Succeeded' ELSE N'Wrong result' END, @Info);
 END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK;
@@ -263,10 +355,116 @@ BEGIN CATCH
 END CATCH;
 GO
 
+-- T33: entering a course that has a prerequisite course but no minimum placement score
+--      Proves the entry requirement of usp_Enrollment_Create: without a minimum score a placement test is no way
+--      in, only the prerequisite course is (before the fix any placement test was enough). Scenario, rolled
+--      back: IE-65 loses its minimum score; ST00070 (placement 2.63, has not passed IE-55) asks for CL0008.
+--      Concept: a comparison with NULL is UNKNOWN, so the placement branch finds no row.
+BEGIN TRY
+    BEGIN TRAN;
+    UPDATE dbo.COURSE SET MinPlacementScore = NULL WHERE CourseId = 'IE-65';
+    DECLARE @EnrollmentId VARCHAR(10);
+    EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00070', @ClassId = 'CL0008', @EmployeeId = 'EM0002',
+         @EnrollmentId = @EnrollmentId OUTPUT;
+    ROLLBACK;
+    INSERT #Results VALUES ('T33', N'Prerequisite course required when no minimum score is set', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T33', N'Prerequisite course required when no minimum score is set', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T34: transferring a student to a class that clashes with another class they take
+--      Proves usp_Enrollment_TransferClass runs the same schedule check as usp_Enrollment_Create (THROW 50024).
+--      Scenario, rolled back: ST00071 studies in CL0003 (Mon/Wed/Fri 18:00-20:00) and in CL0010 (course CM-A1);
+--      a new CM-A1 class meets on Monday 18:00-19:00 while CL0003 runs; moving the CL0010 enrollment there must
+--      be refused. Concept: interval overlap test, one rule kept in two procedures.
+BEGIN TRY
+    DECLARE @E34 TABLE (EnrollmentId VARCHAR(10));
+    DECLARE @C34 TABLE (ClassId VARCHAR(10));
+    DECLARE @Enrollment34 VARCHAR(10), @Class34 VARCHAR(10), @Start34 DATE;
+    BEGIN TRAN;
+    INSERT INTO dbo.ENROLLMENT (StudentId, ClassId, BaseTuition) VALUES ('ST00071', 'CL0003', 1000000);
+    INSERT INTO dbo.ENROLLMENT (StudentId, ClassId, BaseTuition) OUTPUT inserted.EnrollmentId INTO @E34
+    VALUES ('ST00071', 'CL0010', 1000000);
+    SELECT @Enrollment34 = EnrollmentId FROM @E34;
+    SELECT @Start34 = StartDate FROM dbo.CLASS WHERE ClassId = 'CL0003';
+    -- Room D1-LAB (capacity 16) and teacher TE0003 are free on Monday evenings
+    INSERT INTO dbo.CLASS (ClassName, CourseId, BranchId, TeacherId, RoomId, StartDate, MaxStudents, Tuition)
+    OUTPUT inserted.ClassId INTO @C34
+    VALUES (N'T34 transfer target', 'CM-A1', 'BR01', 'TE0003', 'D1-LAB', @Start34, 16, 1000000);
+    SELECT @Class34 = ClassId FROM @C34;
+    INSERT INTO dbo.CLASS_SCHEDULE (ClassId, Weekday, StartTime, EndTime) VALUES (@Class34, 1, '18:00', '19:00');
+    EXEC dbo.usp_Enrollment_TransferClass @EnrollmentId = @Enrollment34, @NewClassId = @Class34;
+    ROLLBACK;
+    INSERT #Results VALUES ('T34', N'Transfer into a class that clashes with another class of the student', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T34', N'Transfer into a class that clashes with another class of the student', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T36: a username with Vietnamese diacritics
+--      Proves usp_Account_Create accepts only letters without diacritics, digits, dots and underscores (THROW
+--      50060). The LIKE pattern is compared in a binary collation: under Vietnamese_CI_AS the range a-z also
+--      contains accented letters. Rolled back in any case. Concept: the collation of a comparison (COLLATE).
+BEGIN TRY
+    BEGIN TRAN;
+    EXEC dbo.usp_Account_Create N'tuấn_test', N'Test@12345', 'ACADEMIC_STAFF', 'EM0006', NULL;
+    ROLLBACK;
+    INSERT #Results VALUES ('T36', N'Username with diacritics', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T36', N'Username with diacritics', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T37: attendance of a student who is not in the class of the session
+--      Proves trg_ATTENDANCE_CheckClass on a direct INSERT: the session (CL0003) and the enrollment (CL0004)
+--      must belong to the same class. Concept: rule across tables in an AFTER trigger (join with inserted).
+BEGIN TRY
+    DECLARE @Session37 INT = (SELECT TOP (1) SessionId FROM dbo.CLASS_SESSION WHERE ClassId = 'CL0003' ORDER BY SessionId);
+    DECLARE @Enrollment37 VARCHAR(10) = (SELECT TOP (1) EnrollmentId FROM dbo.ENROLLMENT WHERE ClassId = 'CL0004'
+                                         ORDER BY EnrollmentId);
+    BEGIN TRAN;
+    INSERT INTO dbo.ATTENDANCE (SessionId, EnrollmentId, Status) VALUES (@Session37, @Enrollment37, N'Present');
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T37', N'Attendance for a session of another class', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T37', N'Attendance for a session of another class', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T38: a grade for a component of another course
+--      Proves trg_GRADE_CheckComponent on a direct INSERT: an enrollment of CL0004 (course TO-450) cannot get a
+--      score for a grade component of IE-55. Concept: rule across tables in an AFTER trigger.
+BEGIN TRY
+    DECLARE @Enrollment38 VARCHAR(10) = (SELECT TOP (1) EnrollmentId FROM dbo.ENROLLMENT WHERE ClassId = 'CL0004'
+                                         ORDER BY EnrollmentId);
+    DECLARE @Component38 INT = (SELECT TOP (1) ComponentId FROM dbo.GRADE_COMPONENT WHERE CourseId = 'IE-55'
+                                ORDER BY ComponentId);
+    BEGIN TRAN;
+    INSERT INTO dbo.GRADE (EnrollmentId, ComponentId, Score) VALUES (@Enrollment38, @Component38, 7);
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T38', N'Grade for a component of another course', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T38', N'Grade for a component of another course', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
 /* ---------------- C. FUNCTIONS, TRIGGERS, CURSORS, XML: CHECKING THE RESULTS ----------------
    Not only "it runs": results are compared with independently computed values or prepared scenarios. */
 
 -- T16: fn_Classification at the grade thresholds (upper/lower bound of each class)
+--      Proves fn_Classification at every boundary (each threshold and the value just below it) and NULL in =>
+--      NULL out. Concept: scalar function; boundary-value testing with a VALUES table constructor.
 BEGIN TRY
     DECLARE @Wrong16 INT;
     SELECT @Wrong16 = COUNT(*)
@@ -285,6 +483,8 @@ END CATCH;
 GO
 
 -- T17: fn_FinalGrade = SUM(Score x Weight) / 100; NULL when a component has no score
+--      Proves fn_FinalGrade against the same formula computed here with GROUP BY for every graded enrollment;
+--      then one score is deleted (rolled back) and the function must return NULL. Concept: scalar function.
 BEGIN TRY
     DECLARE @Count17 INT, @Mismatch17 INT, @Enrollment17 VARCHAR(10), @AfterDelete17 DECIMAL(4,2);
     SELECT @Count17 = COUNT(*), @Mismatch17 = ISNULL(SUM(CASE WHEN x.ByFunction = x.Computed THEN 0 ELSE 1 END), 0)
@@ -314,6 +514,8 @@ END CATCH;
 GO
 
 -- T18: fn_AttendanceRate: "Present" and "Late" count as present; absences (even excused) do not
+--      Proves fn_AttendanceRate with a prepared scenario: 2 Present + 1 Late out of N taught sessions => 3/N.
+--      Concept: ROW_NUMBER() OVER (ORDER BY ...) numbers the sessions so the scenario can be built in one INSERT.
 BEGIN TRY
     DECLARE @Enrollment18 VARCHAR(10), @Class18 VARCHAR(10), @Taught18 INT, @Rate18 DECIMAL(5,2), @Expected18 DECIMAL(5,2);
     SELECT TOP (1) @Enrollment18 = en.EnrollmentId, @Class18 = en.ClassId
@@ -346,6 +548,7 @@ END CATCH;
 GO
 
 -- T19: fn_DiscountAmount: % discounts rounded to thousands, never above the tuition, 0 when expired
+--      Proves fn_DiscountAmount with two temporary promotions (rolled back). Concept: scalar function with CASE.
 BEGIN TRY
     DECLARE @D1 DECIMAL(12,0), @D2 DECIMAL(12,0), @D3 DECIMAL(12,0);
     BEGIN TRAN;
@@ -369,6 +572,9 @@ GO
 
 -- T20: Tuition payment: the trigger updates AmountPaid (derived attribute) and writes an XML audit row;
 --      cancelling the receipt lowers AmountPaid again
+--      Proves trg_RECEIPT_UpdateAmountPaid (payment added, then removed again by usp_Receipt_Cancel) and
+--      trg_RECEIPT_Audit (the receipt stored as XML, found with the XQuery method .exist()).
+--      Concepts: derived attribute kept by a trigger, XML audit trail built with FOR XML PATH.
 BEGIN TRY
     DECLARE @Enrollment20 VARCHAR(10), @Before20 DECIMAL(12,0), @AfterPay20 DECIMAL(12,0), @AfterCancel20 DECIMAL(12,0),
             @Receipt20 VARCHAR(10), @AuditRows20 INT;
@@ -400,6 +606,8 @@ END CATCH;
 GO
 
 -- T21: a full class accepts no more students, even through a direct INSERT that bypasses the procedure (trigger)
+--      Proves trg_ENROLLMENT_CheckCapacity: Studying + Completed enrollments never exceed MaxStudents. The class is
+--      first made exactly full (MaxStudents = current count). Concept: AFTER INSERT trigger as the last guard.
 BEGIN TRY
     DECLARE @Class21 VARCHAR(10), @Student21 VARCHAR(10);
     SELECT TOP (1) @Class21 = ClassId FROM dbo.CLASS
@@ -422,6 +630,9 @@ GO
 
 -- T22: usp_Class_GenerateSessions: the course's number of sessions, on the weekdays/times of the weekly
 --      schedule, end date = last session
+--      Proves every property of the generated sessions: count, weekday/time of the schedule, SessionNo 1..n in
+--      date order, start/end date. Concepts: WHILE loop in a procedure; INSERT ... EXEC stores the result set of
+--      a procedure in a table; ROW_NUMBER() gives the expected numbering.
 BEGIN TRY
     DECLARE @Class22 VARCHAR(10), @CourseSessions22 INT, @Sessions22 INT, @WrongSlot22 INT, @WrongNo22 INT,
             @EndDateOk22 BIT, @Reported22 INT;
@@ -467,6 +678,9 @@ GO
 
 -- T23: usp_Class_EvaluateResults (cursor): Passed when grade >= 5 AND attendance >= 80%;
 --      only students who passed get a certificate
+--      Proves the result of every student against the rule recomputed here from fn_FinalGrade/fn_AttendanceRate,
+--      and that a certificate exists exactly for those who passed (with the right classification).
+--      Concept: cursor (LOCAL FAST_FORWARD, FETCH NEXT, @@FETCH_STATUS) inside a transaction.
 BEGIN TRY
     DECLARE @Class23 VARCHAR(10), @Count23 INT, @Wrong23 INT, @WrongCert23 INT, @LowAttendance23 INT,
             @Passed23 INT, @Failed23 INT;
@@ -517,6 +731,8 @@ END CATCH;
 GO
 
 -- T24: usp_Payroll_Finalize (cursor): last month's pay matches the taught sessions; 500,000 bonus at >= 20 sessions
+--      Proves sessions, hours, bonus and total pay against values aggregated here from CLASS_SESSION.
+--      Concepts: cursor over the teachers; FULL OUTER JOIN also finds a missing or an extra payroll row.
 BEGIN TRY
     DECLARE @Date24 DATE = DATEADD(MONTH, -1, dbo.fn_Today());
     DECLARE @Month24 TINYINT = MONTH(@Date24), @Year24 SMALLINT = YEAR(@Date24), @Teachers24 INT, @Wrong24 INT;
@@ -555,10 +771,13 @@ END CATCH;
 GO
 
 -- T25: finalizing the payroll of a future month
+--      Proves usp_Payroll_Finalize checks its input first (THROW 50050) - before it starts its transaction.
 BEGIN TRY
     DECLARE @Date25 DATE = DATEADD(MONTH, 1, dbo.fn_Today());
     DECLARE @Month25 TINYINT = MONTH(@Date25), @Year25 SMALLINT = YEAR(@Date25);
+    BEGIN TRAN;
     EXEC dbo.usp_Payroll_Finalize @Month = @Month25, @Year = @Year25;
+    ROLLBACK;
     INSERT #Results VALUES ('T25', N'Finalizing the payroll of a future month', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
@@ -568,6 +787,9 @@ END CATCH;
 GO
 
 -- T26: XML: export the students (FOR XML PATH) and import them back (nodes/value); a duplicate phone is skipped
+--      Proves usp_Student_ExportXml (one Student element per row, counted with XQuery count()) and
+--      usp_Student_ImportXml (.nodes() turns each Student element into a row, .value() reads one field;
+--      a row whose phone already exists is skipped). Concepts: FOR XML PATH, nodes(), value(), XQuery.
 BEGIN TRY
     DECLARE @Xml26 XML, @Nodes26 INT, @Students26 INT, @Imported26 INT, @Skipped26 INT, @NewFound26 INT,
             @ExistingPhone26 VARCHAR(15);
@@ -607,6 +829,8 @@ END CATCH;
 GO
 
 -- T27: a course syllabus that does not follow the XML schema (typed XML xsc_CourseSyllabus)
+--      Proves COURSE.SyllabusXml is typed XML: SQL Server itself validates it against the XML SCHEMA COLLECTION
+--      xsc_CourseSyllabus and refuses an element the schema does not define.
 BEGIN TRY
     BEGIN TRAN;
     UPDATE dbo.COURSE SET SyllabusXml = N'<Syllabus><ElementNotInSchema/></Syllabus>'
@@ -664,10 +888,148 @@ BEGIN CATCH
 END CATCH;
 GO
 
+-- T35: re-evaluating a finished class keeps the certificates in line with the new results
+--      Proves usp_Class_EvaluateResults run again on a Finished class after a correction: a student whose scores
+--      become 0 now fails and loses the certificate; a student whose scores become 10 keeps it with the new grade.
+--      Every enrollment of the class is then compared with its certificate (Failed = none; Passed = one with the
+--      same grade and classification). The scores are changed directly by dbo (usp_Grade_Save refuses a finished
+--      class). Rolled back. Concept: cursor, keeping two tables consistent after a correction.
+BEGIN TRY
+    DECLARE @Class35 VARCHAR(10), @Fail35 VARCHAR(10), @Raise35 VARCHAR(10), @Wrong35 INT, @Passed35 INT,
+            @Certs35 INT, @FailOk35 BIT, @RaiseOk35 BIT;
+    SELECT TOP (1) @Class35 = cl.ClassId FROM dbo.CLASS cl
+    WHERE cl.Status = N'Finished'
+      AND (SELECT COUNT(*) FROM dbo.CERTIFICATE ce JOIN dbo.ENROLLMENT en ON en.EnrollmentId = ce.EnrollmentId
+           WHERE en.ClassId = cl.ClassId) >= 2
+    ORDER BY cl.ClassId;
+    SELECT TOP (1) @Fail35 = en.EnrollmentId
+    FROM dbo.ENROLLMENT en JOIN dbo.CERTIFICATE ce ON ce.EnrollmentId = en.EnrollmentId
+    WHERE en.ClassId = @Class35 ORDER BY en.EnrollmentId;
+    SELECT TOP (1) @Raise35 = en.EnrollmentId
+    FROM dbo.ENROLLMENT en JOIN dbo.CERTIFICATE ce ON ce.EnrollmentId = en.EnrollmentId
+    WHERE en.ClassId = @Class35 AND en.EnrollmentId <> @Fail35 AND ce.FinalGrade < 10 ORDER BY en.EnrollmentId;
+
+    IF OBJECT_ID('tempdb..#R35') IS NOT NULL DROP TABLE #R35;
+    CREATE TABLE #R35 (PassedCount INT, FailedCount INT);
+    BEGIN TRAN;
+    UPDATE dbo.GRADE SET Score = 0 WHERE EnrollmentId = @Fail35;
+    UPDATE dbo.GRADE SET Score = 10 WHERE EnrollmentId = @Raise35;
+    INSERT #R35 EXEC dbo.usp_Class_EvaluateResults @ClassId = @Class35;
+    SELECT @Passed35 = COUNT(*) FROM dbo.ENROLLMENT WHERE ClassId = @Class35 AND Result = N'Passed';
+    SELECT @Certs35 = COUNT(*)
+    FROM dbo.CERTIFICATE ce JOIN dbo.ENROLLMENT en ON en.EnrollmentId = ce.EnrollmentId WHERE en.ClassId = @Class35;
+    SELECT @Wrong35 = COUNT(*)
+    FROM dbo.ENROLLMENT en LEFT JOIN dbo.CERTIFICATE ce ON ce.EnrollmentId = en.EnrollmentId
+    WHERE en.ClassId = @Class35 AND en.Status = N'Completed'
+      AND ((en.Result = N'Failed' AND ce.CertificateId IS NOT NULL)
+        OR (en.Result = N'Passed' AND (ce.CertificateId IS NULL OR ce.FinalGrade <> en.FinalGrade
+                                       OR ce.Classification <> dbo.fn_Classification(en.FinalGrade))));
+    SET @FailOk35 = CASE WHEN EXISTS (SELECT 1 FROM dbo.ENROLLMENT WHERE EnrollmentId = @Fail35 AND Result = N'Failed')
+                          AND NOT EXISTS (SELECT 1 FROM dbo.CERTIFICATE WHERE EnrollmentId = @Fail35)
+                         THEN 1 ELSE 0 END;
+    SET @RaiseOk35 = CASE WHEN EXISTS (SELECT 1 FROM dbo.CERTIFICATE WHERE EnrollmentId = @Raise35 AND FinalGrade = 10)
+                          THEN 1 ELSE 0 END;
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T35', N'Re-evaluation: certificates follow the corrected results', N'Succeeded',
+        CASE WHEN @Wrong35 = 0 AND @FailOk35 = 1 AND @RaiseOk35 = 1 AND @Certs35 = @Passed35
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        ISNULL(@Class35, N'?') + N': ' + ISNULL(@Fail35, N'?') + N' failed and lost the certificate = '
+        + CAST(@FailOk35 AS NVARCHAR(1)) + N', ' + ISNULL(@Raise35, N'?') + N' re-graded 10 = '
+        + CAST(@RaiseOk35 AS NVARCHAR(1)) + N'; ' + CAST(@Certs35 AS NVARCHAR(10)) + N' certificates for '
+        + CAST(@Passed35 AS NVARCHAR(10)) + N' passed; ' + CAST(@Wrong35 AS NVARCHAR(10)) + N' mismatch(es)');
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T35', N'Re-evaluation: certificates follow the corrected results', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T39: every changed score is written to the audit log as XML (trg_GRADE_Audit)
+--      Proves trg_GRADE_Audit: an UPDATE that keeps the same score adds nothing; changing the score adds exactly
+--      one AUDIT_LOG row with Action UPDATE, the key EnrollmentId/ComponentId and the old and new score in
+--      OldData/NewData (read back with .value()). Rolled back. Concept: AFTER trigger on inserted/deleted,
+--      FOR XML PATH, XML column.
+BEGIN TRY
+    DECLARE @Enrollment39 VARCHAR(10), @Component39 INT, @Old39 DECIMAL(4,2), @New39 DECIMAL(4,2), @Before39 BIGINT,
+            @Same39 INT, @Rows39 INT, @Action39 VARCHAR(10), @Key39 NVARCHAR(100), @OldLogged39 DECIMAL(4,2),
+            @NewLogged39 DECIMAL(4,2);
+    SELECT TOP (1) @Enrollment39 = EnrollmentId, @Component39 = ComponentId, @Old39 = Score
+    FROM dbo.GRADE ORDER BY EnrollmentId, ComponentId;
+    SET @New39 = CASE WHEN @Old39 >= 9 THEN @Old39 - 1 ELSE @Old39 + 1 END;
+    BEGIN TRAN;
+    SELECT @Before39 = ISNULL(MAX(LogId), 0) FROM dbo.AUDIT_LOG;
+    UPDATE dbo.GRADE SET Score = @Old39 WHERE EnrollmentId = @Enrollment39 AND ComponentId = @Component39;
+    SELECT @Same39 = COUNT(*) FROM dbo.AUDIT_LOG WHERE LogId > @Before39;
+    UPDATE dbo.GRADE SET Score = @New39 WHERE EnrollmentId = @Enrollment39 AND ComponentId = @Component39;
+    SELECT @Rows39 = COUNT(*) FROM dbo.AUDIT_LOG WHERE LogId > @Before39;
+    SELECT TOP (1) @Action39 = Action, @Key39 = RecordKey,
+           @OldLogged39 = OldData.value('(/Grade/Score)[1]', 'DECIMAL(4,2)'),
+           @NewLogged39 = NewData.value('(/Grade/Score)[1]', 'DECIMAL(4,2)')
+    FROM dbo.AUDIT_LOG WHERE LogId > @Before39 ORDER BY LogId DESC;
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T39', N'trg_GRADE_Audit: one XML audit row per changed score', N'Succeeded',
+        CASE WHEN @Same39 = 0 AND @Rows39 = 1 AND @Action39 = 'UPDATE'
+                  AND @Key39 = @Enrollment39 + N'/' + CAST(@Component39 AS NVARCHAR(10))
+                  AND @OldLogged39 = @Old39 AND @NewLogged39 = @New39
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        ISNULL(@Key39, N'?') + N': ' + ISNULL(CAST(@OldLogged39 AS NVARCHAR(10)), N'NULL') + N' -> '
+        + ISNULL(CAST(@NewLogged39 AS NVARCHAR(10)), N'NULL') + N' logged (' + CAST(@Rows39 AS NVARCHAR(10))
+        + N' row(s); unchanged score: ' + CAST(@Same39 AS NVARCHAR(10)) + N')');
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T39', N'trg_GRADE_Audit: one XML audit row per changed score', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T40: a placement test recommends a course by itself (trg_PLACEMENT_TEST_Recommend)
+--      Proves the trigger after an INSERT and after an UPDATE of the scores: RecommendedCourseId is the open course
+--      with the highest minimum score that the overall score reaches (the cheaper one first), recomputed here from
+--      COURSE. Rolled back. Concept: AFTER trigger that completes the rows just written, UPDATE(col).
+BEGIN TRY
+    DECLARE @T40 TABLE (TestId VARCHAR(10));
+    DECLARE @Test40 VARCHAR(10), @Overall40 DECIMAL(4,2), @Got40 VARCHAR(10), @Expected40 VARCHAR(10),
+            @OverallLater40 DECIMAL(4,2), @GotLater40 VARCHAR(10), @ExpectedLater40 VARCHAR(10);
+    BEGIN TRAN;
+    INSERT INTO dbo.PLACEMENT_TEST (StudentId, ListeningScore, SpeakingScore, ReadingScore, WritingScore, GradedByTeacherId)
+    OUTPUT inserted.TestId INTO @T40
+    VALUES ('ST00071', 6, 5.5, 6, 5.5, 'TE0001');
+    SELECT @Test40 = TestId FROM @T40;
+    SELECT @Overall40 = OverallScore, @Got40 = RecommendedCourseId FROM dbo.PLACEMENT_TEST WHERE TestId = @Test40;
+    SELECT TOP (1) @Expected40 = CourseId FROM dbo.COURSE
+    WHERE Status = N'Open' AND ISNULL(MinPlacementScore, 0) <= @Overall40
+    ORDER BY ISNULL(MinPlacementScore, 0) DESC, Tuition ASC;
+
+    UPDATE dbo.PLACEMENT_TEST SET ListeningScore = 3, SpeakingScore = 3, ReadingScore = 3, WritingScore = 3
+    WHERE TestId = @Test40;
+    SELECT @OverallLater40 = OverallScore, @GotLater40 = RecommendedCourseId FROM dbo.PLACEMENT_TEST WHERE TestId = @Test40;
+    SELECT TOP (1) @ExpectedLater40 = CourseId FROM dbo.COURSE
+    WHERE Status = N'Open' AND ISNULL(MinPlacementScore, 0) <= @OverallLater40
+    ORDER BY ISNULL(MinPlacementScore, 0) DESC, Tuition ASC;
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T40', N'trg_PLACEMENT_TEST_Recommend: course recommended from the score', N'Succeeded',
+        CASE WHEN @Got40 = @Expected40 AND @GotLater40 = @ExpectedLater40 AND @Got40 <> @GotLater40
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CAST(@Overall40 AS NVARCHAR(10)) + N' => ' + ISNULL(@Got40, N'NULL') + N' (expected ' + ISNULL(@Expected40, N'NULL')
+        + N'), then ' + CAST(@OverallLater40 AS NVARCHAR(10)) + N' => ' + ISNULL(@GotLater40, N'NULL') + N' (expected '
+        + ISNULL(@ExpectedLater40, N'NULL') + N')');
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T40', N'trg_PLACEMENT_TEST_Recommend: course recommended from the score', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
 /* ---------------- D. SCHEMA CONVENTIONS (catalog views, nothing to roll back) ---------------- */
 
 -- T28: naming conventions of 01-sql.md: tables UPPER_SNAKE_CASE, columns PascalCase, prefixes usp_/fn_/vw_/seq_,
 --      trg_<TABLE>_, PK_<TABLE>, FK_<CHILD>_<PARENT>, CK_/UQ_/DF_<TABLE>_, IX_/UX_<TABLE>_ (case-sensitive)
+--      Concepts: catalog views (sys.tables, sys.columns, sys.objects, sys.foreign_keys, sys.indexes);
+--      COLLATE Latin1_General_BIN makes LIKE case-sensitive; FOR XML PATH + STUFF joins the bad names into one
+--      message (the 2012-compatible way to concatenate rows). A non-empty list = Actual Rejected = FAILED.
 BEGIN TRY
     DECLARE @Bad TABLE (Name NVARCHAR(300));
     INSERT @Bad
@@ -715,6 +1077,10 @@ GO
 
 -- T29: least privilege - the table permissions of the business roles are EXACTLY those of 06_security.sql
 --      (column grants count as the table; DENY only narrows rights). A new GRANT must be added here on purpose.
+--      @Spec = the expected matrix, @Actual = what sys.database_permissions (state G = GRANT, W = WITH GRANT OPTION)
+--      and sys.database_role_members really hold; EXCEPT in both directions lists the extra and missing rights.
+--      Only table rights, schema rights and role memberships are compared - EXECUTE/SELECT on procedures, views
+--      and functions and the DENYs are not (P01, P04, P07 and P08 test some DENYs by impersonation).
 BEGIN TRY
     DECLARE @Spec TABLE (RoleName SYSNAME, Permission NVARCHAR(60), Target SYSNAME);
     INSERT @Spec VALUES
@@ -775,6 +1141,9 @@ GO
 
 -- T30: code conventions of 01-sql.md: every procedure and trigger sets NOCOUNT ON; no SELECT * in procedures,
 --      views or functions
+--      Concept: sys.sql_modules.definition holds the source text of every procedure, trigger, view and function.
+--      SET NOCOUNT ON stops the extra "rows affected" messages; SELECT * would silently change a result when a
+--      column is added.
 BEGIN TRY
     DECLARE @Bad TABLE (Name NVARCHAR(300));
     INSERT @Bad
@@ -838,8 +1207,13 @@ END CATCH;
 GO
 
 /* ---------------- B. PERMISSIONS (EXECUTE AS USER) ---------------- */
+-- Each case impersonates a demo user (EXECUTE AS USER), so the statement runs with the rights of that user only;
+-- REVERT returns to sa/dbo. REVERT is in the CATCH block too: an error must not leave the next cases running as
+-- that user.
 
 -- P01: a teacher reads the STUDENT table
+--      Proves DENY SELECT ON STUDENT TO rl_Teacher. Concepts: EXECUTE AS USER switches the security context to
+--      gv_john until REVERT; DENY wins over any GRANT.
 BEGIN TRY
     EXECUTE AS USER = N'gv_john';
     DECLARE @n INT = (SELECT COUNT(*) FROM dbo.STUDENT);
@@ -853,14 +1227,27 @@ END CATCH;
 GO
 
 -- P02: a teacher reads the views of their own classes (ownership chaining + USER_NAME() filter)
+--      gv_john has SELECT on the views only, not on CLASS/STUDENT: because the views and the tables have the same
+--      owner (dbo), SQL Server does not check the tables again (ownership chaining). fn_CurrentTeacherId() maps
+--      USER_NAME() to the teacher, so the views return only the rows of TE0001. The counts are compared with
+--      the classes and enrollments of that teacher counted by dbo in the base tables, and must be fewer than all
+--      classes: a broken filter (no row, or every row) fails the case.
 BEGIN TRY
+    DECLARE @Teacher02 VARCHAR(10) = (SELECT TeacherId FROM dbo.ACCOUNT WHERE Username = N'gv_john');
+    DECLARE @ExpectedClasses02 INT = (SELECT COUNT(*) FROM dbo.CLASS WHERE TeacherId = @Teacher02);
+    DECLARE @ExpectedStudents02 INT = (SELECT COUNT(*) FROM dbo.ENROLLMENT en
+                                       JOIN dbo.CLASS cl ON cl.ClassId = en.ClassId WHERE cl.TeacherId = @Teacher02);
+    DECLARE @AllClasses02 INT = (SELECT COUNT(*) FROM dbo.CLASS);
     EXECUTE AS USER = N'gv_john';
     DECLARE @n INT = (SELECT COUNT(*) FROM dbo.vw_Teacher_MyClasses);
     DECLARE @st INT = (SELECT COUNT(*) FROM dbo.vw_Teacher_MyStudents);
     REVERT;
-    INSERT #Results VALUES ('P02', N'Teacher SELECTs the views of their classes/students', N'Succeeded', N'Succeeded',
-                            CAST(@n AS NVARCHAR(10)) + N' classes, ' + CAST(@st AS NVARCHAR(10))
-                            + N' students (only the classes of TE0001)');
+    INSERT #Results VALUES ('P02', N'Teacher SELECTs the views of their classes/students', N'Succeeded',
+        CASE WHEN @n = @ExpectedClasses02 AND @st = @ExpectedStudents02 AND @n > 0 AND @n < @AllClasses02
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CAST(@n AS NVARCHAR(10)) + N' classes, ' + CAST(@st AS NVARCHAR(10)) + N' students of '
+        + ISNULL(@Teacher02, N'?') + N' (expected ' + CAST(@ExpectedClasses02 AS NVARCHAR(10)) + N' / '
+        + CAST(@ExpectedStudents02 AS NVARCHAR(10)) + N')');
 END TRY
 BEGIN CATCH
     REVERT;
@@ -869,35 +1256,45 @@ END CATCH;
 GO
 
 -- P03: a teacher enters a grade in a class they do not teach
+--      Proves the row-level rule of usp_Grade_Save: role TEACHER may only grade classes they teach (THROW 50041;
+--      CL0004 belongs to TE0005). Concept: rule based on the signed-in user (fn_CurrentRole/fn_CurrentTeacherId).
 BEGIN TRY
     DECLARE @EnrollmentId VARCHAR(10) = (SELECT TOP 1 EnrollmentId FROM dbo.ENROLLMENT WHERE ClassId = 'CL0004');
     DECLARE @ComponentId INT = (SELECT TOP 1 ComponentId FROM dbo.GRADE_COMPONENT WHERE CourseId = 'TO-450');
+    BEGIN TRAN;
     EXECUTE AS USER = N'gv_john';
     EXEC dbo.usp_Grade_Save @EnrollmentId = @EnrollmentId, @ComponentId = @ComponentId, @Score = 9;
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P03', N'Teacher grades a class of another teacher', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P03', N'Teacher grades a class of another teacher', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 
 -- P04: an accountant enrolls a student (DENY EXECUTE)
+--      Proves DENY EXECUTE ON usp_Enrollment_Create TO rl_Accountant; the permission error names the procedure.
 BEGIN TRY
     DECLARE @EnrollmentId VARCHAR(10);
+    BEGIN TRAN;
     EXECUTE AS USER = N'kt_minh';
     EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00071', @ClassId = 'CL0010', @EnrollmentId = @EnrollmentId OUTPUT;
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P04', N'Accountant enrolls a student', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P04', N'Accountant enrolls a student', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 
 -- P05: an accountant reads the teachers' hourly rate (column-level GRANT)
+--      Proves the column list of GRANT SELECT ON TEACHER (...) TO rl_Accountant includes HourlyRate (payroll work).
 BEGIN TRY
     EXECUTE AS USER = N'kt_minh';
     DECLARE @Rate DECIMAL(12,0) = (SELECT TOP 1 HourlyRate FROM dbo.TEACHER ORDER BY TeacherId);
@@ -912,6 +1309,8 @@ END CATCH;
 GO
 
 -- P06: academic staff read the teachers' hourly rate (that column is not GRANTed)
+--      Proves the column-level GRANT of rl_AcademicStaff leaves HourlyRate out (the other TEACHER columns are
+--      granted), so reading it is refused. Concept: permission on single columns.
 BEGIN TRY
     EXECUTE AS USER = N'gvu_lan';
     DECLARE @Rate DECIMAL(12,0) = (SELECT TOP 1 HourlyRate FROM dbo.TEACHER ORDER BY TeacherId);
@@ -925,6 +1324,7 @@ END CATCH;
 GO
 
 -- P07: academic staff read the payroll (DENY SELECT)
+--      Proves DENY SELECT ON PAYROLL TO rl_AcademicStaff: academic staff never see the pay of the teachers.
 BEGIN TRY
     EXECUTE AS USER = N'gvu_lan';
     DECLARE @n INT = (SELECT COUNT(*) FROM dbo.PAYROLL);
@@ -938,6 +1338,10 @@ END CATCH;
 GO
 
 -- P08: the manager deletes a receipt (DENY DELETE - even for the manager)
+--      Proves DENY DELETE ON RECEIPT TO rl_Manager: the permission check comes before the INSTEAD OF trigger of
+--      T07, so this error is a permission error. The case checks the error number 229 (permission denied): the
+--      pattern %RECEIPT% alone would also match the message of that trigger. Concept: DENY as an explicit block
+--      that a later GRANT cannot open.
 BEGIN TRY
     BEGIN TRAN;
     EXECUTE AS USER = N'ql_quan';
@@ -949,24 +1353,33 @@ END TRY
 BEGIN CATCH
     REVERT;
     IF @@TRANCOUNT > 0 ROLLBACK;
-    INSERT #Results VALUES ('P08', N'Manager DELETEs from the RECEIPT table', N'Rejected', N'Rejected', ERROR_MESSAGE());
+    INSERT #Results VALUES ('P08', N'Manager DELETEs from the RECEIPT table', N'Rejected',
+        CASE WHEN ERROR_NUMBER() = 229 THEN N'Rejected' ELSE N'Wrong error' END, ERROR_MESSAGE());
 END CATCH;
 GO
 
 -- P09: academic staff create an account (no GRANT EXECUTE)
+--      Proves usp_Account_Create is not available to rl_AcademicStaff: only rl_Manager has EXECUTE (through
+--      GRANT EXECUTE ON SCHEMA::dbo). Concept: no GRANT = no access.
 BEGIN TRY
+    BEGIN TRAN;
     EXECUTE AS USER = N'gvu_lan';
     EXEC dbo.usp_Account_Create N'test_user', N'Test@12345', 'ACADEMIC_STAFF', 'EM0006', NULL;
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P09', N'Academic staff create a sign-in account', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P09', N'Academic staff create a sign-in account', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 
 -- P10: the manager creates a new account (EXECUTE AS OWNER), then rolls it back
+--      The manager has no right to create users; usp_Account_Create runs WITH EXECUTE AS OWNER, so CREATE USER and
+--      ALTER ROLE run as the owner (dbo). Concepts: EXECUTE AS OWNER, contained database user (user + password
+--      stored in the database itself). The ROLLBACK also removes the new user.
 BEGIN TRY
     BEGIN TRAN;
     EXECUTE AS USER = N'ql_quan';
@@ -986,6 +1399,8 @@ END CATCH;
 GO
 
 -- P11: academic staff may open the Dashboard but not see the revenue (the procedure returns NULL)
+--      Proves usp_Dashboard_Stats hides the revenue: RevenueThisMonth is NULL unless fn_CurrentRole() is MANAGER
+--      or ACCOUNTANT. Concept: hiding a value inside a procedure, based on the role of the signed-in user.
 BEGIN TRY
     IF OBJECT_ID('tempdb..#Dashboard') IS NOT NULL DROP TABLE #Dashboard;
     CREATE TABLE #Dashboard (ActiveStudents INT, ActiveClasses INT, EnrollingClasses INT, RevenueThisMonth BIGINT,
@@ -1005,19 +1420,45 @@ END CATCH;
 GO
 
 -- P12: changing one's own password with a wrong current password (ALTER USER ... OLD_PASSWORD)
+--      SQL Server checks the current password itself (error 15151); the CATCH block of usp_Account_ChangePassword
+--      turns that into the business message THROW 50066. Concept: TRY/CATCH translating a system error.
 BEGIN TRY
+    BEGIN TRAN;
     EXECUTE AS USER = N'gvu_lan';
     EXEC dbo.usp_Account_ChangePassword N'wrong-password', N'NewPassword@1';
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P12', N'Password change with a wrong current password', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P12', N'Password change with a wrong current password', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 
+-- P13: changing one's own password without the current password (NULL)
+--      Proves usp_Account_ChangePassword refuses a NULL current password (THROW 50066). Before this check the
+--      NULL turned the whole ALTER USER text into NULL, sp_executesql ran nothing and the call reported success.
+--      Rolled back in any case. Concept: NULL propagation in string concatenation (text + NULL = NULL).
+BEGIN TRY
+    BEGIN TRAN;
+    EXECUTE AS USER = N'gvu_lan';
+    EXEC dbo.usp_Account_ChangePassword NULL, N'NewPassword@1';
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P13', N'Password change without the current password', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P13', N'Password change without the current password', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
 /* ---------------- SUMMARY ---------------- */
+-- FULL OUTER JOIN: a case that ran but is not registered, or is registered but did not run, has a NULL side and is
+-- FAILED. "r.Message LIKE e.MessagePattern" checks the reason of a rejection (NULL pattern = no check).
 IF OBJECT_ID('tempdb..#Summary') IS NOT NULL DROP TABLE #Summary;
 SELECT COALESCE(r.TestId, e.TestId) AS TestId,
        ISNULL(r.Description, N'(test case did not run)') AS Description, r.Expected, r.Actual,
@@ -1032,6 +1473,7 @@ FULL OUTER JOIN #Expected e ON e.TestId = r.TestId;
 SELECT TestId, Description, Expected, Actual, Verdict, Message FROM #Summary ORDER BY TestId;
 SELECT COUNT(*) AS TotalCases, SUM(CASE WHEN Verdict = N'PASSED' THEN 1 ELSE 0 END) AS PassedCases FROM #Summary;
 
+-- Makes the run fail: sqlcmd -b returns exit code 1 (scripts/test_all stops), SSMS shows error 50099
 IF EXISTS (SELECT 1 FROM #Summary WHERE Verdict <> N'PASSED')
     THROW 50099, N'Some database test cases FAILED (see the summary table above).', 1;
 GO

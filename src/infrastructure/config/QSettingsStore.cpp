@@ -2,6 +2,7 @@
 
 #include <QSettings>
 
+// A missing key returns the default of ServerConfig (localhost,1433 / QLTTTA / trust the certificate)
 ServerConfig QSettingsStore::serverConfig() const {
     QSettings s;
     const ServerConfig defaults;

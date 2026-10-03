@@ -15,18 +15,22 @@ QString activeStatus() {
 }
 } // namespace StudentValues
 
+// "namespace {" (an anonymous namespace) = helpers private to this file
 namespace {
+// 9-11 digits, like the CHECK constraint CK_STUDENT_Phone (NOT LIKE '%[^0-9]%' AND LEN BETWEEN 9 AND 11)
 bool isValidPhone(const QString& phone) {
     static const QRegularExpression pattern(QStringLiteral("^[0-9]{9,11}$"));
     return pattern.match(phone).hasMatch();
 }
 
+// something@something.something, close to CK_STUDENT_Email (LIKE '%_@_%._%')
 bool isValidEmail(const QString& email) {
     static const QRegularExpression pattern(QStringLiteral("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"));
     return pattern.match(email).hasMatch();
 }
 } // namespace
 
+// Years between the two dates, minus one when the birthday has not come yet that year
 int Student::age(const QDate& asOf) const {
     if (!dateOfBirth.isValid() || !asOf.isValid())
         return 0;
@@ -41,8 +45,16 @@ bool Student::needsGuardian(const QDate& asOf) const {
     return age(asOf) < 18;
 }
 
+// Collects EVERY broken rule (not only the first) so the form can show them all at once. Each rule mirrors a
+// constraint of table STUDENT, so the user gets a clear message before the database would reject the row:
+//   date of birth / at least 4 years old -> CK_STUDENT_DateOfBirth   gender -> CK_STUDENT_Gender
+//   phone formats -> CK_STUDENT_Phone, CK_STUDENT_GuardianPhone       email -> CK_STUDENT_Email
+//   under 18 needs a guardian -> CK_STUDENT_Guardian                  one contact phone -> CK_STUDENT_Contact
+//   status -> CK_STUDENT_Status                                       branch -> FK_STUDENT_BRANCH (NOT NULL)
 QStringList Student::validate(const QDate& today) const {
     QStringList errors;
+    // The database measures the age on the registration date (RegisteredOn); a new student has none yet,
+    // so today's date is used - the date usp_Student_Add will store.
     const QDate ageReference = registeredOn.isValid() ? registeredOn : today;
 
     if (fullName.trimmed().isEmpty())

@@ -27,8 +27,9 @@ kind of report**, so the team lead can merge it without rework and everyone can 
 ## 2. Shared conventions
 - Talk to team members in **Vietnamese** (chat). Everything written in the repository - C++ identifiers, comments,
   CMake, scripts, CI, docs, the database (objects, columns, stored values, business messages, SQL comments) - is
-  **English**; comments are short and explain *why*. Only the report (`docs/report/`) and the user guide
-  (`docs/user-guide/`) are Vietnamese.
+  **English**; comments explain *why*. Every file and database object starts with a header comment that a member
+  who does not program can follow: what it is for, who uses it, which course concept it shows
+  (`docs/CODE_TOUR.md`). Only the report (`docs/report/`) and the user guide (`docs/user-guide/`) are Vietnamese.
 - UI strings: English in `tr("...")`, translated to Vietnamese in `resources/translations/qlttta_vi.ts`; stored
   database values and database messages are translated there too (`DbValues`, `DbMessages`).
 - Database naming (`STUDENT`, `usp_Enrollment_Create`, `StudentId`): see `01-sql.md`.

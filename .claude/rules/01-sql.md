@@ -49,6 +49,12 @@ verify the marked (✔) rules automatically on every `test_all` / CI run.
 - Align parameters as in `usp_Student_Add`; optional parameters end with `= NULL`.
 - Every object starts with **one comment line with its section code** (the groups of the file):
   `/* C5. usp_Enrollment_Cancel: cancel an enrollment, refund it when no session was attended */`.
+  The header may continue with `Used by:`, `Rules:`/`Steps:` and `Concepts:` lines for readers who do not program
+  (see `docs/CODE_TOUR.md`); inside the body, short numbered `--` comments before the non-obvious steps.
+- Comments are read by tools too: never write a business message (`THROW 5xxxx, N'...'`), a `CHECK (Col IN (...))`
+  list or a line with only `GO` inside a comment (`tst_i18n` scans the raw text; sqlcmd splits batches on `GO`).
+  The report quotes some objects verbatim (`sql_object`/`sql_block` in `docs/report/content/`): explain those in
+  the header before `CREATE`, or rebuild the report (`/imcp-update-report`) when their body changes.
 - ✔ No `SELECT *` in procedures/views/functions (demo queries excepted; T30); never the `sp_` prefix.
 
 ## Template of a multi-step write procedure

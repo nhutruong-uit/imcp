@@ -7,6 +7,8 @@
 
 // Login = open a SQL Server connection with the user's account (contained database user),
 // then read the role through dbo.usp_Account_RecordLogin.
+// Implements the port IAuthGateway; the connection itself belongs to DatabaseManager (shared by every
+// repository, which is why m_db is a reference).
 class SqlAuthGateway : public IAuthGateway {
     Q_DECLARE_TR_FUNCTIONS(SqlAuthGateway)
 public:

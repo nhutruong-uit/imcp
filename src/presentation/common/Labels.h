@@ -6,7 +6,7 @@
 
 #include <QString>
 
-// How a feature appears in the menu
+// How a feature appears in the menu (built by Labels::feature, read by MainWindow::buildSidebar)
 struct FeatureInfo {
     Feature feature;
     QString name;  // in the UI language

@@ -29,6 +29,9 @@ docs/<short-name>               CI runs after the merge)
 
 ## How do non-programming members contribute?
 
+Start with [CODE_TOUR.md](CODE_TOUR.md): it explains how to read the SQL scripts and the C++ code without a
+programming background, and where to find the code behind each business rule.
+
 Everyone contributes through GitHub (the commit history is the evidence of who did what at the oral defense):
 1. Open an **Issue** when you find a data/business bug or want to suggest something (labels: `database`, `report`, `app`).
 2. Edit documentation/report: create a `docs/...` branch directly in the GitHub web UI (*Edit file* →

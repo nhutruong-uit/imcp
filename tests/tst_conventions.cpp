@@ -2,6 +2,11 @@
 // syntax and script headers, Clean Architecture include directions, SQL only in the infrastructure layer,
 // script format, and the numbers the docs quote about the database. Every failure lists file:line.
 // The rules are described in .claude/rules/ (01-sql.md, 02-cpp-qt.md, 04-scripts-ci.md, 06-docs.md).
+// How it works: every test reads files of the repository as text, blanks out the comments (an example
+// written in a comment must not count) and searches the rest with regular expressions. A new convention
+// that can be read from the files gets a new slot here, with failure messages "file:line: what to do".
+// Run only this suite:
+//   ctest --preset macos-debug -R conventions --output-on-failure
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
@@ -11,6 +16,7 @@
 #include <QtTest>
 
 namespace {
+// Repository root, compiled in by tests/CMakeLists.txt (target_compile_definitions QLTTTA_SOURCE_DIR)
 const QString kRoot = QStringLiteral(QLTTTA_SOURCE_DIR);
 
 QByteArray readBytes(const QString& relativePath) {
@@ -117,7 +123,8 @@ QString sqlCode(const QString& fileName) {
     return withoutComments(readText(QStringLiteral("database/") + fileName), true);
 }
 
-// Test case codes registered in #Expected: ('T01', N'%pattern%') or ('T15', NULL) - two values only
+// Test case codes registered in #Expected: ('T01', N'%pattern%') or ('T15', NULL) - two values only.
+// The count is compared with the numbers of cases that docs/DATABASE.md and docs/SETUP.md quote.
 int expectedCases(const QString& fileName) {
     const QRegularExpression re(QStringLiteral("\\('([TPS]\\d{2})',\\s*(?:NULL|N'(?:[^']|'')*')\\s*\\)"));
     QSet<QString> codes;
@@ -141,6 +148,7 @@ class TestConventions : public QObject {
     Q_OBJECT
 
 private slots:
+    // Runs once before the tests: stops early, printing the path, when kRoot is not the repository
     void initTestCase() {
         QVERIFY2(QFile::exists(kRoot + QStringLiteral("/database/01_tables.sql")), qPrintable(kRoot));
     }
@@ -340,6 +348,7 @@ private slots:
                                                    "(\\d+) SEQUENCE");
         const QString functionKinds =
             QStringLiteral("(\\d+) scalar, (\\d+) inline table-valued, (\\d+) multi-statement table-valued");
+        // One check = the doc, the regex holding the number, its capture group, the real count
         struct Check {
             QString doc;
             QString pattern;
@@ -395,5 +404,6 @@ private slots:
     }
 };
 
+// main() without a Qt application object: the tests only read files
 QTEST_APPLESS_MAIN(TestConventions)
 #include "tst_conventions.moc"

@@ -159,6 +159,7 @@ void LoginDialog::changeLanguage() {
     done(LanguageChanged); // the caller shows a new login dialog, built in the new language
 }
 
+// The server settings are saved first (also when the login fails), so the user does not type them again
 void LoginDialog::login() {
     ServerConfig config;
     config.host = m_server->text().trimmed();
@@ -170,6 +171,7 @@ void LoginDialog::login() {
     m_loginButton->setEnabled(false);
     m_loginButton->setText(tr("Connecting..."));
     QApplication::setOverrideCursor(Qt::WaitCursor);
+    // Let Qt paint "Connecting..." now: the login call below blocks the UI until SQL Server answers
     QApplication::processEvents();
 
     const auto result = m_auth.login(m_username->text(), m_password->text());

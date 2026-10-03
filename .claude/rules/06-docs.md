@@ -19,6 +19,7 @@ Everything here is **English**.
 | Command, environment variable, tool to install, test step, CI job | `docs/SETUP.md` (+ `AGENTS.md` "Common commands") |
 | Team workflow, branches, PR checklist, required checks | `docs/CONTRIBUTING.md` (+ `.github/pull_request_template.md`) |
 | Repository layout | `README.md` |
+| A flow, layer or business rule that a non-programmer must be able to follow (who checks what, which test) | `docs/CODE_TOUR.md` (sections 5-6) |
 | A convention | the numbered rule of its area in `.claude/rules/` - never only in `AGENTS.md` |
 
 ## One fact in one place

@@ -14,6 +14,7 @@ QString languageCode(Language language) {
     return QStringLiteral("vi");
 }
 
+// Accepts "en" and locale names such as "en_GB"; anything else falls back to the default, Vietnamese
 Language languageFromCode(const QString& code) {
     const QString c = code.trimmed().toLower();
     if (c == QLatin1String("en") || c.startsWith(QLatin1String("en_")))

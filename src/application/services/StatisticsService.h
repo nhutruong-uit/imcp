@@ -4,7 +4,7 @@
 
 #include <QCoreApplication>
 
-// Dashboard use case: key figures and revenue per month
+// Dashboard use case: key figures and revenue per month (used by DashboardPage)
 class StatisticsService {
     Q_DECLARE_TR_FUNCTIONS(StatisticsService)
 public:

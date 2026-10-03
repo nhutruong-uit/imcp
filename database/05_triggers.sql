@@ -4,6 +4,31 @@
    express (rules spanning several tables or rows, derived attributes)
    and write the audit trail. Every trigger works on SETS of rows
    (several rows in inserted/deleted), never assuming a single row.
+
+   Run order: scripts/db_init runs this file after 04_procedures.sql (it needs the tables of 01 and
+   fn_RecommendCourse of 02). Each trigger is dropped and created again, so the file can be re-run.
+   A trigger fires for EVERY write to its table: from the procedures of 04, the seed data of 07, the
+   test cases of 12_tests.sql, even a direct INSERT/UPDATE by dbo. That is why the rules live here and
+   not only in the procedures.
+
+   Key ideas for the oral defense:
+     - inserted / deleted: two virtual tables with the new rows (INSERT, UPDATE) and the old rows
+       (UPDATE, DELETE) of ONE statement. An UPDATE of 100 rows fires the trigger once with 100 rows,
+       so every check joins inserted with the other tables (never SELECT @x = Col FROM inserted,
+       which reads a single row).
+     - AFTER trigger: runs after the change and after the constraints, sees the final data and can undo
+       the whole statement with ROLLBACK TRANSACTION. INSTEAD OF trigger: runs in place of the
+       statement, so the change never happens unless the trigger does it itself (T5, T10).
+     - RAISERROR with severity 16 = a user error the application shows (the English message is
+       translated through DbMessages); ROLLBACK TRANSACTION undoes the statement and the caller's
+       transaction.
+     - UPDATE(Col) is TRUE when the column is in the SET list of the UPDATE (always TRUE for an INSERT);
+       it lets a trigger skip the work when the related columns did not change (T3, T11).
+     - Why not a CHECK constraint: a CHECK only sees the columns of ONE row of ONE table. Rules that read
+       other rows (capacity, schedule clashes), other tables (room branch, enrollment result) or the old
+       values of a row (taught session) need a trigger.
+   Each trigger header names the test cases of 12_tests.sql that prove its rule (test Tnn, Pnn);
+   T1-T13 without the word test are the triggers of this file.
    ===================================================================== */
 USE QLTTTA;
 GO
@@ -13,7 +38,14 @@ GO
 
 /* T1. trg_CLASS_CheckRoom (rule across CLASS - ROOM)
        - The room must belong to the same branch as the class
-       - The class capacity cannot exceed the room capacity */
+       - The class capacity cannot exceed the room capacity
+       Fired by: every INSERT/UPDATE of CLASS (usp_Class_Create, usp_Class_UpdateStatus, the EndDate
+       written by usp_Class_GenerateSessions); tested by test T09 (a room of another branch).
+       Why a trigger: BranchId and Capacity of the room are in another table (ROOM).
+       How: AFTER INSERT, UPDATE; inserted (every new/changed class) is joined with ROOM, so a statement
+       that changes many classes is checked as a whole. Two checks give two precise messages.
+       Not covered: a later change on the ROOM side (smaller Capacity) is not re-checked here.
+       Concepts: inter-table constraint, AFTER trigger, join with inserted, RAISERROR + ROLLBACK. */
 IF OBJECT_ID(N'dbo.trg_CLASS_CheckRoom', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_CLASS_CheckRoom;
 GO
 CREATE TRIGGER dbo.trg_CLASS_CheckRoom
@@ -39,7 +71,21 @@ GO
 
 /* T2. trg_CLASS_SCHEDULE_CheckConflict (rule across rows and tables)
        Two active classes whose periods overlap, on the same weekday with overlapping
-       hours, cannot share the same room or the same teacher. */
+       hours, cannot share the same room or the same teacher.
+       Fired by: usp_ClassSchedule_Add (a weekly time slot); tested by test T08 (a busy room).
+       Why a trigger: the new slot is compared with the slots of OTHER classes (other rows of
+       CLASS_SCHEDULE), and room, teacher and dates come from CLASS.
+       How it works (AFTER INSERT, UPDATE; set-based):
+         - i = the new/changed slots, c1 = their class, cs = every slot of another class on the same
+           weekday, c2 = that other class.
+         - Two time ranges overlap when each one starts before the other ends
+           (cs.StartTime < i.EndTime AND i.StartTime < cs.EndTime); 18:00-20:00 and 20:00-21:30 do not.
+         - The other class must be active (Enrolling or In progress) and the two class periods must
+           overlap; a class without EndDate yet (set by usp_Class_GenerateSessions) counts as 6 months.
+         - SELECT TOP (1) @Msg = ... looks at ALL rows of inserted and keeps the first conflict only to
+           build a readable message (which class, which room or teacher).
+       Concepts: constraint across rows and tables, interval overlap, AFTER trigger, message built from
+       values (a template with %1/%2 in DbMessages). */
 IF OBJECT_ID(N'dbo.trg_CLASS_SCHEDULE_CheckConflict', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_CLASS_SCHEDULE_CheckConflict;
 GO
 CREATE TRIGGER dbo.trg_CLASS_SCHEDULE_CheckConflict
@@ -71,7 +117,17 @@ BEGIN
 END;
 GO
 
-/* T3. trg_ENROLLMENT_CheckCapacity: the number of enrolled students never exceeds the class size */
+/* T3. trg_ENROLLMENT_CheckCapacity: the number of enrolled students never exceeds the class size
+       Fired by: usp_Enrollment_Create (which has no seat check of its own and relies on this trigger),
+       usp_Enrollment_TransferClass (new ClassId), usp_Enrollment_UpdateStatus (a student who resumes);
+       tested by test T21 (a direct INSERT into a full class that bypasses the procedure).
+       Why a trigger: the rule counts OTHER rows of ENROLLMENT and reads CLASS.MaxStudents.
+       How: UPDATE(ClassId) OR UPDATE(Status) - only these columns change the head count, so an UPDATE of
+       e.g. FinalGrade returns at once (both are TRUE for an INSERT). The count runs AFTER the change for
+       every class found in inserted, with the statuses Studying and Completed (as fn_EnrolledCount);
+       @ClassId only carries the first full class into the message.
+       Not covered: lowering CLASS.MaxStudents below the current count is not checked.
+       Concepts: aggregate constraint, UPDATE(col), AFTER trigger, correlated subquery. */
 IF OBJECT_ID(N'dbo.trg_ENROLLMENT_CheckCapacity', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_ENROLLMENT_CheckCapacity;
 GO
 CREATE TRIGGER dbo.trg_ENROLLMENT_CheckCapacity
@@ -99,7 +155,21 @@ GO
 
 /* T4. trg_RECEIPT_UpdateAmountPaid (derived attribute across tables)
        ENROLLMENT.AmountPaid = SUM(RECEIPT.Amount) of the valid receipts.
-       A payment above the tuition due is rejected => rollback. */
+       A payment above the tuition due is rejected => rollback.
+       Fired by: usp_Receipt_Create (new receipt), usp_Receipt_Cancel (Status Valid -> Cancelled lowers
+       the total) and the seed receipts of 07; tested by tests T06 (overpayment) and T20 (pay, cancel).
+       Why a trigger: AmountPaid is a DERIVED attribute stored in another table (ENROLLMENT). Storing it
+       makes balances cheap to read in views and reports; the trigger keeps it equal to the receipts,
+       whoever writes RECEIPT.
+       How it works (AFTER INSERT, UPDATE; set-based):
+         1. Affected enrollments = EnrollmentId of inserted UNION deleted (deleted = the old rows of an
+            UPDATE, so a receipt moved to another enrollment updates both).
+         2. If the new total of valid receipts of any of them is above TuitionDue => RAISERROR + ROLLBACK
+            (CK_ENROLLMENT_AmountPaid would also fail, but with a technical message).
+         3. Otherwise AmountPaid is recomputed from scratch (SUM, 0 when no valid receipt is left)
+            instead of adding the new amount, so it can never drift away from the receipts.
+       No DELETE event: receipts cannot be deleted (T5 trg_RECEIPT_PreventDelete).
+       Concepts: derived attribute, inserted/deleted, set-based UPDATE ... FROM, AFTER trigger. */
 IF OBJECT_ID(N'dbo.trg_RECEIPT_UpdateAmountPaid', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_RECEIPT_UpdateAmountPaid;
 GO
 CREATE TRIGGER dbo.trg_RECEIPT_UpdateAmountPaid
@@ -132,7 +202,12 @@ END;
 GO
 
 /* T5. trg_RECEIPT_PreventDelete (INSTEAD OF DELETE): financial documents are never
-       physically deleted, only cancelled with usp_Receipt_Cancel. */
+       physically deleted, only cancelled with usp_Receipt_Cancel.
+       Tested by test T07 (DELETE as dbo); test P08 shows the second layer, the DENY DELETE of 06_security.sql.
+       Why INSTEAD OF: the trigger runs in place of the DELETE, so no row is ever removed; raising the
+       error is enough (no ROLLBACK needed, nothing changed). Unlike a DENY it also stops dbo and
+       sysadmin, who skip permission checks.
+       Concepts: INSTEAD OF trigger, soft delete (Status Cancelled + CancelReason), defense in depth. */
 IF OBJECT_ID(N'dbo.trg_RECEIPT_PreventDelete', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_RECEIPT_PreventDelete;
 GO
 CREATE TRIGGER dbo.trg_RECEIPT_PreventDelete
@@ -145,7 +220,12 @@ BEGIN
 END;
 GO
 
-/* T6. trg_ATTENDANCE_CheckClass: the student must belong to the class of the session */
+/* T6. trg_ATTENDANCE_CheckClass: the student must belong to the class of the session
+       Fired by: usp_Attendance_Save and the attendance rows of 07_seed_data.sql.
+       Why a trigger: ATTENDANCE stores SessionId and EnrollmentId but no ClassId, so no foreign key can
+       say "same class"; the rule compares ENROLLMENT.ClassId with CLASS_SESSION.ClassId.
+       How: AFTER INSERT, UPDATE; every row of inserted is joined with its session and its enrollment.
+       Concepts: inter-table constraint (two foreign-key paths must meet), join with inserted. */
 IF OBJECT_ID(N'dbo.trg_ATTENDANCE_CheckClass', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_ATTENDANCE_CheckClass;
 GO
 CREATE TRIGGER dbo.trg_ATTENDANCE_CheckClass
@@ -165,7 +245,13 @@ BEGIN
 END;
 GO
 
-/* T7. trg_GRADE_CheckComponent: the grade component must belong to the course of the enrollment's class */
+/* T7. trg_GRADE_CheckComponent: the grade component must belong to the course of the enrollment's class
+       Fired by: usp_Grade_Save and the grade rows of 07_seed_data.sql.
+       Why a trigger: the paths GRADE -> ENROLLMENT -> CLASS -> COURSE and GRADE -> GRADE_COMPONENT ->
+       COURSE must end at the same course; a foreign key only checks that the referenced row exists.
+       How: AFTER INSERT, UPDATE; inserted is joined with three tables and the statement is rejected when
+       any row points to a component of another course.
+       Concepts: inter-table constraint, multi-table join with inserted. */
 IF OBJECT_ID(N'dbo.trg_GRADE_CheckComponent', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_GRADE_CheckComponent;
 GO
 CREATE TRIGGER dbo.trg_GRADE_CheckComponent
@@ -186,7 +272,19 @@ BEGIN
 END;
 GO
 
-/* T8. trg_GRADE_Audit: log every grade change (old/new data as XML) */
+/* T8. trg_GRADE_Audit: log every grade change (old/new data as XML)
+       Fired by: usp_Grade_Save (new or changed score), the seed grades of 07 and any DELETE of GRADE;
+       query X9 of 08_demo_queries.sql reads the log back.
+       How it works (ONE trigger for INSERT, UPDATE and DELETE):
+         - FULL OUTER JOIN of inserted and deleted on the key (EnrollmentId, ComponentId) pairs the rows:
+           both sides = UPDATE, only inserted = INSERT, only deleted = DELETE.
+         - The WHERE skips an UPDATE that kept the same score (Score is NOT NULL, so <> is safe).
+         - (SELECT ... FOR XML PATH('Grade'), TYPE) turns the old (d) or new (i) values into a small XML
+           document <Grade><Score>..</Score><EnteredBy>..</EnteredBy></Grade>; NULL columns are left
+           out, so the missing side of an INSERT/DELETE becomes an empty <Grade/>.
+         - LoggedAtUtc and PerformedBy come from the defaults of AUDIT_LOG (GETUTCDATE(), ORIGINAL_LOGIN()).
+       The log cannot be changed afterwards (T10 trg_AUDIT_LOG_ReadOnly + DENY in 06_security.sql).
+       Concepts: audit trail, FULL OUTER JOIN of inserted/deleted, FOR XML PATH, XML column. */
 IF OBJECT_ID(N'dbo.trg_GRADE_Audit', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_GRADE_Audit;
 GO
 CREATE TRIGGER dbo.trg_GRADE_Audit
@@ -208,7 +306,13 @@ BEGIN
 END;
 GO
 
-/* T9. trg_RECEIPT_Audit: log receipts being created/cancelled */
+/* T9. trg_RECEIPT_Audit: log receipts being created/cancelled
+       Fired by: usp_Receipt_Create (INSERT row) and usp_Receipt_Cancel (UPDATE row); tested by test T20,
+       which finds the new row with NewData.exist(...).
+       How: AFTER INSERT, UPDATE; LEFT JOIN deleted on ReceiptId - no old row = INSERT (OldData stays
+       NULL), an old row = UPDATE. No DELETE branch: T5 makes deleting impossible.
+       Unlike T8, every UPDATE is logged, even one that changes nothing.
+       Concepts: audit trail, LEFT JOIN of inserted/deleted, FOR XML PATH. */
 IF OBJECT_ID(N'dbo.trg_RECEIPT_Audit', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_RECEIPT_Audit;
 GO
 CREATE TRIGGER dbo.trg_RECEIPT_Audit
@@ -229,7 +333,12 @@ BEGIN
 END;
 GO
 
-/* T10. trg_AUDIT_LOG_ReadOnly (INSTEAD OF UPDATE, DELETE): the audit log is append-only */
+/* T10. trg_AUDIT_LOG_ReadOnly (INSTEAD OF UPDATE, DELETE): the audit log is append-only
+        Tested by test T11 (UPDATE as dbo). INSERT stays allowed: the audit triggers T8 and T9 add rows.
+        Why INSTEAD OF: the UPDATE/DELETE is replaced by the error, so no row changes, even for dbo and
+        sysadmin, who are not stopped by the DENY UPDATE, DELETE of 06_security.sql. TRUNCATE TABLE fires
+        no trigger, but it needs ALTER permission on the table, which no business role has.
+        Concepts: INSTEAD OF trigger, append-only log, defense in depth (trigger + DENY). */
 IF OBJECT_ID(N'dbo.trg_AUDIT_LOG_ReadOnly', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_AUDIT_LOG_ReadOnly;
 GO
 CREATE TRIGGER dbo.trg_AUDIT_LOG_ReadOnly
@@ -242,7 +351,17 @@ BEGIN
 END;
 GO
 
-/* T11. trg_PLACEMENT_TEST_Recommend: recommend a course from the overall score automatically */
+/* T11. trg_PLACEMENT_TEST_Recommend: recommend a course from the overall score automatically
+        Fired by: usp_PlacementTest_Add (which then returns the recommendation) and the seed placement
+        tests of 07_seed_data.sql.
+        Why a trigger: OverallScore is a computed column (average of the 4 skills) and the recommendation
+        depends on the COURSE table (fn_RecommendCourse: the open course with the highest minimum score
+        the student reached), so it is recomputed whenever a skill score is written.
+        How: UPDATE(col) returns at once unless a skill score is in the statement (all TRUE for an
+        INSERT); the UPDATE ... FROM joins PLACEMENT_TEST with inserted, so every new/changed test gets
+        its course. That UPDATE does not fire the trigger again (the RECURSIVE_TRIGGERS database option
+        is OFF), and it would return at once anyway since it writes no skill score.
+        Concepts: derived value, UPDATE(col), scalar function in a set-based UPDATE ... FROM. */
 IF OBJECT_ID(N'dbo.trg_PLACEMENT_TEST_Recommend', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_PLACEMENT_TEST_Recommend;
 GO
 CREATE TRIGGER dbo.trg_PLACEMENT_TEST_Recommend
@@ -260,7 +379,13 @@ BEGIN
 END;
 GO
 
-/* T12. trg_CERTIFICATE_CheckResult: certificates are only issued to enrollments that Passed */
+/* T12. trg_CERTIFICATE_CheckResult: certificates are only issued to enrollments that Passed
+        Fired by: usp_Class_EvaluateResults, which issues the certificates; tested by test T12 (a direct
+        INSERT for a student who failed).
+        Why a trigger: the result is stored in ENROLLMENT, not in CERTIFICATE.
+        How: AFTER INSERT, UPDATE; inserted joined with ENROLLMENT. ISNULL(Result, '') also rejects an
+        enrollment without a result yet (NULL <> 'Passed' is UNKNOWN, which would not count as a violation).
+        Concepts: inter-table constraint, NULL handling (three-valued logic). */
 IF OBJECT_ID(N'dbo.trg_CERTIFICATE_CheckResult', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_CERTIFICATE_CheckResult;
 GO
 CREATE TRIGGER dbo.trg_CERTIFICATE_CheckResult
@@ -279,7 +404,14 @@ END;
 GO
 
 /* T13. trg_CLASS_SESSION_LockTaught: a taught session cannot change its date/time/room/teacher
-        (keeps payroll and attendance data correct) */
+        (keeps payroll and attendance data correct)
+        Tested by test T13 (moving the date of a taught session).
+        Why a trigger: the rule compares the OLD values (deleted) with the NEW values (inserted) of the
+        same row; a CHECK constraint only sees the new values.
+        How: AFTER UPDATE only; inserted and deleted are joined on SessionId, and the old status
+        (d.Status) decides whether the session was already taught. Status and Description may still
+        change: usp_Session_Update only writes these two columns.
+        Concepts: transition constraint (old vs new values), join of inserted with deleted. */
 IF OBJECT_ID(N'dbo.trg_CLASS_SESSION_LockTaught', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_CLASS_SESSION_LockTaught;
 GO
 CREATE TRIGGER dbo.trg_CLASS_SESSION_LockTaught

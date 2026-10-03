@@ -35,6 +35,7 @@ void RevenueChart::paintEvent(QPaintEvent*) {
         return;
     }
 
+    // Bars are scaled to the best month (at least 1 to avoid dividing by zero)
     qint64 maximum = 1;
     for (const auto& d : m_data)
         maximum = std::max(maximum, d.revenue);

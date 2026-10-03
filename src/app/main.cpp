@@ -10,6 +10,11 @@
 #include <QTextStream>
 #include <optional>
 
+// Program entry point. Order of start-up:
+//   1. QApplication (the Qt application object), names used by QSettings, icon, look (Theme)
+//   2. AppContainer: creates every object of every layer and wires them together
+//   3. the UI language chosen last time
+//   4. either the diagnostic mode (--check-connection, no window) or the login -> main window loop below
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     QApplication::setOrganizationName(QStringLiteral("UIT-IE103"));
@@ -57,6 +62,9 @@ int main(int argc, char* argv[]) {
         QByteArray geometry;
         while (exit == Exit::LanguageChanged) {
             exit = Exit::Closed;
+            // QObject::connect(sender, signal, receiver, function): when the window emits the signal, Qt runs
+            // the function. Here the functions are lambdas ("[&] { ... }" = a small unnamed function that can
+            // use the local variables of main).
             MainWindow window(container.services());
             if (!geometry.isEmpty())
                 window.restoreGeometry(geometry);
@@ -73,6 +81,7 @@ int main(int argc, char* argv[]) {
                 window.close();
             });
             window.show();
+            // Event loop: waits for clicks/keys and runs the connected code until the window closes
             app.exec();
         }
         container.auth().logout();

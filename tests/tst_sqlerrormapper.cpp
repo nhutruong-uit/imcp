@@ -1,3 +1,9 @@
+// Unit tests of SqlErrorMapper and DbMessages (infrastructure): how a raw ODBC error from SQL Server
+// becomes the short message the UI shows - driver prefixes and SQLSTATE suffixes removed, business messages
+// looked up in the DbMessages catalog, login failures and constraint names turned into readable text - plus
+// the escaping of the ODBC connection string. The QSqlError objects are built by hand: no database needed.
+// Run only this suite:
+//   ctest --preset macos-debug -R tst_sqlerrormapper --output-on-failure
 #include "infrastructure/db/DatabaseManager.h"
 #include "infrastructure/db/DbMessages.h"
 #include "infrastructure/db/SqlErrorMapper.h"
@@ -10,6 +16,7 @@ class TestSqlErrorMapper : public QObject {
     Q_OBJECT
 
 private slots:
+    // The [vendor][driver][server] prefixes in front of the database message are removed
     void stripsOdbcPrefix() {
         const QString raw = QStringLiteral("[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]"
                                            "The student is already enrolled in this class.");
@@ -41,6 +48,7 @@ private slots:
         QCOMPARE(DbMessages::translate(QStringLiteral("Something else.")), QStringLiteral("Something else."));
     }
 
+    // A business message of a procedure/trigger (THROW/RAISERROR) is cleaned, then looked up in DbMessages
     void businessError_goesThroughTheCatalog() {
         const QSqlError e(
             QStringLiteral("QODBC: Unable to execute statement"),
@@ -49,6 +57,7 @@ private slots:
         QCOMPARE(SqlErrorMapper::message(e), QStringLiteral("Class CL0008 is full."));
     }
 
+    // Error 18456 (login failed) becomes a readable text instead of the raw ODBC message
     void loginFailure() {
         const QSqlError e(
             QStringLiteral("QODBC: Unable to connect"),
@@ -58,6 +67,7 @@ private slots:
         QVERIFY(SqlErrorMapper::message(e).startsWith(QStringLiteral("Wrong username or password")));
     }
 
+    // Error 547 (CHECK constraint): the constraint name is read from the message and mapped to its own text
     void checkConstraintViolation() {
         const QSqlError e(
             QStringLiteral("QODBC: Unable to execute statement"),
@@ -67,6 +77,7 @@ private slots:
         QCOMPARE(SqlErrorMapper::message(e), QStringLiteral("Students under 18 need guardian information."));
     }
 
+    // A value with ; or } is wrapped in {...} with } doubled, so a password cannot add another ODBC keyword
     void connectionString_escapesSpecialCharacters() {
         ServerConfig c;
         const QString s =

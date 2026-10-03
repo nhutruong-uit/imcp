@@ -6,6 +6,7 @@ using namespace SqlHelpers;
 
 SqlStudentRepository::SqlStudentRepository(DatabaseManager& db) : m_db(db) {}
 
+// "@Keyword = ?" names the procedure parameter; each '?' takes the next value of the list, in order
 Result<QList<Student>> SqlStudentRepository::search(const StudentFilter& filter) {
     QSqlQuery q = makeQuery(m_db.db());
     if (!execPrepared(

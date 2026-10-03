@@ -4,6 +4,7 @@
 #include <QHash>
 
 namespace {
+// Flags that can be combined with | (e.g. Money | Summable | Debt): each one is one bit of the number
 enum ColumnKind : unsigned {
     Text = 0,
     Money = 1u << 0,      // formatted as money

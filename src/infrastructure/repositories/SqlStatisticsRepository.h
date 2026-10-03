@@ -3,6 +3,7 @@
 #include "application/ports/IStatisticsRepository.h"
 #include "infrastructure/db/DatabaseManager.h"
 
+// Implements the port IStatisticsRepository: dashboard figures and the monthly revenue chart
 class SqlStatisticsRepository : public IStatisticsRepository {
 public:
     explicit SqlStatisticsRepository(DatabaseManager& db);

@@ -6,6 +6,9 @@
 
 // Shows TableData in a QTableView (Qt::DisplayRole: formatted text, Qt::UserRole: raw value used for
 // sorting). Horizontal headers: DisplayRole = title in the UI language, Columns::KeyRole = column key.
+// Qt model/view in short: the view (QTableView) draws the table and asks the model for each cell with a
+// "role" = what it needs: DisplayRole the text, UserRole the raw value (sorting, totals), ForegroundRole the
+// text color, TextAlignmentRole the alignment. The model never draws; the view never formats.
 class TableDataModel : public QAbstractTableModel {
     Q_OBJECT
 public:
