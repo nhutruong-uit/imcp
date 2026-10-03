@@ -44,7 +44,7 @@ def chapter6(g):
          "**System Settings > Privacy & Security > Open Anyway**, hoặc lệnh `xattr` ở mục 3.2."],
         ["Windows hiện **Windows protected your PC**", "SmartScreen chặn ứng dụng chưa ký số",
          "Bấm **More info > Run anyway**."],
-        ["Trang Tổng quan: buổi học hôm nay, doanh thu tháng này bằng 0; lịch học tuần này trống",
+        ["Trang Tổng quan: buổi học hôm nay, doanh thu tháng này bằng 0; Lịch học - điểm danh của tuần này trống",
          "Dữ liệu mẫu đã cũ (ngày tính theo lần chạy script khởi tạo)", "Chạy lại bước khởi tạo CSDL (mục 2.4)."],
         ["Giờ tạo tài khoản, giờ đăng nhập cuối lệch vài tiếng",
          "Thời điểm được lưu theo giờ UTC và hiển thị theo múi giờ của máy chạy ứng dụng",

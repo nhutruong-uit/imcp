@@ -19,9 +19,12 @@ def chapter1(g):
     g.bullets([
         "**Menu theo vai trò**: mỗi vai trò (quản lý, giáo vụ, kế toán, giáo viên) chỉ thấy các chức năng "
         "của mình.",
+        "**Form nhập liệu cho mọi bước nghiệp vụ**: danh mục (khóa học, giáo viên, nhân viên, chi nhánh - phòng "
+        "học, khuyến mãi), học viên, kiểm tra xếp lớp, mở lớp và lịch học, ghi danh, thu học phí và in phiếu thu, "
+        "điểm danh, nhập điểm, xét kết quả, chốt lương, tài khoản, sao lưu; dữ liệu được kiểm tra cả ở ứng dụng "
+        "lẫn CSDL.",
         "**Danh sách tra cứu** có lọc nhanh, sắp xếp theo cột, dòng tổng cộng, xuất **Excel (CSV)** và "
         "**báo cáo PDF**.",
-        "**Quản lý học viên**: tìm kiếm, thêm, sửa, xóa; dữ liệu được kiểm tra cả ở ứng dụng lẫn CSDL.",
         "**Hai ngôn ngữ giao diện**: tiếng Việt (mặc định) và tiếng Anh, đổi ngay khi đang dùng.",
         "**Chạy trên macOS và Windows**, kết nối tới SQL Server trên cùng máy hoặc trên máy khác trong mạng.",
     ])
@@ -39,7 +42,9 @@ def chapter1(g):
             align=["left", "left"] + ["center"] * len(roles))
     g.bullets([
         "**Quản lý** và **Giáo vụ** được thêm, sửa, xóa học viên; **Kế toán** chỉ xem danh sách học viên.",
-        "**Giáo viên** chỉ thấy lớp mình dạy, lịch dạy và bảng lương của chính mình.",
+        "**Giáo vụ** chỉ xem **Khóa học** và **Giáo viên**; các danh mục do **Quản lý** cập nhật.",
+        "**Giáo viên** chỉ thấy lớp mình dạy, lịch dạy, sổ điểm và bảng lương của chính mình; chỉ điểm danh, "
+        "nhập điểm cho lớp mình dạy.",
         "**Doanh thu tháng này** trên trang Tổng quan chỉ hiện với vai trò có quyền xem doanh thu "
         "(quản lý, kế toán); giáo vụ thấy dòng chữ \"Không có quyền\".",
     ])
