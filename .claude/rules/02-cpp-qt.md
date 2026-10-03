@@ -50,7 +50,8 @@ in `docs/ARCHITECTURE.md`.
   `VARCHAR`, and `execPrepared` keeps them Unicode (`withUnicodeText`). NULL via `SqlHelpers::stringOrNull`.
   Never concatenate values into SQL.
 - Procedures with OUTPUT: batch `SET NOCOUNT ON; DECLARE @x ...; EXEC ... @Out = @x OUTPUT; SELECT @x;`.
-- Money/dates: `Format::money`, `Format::date` (they follow the UI language through the default `QLocale`).
+- Money/dates: `Format::money`, `Format::date` (they follow the UI language through the default `QLocale`); an instant
+  from the database (`DATETIME`, column `...Utc`) is UTC: show it with `Format::dateTime` (computer's time zone).
 - Dialogs: `UiHelpers::showError`, `UiHelpers::confirm`; buttons: `UiHelpers::primaryButton/secondaryButton`.
 - Colors and fonts only in `Theme`/the style sheet - no hard-coded colors in pages (charts excepted).
 - Permissions are **not** only a UI matter: hiding a button is UX, the real check is the database (GRANT).

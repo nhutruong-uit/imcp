@@ -34,9 +34,10 @@ paths:
 ## Database tests (`database/12_tests.sql`)
 - Case codes: `Txx` (constraints, business rules, processing results) or `Pxx` (permissions, via
   `EXECUTE AS USER ... REVERT`); use the next unused number.
-- Section D (T28-T30) checks the **schema conventions** from the catalog views: naming, the permission matrix of the
-  business roles (T29 - the spec of `06_security.sql`; a new table right is added there on purpose) and
-  `SET NOCOUNT ON` / no `SELECT *`. They read metadata only, so they need no transaction.
+- Section D (T28-T30, T32) checks the **schema conventions** from the catalog views: naming, the permission matrix of
+  the business roles (T29 - the spec of `06_security.sql`; a new table right is added there on purpose),
+  `SET NOCOUNT ON` / no `SELECT *` and the time conventions (T32). They read metadata only, so they need no
+  transaction.
 - Each case runs in `BEGIN TRAN ... ROLLBACK` (leaves no data), writes into `#Results`, and is **registered in
   `#Expected`**: a "Rejected" case with its message pattern (`N'%is full%'`; for system errors use the
   object/constraint name, e.g. `N'%CK_STUDENT_Email%'`), a "Succeeded" case with `NULL`.

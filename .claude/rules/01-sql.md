@@ -4,8 +4,8 @@ paths:
 ---
 # T-SQL rules (database/)
 
-The grading focus of the course. `tst_conventions` (file checks) and `12_tests.sql` T28-T30 (catalog checks) verify
-the marked (✔) rules automatically on every `test_all` / CI run.
+The grading focus of the course. `tst_conventions` (file checks) and `12_tests.sql` T28-T30 and T32 (catalog checks)
+verify the marked (✔) rules automatically on every `test_all` / CI run.
 
 ## Compatibility and file layout
 - ✔ **SQL Server 2012+** only: no `CREATE OR ALTER`, `DROP ... IF EXISTS`, `STRING_AGG`, `STRING_SPLIT`, `TRIM`,
@@ -33,6 +33,11 @@ the marked (✔) rules automatically on every `test_all` / CI run.
   The application shows them in the UI language, so every new message is added to `kTemplates` in
   `src/infrastructure/db/DbMessages.cpp` (a message built from values becomes a template with `%1`, `%2`; keep each
   fixed part in one `N'...'` literal) and translated in `qlttta_vi.ts`. `tst_i18n` fails on an unregistered message.
+- ✔ **Time** (`docs/DATABASE.md` section 7): an instant is a `DATETIME` column named `...Utc` holding UTC
+  (`GETUTCDATE()`); a business date (`DATE`) is a day of the center (`dbo.fn_Today()`, offset in
+  `dbo.fn_CenterUtcOffset`); convert with `fn_UtcToCenterTime` / `fn_CenterTimeToUtc` (filter a local day or month as
+  a UTC range so the index on `...Utc` stays usable). Never `GETDATE()`, `SYSDATETIME()` or `CURRENT_TIMESTAMP`: the
+  server's time zone depends on the machine (checked by T32 and `tst_conventions`).
 - A new enumerated value displayed in the UI (new value in a `CHECK ... IN (...)`) needs an entry in `kEntries`
   (`src/presentation/common/DbValues.cpp`) and a Vietnamese translation (`tst_i18n` checks both); a new column shown
   in a list needs an entry in `kCatalog` (`src/presentation/common/Columns.cpp`).

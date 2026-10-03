@@ -11,6 +11,52 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
+/* 0. Time zone of the center. Instants are stored in UTC (columns ...Utc); business dates and reports ("today",
+      revenue per month, payroll month) follow the center's local time. Vietnam has no daylight saving time, so a
+      fixed offset is exact; TODATETIMEOFFSET/SWITCHOFFSET exist since SQL Server 2008 (AT TIME ZONE needs 2016).
+        fn_CenterUtcOffset : offset of the center - the one place to change it (T32 checks the DATE defaults of
+                             01_tables.sql, which cannot call a function, use the same offset)
+        fn_UtcToCenterTime : UTC instant -> local date and time of the center
+        fn_CenterTimeToUtc : local date and time of the center -> UTC instant (e.g. the start of a local day)
+        fn_Today           : today's date in the center, whatever the time zone of the server */
+IF OBJECT_ID(N'dbo.fn_Today', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_Today;
+IF OBJECT_ID(N'dbo.fn_UtcToCenterTime', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_UtcToCenterTime;
+IF OBJECT_ID(N'dbo.fn_CenterTimeToUtc', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_CenterTimeToUtc;
+IF OBJECT_ID(N'dbo.fn_CenterUtcOffset', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_CenterUtcOffset;
+GO
+CREATE FUNCTION dbo.fn_CenterUtcOffset ()
+RETURNS VARCHAR(6)
+WITH SCHEMABINDING
+AS
+BEGIN
+    RETURN '+07:00';   -- Asia/Ho_Chi_Minh
+END;
+GO
+CREATE FUNCTION dbo.fn_UtcToCenterTime (@Utc DATETIME)
+RETURNS DATETIME
+WITH SCHEMABINDING
+AS
+BEGIN
+    RETURN CAST(SWITCHOFFSET(TODATETIMEOFFSET(@Utc, '+00:00'), dbo.fn_CenterUtcOffset()) AS DATETIME);
+END;
+GO
+CREATE FUNCTION dbo.fn_CenterTimeToUtc (@CenterTime DATETIME)
+RETURNS DATETIME
+WITH SCHEMABINDING
+AS
+BEGIN
+    RETURN CAST(SWITCHOFFSET(TODATETIMEOFFSET(@CenterTime, dbo.fn_CenterUtcOffset()), '+00:00') AS DATETIME);
+END;
+GO
+CREATE FUNCTION dbo.fn_Today ()
+RETURNS DATE
+AS
+BEGIN
+    -- Same expression as the DATE defaults of 01_tables.sql
+    RETURN CAST(SWITCHOFFSET(SYSDATETIMEOFFSET(), dbo.fn_CenterUtcOffset()) AS DATE);
+END;
+GO
+
 /* 1. fn_Weekday: ISO 8601 day of the week (1 = Monday ... 7 = Sunday),
       independent of the server's SET DATEFIRST setting.
       1900-01-01 was a Monday. */
@@ -214,7 +260,8 @@ RETURN (
 GO
 
 /* 11. fn_MonthlyRevenue (multi-statement TVF): revenue of the 12 months of a year;
-       months without receipts still return 0 (used by reports and the chart). */
+       months without receipts still return 0 (used by reports and the chart).
+       Months are those of the center: a receipt at 23:30 UTC on the 31st belongs to the next month. */
 IF OBJECT_ID(N'dbo.fn_MonthlyRevenue', N'TF') IS NOT NULL DROP FUNCTION dbo.fn_MonthlyRevenue;
 GO
 CREATE FUNCTION dbo.fn_MonthlyRevenue (@Year INT, @BranchId VARCHAR(10) = NULL)
@@ -232,17 +279,22 @@ BEGIN
         SET @Month += 1;
     END;
 
+    -- The local year as a UTC range keeps the filter on PaidAtUtc sargable
+    DECLARE @FromUtc DATETIME = dbo.fn_CenterTimeToUtc(DATEFROMPARTS(@Year, 1, 1)),
+            @ToUtc   DATETIME = dbo.fn_CenterTimeToUtc(DATEFROMPARTS(@Year + 1, 1, 1));
+
     UPDATE r
     SET ReceiptCount = t.ReceiptCount, Revenue = t.Revenue
     FROM @Result r
     JOIN (
-        SELECT MONTH(rc.PaidAt) AS Month, COUNT(*) AS ReceiptCount, SUM(rc.Amount) AS Revenue
+        SELECT MONTH(dbo.fn_UtcToCenterTime(rc.PaidAtUtc)) AS Month, COUNT(*) AS ReceiptCount,
+               SUM(rc.Amount) AS Revenue
         FROM dbo.RECEIPT rc
         JOIN dbo.ENROLLMENT en ON en.EnrollmentId = rc.EnrollmentId
         JOIN dbo.CLASS cl      ON cl.ClassId = en.ClassId
-        WHERE YEAR(rc.PaidAt) = @Year AND rc.Status = N'Valid'
+        WHERE rc.PaidAtUtc >= @FromUtc AND rc.PaidAtUtc < @ToUtc AND rc.Status = N'Valid'
           AND (@BranchId IS NULL OR cl.BranchId = @BranchId)
-        GROUP BY MONTH(rc.PaidAt)
+        GROUP BY MONTH(dbo.fn_UtcToCenterTime(rc.PaidAtUtc))
     ) t ON t.Month = r.Month;
 
     RETURN;
