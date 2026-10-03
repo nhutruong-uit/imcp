@@ -3,7 +3,9 @@
 #     English Conventional Commits without AI attribution, no build output / .env in the repository;
 #   - build + unit tests on Linux, incl. tst_conventions (SQL syntax and headers, layers, SQL location, scripts,
 #     numbers quoted in the docs) and tst_i18n (translations). No database here: the end-to-end test is excluded.
-# develop is not protected, so a red check does not block the merge - the reviewer decides (/imcp-review).
+# develop's branch protection requires this job: a red check blocks the merge. Keep the job name;
+# renaming it requires updating the required status checks of develop. A review from the code owner
+# (nhutruong-uit, .github/CODEOWNERS) is also required (/imcp-review).
 name: Checks
 
 on:

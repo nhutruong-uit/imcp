@@ -9,20 +9,22 @@ docs/<short-name>               CI runs after the merge)
 ```
 
 - `develop` is the default branch on GitHub. Work on a `feature/...`, `fix/...` or `docs/...` branch and open a Pull
-  Request into `develop`; **never push directly** to `main`.
+  Request into `develop`; **never push directly** to `develop` or `main`.
 - **CI** (`ci.yml`: build + unit tests on macOS and Windows, plus the full `test_all` suite - database, server-level,
   unit and end-to-end tests - on Linux against SQL Server in Docker) runs when something is merged into `develop`, on
   every PR into `main`, and when started by hand: `gh workflow run CI --ref <branch> -f reason="<what to check>"` or
   *Actions > CI > Run workflow* (the run is listed as "Manual CI on <branch>: <reason>"). Pushes to work branches do
   not run CI. **PRs into `develop`** run the fast **Checks** workflow (`checks.yml`: `check_changes` + build + unit
-  tests incl. `tst_conventions` on Linux, no database); it is not a required check, so still run `scripts/test_all`
-  locally before merging (see the checklist below and [SETUP.md](SETUP.md)). Reviewers use `/imcp-review`.
+  tests incl. `tst_conventions` on Linux, no database). That Checks job is required to merge into `develop`; still run
+  `scripts/test_all` locally before merging (see the checklist below and [SETUP.md](SETUP.md)). Reviewers use
+  `/imcp-review`.
 - PR `develop → main` = release: `release.yml` packages `.exe` / `.zip` / `.dmg` and creates a Release tagged
   `vX.Y.Z-build.N`. Before releasing, bump `project(VERSION ...)` in `CMakeLists.txt` if there are new features.
-- *Branch protection* is enabled for `main` only: a PR is required, the three CI jobs (`macOS (Apple Silicon)`,
-  `Windows (Qt + MinGW)`, `Full tests (Linux + SQL Server)`) must be green and the branch must be up to date with
-  `main` before merging. It also applies to admins; force pushes and branch deletion are blocked. No reviewer is
-  required (the team lead can merge once CI is green). `develop` is not locked, but the team still works through PRs.
+- *Branch protection* is enabled for `develop` and `main`, including for admins. A pull request is required, the
+  branch must be up to date with the base, and one approving review from the code owner (`nhutruong-uit`,
+  `.github/CODEOWNERS`) is required. The pull request author cannot approve their own pull request. Force pushes and
+  branch deletion are blocked. `develop` also requires the Checks job (`Checks (conventions + unit tests)`). `main`
+  also requires the three CI jobs (`macOS (Apple Silicon)`, `Windows (Qt + MinGW)`, `Full tests (Linux + SQL Server)`).
 - PR title, description and commit messages are written **in English**. With Claude Code: type
   `/imcp-create-pr`. (A private repo needs GitHub Pro; students can get it for free via the GitHub Student Developer
   Pack.)
