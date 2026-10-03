@@ -9,7 +9,8 @@ paths:
 
 - Every script has **two versions doing the same steps**: `.sh` (macOS/Linux) and `.ps1` (Windows). Change one,
   change the other. The installer builders are the exception: `package-macos.sh` and `package-windows.ps1` only
-  exist for their own platform.
+  exist for their own platform; the pair `package.sh` / `package.ps1` picks the one of the current operating system
+  (keep their options the same: `--qt-dir` / `-QtDir`).
 - `.sh`: `#!/usr/bin/env bash` + `set -euo pipefail`; the repo root comes from `$(dirname "$0")`; a "Usage" comment
   block at the top of the file.
 - `.ps1`: saved as **UTF-8 with BOM + CRLF** (Windows PowerShell 5.1 needs the BOM to read non-ASCII text such as the
