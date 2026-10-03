@@ -389,9 +389,9 @@ DECLARE @Expected TABLE (
     BranchId VARCHAR(10));
 -- Content of database/samples/student_import.csv (an empty Email becomes NULL)
 INSERT @Expected VALUES
-    (N'Lê Minh Tâm',  '20020615', N'Male',   '0909666001', 'tam.lm@gmail.com',  'BR01'),
-    (N'Ngô Thị Hạnh', '19981103', N'Female', '0909666002', 'hanh.nt@gmail.com', 'BR01'),
-    (N'Phan Đức Huy', '20040127', N'Male',   '0909666003', NULL,                'BR02');
+    (N'Lê Minh Tâm',  '20020615', N'Male',   '0909666001', 'tam.lm@example.com',  'BR01'),
+    (N'Ngô Thị Hạnh', '19981103', N'Female', '0909666002', 'hanh.nt@example.com', 'BR01'),
+    (N'Phan Đức Huy', '20040127', N'Male',   '0909666003', NULL,                  'BR02');
 DECLARE @Sql NVARCHAR(MAX) = N'BULK INSERT #StudentCsv FROM N''' + REPLACE(N'$(CsvPath)', N'''', N'''''')
     + N''' WITH (DATAFILETYPE = ''widechar'', FIRSTROW = 2, FIELDTERMINATOR = '','', ROWTERMINATOR = ''\n'', TABLOCK);',
         @Rows INT, @Different INT;

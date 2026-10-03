@@ -43,3 +43,8 @@ __pycache__/
 # Word lock files (~$name.docx) while a document is open
 ~$*
 docs/report/.build/
+# Real student IDs and the copies for the lecturer built with them (build_report.py --submission): the repository
+# may be public, so only the masked IDs are committed
+docs/report/student_ids.local.json
+*_submission.docx
+*_submission.pdf

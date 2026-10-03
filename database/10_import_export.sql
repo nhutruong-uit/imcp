@@ -41,7 +41,7 @@ BEGIN TRANSACTION;
 EXEC dbo.usp_Student_ImportXml @BranchId = 'BR02', @Data = N'
 <Students>
   <Student><FullName>Phạm Gia Hân</FullName><DateOfBirth>2001-04-12</DateOfBirth><Gender>Female</Gender>
-           <Phone>0909555001</Phone><Email>han.pg@gmail.com</Email></Student>
+           <Phone>0909555001</Phone><Email>han.pg@example.com</Email></Student>
   <Student><FullName>Trần Quốc Việt</FullName><DateOfBirth>1999-09-02</DateOfBirth><Gender>Male</Gender>
            <Phone>0909555002</Phone></Student>
   <Student><FullName>Nguyễn Văn An (duplicate phone - skipped)</FullName><DateOfBirth>2004-03-12</DateOfBirth>
