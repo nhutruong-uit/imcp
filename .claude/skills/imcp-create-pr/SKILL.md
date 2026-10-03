@@ -19,8 +19,8 @@ Talk to the user in Vietnamese.
 1. `gh auth status` must show a logged-in account. If not, ask the user to run
    `gh auth login --web --git-protocol https` themselves (never handle tokens or passwords).
 2. Current branch must be a work branch (`feature/...`, `fix/...`, `docs/...`, `chore/...`). If it is `develop` or `main`,
-   stop and create a `feature/...` branch from the current state first (`main` is protected and rejects direct
-   pushes; `develop` is not protected, but the team still works through PRs).
+   stop and create a `feature/...` branch from the current state first (`develop` and `main` are both protected and
+   reject direct pushes).
 3. Uncommitted changes: show `git status --short` and ask whether to commit them (steps of `/imcp-commit`:
    only your files, English `type(scope): ...` message) or leave them out. Never commit `.env`, `build/`, `dist/` or
    real passwords.
@@ -101,16 +101,19 @@ gh pr create --base <base> --head "$(git branch --show-current)" --title "<title
 ```
 After creating:
 - When CI runs: PRs into `develop` trigger only the fast **Checks** workflow (`checks.yml`: change checks + build +
-  unit tests on Linux, not required); the full CI (`ci.yml`) runs after the merge into `develop`, so the local
-  `test_all` result in step 2 is the real check for those PRs. PRs into `main` always run CI (required by branch
-  protection). Reviewers check the PR with `/imcp-review`. To check a branch on CI anyway:
+  unit tests on Linux), which branch protection requires before merge. The full CI (`ci.yml`) runs after the merge
+  into `develop`, so the local `test_all` result in step 2 is still required for those PRs. PRs into `main` always
+  run CI (required by branch protection). An approving review from the code owner (`nhutruong-uit`,
+  `.github/CODEOWNERS`) is required on both branches; the author cannot approve their own pull request. Reviewers
+  check the PR with `/imcp-review`. To check a branch on CI anyway:
   `gh workflow run CI --ref <branch> -f reason="<what the change is>"` (listed as "Manual CI on <branch>: <reason>"
   instead of a bare "CI").
 - In the Claude desktop app: call the `ccd_pr` tools (`get_status`; `bind_pr` if it is not bound), read the CI
   result once and offer Auto-fix. Elsewhere: `gh pr checks <url>` once. Do not poll CI in a loop and never
   enable auto-merge unless the user asks.
-- Only `main` is protected: a PR plus green CI on `macOS (Apple Silicon)`, `Windows (Qt + MinGW)` and
-  `Full tests (Linux + SQL Server)`, with the branch up to date with `main`; 0 approvals are required, so the author can merge once CI is green.
-  `develop` is the default branch on GitHub and is not protected, so `gh pr create` targets it by default.
+- `develop` and `main` are both protected, including for admins: a pull request, the branch up to date with the base,
+  and one approval from the code owner `nhutruong-uit`. `develop` (the default branch, so `gh pr create` targets it)
+  also requires `Checks (conventions + unit tests)`. `main` also requires green CI on `macOS (Apple Silicon)`,
+  `Windows (Qt + MinGW)` and `Full tests (Linux + SQL Server)`.
 - Reply to the user in Vietnamese with the PR link (`[owner/repo#N](url)`), the test result and anything
   that still needs their decision.

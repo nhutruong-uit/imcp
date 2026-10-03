@@ -1,0 +1,3 @@
+# Reviews required to merge into develop and main must come from the team lead.
+# GitHub branch protection has "Require review from Code Owners" enabled for both branches.
+* @nhutruong-uit

@@ -31,8 +31,9 @@ paths:
 - Passwords only travel through environment variables (`SQL_PASSWORD`, `SQLCMDPASSWORD`;
   `docker exec -e SQLCMDPASSWORD` without a value) - never on the command line, never printed in logs; restore the
   environment afterwards.
-- `checks.yml` (job `Checks (conventions + unit tests)`, Linux, no database) runs on every PR into `develop`: not a
-  required check (`develop` is not protected). Keep it cheap - no SQL Server, no macOS/Windows.
+- `checks.yml` (job `Checks (conventions + unit tests)`, Linux, no database) runs on every PR into `develop` and is a
+  required check of that branch. Keep the job name (it is the required status check) and keep the job cheap - no SQL
+  Server, no macOS/Windows.
 - CI (`.github/workflows/ci.yml`) runs only on a merge into `develop`, on PRs into `main` (required by branch
   protection) and manually. Keep the three job names `macOS (Apple Silicon)`, `Windows (Qt + MinGW)` and
   `Full tests (Linux + SQL Server)`: renaming a job requires updating the required checks of `main`, otherwise every
