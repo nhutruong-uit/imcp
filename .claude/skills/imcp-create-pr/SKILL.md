@@ -21,8 +21,9 @@ Talk to the user in Vietnamese.
 2. Current branch must be a work branch (`feature/...`, `fix/...`, `docs/...`, `chore/...`). If it is `develop` or `main`,
    stop and create a `feature/...` branch from the current state first (`main` is protected and rejects direct
    pushes; `develop` is not protected, but the team still works through PRs).
-3. Uncommitted changes: show `git status --short` and ask whether to commit them (English message,
-   `type(scope): ...`) or leave them out. Never commit `.env`, `build/`, `dist/` or real passwords.
+3. Uncommitted changes: show `git status --short` and ask whether to commit them (steps of `/imcp-commit`:
+   only your files, English `type(scope): ...` message) or leave them out. Never commit `.env`, `build/`, `dist/` or
+   real passwords.
 4. Base branch: `develop` unless the user passed another one. `main` is only for release PRs from `develop`
    (then also check `project(VERSION ...)` in `CMakeLists.txt` was bumped; merging to `main` runs `release.yml`).
 5. If a PR already exists for this branch (`gh pr view --json url,state`), update it with `gh pr edit`

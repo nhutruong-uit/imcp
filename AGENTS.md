@@ -63,7 +63,8 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
   `05-report.md` (docs/report/, docs/user-guide/), `06-docs.md` (other docs). The detailed rules live there, not here.
 - `.claude/settings.json`: no AI attribution in commits/PRs, asks before `gh workflow run` / `gh pr merge` / force
   push, and a hook that formats every C++ file Claude edits (`.claude/hooks/format-cpp.sh`).
-- Skills: `/imcp-setup` (set up a member's machine for this OS: tools, database, `test_all`), `/imcp-create-pr`
+- Skills: `/imcp-setup` (set up a member's machine for this OS: tools, database, `test_all`), `/imcp-commit`
+  (commit only your files: checks, related tests, English message), `/imcp-create-pr`
   (English PR after `test_all`), `/imcp-review` (review a PR or branch against these rules), `/imcp-update-report`
   (report: data from the database, screenshots, diagrams, docx, PDF, checks), `/imcp-update-guide` (user guide:
   follow app changes, screenshots, Windows placeholders, docx, PDF).
@@ -89,8 +90,8 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
 - **Git**: default branch `develop`; work on `feature/...`/`fix/...`/`docs/...`/`chore/...` branches and PR into
   `develop`; never push directly to `main` (protected: PR + green CI on macOS, Windows and the Linux full tests +
   branch up to date). Conventional Commits in English (`feat(students): ...`, `fix(db): ...`), no AI attribution
-  lines. PRs in English through `/imcp-create-pr`, which runs `test_all` first. Never commit real passwords, `.env`,
-  `build/`, `dist/`. Do not start a manual CI run unless the user asks.
+  lines; commits through `/imcp-commit`. PRs in English through `/imcp-create-pr`, which runs `test_all` first.
+  Never commit real passwords, `.env`, `build/`, `dist/`. Do not start a manual CI run unless the user asks.
 
 ## Demo accounts
 Shared password and list: `docs/SETUP.md`. Roles: `ql_quan` (manager), `gvu_lan` (academic staff),
