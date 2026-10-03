@@ -62,7 +62,8 @@ INSERT #Expected VALUES
     ('S12', NULL), ('S13', NULL),
     ('S14', NULL),                              ('S15', N'%cannot lock the account you are signed in with%'),
     ('S16', N'%18456%'),                        ('S17', NULL),
-    ('S18', N'%usp_Account_Lock%'),            ('S19', NULL);
+    ('S18', N'%usp_Account_Lock%'),            ('S19', NULL),
+    ('S20', N'%must be FULL, DIFF or LOG%');
 
 -- Values shared by the batches of this session: folders, backup files, the temporary password
 IF OBJECT_ID('tempdb..#Ctx') IS NOT NULL DROP TABLE #Ctx;
@@ -354,6 +355,22 @@ END TRY
 BEGIN CATCH
     REVERT;
     INSERT #Results VALUES ('S06', N'usp_Backup with an unknown backup type', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- S20: a NULL backup type
+--      Proves usp_Backup refuses NULL too (THROW 50070): "@Type NOT IN (...)" is UNKNOWN for NULL, so without its own
+--      test the procedure would build a NULL file path and fail with a system error.
+DECLARE @File NVARCHAR(400);
+BEGIN TRY
+    EXECUTE AS USER = N'ql_quan';
+    EXEC dbo.usp_Backup @Type = NULL, @FilePath = @File OUTPUT;
+    REVERT;
+    INSERT #Results VALUES ('S20', N'usp_Backup with a NULL backup type', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    INSERT #Results VALUES ('S20', N'usp_Backup with a NULL backup type', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 

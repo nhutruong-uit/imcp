@@ -45,7 +45,8 @@ Result<Account> SqlAuthGateway::login(const ServerConfig& config, const QString&
     if (owner.exec(QStringLiteral("SELECT IS_MEMBER('db_owner'), ORIGINAL_LOGIN()")) && owner.next() &&
         owner.value(0).toInt() == 1) {
         account.username = owner.value(1).toString();
-        account.fullName = account.username + tr(" (database administrator)");
+        account.fullName = account.username;
+        account.databaseOwner = true;
         account.role = Role::Manager;
         return Result<Account>::success(account);
     }

@@ -220,7 +220,8 @@ packaging/           Icons, Info.plist, Inno Setup installer, end-user install n
 scripts/             Dev machine setup, database init, change checks, full test run, macOS/Windows packaging
 .github/             Workflows: Checks (PRs into develop), CI, Release (installers), Pages (data map); the PR template
 .claude/             Claude Code team setup: rules per area, skills, shared settings, C++ format hook
-docs/                Documentation, the project report (docs/report) and the user guide (docs/user-guide)
+docs/                Documentation, the project report (docs/report), the user guide (docs/user-guide) and the
+                     codebase review logs (docs/reviews)
 AGENTS.md            Instructions for AI coding agents (read by Claude Code)
 docker-compose.yml   SQL Server 2022 Developer for local development
 ```
@@ -236,6 +237,7 @@ docker-compose.yml   SQL Server 2022 Developer for local development
 | [docs/data-map.html](docs/data-map.html) | Interactive map, online at <https://nhutruong-uit.github.io/imcp/> or opened from the file: table relationships (click a table for its columns, keys, triggers and the screens that read it), the business flow step by step, the app flow by role |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Git/GitHub workflow, coding conventions, pull request checklist, working with Claude Code |
 | [docs/PLAN.md](docs/PLAN.md) | Schedule up to the submission date, member assignments, oral-defense preparation |
+| [docs/reviews/](docs/reviews/) | Logs of the codebase reviews (findings and their status) and the marker of the last reviewed commit |
 | [docs/report/](docs/report/) | The project report (.docx, .pdf; written in Vietnamese for the course) and the script that generates it |
 | [docs/user-guide/](docs/user-guide/) | Installation and user guide for end users on macOS/Windows (.docx, .pdf; Vietnamese) and the script that generates it |
 | [AGENTS.md](AGENTS.md) | Common commands and mandatory rules for AI coding agents, pointers to `.claude/rules/` |
@@ -250,7 +252,8 @@ docker-compose.yml   SQL Server 2022 Developer for local development
   are in Vietnamese.
 - Run `scripts/test_all` before opening a pull request and paste its result line into the description.
 - AI-assisted work follows [AGENTS.md](AGENTS.md) and `.claude/rules/`; the `/imcp-commit`, `/imcp-create-pr` and
-  `/imcp-review` skills give every commit and pull request the same shape.
+  `/imcp-review` skills give every commit and pull request the same shape, and `/imcp-review-codebase` audits the
+  whole code base from the last reviewed commit on.
 
 Full workflow and conventions: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 

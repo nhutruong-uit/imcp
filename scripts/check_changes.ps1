@@ -18,8 +18,16 @@ Set-Location $root
 $types = "feat|fix|test|docs|ci|build|refactor|style|chore|perf|revert"
 $script:failed = $false
 function Fail([string]$message) { Write-Host "FAILED: $message"; $script:failed = $true }
+# Runs git with stderr merged into the output. Windows PowerShell 5.1 turns redirected stderr lines into errors,
+# which "Stop" would make fatal (a missing base or git clang-format would end the script before its message), so
+# the preference is relaxed for the call; callers check $LASTEXITCODE.
+function Invoke-Git {
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try { & git @args 2>&1 | ForEach-Object { "$_" } } finally { $ErrorActionPreference = $previous }
+}
 
-$baseCommit = git merge-base HEAD $Base 2>$null
+$baseCommit = Invoke-Git merge-base HEAD $Base
 if ($LASTEXITCODE -ne 0 -or -not $baseCommit) {
     Write-Host "SKIPPED: base '$Base' not found (shallow clone or no remote) - run 'git fetch origin' to check the changes."
     exit 0
@@ -30,7 +38,7 @@ Write-Host "Changes since $Base ($(git rev-parse --short $baseCommit)):"
 # 1. Format of the changed C++ lines (committed and uncommitted; new files once they are git-added)
 $wanted = (Get-Content (Join-Path $root ".clang-format-version") -Raw).Trim()
 $clangFormat = Get-Command clang-format -ErrorAction SilentlyContinue
-git clang-format -h *> $null
+Invoke-Git clang-format -h | Out-Null
 if (-not $clangFormat -or $LASTEXITCODE -ne 0) {
     Fail "clang-format / git clang-format not found (install LLVM, or pip install clang-format==$wanted)"
 } else {
@@ -38,7 +46,8 @@ if (-not $clangFormat -or $LASTEXITCODE -ne 0) {
     if ($have.Split(".")[0] -ne $wanted.Split(".")[0]) {
         Write-Host "WARNING: clang-format $have is installed, the team uses $wanted - the result may differ from CI."
     }
-    $format = (git clang-format --diff --extensions h,cpp $baseCommit -- src tests tools 2>&1) -join "`n"
+    # "h,cpp" quoted: unquoted, PowerShell would pass h and cpp as two arguments through the function
+    $format = (Invoke-Git clang-format --diff --extensions "h,cpp" $baseCommit -- src tests tools) -join "`n"
     if ($format -match "no modified files to format|did not modify any files") {
         Write-Host "  format: changed C++ lines follow .clang-format"
     } else {

@@ -23,7 +23,8 @@ flowchart LR
 - The **database is the heart of the project** (and of the grade). Every business rule is guaranteed there:
   constraints, triggers and stored procedures reject bad data even when someone types SQL directly in SSMS.
 - The **application only shows screens**. It never writes to a table itself: every change is an `EXEC` of a
-  stored procedure, and every list is a `SELECT` on a view.
+  stored procedure, and almost every list is a `SELECT` on a view (the account list calls a procedure, the payroll
+  list reads `PAYROLL` with a column-level `GRANT`).
 - Every user signs in as a **real SQL Server user** (a contained database user). SQL Server, not the application,
   decides what that user may read or change (`GRANT`/`DENY` in `06_security.sql`). Hiding a menu entry in the
   application is only a convenience.
@@ -253,30 +254,38 @@ case proves it. Use this table to find the code behind a rule during the defense
 | A student under 18 needs a guardian name and phone | `Student::validate` | `CK_STUDENT_Guardian` | `T01` |
 | A student with an enrollment history is never deleted | - | `usp_Student_Delete` | `T41` |
 | A class whose students paid cannot be cancelled | - | `usp_Class_UpdateStatus` | `T42` |
+| A class goes Enrolling → In progress → Finished or Cancelled, never back (a new class instead); cancelling closes its enrollments | - | `usp_Class_UpdateStatus` | `T54`, `T55` |
+| A student is Completed after the last class, Studying again with the next enrollment | - | `usp_Class_EvaluateResults`, `usp_Enrollment_Create` | `T71` |
 | Phone numbers have 9-11 digits | `Student::validate`, digits-only fields | `CK_STUDENT_Phone` | `T02` |
 | No double enrollment in a class | - | `usp_Enrollment_Create`, `UQ_ENROLLMENT_StudentId_ClassId` | `T03` |
-| Entry requirement (prerequisite course or placement score) | - | `usp_Enrollment_Create` | `T04`, `T33` |
-| A student cannot take two classes at the same time | - | `usp_Enrollment_Create`, `usp_Enrollment_TransferClass` | `T05`, `T34` |
+| Entry requirement (prerequisite course or placement score) | - | `usp_Enrollment_Create` | `T04`, `T33`, `T65` |
+| A student cannot take two classes at the same time | - | `fn_StudentScheduleClash` in `usp_Enrollment_Create`, `usp_Enrollment_TransferClass`, `usp_Enrollment_UpdateStatus` | `T05`, `T34`, `T52` |
+| A completed enrollment keeps its status (grade and result come from the evaluation) | - | `usp_Enrollment_UpdateStatus` | `T53` |
 | Amount paid = sum of valid receipts, never above the tuition | - | `trg_RECEIPT_UpdateAmountPaid` | `T06`, `T20` |
-| A transfer applies the tuition of the new class | - | `usp_Enrollment_TransferClass` | `T46`, `T47` |
+| A transfer stays in the course and branch and applies the tuition of the new class | - | `usp_Enrollment_TransferClass` | `T14`, `T46`, `T47`, `T70` |
 | Receipts are never deleted | - | `trg_RECEIPT_PreventDelete`, `DENY DELETE` | `T07`, `P08` |
 | Only accountants and managers collect money | no menu entry | `DENY EXECUTE` on `usp_Receipt_Create` to academic staff | `P16` |
 | No room or teacher double-booking | - | `trg_CLASS_SCHEDULE_CheckConflict` | `T08` |
-| A class uses a room of its own branch | - | `trg_CLASS_CheckRoom` | `T09` |
+| A class uses a room of its own branch, which holds its size | - | `trg_CLASS_CheckRoom`, `trg_ROOM_CheckClasses` | `T09`, `T61` |
 | Grades are between 0 and 10 | - | `CK_GRADE_Score` | `T10` |
-| Grades and attendance are final once the class is finished | - | `usp_Grade_Save`, `usp_Attendance_Save` | `T43`, `T44` |
+| Grades, attendance and sessions are final once the class is finished | - | `usp_Grade_Save`, `usp_Attendance_Save`, `usp_Session_Update` | `T43`, `T44`, `T56` |
+| Attendance counts the sessions taught since the student joined the class (enrollment or transfer) | - | `fn_AttendanceRate`, `ENROLLMENT.ClassJoinedOn` | `T48`, `T69` |
+| The grade components of an evaluated course are frozen | - | `trg_GRADE_COMPONENT_Lock` | `T68` |
+| A class is evaluated only when no session is still scheduled | - | `usp_Class_EvaluateResults` | `T57` |
 | The audit log is append-only | - | `trg_AUDIT_LOG_ReadOnly`, `DENY UPDATE, DELETE` | `T11`, `P14`, `P15` |
 | Certificates only for students who passed, also after a re-evaluation | - | `trg_CERTIFICATE_CheckResult`, `usp_Class_EvaluateResults` | `T12`, `T23`, `T35` |
 | Attendance only for students of the session's class | - | `trg_ATTENDANCE_CheckClass` | `T37` |
 | A grade belongs to a component of the class's course | - | `trg_GRADE_CheckComponent` | `T38` |
 | Every change of a grade is logged | - | `trg_GRADE_Audit` | `T39` |
-| A taught session cannot be moved | - | `trg_CLASS_SESSION_LockTaught` | `T13` |
+| A taught session cannot be moved or set back; a future session cannot be marked taught | - | `trg_CLASS_SESSION_LockTaught` | `T13`, `T50`, `T51` |
 | A full class accepts nobody else | - | `trg_ENROLLMENT_CheckCapacity` | `T21` |
 | A teacher sees only their own classes and students | teacher menu (`Permissions`) | `DENY SELECT` on `STUDENT`, `RECEIPT`, `PAYROLL`, the `vw_Teacher_My*` views | `P01`, `P02`, `P18`, `P19` |
 | A teacher changes only their own classes (grades, attendance, sessions) | - | `usp_Grade_Save`, `usp_Attendance_Save`, `usp_Session_Update` | `P03`, `P21`, `P20` |
 | An accountant cannot enroll students or change grades | no menu entry | `DENY EXECUTE` on `usp_Enrollment_Create`, `usp_Grade_Save` | `P04`, `P17` |
 | Only academic staff and managers edit students | `Permissions::canEditStudents` | `GRANT EXECUTE` on `usp_Student_*` | end-to-end test |
 | Usernames use letters without diacritics, digits, `.` and `_` | - | `usp_Account_Create` | `T36` |
+| No account for an employee or teacher who has left | - | `usp_Account_Create` | `T62` |
+| Texts fit their columns (no silent cut) | `Student::validate`, field lengths | column sizes | `tst_domain` |
 
 ## 7. Glossary
 
@@ -289,7 +298,7 @@ case proves it. Use this table to find the code behind a rule during the defense
 | `EXECUTE AS OWNER` | a procedure runs with the rights of its owner (used for accounts and backups) |
 | Stored procedure (`usp_`) | named T-SQL code with parameters; the only way the application changes data |
 | Function (`fn_`) | returns a value (scalar) or a table (inline or multi-statement table-valued); used inside queries |
-| View (`vw_`) | a saved `SELECT`; the application reads lists through views |
+| View (`vw_`) | a saved `SELECT`; the application reads most lists through views |
 | Trigger (`trg_`) | code run automatically by `INSERT`/`UPDATE`/`DELETE`; `inserted`/`deleted` hold the rows |
 | Cursor | reads a result row by row (used where each row needs its own steps: results, payroll) |
 | Transaction, `XACT_ABORT` | a group of changes that succeed or fail together; `XACT_ABORT ON` cancels it on any error |

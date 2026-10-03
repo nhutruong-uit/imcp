@@ -37,6 +37,20 @@ bool isAuthenticationError(const QSqlError& error) {
     return t.contains(QLatin1String("18456")) || t.contains(QLatin1String("Login failed"), Qt::CaseInsensitive) ||
            t.contains(QLatin1String("Cannot open database"), Qt::CaseInsensitive);
 }
+
+// The driver rejected the server's certificate ("Trust server certificate" is off) => stop: the next drivers
+// (FreeTDS, the legacy Windows driver) do not check certificates, so trying them would get around the check
+bool isCertificateError(const QSqlError& error) {
+    const QString t = error.databaseText() + QLatin1Char(' ') + error.driverText();
+    return t.contains(QLatin1String("certificate"), Qt::CaseInsensitive);
+}
+
+// The server did not answer in time (HYT00 = ODBC "login timeout expired"): another driver would wait as long
+bool isTimeoutError(const QSqlError& error) {
+    const QString t = error.databaseText() + QLatin1Char(' ') + error.nativeErrorCode();
+    return t.contains(QLatin1String("HYT00")) ||
+           t.contains(QLatin1String("Login timeout expired"), Qt::CaseInsensitive);
+}
 } // namespace
 
 DatabaseManager::~DatabaseManager() {
@@ -92,7 +106,7 @@ QString DatabaseManager::connectionString(const QString& driver, const ServerCon
                         .arg(driver, odbcValue(host), odbcValue(config.database.trimmed()),
                              odbcValue(username), odbcValue(password));
         if (!host.contains(QLatin1Char('\\')))
-            s += QStringLiteral("PORT=%1;").arg(port);
+            s += QStringLiteral("PORT=%1;").arg(odbcValue(port)); // "1433;Encryption=off" stays one value
         return s;
     }
 
@@ -136,8 +150,9 @@ VoidResult DatabaseManager::open(const ServerConfig& config, const QString& user
             lastError = db.lastError();
         }
         QSqlDatabase::removeDatabase(QLatin1String(kConnectionName));
-        if (isAuthenticationError(lastError))
-            return VoidResult::failure(SqlErrorMapper::message(lastError)); // wrong password => stop
+        // Wrong password, rejected certificate or no answer => stop, another driver would not do better
+        if (isAuthenticationError(lastError) || isCertificateError(lastError) || isTimeoutError(lastError))
+            return VoidResult::failure(SqlErrorMapper::message(lastError));
         if (!isMissingDriverError(lastError) && !meaningfulError.isValid())
             meaningfulError = lastError; // other errors (network, TLS...) => still try the next driver
     }
@@ -158,11 +173,6 @@ void DatabaseManager::close() {
         QSqlDatabase::removeDatabase(QLatin1String(kConnectionName));
     }
     m_driver.clear();
-}
-
-bool DatabaseManager::isOpen() const {
-    return QSqlDatabase::contains(QLatin1String(kConnectionName)) &&
-           QSqlDatabase::database(QLatin1String(kConnectionName), false).isOpen();
 }
 
 QSqlDatabase DatabaseManager::db() const {

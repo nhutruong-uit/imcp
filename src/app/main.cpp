@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     QApplication::setOrganizationName(QStringLiteral("UIT-IE103"));
     QApplication::setApplicationName(QStringLiteral("QLTTTA"));
     QApplication::setApplicationVersion(QStringLiteral(QLTTTA_VERSION));
-    QApplication::setWindowIcon(Icons::get(QStringLiteral("logo"), QStringLiteral("#1F3864"), 64));
+    QApplication::setWindowIcon(Icons::get(QStringLiteral("logo"), QLatin1String(Theme::kPrimary), 64));
     Theme::apply(app);
 
     AppContainer container;

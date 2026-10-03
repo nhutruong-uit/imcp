@@ -27,6 +27,10 @@ const char* const kTemplates[] = {
                                     "before cancelling the class."),
     QT_TRANSLATE_NOOP("DbMessages", "Session not found."),
     QT_TRANSLATE_NOOP("DbMessages", "You can only update sessions you teach."),
+    QT_TRANSLATE_NOOP("DbMessages", "The sessions of a finished or cancelled class cannot be changed."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "A class can only move from Enrolling to In progress, or from Enrolling or "
+                      "In progress to Cancelled."),
     // C. Enrollment
     QT_TRANSLATE_NOOP("DbMessages", "The student does not exist or has dropped out."),
     QT_TRANSLATE_NOOP("DbMessages", "The class no longer accepts enrollments."),
@@ -40,11 +44,14 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages", "The class schedule clashes with another class the student is taking."),
     QT_TRANSLATE_NOOP("DbMessages", "The promotion code does not exist or has expired."),
     QT_TRANSLATE_NOOP("DbMessages", "Active enrollment not found."),
-    QT_TRANSLATE_NOOP("DbMessages", "A student can only be transferred to an open class of the same course."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "A student can only be transferred to an open class of the same course and branch."),
     QT_TRANSLATE_NOOP("DbMessages", "Enrollment not found."),
     QT_TRANSLATE_NOOP("DbMessages",
                       "The student has paid more than the tuition of the new class; cancel a receipt "
                       "before the transfer."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "Only an enrollment that is not completed can be set to Studying, On hold or Left."),
     // D. Tuition
     QT_TRANSLATE_NOOP("DbMessages",
                       "The current account is not linked to an employee who can collect payments."),
@@ -63,6 +70,8 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages", "The class does not exist or has not started yet."),
     QT_TRANSLATE_NOOP("DbMessages", "The grade component weights of the course do not add up to 100%."),
     QT_TRANSLATE_NOOP("DbMessages", "Grades are still missing for %1 student(s)."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "The class still has scheduled sessions; mark them as taught or cancelled first."),
     // F. Payroll
     QT_TRANSLATE_NOOP("DbMessages", "Payroll cannot be finalized for a future month."),
     // I. Accounts, backup
@@ -71,6 +80,7 @@ const char* const kTemplates[] = {
                       "underscores (at least 3 characters)."),
     QT_TRANSLATE_NOOP("DbMessages", "The password must be at least 8 characters long."),
     QT_TRANSLATE_NOOP("DbMessages", "The username already exists."),
+    QT_TRANSLATE_NOOP("DbMessages", "An account cannot be created for an employee or teacher who has left."),
     QT_TRANSLATE_NOOP("DbMessages", "Invalid role."),
     QT_TRANSLATE_NOOP("DbMessages", "Account not found."),
     QT_TRANSLATE_NOOP("DbMessages", "Choose whether to lock or unlock the account."),
@@ -93,6 +103,13 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages", "Certificates are only issued to students who passed."),
     QT_TRANSLATE_NOOP("DbMessages",
                       "The date, time, room and teacher of a taught session cannot be changed."),
+    QT_TRANSLATE_NOOP("DbMessages", "A taught session cannot change its status."),
+    QT_TRANSLATE_NOOP("DbMessages", "A session can only be marked as taught on or after its date."),
+    QT_TRANSLATE_NOOP("DbMessages", "The room is used by an active class: it must stay in the branch of the "
+                                    "class and hold its maximum size."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "The grade components of a course with evaluated classes cannot be changed; "
+                      "open a new course instead."),
 };
 
 // A template and the regular expression built from it (a regular expression = a text pattern; "(.+?)"

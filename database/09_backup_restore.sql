@@ -24,6 +24,9 @@
    What the script does: 1-4 back up QLTTTA and check the files, 5 restores the chain into a NEW
    database QLTTTA_Restored, 6-7 compare and show the history, 8 cleans up. It is run by hand (not by
    db_init); 13_server_tests.sql (S01-S03) checks the same chain automatically.
+   Run it only on a demo database: its FULL and LOG backups are real (not COPY_ONLY), so on a database
+   with its own backup plan they would become the new base of the differentials and take log records
+   out of that plan's log chain.
    ===================================================================== */
 USE master;
 GO

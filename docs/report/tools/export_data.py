@@ -8,8 +8,8 @@ the database:
   database_tests.txt   results of database/12_tests.sql - ONLY written when every test case PASSED
 
 Usage (the sa password is read from SQL_PASSWORD, never passed on the command line):
-  SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" \\
-      python3 docs/report/tools/export_data.py --docker sql2022
+  SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" \\
+      python3 docs/report/tools/export_data.py --docker imcp-mssql
   SQL_PASSWORD='<sa password>' python3 docs/report/tools/export_data.py --server localhost,1433
 
 Run scripts/test_all.sh first: it re-creates the database, so the figures match the seed data.
@@ -67,8 +67,14 @@ QUERIES = {
         FROM dbo.PAYROLL py JOIN dbo.TEACHER te ON te.TeacherId=py.TeacherId
         ORDER BY py.Year DESC, py.Month DESC, py.TotalPay DESC""",
     "student_balance": "SELECT * FROM dbo.fn_StudentBalance('ST00028')",
-    "monthly_revenue": """SELECT Month, ReceiptCount, Revenue FROM dbo.fn_MonthlyRevenue(YEAR(dbo.fn_Today()), NULL)
-        WHERE Month BETWEEN 3 AND 10""",
+    # The last 8 months up to this one (the seed data is relative to today, so a fixed month range could be empty)
+    "monthly_revenue": """SELECT RIGHT('0' + CAST(m.Month AS VARCHAR(2)), 2) + '/' + CAST(y.Year AS VARCHAR(4)) AS Month,
+            m.ReceiptCount, m.Revenue
+        FROM (SELECT YEAR(dbo.fn_Today()) - 1 AS Year UNION ALL SELECT YEAR(dbo.fn_Today())) y
+        CROSS APPLY dbo.fn_MonthlyRevenue(y.Year, NULL) m
+        WHERE DATEFROMPARTS(y.Year, m.Month, 1) BETWEEN DATEADD(MONTH, -7, DATEADD(DAY, 1 - DAY(dbo.fn_Today()), dbo.fn_Today()))
+                                                    AND dbo.fn_Today()
+        ORDER BY y.Year, m.Month""",
     "audit_log": """SELECT TOP 3 CONVERT(VARCHAR(16), LoggedAtUtc, 120) AS LoggedAtUtc, PerformedBy, TableName, Action,
             RecordKey, CAST(NewData AS NVARCHAR(200)) AS NewData
         FROM dbo.AUDIT_LOG WHERE TableName=N'RECEIPT' ORDER BY LogId DESC""",
@@ -194,7 +200,7 @@ def export_tests(runner):
 
 def main():
     ap = argparse.ArgumentParser(description="Export the QLTTTA database data used by the report")
-    ap.add_argument("--docker", help="SQL Server container name (e.g. sql2022, imcp-mssql)")
+    ap.add_argument("--docker", help="SQL Server container name (e.g. imcp-mssql)")
     ap.add_argument("--server", default="localhost,1433", help="server when sqlcmd runs on this machine")
     ap.add_argument("--user", default="sa")
     ap.add_argument("--only", choices=["schema", "queries", "tests"], help="export only one part")

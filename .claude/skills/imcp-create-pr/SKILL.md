@@ -32,9 +32,10 @@ Talk to the user in Vietnamese.
 ## 2. Run the full test suite (required by the PR checklist)
 
 ```bash
-SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker sql2022
+SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker imcp-mssql
 ```
-- Container may be `imcp-mssql` instead of `sql2022` (`docker ps`). Never print the SA password.
+- The container of `docker-compose.yml` is `imcp-mssql`; use the name `docker ps` shows if yours differs. Never print
+  the SA password.
 - Windows: `.\scripts\test_all.ps1` (see `docs/SETUP.md`).
 - Keep the final summary line (`ALL TESTS PASSED: database x/y cases, ...`) and report it in the PR.
 - If a step fails: **stop**, show the failure to the user, do not open the PR unless they explicitly ask for a
@@ -57,10 +58,12 @@ application / infrastructure / presentation), tests, build/CI, docs/report.
 
 **Title**: English, imperative, max ~72 characters, Conventional Commits style:
 `<type>(<scope>): <summary>` - e.g. `fix(db): hide monthly revenue from academic staff`,
-`test: add one-command full test suite`. Types: feat, fix, test, docs, ci, refactor, chore.
+`test: add one-command full test suite`. Types (as `scripts/check_changes` accepts them): feat, fix, test, docs, ci,
+build, refactor, style, chore, perf, revert.
 
 **Body**: write it to a temporary file (avoids shell quoting problems with backticks and Vietnamese text),
-using this template and dropping empty sections:
+using this template (the sections of `.github/pull_request_template.md`, which `--body-file` replaces) and dropping
+empty sections:
 
 ```markdown
 ## Summary
@@ -74,9 +77,12 @@ using this template and dropping empty sections:
 - **Docs / Report**: <...>
 
 ## Testing
-- `scripts/test_all.sh`: <result, e.g. "all passed - DB 60/60 cases (12_tests + 13_server_tests), unit + end-to-end">
+- `scripts/test_all.sh`: <the real last line, e.g. "ALL TESTS PASSED: database x/y cases ...">
 - Manual: <roles/screens checked with demo accounts, if any>
 - Not tested: <be explicit, e.g. Windows-only paths>
+
+## Checklist (docs/CONTRIBUTING.md)
+<the checklist of .github/pull_request_template.md, each box ticked only when it is true for this PR>
 
 ## Notes for reviewers
 - <migration steps, breaking changes, follow-ups>
@@ -105,9 +111,9 @@ After creating:
   into `develop`, so the local `test_all` result in step 2 is still required for those PRs. PRs into `main` always
   run CI (required by branch protection). An approving review from the code owner (`nhutruong-uit`,
   `.github/CODEOWNERS`) is required on both branches; the author cannot approve their own pull request. Reviewers
-  check the PR with `/imcp-review`. To check a branch on CI anyway:
+  check the PR with `/imcp-review`. Only when the user asks to check the branch on CI:
   `gh workflow run CI --ref <branch> -f reason="<what the change is>"` (listed as "Manual CI on <branch>: <reason>"
-  instead of a bare "CI").
+  instead of a bare "CI"; never start it on your own, see `04-scripts-ci.md`).
 - In the Claude desktop app: call the `ccd_pr` tools (`get_status`; `bind_pr` if it is not bound), read the CI
   result once and offer Auto-fix. Elsewhere: `gh pr checks <url>` once. Do not poll CI in a loop and never
   enable auto-merge unless the user asks.

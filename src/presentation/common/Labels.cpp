@@ -26,10 +26,10 @@ QString Labels::role(Role role) {
 }
 
 FeatureInfo Labels::feature(Feature f) {
-    const QString general = LabelsText::tr("General");
-    const QString training = LabelsText::tr("Training");
-    const QString finance = LabelsText::tr("Finance");
-    const QString teaching = LabelsText::tr("Teaching");
+    const FeatureGroup general = FeatureGroup::General;
+    const FeatureGroup training = FeatureGroup::Training;
+    const FeatureGroup finance = FeatureGroup::Finance;
+    const FeatureGroup teaching = FeatureGroup::Teaching;
     switch (f) {
     case Feature::Dashboard:
         return {f, LabelsText::tr("Overview"), QStringLiteral("home"), general};
@@ -48,7 +48,7 @@ FeatureInfo Labels::feature(Feature f) {
     case Feature::Payroll:
         return {f, LabelsText::tr("Teacher payroll"), QStringLiteral("cash"), finance};
     case Feature::Accounts:
-        return {f, LabelsText::tr("Accounts"), QStringLiteral("shield"), LabelsText::tr("System")};
+        return {f, LabelsText::tr("Accounts"), QStringLiteral("shield"), FeatureGroup::System};
     case Feature::MyClasses:
         return {f, LabelsText::tr("My classes"), QStringLiteral("book"), teaching};
     case Feature::MyTeachingSchedule:
@@ -56,7 +56,28 @@ FeatureInfo Labels::feature(Feature f) {
     case Feature::MyPay:
         return {f, LabelsText::tr("My pay"), QStringLiteral("cash"), teaching};
     }
-    return {f, QString(), QString(), QString()};
+    return {f, QString(), QString(), FeatureGroup::General};
+}
+
+QString Labels::group(FeatureGroup group) {
+    switch (group) {
+    case FeatureGroup::General:
+        return LabelsText::tr("General");
+    case FeatureGroup::Training:
+        return LabelsText::tr("Training");
+    case FeatureGroup::Finance:
+        return LabelsText::tr("Finance");
+    case FeatureGroup::System:
+        return LabelsText::tr("System");
+    case FeatureGroup::Teaching:
+        return LabelsText::tr("Teaching");
+    }
+    return QString();
+}
+
+QString Labels::accountName(const Account& account) {
+    return account.databaseOwner ? LabelsText::tr("%1 (database administrator)").arg(account.username)
+                                 : account.fullName;
 }
 
 QString Labels::language(Language language) {

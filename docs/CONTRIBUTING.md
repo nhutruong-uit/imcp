@@ -6,10 +6,11 @@
 feature/<short-name>  ──PR──▶  develop  ──PR (team lead reviews)──▶  main  ──▶  GitHub Release (installers)
 fix/<short-name>               (default branch;                (protected; CI required)   (packaged automatically)
 docs/<short-name>               CI runs after the merge)
+chore/<short-name>
 ```
 
-- `develop` is the default branch on GitHub. Work on a `feature/...`, `fix/...` or `docs/...` branch and open a Pull
-  Request into `develop`; **never push directly** to `develop` or `main`.
+- `develop` is the default branch on GitHub. Work on a `feature/...`, `fix/...`, `docs/...` or `chore/...` branch and
+  open a Pull Request into `develop`; **never push directly** to `develop` or `main`.
 - **CI** (`ci.yml`: build + unit tests on macOS and Windows, plus the full `test_all` suite - database, server-level,
   unit and end-to-end tests - on Linux against SQL Server in Docker) runs when something is merged into `develop`, on
   every PR into `main`, and when started by hand: `gh workflow run CI --ref <branch> -f reason="<what to check>"` or
@@ -17,7 +18,8 @@ docs/<short-name>               CI runs after the merge)
   not run CI. **PRs into `develop`** run the fast **Checks** workflow (`checks.yml`: `check_changes` + build + unit
   tests incl. `tst_conventions` on Linux, no database). That Checks job is required to merge into `develop`; still run
   `scripts/test_all` locally before merging (see the checklist below and [SETUP.md](SETUP.md)). Reviewers use
-  `/imcp-review`.
+  `/imcp-review`; the team lead audits the whole code base from time to time with `/imcp-review-codebase`, which only
+  reviews the commits after the marker of [reviews/](reviews/README.md) and logs the findings there.
 - PR `develop → main` = release: `release.yml` packages `.exe` / `.zip` / `.dmg` and creates a Release tagged
   `vX.Y.Z-build.N`. Before releasing, bump `project(VERSION ...)` in `CMakeLists.txt` if there are new features.
 - *Rulesets* (`protect-develop`, `protect-main`, Settings > Rules) protect `develop` and `main`. A pull request is
@@ -72,7 +74,8 @@ the changed C++ lines, related tests) and writes a message that passes `scripts/
 - Text is always `NVARCHAR` with the `N'...'` prefix (names and addresses are Vietnamese).
 - Stay compatible with **SQL Server 2012** (no `CREATE OR ALTER`, `DROP ... IF EXISTS`, `STRING_AGG`, `TRIM`, JSON).
   Use the pattern `IF OBJECT_ID(N'dbo.x', N'P') IS NOT NULL DROP PROCEDURE dbo.x; GO`.
-- Every file starts with `USE QLTTTA; GO; SET ANSI_NULLS ON; SET QUOTED_IDENTIFIER ON; GO`.
+- Every file starts with `USE QLTTTA; GO; SET ANSI_NULLS ON; SET QUOTED_IDENTIFIER ON; GO` (the server-level scripts
+  `00`, `09` and `11` start with `USE master;`).
 - Business errors: `THROW 5xxxx, N'English message.', 1;` in procedures, `RAISERROR` + `ROLLBACK` in triggers.
   The application shows them in the UI language: register every new message in
   `src/infrastructure/db/DbMessages.cpp` and translate it in `qlttta_vi.ts` (`tst_i18n` reads the SQL scripts and
@@ -99,7 +102,8 @@ the changed C++ lines, related tests) and writes a message that passes `scripts/
   for codes belongs to `Labels`/`Columns`/`DbValues`, never to domain/application, and no logic may depend on
   displayed (translated) text - use codes, column keys and stored values.
 - Format with `clang-format` (the `.clang-format` file in the repo root; in Qt Creator: *Beautifier*) - the team
-  version is in `.clang-format-version` (`brew install clang-format`, or `pip install clang-format==<version>`);
+  version is in `.clang-format-version` (`pipx install clang-format==<version>` or `pip install ...`; Homebrew installs
+  the newest LLVM instead);
   format only the lines you changed (`git clang-format`). `scripts/check_changes` (step 1 of `test_all`) fails on
   unformatted changed lines; Claude Code formats its edits by itself (hook in `.claude/settings.json`).
 - Cursor and VS Code: install the recommended `clangd` extension (`.vscode/extensions.json`) and do not install

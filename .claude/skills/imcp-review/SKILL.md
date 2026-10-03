@@ -5,6 +5,9 @@ description: Review a pull request or branch of the QLTTTA repo against the team
 
 # Review a change against the team rules (QLTTTA)
 
+<!-- Note for the team: this skill reviews ONE pull request or branch; /imcp-review-codebase audits the whole code
+     base from the last reviewed commit on (docs/reviews/). -->
+
 Goal: whoever reviews, the same rules are checked in the same order and the result has the same format, so members
 get consistent feedback and the code stays in one style. Talk to the user in **Vietnamese**; a review posted on
 GitHub is written in **English**.

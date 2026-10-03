@@ -6,7 +6,7 @@
    (several rows in inserted/deleted), never assuming a single row.
 
    Run order: scripts/db_init runs this file after 04_procedures.sql (it needs the tables of 01 and
-   fn_RecommendCourse of 02). Each trigger is dropped and created again, so the file can be re-run.
+   fn_RecommendCourse / fn_ClassPeriod of 02). Each trigger is dropped and created again, so the file can be re-run.
    A trigger fires for EVERY write to its table: from the procedures of 04, the seed data of 07, the
    test cases of 12_tests.sql, even a direct INSERT/UPDATE by dbo. That is why the rules live here and
    not only in the procedures.
@@ -28,7 +28,7 @@
        other rows (capacity, schedule clashes), other tables (room branch, enrollment result) or the old
        values of a row (taught session) need a trigger.
    Each trigger header names the test cases of 12_tests.sql that prove its rule (test Tnn, Pnn);
-   T1-T13 without the word test are the triggers of this file.
+   T1-T15 without the word test are the triggers of this file.
    ===================================================================== */
 USE QLTTTA;
 GO
@@ -44,7 +44,7 @@ GO
        Why a trigger: BranchId and Capacity of the room are in another table (ROOM).
        How: AFTER INSERT, UPDATE; inserted (every new/changed class) is joined with ROOM, so a statement
        that changes many classes is checked as a whole. Two checks give two precise messages.
-       Not covered: a later change on the ROOM side (smaller Capacity) is not re-checked here.
+       The ROOM side (a smaller Capacity, another branch) is checked by T14 trg_ROOM_CheckClasses.
        Concepts: inter-table constraint, AFTER trigger, join with inserted, RAISERROR + ROLLBACK. */
 IF OBJECT_ID(N'dbo.trg_CLASS_CheckRoom', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_CLASS_CheckRoom;
 GO
@@ -81,7 +81,8 @@ GO
          - Two time ranges overlap when each one starts before the other ends
            (cs.StartTime < i.EndTime AND i.StartTime < cs.EndTime); 18:00-20:00 and 20:00-21:30 do not.
          - The other class must be active (Enrolling or In progress) and the two class periods must
-           overlap; a class without EndDate yet (set by usp_Class_GenerateSessions) counts as 6 months.
+           overlap; fn_ClassPeriod gives the period (a class without EndDate yet, set by
+           usp_Class_GenerateSessions, is estimated as SessionCount weeks long - never too short).
          - SELECT TOP (1) @Msg = ... looks at ALL rows of inserted and keeps the first conflict only to
            build a readable message (which class, which room or teacher).
        Concepts: constraint across rows and tables, interval overlap, AFTER trigger, message built from
@@ -104,10 +105,12 @@ BEGIN
     JOIN dbo.CLASS_SCHEDULE cs  ON cs.Weekday = i.Weekday AND cs.ClassId <> i.ClassId
                                AND cs.StartTime < i.EndTime AND i.StartTime < cs.EndTime
     JOIN dbo.CLASS c2           ON c2.ClassId = cs.ClassId
+    CROSS APPLY dbo.fn_ClassPeriod(c1.ClassId) p1
+    CROSS APPLY dbo.fn_ClassPeriod(c2.ClassId) p2
     WHERE c2.Status IN (N'Enrolling', N'In progress')
       AND (c1.RoomId = c2.RoomId OR c1.TeacherId = c2.TeacherId)
-      AND c2.StartDate <= ISNULL(c1.EndDate, DATEADD(MONTH, 6, c1.StartDate))
-      AND c1.StartDate <= ISNULL(c2.EndDate, DATEADD(MONTH, 6, c2.StartDate));
+      AND p2.StartDate <= p1.EndDate
+      AND p1.StartDate <= p2.EndDate;
 
     IF @Msg IS NOT NULL
     BEGIN
@@ -403,14 +406,21 @@ BEGIN
 END;
 GO
 
-/* T13. trg_CLASS_SESSION_LockTaught: a taught session cannot change its date/time/room/teacher
-        (keeps payroll and attendance data correct)
-        Tested by test T13 (moving the date of a taught session).
-        Why a trigger: the rule compares the OLD values (deleted) with the NEW values (inserted) of the
-        same row; a CHECK constraint only sees the new values.
+/* T13. trg_CLASS_SESSION_LockTaught: a taught session stays taught and cannot change its
+        date/time/room/teacher; a session is marked taught only once its day has come
+        (keeps payroll and attendance data correct: usp_Payroll_Finalize pays the Taught sessions)
+        Tested by tests T13 (moving the date of a taught session), T50 (marking a future session taught)
+        and T51 (setting a taught session back to Scheduled).
+        Why a trigger: the rules compare the OLD values (deleted) with the NEW values (inserted) of the
+        same row; a CHECK constraint only sees the new values. They hold for every writer, also a direct
+        UPDATE by a manager.
         How: AFTER UPDATE only; inserted and deleted are joined on SessionId, and the old status
-        (d.Status) decides whether the session was already taught. Status and Description may still
-        change: usp_Session_Update only writes these two columns.
+        (d.Status) decides whether the session was already taught. Three checks, three messages:
+          1. a Taught session keeps its date, time, room and teacher;
+          2. a Taught session keeps its status (setting it back to Scheduled would unlock rule 1 and let
+             usp_Class_GenerateSessions delete it together with its attendance);
+          3. a session becomes Taught only on or after its date (dbo.fn_Today: the center's day), so a
+             future session is not paid in advance. The Description may still change.
         Concepts: transition constraint (old vs new values), join of inserted with deleted. */
 IF OBJECT_ID(N'dbo.trg_CLASS_SESSION_LockTaught', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_CLASS_SESSION_LockTaught;
 GO
@@ -426,6 +436,87 @@ BEGIN
                       OR i.TeacherId <> d.TeacherId OR i.RoomId <> d.RoomId))
     BEGIN
         RAISERROR (N'The date, time, room and teacher of a taught session cannot be changed.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END;
+    IF EXISTS (SELECT 1 FROM inserted i JOIN deleted d ON d.SessionId = i.SessionId
+               WHERE d.Status = N'Taught' AND i.Status <> N'Taught')
+    BEGIN
+        RAISERROR (N'A taught session cannot change its status.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END;
+    IF EXISTS (SELECT 1 FROM inserted i JOIN deleted d ON d.SessionId = i.SessionId
+               WHERE i.Status = N'Taught' AND d.Status <> N'Taught' AND i.SessionDate > dbo.fn_Today())
+    BEGIN
+        RAISERROR (N'A session can only be marked as taught on or after its date.', 16, 1);
+        ROLLBACK TRANSACTION;
+    END;
+END;
+GO
+
+/* T14. trg_ROOM_CheckClasses (rule across ROOM - CLASS, seen from the room)
+        A room used by an active class (Enrolling / In progress) stays in the branch of that class and keeps a
+        capacity of at least the class size: rule 2 of docs/DATABASE.md, which T1 checks when a CLASS row changes.
+        Fired by: a direct UPDATE of ROOM (managers hold UPDATE on the catalog tables, 06_security.sql);
+        tested by test T61 (a capacity below the size of a class in progress).
+        Why a trigger: the rule reads the CLASS rows that use the room.
+        How: AFTER UPDATE; it returns at once unless BranchId or Capacity is in the SET list, then joins
+        inserted (every changed room) with the active classes of those rooms. A finished class keeps its
+        history: a later, smaller capacity does not concern it.
+        Concepts: the same inter-table rule guarded from both tables, UPDATE(col), join with inserted. */
+IF OBJECT_ID(N'dbo.trg_ROOM_CheckClasses', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_ROOM_CheckClasses;
+GO
+CREATE TRIGGER dbo.trg_ROOM_CheckClasses
+ON dbo.ROOM
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT (UPDATE(BranchId) OR UPDATE(Capacity)) RETURN;
+
+    IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.CLASS cl ON cl.RoomId = i.RoomId
+               WHERE cl.Status IN (N'Enrolling', N'In progress')
+                 AND (cl.BranchId <> i.BranchId OR cl.MaxStudents > i.Capacity))
+    BEGIN
+        RAISERROR (N'The room is used by an active class: it must stay in the branch of the class and hold its maximum size.', 16, 1);
+        ROLLBACK TRANSACTION;
+    END;
+END;
+GO
+
+/* T15. trg_GRADE_COMPONENT_Lock: the grade components of a course are frozen once one of its classes has
+        been evaluated
+        A new component, a changed weight or course, or a deleted component would change the final grade that
+        vw_LearningResults recomputes next to the Result and the certificate already stored. To grade a course
+        differently afterwards, the center opens a new course. Renaming a component is still allowed.
+        Fired by: a direct write to GRADE_COMPONENT (managers maintain the catalog tables in SSMS, 06_security.sql;
+        the application has no screen for them); tested by test T68 (a new weight for an evaluated course).
+        Why a trigger: the rule reads ENROLLMENT through CLASS, and it must hold for every writer.
+        How: AFTER INSERT, UPDATE, DELETE; an UPDATE that touches neither CourseId nor Weight returns at once.
+        The courses concerned are those of inserted (new rows) UNION deleted (old rows, so moving a component to
+        another course checks both courses); one of their classes with an evaluated enrollment (Result filled
+        in by usp_Class_EvaluateResults) rejects the whole statement.
+        Concepts: trigger on several events, UNION of inserted and deleted, EXISTS through a join. */
+IF OBJECT_ID(N'dbo.trg_GRADE_COMPONENT_Lock', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_GRADE_COMPONENT_Lock;
+GO
+CREATE TRIGGER dbo.trg_GRADE_COMPONENT_Lock
+ON dbo.GRADE_COMPONENT
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    -- An UPDATE has rows in both tables; a rename (neither CourseId nor Weight in the SET list) changes no grade
+    IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
+       AND NOT (UPDATE(CourseId) OR UPDATE(Weight)) RETURN;
+
+    IF EXISTS (SELECT 1
+               FROM (SELECT CourseId FROM inserted UNION SELECT CourseId FROM deleted) c
+               JOIN dbo.CLASS cl       ON cl.CourseId = c.CourseId
+               JOIN dbo.ENROLLMENT en  ON en.ClassId = cl.ClassId
+               WHERE en.Result IS NOT NULL)
+    BEGIN
+        RAISERROR (N'The grade components of a course with evaluated classes cannot be changed; open a new course instead.', 16, 1);
         ROLLBACK TRANSACTION;
     END;
 END;

@@ -17,17 +17,17 @@ changed.
 ./scripts/setup_dev.sh --check
 ./scripts/setup_dev.sh --accept-licenses
 
-# Database (SQL Server in Docker, container sql2022 or imcp-mssql)
-SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/db_init.sh --docker sql2022
+# Database (SQL Server in Docker: container imcp-mssql of docker-compose.yml - use the name `docker ps` shows)
+SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" ./scripts/db_init.sh --docker imcp-mssql
 
 # Build + test (macOS). If CMake reports a broken compiler: add -DCMAKE_OSX_SYSROOT=<Xcode SDK>
 cmake --preset macos-debug && cmake --build --preset macos-debug && ctest --preset macos-debug
 
 # FULL TEST SUITE (required before a PR): change checks -> db_init -> 12_tests.sql -> 13_server_tests.sql
 #   -> build -> unit tests (incl. tst_conventions) + e2e. CI runs the same suite on Linux ("Full tests" job)
-SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker sql2022
+SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker imcp-mssql
 # PowerShell version (Windows; runs on macOS with pwsh): keep the .sh/.ps1 versions doing the same steps
-SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" pwsh -File scripts/test_all.ps1 -Docker sql2022
+SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" pwsh -File scripts/test_all.ps1 -Docker imcp-mssql
 
 # Only the change checks (format of the changed C++ lines, commit messages) / only the repository conventions
 ./scripts/check_changes.sh
@@ -43,7 +43,7 @@ cmake --build --preset macos-debug --target update_translations   # -> resources
 QLTTTA_USER=ql_quan QLTTTA_PASSWORD='Demo@2026' build/macos-debug/src/app/QLTTTA.app/Contents/MacOS/QLTTTA --check-connection
 
 # Update the report (or type /imcp-update-report): real data -> docx -> PDF (macOS + Word) -> check
-SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" python3 docs/report/tools/export_data.py --docker sql2022
+SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" python3 docs/report/tools/export_data.py --docker imcp-mssql
 python3 docs/report/build_report.py && ./docs/report/tools/export_pdf.sh
 swift docs/report/tools/check_pdf.swift check docs/report/IE103_Group1_Report.pdf
 
@@ -65,7 +65,8 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
   push, and a hook that formats every C++ file Claude edits (`.claude/hooks/format-cpp.sh`).
 - Skills: `/imcp-setup` (set up a member's machine for this OS: tools, database, `test_all`), `/imcp-commit`
   (commit only your files: checks, related tests, English message), `/imcp-create-pr`
-  (English PR after `test_all`), `/imcp-review` (review a PR or branch against these rules), `/imcp-update-report`
+  (English PR after `test_all`), `/imcp-review` (review a PR or branch against these rules), `/imcp-review-codebase`
+  (audit the code base or what changed since the last audit; log and marker in `docs/reviews/`), `/imcp-update-report`
   (report: data from the database, screenshots, diagrams, docx, PDF, checks), `/imcp-update-guide` (user guide:
   follow app changes, screenshots, Windows placeholders, docx, PDF).
 

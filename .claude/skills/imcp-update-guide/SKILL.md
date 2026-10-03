@@ -38,8 +38,8 @@ Arguments: `all` (default) | `screens` | `windows` (fill in the Windows placehol
 ## 1. Database with fresh seed data (for `all`, `screens`)
 Screenshots need the seed data, whose dates are relative to the day `db_init` runs:
 ```bash
-docker ps --format '{{.Names}}'          # container: sql2022 or imcp-mssql
-SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker sql2022
+docker ps --format '{{.Names}}'          # container: imcp-mssql (docker-compose.yml) or another name
+SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker imcp-mssql
 ```
 `test_all` re-initializes the database and runs every test; stop and tell the user if a step fails. Never print the
 sa password. Windows without Docker: `.\scripts\test_all.ps1 -Server "localhost\SQLEXPRESS"`.

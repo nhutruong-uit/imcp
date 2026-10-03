@@ -23,12 +23,11 @@ public:
     DatabaseManager(const DatabaseManager&) = delete;
     DatabaseManager& operator=(const DatabaseManager&) = delete;
 
-    // Connects with the first driver that works; a wrong password stops at once (see the .cpp)
+    // Connects with the first driver that works; a wrong password, a rejected certificate or a timeout stops
+    // at once (see the .cpp)
     VoidResult open(const ServerConfig& config, const QString& username, const QString& password);
     void close();
-    bool isOpen() const;
     QSqlDatabase db() const; // the open connection, passed to SqlHelpers::makeQuery by the repositories
-    QString activeDriver() const { return m_driver; }
     // FreeTDS: Qt's ODBC plugin turns Unicode off for this driver, see SqlHelpers::execPrepared
     bool usesFreeTds() const { return isFreeTds(m_driver); }
 

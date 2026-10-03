@@ -30,15 +30,15 @@ If the user adds a content request (e.g. "add a section about the new trigger"),
 
 ## 1. Clean database + every test passing (mandatory for `all`, `data`, `screens`)
 ```bash
-docker ps --format '{{.Names}}'          # container: sql2022 or imcp-mssql
-SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker sql2022
+docker ps --format '{{.Names}}'          # container: imcp-mssql (docker-compose.yml) or another name
+SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker imcp-mssql
 ```
 Re-initializes the database from scratch (seed data is relative to the current date) and runs every test. **Stop if a
 step fails** and tell the user - the report must never show wrong test results. Never print the sa password.
 
 ## 2. Export the real data for the report
 ```bash
-SQL_PASSWORD="$(docker exec sql2022 printenv MSSQL_SA_PASSWORD)" python3 docs/report/tools/export_data.py --docker sql2022
+SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" python3 docs/report/tools/export_data.py --docker imcp-mssql
 ```
 Writes `data/schema.json`, `data/query_results.json` (including the `object_counts` entry read by `object_counts()`:
 number of tables, procedures, triggers, constraints...) and `data/database_tests.txt` (only written when every case passes). Look at

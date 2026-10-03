@@ -14,7 +14,7 @@ QLTTTA - ENGLISH CENTER MANAGEMENT (macOS, Apple Silicon)
      (e.g. localhost,1433 or 192.168.1.10,1433)
    - Database: QLTTTA
    Demo accounts and database setup: see docs/SETUP.md in the source code
-   (or the README attached to the release).
+   (the release notes link to it).
 
 4. Language: pick "Tiếng Việt" or "English" at the bottom of the login screen or in the header of
    the main window. The choice is remembered.

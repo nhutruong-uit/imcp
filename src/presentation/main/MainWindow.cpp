@@ -3,6 +3,7 @@
 #include "presentation/common/I18n.h"
 #include "presentation/common/Icons.h"
 #include "presentation/common/Labels.h"
+#include "presentation/common/Theme.h"
 #include "presentation/common/UiHelpers.h"
 #include "presentation/dashboard/DashboardPage.h"
 #include "presentation/lists/ListPage.h"
@@ -17,6 +18,7 @@
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QVBoxLayout>
+#include <optional>
 
 MainWindow::MainWindow(AppServices services, QWidget* parent) : QMainWindow(parent), m_services(services) {
     setWindowTitle(tr("English Center Management"));
@@ -62,7 +64,7 @@ QWidget* MainWindow::buildSidebar() {
     auto* bh = new QHBoxLayout(brand);
     bh->setContentsMargins(20, 0, 20, 12);
     auto* logo = new QLabel(brand);
-    logo->setPixmap(Icons::pixmap(QStringLiteral("logo"), QStringLiteral("#FFFFFF"), 30));
+    logo->setPixmap(Icons::pixmap(QStringLiteral("logo"), QLatin1String(Theme::kIconOnDark), 30));
     auto* name = new QLabel(QStringLiteral("English Center"), brand); // product name, not translated
     name->setObjectName(QStringLiteral("SidebarBrand"));
     bh->addWidget(logo);
@@ -73,11 +75,11 @@ QWidget* MainWindow::buildSidebar() {
     m_menu->setObjectName(QStringLiteral("NavList"));
     m_menu->setIconSize(QSize(18, 18));
     m_menu->setFocusPolicy(Qt::NoFocus);
-    QString previousGroup;
+    std::optional<FeatureGroup> previousGroup;
     for (Feature f : m_features) {
         const FeatureInfo info = Labels::feature(f);
         if (info.group != previousGroup) {
-            auto* groupHeader = new QListWidgetItem(info.group.toUpper(), m_menu);
+            auto* groupHeader = new QListWidgetItem(Labels::group(info.group).toUpper(), m_menu);
             groupHeader->setFlags(Qt::NoItemFlags);
             groupHeader->setData(Qt::UserRole, -1);
             groupHeader->setSizeHint(QSize(0, 30));
@@ -87,14 +89,14 @@ QWidget* MainWindow::buildSidebar() {
             groupHeader->setFont(font);
             previousGroup = info.group;
         }
-        auto* item =
-            new QListWidgetItem(Icons::get(info.icon, QStringLiteral("#E2E8F0"), 18), info.name, m_menu);
+        auto* item = new QListWidgetItem(Icons::get(info.icon, QLatin1String(Theme::kIconSidebar), 18),
+                                         info.name, m_menu);
         item->setData(Qt::UserRole, static_cast<int>(f));
         item->setSizeHint(QSize(0, 40));
     }
     v->addWidget(m_menu, 1);
 
-    auto* user = new QLabel(QStringLiteral("%1\n%2").arg(m_services.auth.account().fullName,
+    auto* user = new QLabel(QStringLiteral("%1\n%2").arg(Labels::accountName(m_services.auth.account()),
                                                          Labels::role(m_services.auth.role())),
                             sidebar);
     user->setObjectName(QStringLiteral("SidebarUser"));

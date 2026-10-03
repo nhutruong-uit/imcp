@@ -68,6 +68,28 @@ private slots:
         QVERIFY(!s.validate(QDate(2026, 10, 1)).isEmpty());
     }
 
+    // A text longer than its column would be cut silently by the procedure parameters, so it is refused
+    void validate_textLongerThanColumn_isRejected() {
+        Student s = validStudent();
+        s.address = QString(StudentLimits::address, QLatin1Char('a'));
+        s.notes = QString(StudentLimits::notes, QLatin1Char('n'));
+        QVERIFY(s.validate(QDate(2026, 10, 1)).isEmpty()); // exactly the column size is fine
+        s.address += QLatin1Char('a');
+        s.notes += QLatin1Char('n');
+        s.occupation = QString(StudentLimits::occupation + 1, QLatin1Char('o'));
+        s.guardianName = QString(StudentLimits::guardianName + 1, QLatin1Char('g'));
+        QCOMPARE(s.validate(QDate(2026, 10, 1)).size(), 4);
+    }
+
+    // Email is a VARCHAR column: a letter with diacritics would be stored as "?", so it is refused
+    void validate_emailWithDiacritics_isRejected() {
+        Student s = validStudent();
+        s.email = QStringLiteral("an.nguyễn@gmail.com");
+        QCOMPARE(s.validate(QDate(2026, 10, 1)).size(), 1);
+        s.email = QStringLiteral("an@nv@gmail.com");
+        QCOMPARE(s.validate(QDate(2026, 10, 1)).size(), 1);
+    }
+
     // Role codes stored in ACCOUNT.Role <-> Role; case-insensitive, an unknown code gives Role::Unknown
     void role_codeMapping() {
         QCOMPARE(roleFromCode(QStringLiteral("MANAGER")), Role::Manager);

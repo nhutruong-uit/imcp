@@ -3,6 +3,7 @@
 #include "presentation/common/Icons.h"
 #include "presentation/common/Labels.h"
 #include "presentation/common/TableExporter.h"
+#include "presentation/common/Theme.h"
 
 #include <QComboBox>
 #include <QCoreApplication>
@@ -27,7 +28,7 @@ QPushButton* UiHelpers::primaryButton(const QString& text, const QString& icon, 
     auto* b = new QPushButton(text, parent);
     b->setProperty("variant", QStringLiteral("primary"));
     if (!icon.isEmpty())
-        b->setIcon(Icons::get(icon, QStringLiteral("#FFFFFF"), 16));
+        b->setIcon(Icons::get(icon, QLatin1String(Theme::kIconOnDark), 16));
     b->setCursor(Qt::PointingHandCursor);
     return b;
 }
@@ -35,7 +36,7 @@ QPushButton* UiHelpers::primaryButton(const QString& text, const QString& icon, 
 QPushButton* UiHelpers::secondaryButton(const QString& text, const QString& icon, QWidget* parent) {
     auto* b = new QPushButton(text, parent);
     if (!icon.isEmpty())
-        b->setIcon(Icons::get(icon, QStringLiteral("#334155"), 16));
+        b->setIcon(Icons::get(icon, QLatin1String(Theme::kIcon), 16));
     b->setCursor(Qt::PointingHandCursor);
     return b;
 }
@@ -99,7 +100,7 @@ QComboBox* UiHelpers::languageSelector(Language current, QWidget* parent) {
     auto* combo = new QComboBox(parent);
     combo->setObjectName(QStringLiteral("languageCombo"));
     combo->setToolTip(UiText::tr("Language"));
-    const QIcon globe = Icons::get(QStringLiteral("globe"), QStringLiteral("#334155"), 16);
+    const QIcon globe = Icons::get(QStringLiteral("globe"), QLatin1String(Theme::kIcon), 16);
     for (Language language : supportedLanguages())
         combo->addItem(globe, Labels::language(language), languageCode(language));
     combo->setCurrentIndex(combo->findData(languageCode(current)));

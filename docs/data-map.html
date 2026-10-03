@@ -348,15 +348,17 @@ table.data td .mono { color: var(--ink); white-space: nowrap; }
           <ul class="rich" data-rich>
             <li>usp_Class_Create creates the class as Enrolling; usp_Class_UpdateStatus moves it to In progress.</li>
             <li>usp_Class_EvaluateResults sets Finished after computing the results; grades and attendance are then locked.</li>
-            <li>Cancelled through usp_Class_UpdateStatus, refused while the class has valid receipts (error 50015).</li>
+            <li>Cancelled through usp_Class_UpdateStatus, refused while the class has valid receipts (error 50015); its open enrollments become Left.</li>
+            <li>Finished and Cancelled are final (error 50019): the center opens a new class instead.</li>
           </ul>
         </div>
         <div class="sm">
           <h3>STUDENT.Status</h3>
-          <div class="flow"><span class="st start">Prospective</span><span class="to">→</span><span class="st end">Studying</span><span class="to">→</span><span class="st">On hold</span><span class="st bad">Dropped out</span></div>
+          <div class="flow"><span class="st start">Prospective</span><span class="to">→</span><span class="st">Studying</span><span class="to">→</span><span class="st">On hold</span><span class="st bad">Dropped out</span><span class="st end">Completed</span></div>
           <ul class="rich" data-rich>
-            <li>A new student is Prospective; usp_Enrollment_Create moves a Prospective or On hold student to Studying.</li>
-            <li>usp_Enrollment_UpdateStatus: putting on hold or leaving, with no other Studying enrollment, makes the student On hold or Dropped out.</li>
+            <li>A new student is Prospective; usp_Enrollment_Create moves a Prospective, On hold or Completed student to Studying.</li>
+            <li>usp_Enrollment_UpdateStatus: putting on hold or leaving, with no other Studying enrollment, makes the student On hold or Dropped out; resuming makes the student Studying again.</li>
+            <li>usp_Class_EvaluateResults: a student who takes no other class any more becomes Completed; a new enrollment makes the student Studying again.</li>
           </ul>
         </div>
         <div class="sm">
@@ -468,7 +470,7 @@ const TABLES = {
     notes: ['CK_ACCOUNT_Owner: a TEACHER account has only TeacherId, the other roles only EmployeeId', 'UX_ACCOUNT_EmployeeId, UX_ACCOUNT_TeacherId: at most one account per person', 'Every account is a member of exactly one role: rl_Manager, rl_AcademicStaff, rl_Accountant, rl_Teacher'],
     writes: ['usp_Account_Create', 'usp_Account_Lock', 'usp_Account_RecordLogin'] },
   STUDENT: { g: 'students', d: 'A student of the center, registered at one branch.', id: 'ST00001',
-    cols: ['StudentId|VARCHAR(10)|PK SEQ|ST00001 from seq_STUDENT', 'FullName|NVARCHAR(100)|', 'DateOfBirth|DATE||at least 4 years old at registration', 'Gender|NVARCHAR(10)|', 'Phone|VARCHAR(15)|NULL UQ|filtered UNIQUE', 'Email|VARCHAR(100)|NULL UQ|filtered UNIQUE', 'Address|NVARCHAR(200)|NULL', 'Occupation|NVARCHAR(50)|NULL', 'GuardianName|NVARCHAR(100)|NULL|required under 18', 'GuardianPhone|VARCHAR(15)|NULL|required under 18', 'BranchId|VARCHAR(10)|', 'RegisteredOn|DATE||defaults to today (UTC+7)', 'Status|NVARCHAR(20)||Prospective · Studying · On hold · Dropped out', 'Notes|NVARCHAR(500)|NULL'],
+    cols: ['StudentId|VARCHAR(10)|PK SEQ|ST00001 from seq_STUDENT', 'FullName|NVARCHAR(100)|', 'DateOfBirth|DATE||at least 4 years old at registration', 'Gender|NVARCHAR(10)|', 'Phone|VARCHAR(15)|NULL UQ|filtered UNIQUE', 'Email|VARCHAR(100)|NULL UQ|filtered UNIQUE', 'Address|NVARCHAR(200)|NULL', 'Occupation|NVARCHAR(50)|NULL', 'GuardianName|NVARCHAR(100)|NULL|required under 18', 'GuardianPhone|VARCHAR(15)|NULL|required under 18', 'BranchId|VARCHAR(10)|', 'RegisteredOn|DATE||defaults to today (UTC+7)', 'Status|NVARCHAR(20)||Prospective · Studying · On hold · Dropped out · Completed', 'Notes|NVARCHAR(500)|NULL'],
     notes: ['CK_STUDENT_Guardian: a student under 18 needs a guardian name and phone', 'CK_STUDENT_Contact: at least one phone number', 'UX_STUDENT_Phone, UX_STUDENT_Email: filtered UNIQUE, several NULLs allowed'],
     writes: ['usp_Student_Add', 'usp_Student_Update', 'usp_Student_Delete', 'usp_Student_ImportXml', 'usp_Enrollment_Create', 'usp_Enrollment_UpdateStatus'] },
   PROGRAM: { g: 'training', d: 'A training program made of several courses.',
@@ -495,8 +497,8 @@ const TABLES = {
     cols: ['PromotionId|VARCHAR(10)|PK', 'PromotionName|NVARCHAR(100)|', 'DiscountType|VARCHAR(10)||PERCENT · AMOUNT', 'DiscountValue|DECIMAL(12,2)||> 0; PERCENT at most 50', 'StartDate|DATE|', 'EndDate|DATE||≥ StartDate'],
     notes: ['CK_PROMOTION_DiscountValue: a percentage discount is at most 50', 'CK_PROMOTION_Dates'], writes: CATALOG },
   ENROLLMENT: { g: 'students', d: 'An enrollment: the n-n link between STUDENT and CLASS. Tuition, attendance, grades and certificates all hang on it.', id: 'EN000001',
-    cols: ['EnrollmentId|VARCHAR(10)|PK SEQ|EN000001 from seq_ENROLLMENT', 'StudentId|VARCHAR(10)||(StudentId, ClassId) is UNIQUE', 'ClassId|VARCHAR(10)|', 'EnrolledOn|DATE|', 'BaseTuition|DECIMAL(12,0)||tuition of the class at enrollment', 'PromotionId|VARCHAR(10)|NULL', 'DiscountAmount|DECIMAL(12,0)||computed by fn_DiscountAmount', 'TuitionDue|computed|CALC|= BaseTuition − DiscountAmount (PERSISTED)', 'AmountPaid|DECIMAL(12,0)|TRG|= sum of the Valid receipts, kept by trg_RECEIPT_UpdateAmountPaid', 'Status|NVARCHAR(20)||Studying · On hold · Left · Completed', 'FinalGrade|DECIMAL(4,2)|NULL|written by usp_Class_EvaluateResults', 'Result|NVARCHAR(20)|NULL|Passed · Failed', 'EnrolledByEmployeeId|VARCHAR(10)|NULL|employee who enrolled the student'],
-    notes: ['UQ_ENROLLMENT_StudentId_ClassId: no double enrollment in a class', 'CK_ENROLLMENT_AmountPaid: 0 ≤ AmountPaid ≤ TuitionDue', 'CK_ENROLLMENT_DiscountAmount: not above BaseTuition'],
+    cols: ['EnrollmentId|VARCHAR(10)|PK SEQ|EN000001 from seq_ENROLLMENT', 'StudentId|VARCHAR(10)||(StudentId, ClassId) is UNIQUE', 'ClassId|VARCHAR(10)|', 'EnrolledOn|DATE|', 'ClassJoinedOn|DATE||day the student started in the current class (enrollment or transfer); attendance counts from it', 'BaseTuition|DECIMAL(12,0)||tuition of the class at enrollment', 'PromotionId|VARCHAR(10)|NULL', 'DiscountAmount|DECIMAL(12,0)||computed by fn_DiscountAmount', 'TuitionDue|computed|CALC|= BaseTuition − DiscountAmount (PERSISTED)', 'AmountPaid|DECIMAL(12,0)|TRG|= sum of the Valid receipts, kept by trg_RECEIPT_UpdateAmountPaid', 'Status|NVARCHAR(20)||Studying · On hold · Left · Completed', 'FinalGrade|DECIMAL(4,2)|NULL|written by usp_Class_EvaluateResults', 'Result|NVARCHAR(20)|NULL|Passed · Failed', 'EnrolledByEmployeeId|VARCHAR(10)|NULL|employee who enrolled the student'],
+    notes: ['UQ_ENROLLMENT_StudentId_ClassId: no double enrollment in a class', 'CK_ENROLLMENT_AmountPaid: 0 ≤ AmountPaid ≤ TuitionDue', 'CK_ENROLLMENT_DiscountAmount: not above BaseTuition', 'CK_ENROLLMENT_ClassJoinedOn: never before EnrolledOn'],
     writes: ['usp_Enrollment_Create', 'usp_Enrollment_TransferClass', 'usp_Enrollment_UpdateStatus', 'usp_Class_EvaluateResults', 'trg_RECEIPT_UpdateAmountPaid'] },
   RECEIPT: { g: 'finance', d: 'A tuition receipt (payment in several installments allowed). Never deleted, only cancelled with a reason.', id: 'RC000001',
     cols: ['ReceiptId|VARCHAR(10)|PK SEQ|RC000001 from seq_RECEIPT', 'EnrollmentId|VARCHAR(10)|', 'PaidAtUtc|DATETIME||UTC; reports use the day of the center', 'Amount|DECIMAL(12,0)||> 0', 'PaymentMethod|NVARCHAR(20)||Cash · Bank transfer · Card', 'CollectedByEmployeeId|VARCHAR(10)||employee who collected the money', 'Description|NVARCHAR(200)|NULL', 'Status|NVARCHAR(20)||Valid · Cancelled', 'CancelReason|NVARCHAR(200)|NULL|required when Cancelled'],
@@ -559,14 +561,16 @@ const FKS = [
 
 // Triggers of database/05_triggers.sql, by the table they are created ON
 const TRIGGERS = {
+  ROOM: [['trg_ROOM_CheckClasses', 'A room used by an active class stays in its branch and keeps a capacity of at least MaxStudents']],
   CLASS: [['trg_CLASS_CheckRoom', 'The room belongs to the branch of the class; MaxStudents is not above the room capacity']],
   CLASS_SCHEDULE: [['trg_CLASS_SCHEDULE_CheckConflict', 'No room or teacher clash with an active class on the same weekday and overlapping hours']],
-  CLASS_SESSION: [['trg_CLASS_SESSION_LockTaught', 'A Taught session cannot change its date, time, room or teacher']],
+  CLASS_SESSION: [['trg_CLASS_SESSION_LockTaught', 'A session becomes Taught only on or after its date; a Taught session keeps its status, date, time, room and teacher']],
   ENROLLMENT: [['trg_ENROLLMENT_CheckCapacity', 'The number of students never exceeds MaxStudents']],
   RECEIPT: [['trg_RECEIPT_UpdateAmountPaid', 'Recomputes ENROLLMENT.AmountPaid = sum of the Valid receipts; above the tuition due it rolls back'],
             ['trg_RECEIPT_PreventDelete', 'INSTEAD OF DELETE: receipts are never deleted, only cancelled'],
             ['trg_RECEIPT_Audit', 'Writes AUDIT_LOG when a receipt is created or cancelled']],
   ATTENDANCE: [['trg_ATTENDANCE_CheckClass', 'The student must belong to the class of the session']],
+  GRADE_COMPONENT: [['trg_GRADE_COMPONENT_Lock', 'The components of a course with evaluated classes are frozen (a new course instead)']],
   GRADE: [['trg_GRADE_CheckComponent', 'The grade component must belong to the course of the class'], ['trg_GRADE_Audit', 'Writes every grade change to AUDIT_LOG (old / new XML)']],
   PLACEMENT_TEST: [['trg_PLACEMENT_TEST_Recommend', 'Fills RecommendedCourseId with fn_RecommendCourse']],
   CERTIFICATE: [['trg_CERTIFICATE_CheckResult', 'Only an enrollment with Result = Passed gets a certificate']],
@@ -598,8 +602,8 @@ const STEPS = [
   { phase: 'Admission', title: 'Placement test', roles: 'MS', procs: ['usp_PlacementTest_Add'], writes: ['PLACEMENT_TEST'], reads: ['STUDENT', 'COURSE'],
     rules: ['OverallScore is a computed column: the average of the 4 skills', 'trg_PLACEMENT_TEST_Recommend fills the recommended course with fn_RecommendCourse'],
     app: ['no', 'Not in the app', 'Only through SSMS or the seed data.'] },
-  { phase: 'Open a class', title: 'Open a class', roles: 'MS', procs: ['usp_Class_Create'], writes: ['CLASS'], reads: ['COURSE', 'TEACHER', 'ROOM'],
-    rules: ['The course must be Open (50010) and the teacher Teaching (50011)', 'trg_CLASS_CheckRoom: a room of the same branch, a size within the room capacity', 'The tuition defaults to the course tuition; a new class starts as Enrolling'],
+  { phase: 'Open a class', title: 'Open a class', roles: 'MS', procs: ['usp_Class_Create', 'usp_Class_UpdateStatus'], writes: ['CLASS', 'ENROLLMENT'], reads: ['COURSE', 'TEACHER', 'ROOM', 'RECEIPT'],
+    rules: ['The course must be Open (50010) and the teacher Teaching (50011)', 'trg_CLASS_CheckRoom: a room of the same branch, a size within the room capacity', 'The tuition defaults to the course tuition; a new class starts as Enrolling', 'usp_Class_UpdateStatus: Enrolling → In progress, or Enrolling / In progress → Cancelled only (50019); cancelling closes the open enrollments'],
     app: ['view', 'View only', 'Shown on the Classes screen.'] },
   { phase: 'Open a class', title: 'Weekly timetable', roles: 'MS', procs: ['usp_ClassSchedule_Add'], writes: ['CLASS_SCHEDULE'], reads: ['CLASS'],
     rules: ['One time slot per class and weekday, within 07:00-22:00', 'trg_CLASS_SCHEDULE_CheckConflict: no room clash, no teacher clash'],
@@ -608,22 +612,22 @@ const STEPS = [
     rules: ['Creates SessionCount sessions from the weekly timetable, starting at StartDate', 'Stores the date of the last session in CLASS.EndDate', 'Refused while the class has no weekly timetable (50013)'],
     app: ['view', 'View only', "Shown on This week's schedule; teachers see it on Teaching schedule."] },
   { phase: 'Enrollment', title: 'Enroll, transfer, put on hold', roles: 'MS', procs: ['usp_Enrollment_Create', 'usp_Enrollment_TransferClass', 'usp_Enrollment_UpdateStatus'], writes: ['ENROLLMENT', 'STUDENT'], reads: ['CLASS', 'PLACEMENT_TEST', 'PROMOTION', 'CLASS_SCHEDULE'],
-    rules: ['Passed the prerequisite course OR a high enough placement score (50023)', 'No time clash with another class of the student (50024)', 'Discount from fn_DiscountAmount; an expired code is refused (50025)', 'trg_ENROLLMENT_CheckCapacity: the class has free seats', 'The student becomes Studying; the accountant is denied'],
+    rules: ['Passed the prerequisite course OR a high enough placement score (50023)', 'No time clash with another class of the student (50024, fn_StudentScheduleClash; also when an enrollment resumes)', 'A transfer stays in the same course and branch (50027), so revenue never changes branch', 'Discount from fn_DiscountAmount; an unknown or expired code is refused (50025)', 'trg_ENROLLMENT_CheckCapacity: the class has free seats', 'Only Studying, On hold and Left are set by hand; a Completed enrollment is final (50029)', 'The student becomes Studying; the accountant is denied'],
     app: ['view', 'View only', 'Shown on Outstanding tuition and Learning results.'] },
   { phase: 'Tuition', title: 'Collect tuition', roles: 'MA', procs: ['usp_Receipt_Create', 'usp_Receipt_Cancel'], writes: ['RECEIPT', 'ENROLLMENT', 'AUDIT_LOG'], reads: [],
     rules: ['trg_RECEIPT_UpdateAmountPaid: ENROLLMENT.AmountPaid = sum of the Valid receipts, never above TuitionDue', 'trg_RECEIPT_PreventDelete: no delete, only cancel with a reason', 'trg_RECEIPT_Audit writes the audit log', 'Academic staff are denied: they do not collect money'],
     app: ['view', 'View only', 'Shown on Outstanding tuition, Revenue and Overview.'] },
   { phase: 'Teaching & assessment', title: 'Teach and take attendance', roles: 'MST', procs: ['usp_Session_Update', 'usp_Attendance_Save'], writes: ['CLASS_SESSION', 'ATTENDANCE'], reads: ['ENROLLMENT'],
-    rules: ['A teacher only updates and marks the sessions they teach', 'trg_CLASS_SESSION_LockTaught: a taught session keeps its time, room and teacher', 'trg_ATTENDANCE_CheckClass: the student belongs to the class of the session', 'No attendance change once the class is Finished'],
+    rules: ['A teacher only updates and marks the sessions they teach', 'trg_CLASS_SESSION_LockTaught: Taught only on or after the session date, then it keeps its status, time, room and teacher', 'trg_ATTENDANCE_CheckClass: the student belongs to the class of the session', 'No session or attendance change once the class is Finished (50018)'],
     app: ['view', 'View only', 'No attendance form yet; the attendance rate is shown on Learning results.'] },
   { phase: 'Teaching & assessment', title: 'Enter component grades', roles: 'MST', procs: ['usp_Grade_Save'], writes: ['GRADE', 'AUDIT_LOG'], reads: ['GRADE_COMPONENT', 'ENROLLMENT'],
     rules: ['Scores 0-10; a teacher only grades their own classes', 'trg_GRADE_CheckComponent: the grade component belongs to the course of the class', 'trg_GRADE_Audit writes the old and new XML to AUDIT_LOG', 'The accountant is denied; grades are locked once the class is Finished'],
     app: ['view', 'View only', 'No grade form yet; the final grade is shown on Learning results.'] },
   { phase: 'End of course', title: 'Evaluate results, issue certificates', roles: 'MS', procs: ['usp_Class_EvaluateResults'], writes: ['ENROLLMENT', 'CERTIFICATE', 'CLASS'], reads: ['GRADE', 'GRADE_COMPONENT', 'ATTENDANCE'],
-    rules: ['A CURSOR walks the enrollments and computes fn_FinalGrade and fn_AttendanceRate', 'Passed when the final grade is ≥ 5 and the attendance ≥ 80%', 'Issues a CERTIFICATE with serial EC<year>-<EnrollmentId>; trg_CERTIFICATE_CheckResult blocks the others', 'The class becomes Finished'],
+    rules: ['Refused while a session is still Scheduled (50047)', 'A CURSOR walks the enrollments and computes fn_FinalGrade and fn_AttendanceRate (sessions since the enrollment date)', 'Passed when the final grade is ≥ 5 and the attendance ≥ 80%', 'Issues a CERTIFICATE with serial EC<year>-<EnrollmentId>; trg_CERTIFICATE_CheckResult blocks the others', 'The class becomes Finished'],
     app: ['view', 'View only', 'Shown on Learning results.'] },
   { phase: 'Teacher pay', title: 'Finalize the teacher payroll', roles: 'MA', procs: ['usp_Payroll_Finalize'], writes: ['PAYROLL'], reads: ['CLASS_SESSION', 'TEACHER'],
-    rules: ['A CURSOR per teacher: hours of the Taught sessions of the month', 'A bonus of 500,000 VND for 20 sessions or more', 'TotalPay = Hours × HourlyRate + Bonus − Deduction (computed column)', 'A future month is refused (50050)'],
+    rules: ['A CURSOR per teacher: hours of the Taught sessions of the month', 'A bonus of 500,000 VND for 20 sessions or more', 'TotalPay = Hours × HourlyRate + Bonus − Deduction (computed column)', 'A future month is refused (50050); running it again removes a Finalized row without Taught sessions'],
     app: ['view', 'View only', 'Shown on Teacher payroll; teachers see My pay.'] },
 ];
 

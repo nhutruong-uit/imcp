@@ -68,7 +68,10 @@ GO
 -- db_datareader: fixed database role = SELECT on every table and view (reports, administration).
 -- EXECUTE ON SCHEMA::dbo: a schema-level permission that covers every procedure of dbo, also the ones
 -- created later (account administration usp_Account_*, usp_Backup, ...).
--- INSERT/UPDATE on the catalog tables: the manager maintains them; DELETE only on GRADE_COMPONENT.
+-- INSERT/UPDATE on the catalog tables: the manager maintains them in SSMS (the application has no catalog screen);
+-- DELETE only on GRADE_COMPONENT. These are the only direct table writes of a business role (T29). The rules such a
+-- write could break are triggers: trg_ROOM_CheckClasses (a room keeps fitting its active classes) and
+-- trg_GRADE_COMPONENT_Lock (the components of an evaluated course are frozen).
 ALTER ROLE db_datareader ADD MEMBER rl_Manager;
 GRANT EXECUTE ON SCHEMA::dbo TO rl_Manager;
 GRANT INSERT, UPDATE ON dbo.BRANCH           TO rl_Manager;

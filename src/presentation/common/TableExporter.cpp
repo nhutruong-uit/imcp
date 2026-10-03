@@ -2,6 +2,7 @@
 
 #include "presentation/common/Columns.h"
 #include "presentation/common/Format.h"
+#include "presentation/common/Theme.h"
 
 #include <QAbstractItemModel>
 #include <QCoreApplication>
@@ -10,6 +11,8 @@
 #include <QPageLayout>
 #include <QPageSize>
 #include <QPdfWriter>
+#include <QRegularExpression>
+#include <QSaveFile>
 #include <QTextDocument>
 #include <algorithm>
 
@@ -20,7 +23,14 @@ struct ExporterText {
 };
 
 QString csvField(QString s) {
-    if (s.contains(QLatin1Char(',')) || s.contains(QLatin1Char('"')) || s.contains(QLatin1Char('\n'))) {
+    // Excel runs a cell that starts with = + - @ (or a tab / carriage return) as a formula: a leading
+    // apostrophe keeps such a cell text (CSV injection). A negative number such as -500 stays a number.
+    static const QRegularExpression negativeNumber(QStringLiteral("^-[0-9]"));
+    if (!s.isEmpty() && (QStringLiteral("=+@\t\r").contains(s.front()) ||
+                         (s.front() == QLatin1Char('-') && !negativeNumber.match(s).hasMatch())))
+        s.prepend(QLatin1Char('\''));
+    if (s.contains(QLatin1Char(',')) || s.contains(QLatin1Char('"')) || s.contains(QLatin1Char('\n')) ||
+        s.contains(QLatin1Char('\r'))) {
         s.replace(QLatin1String("\""), QLatin1String("\"\""));
         return QLatin1Char('"') + s + QLatin1Char('"');
     }
@@ -29,8 +39,9 @@ QString csvField(QString s) {
 } // namespace
 
 bool TableExporter::exportCsv(const QAbstractItemModel& model, const QString& filePath, QString* error) {
-    QFile f(filePath);
-    if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    // QSaveFile writes a temporary file and replaces the old one only when everything was written (commit)
+    QSaveFile f(filePath);
+    if (!f.open(QIODevice::WriteOnly)) {
         if (error)
             *error = f.errorString();
         return false;
@@ -46,7 +57,11 @@ bool TableExporter::exportCsv(const QAbstractItemModel& model, const QString& fi
             fields << csvField(model.index(r, c).data(Qt::DisplayRole).toString());
         out += fields.join(QLatin1Char(',')).toUtf8() + "\r\n";
     }
-    f.write(out);
+    if (f.write(out) != out.size() || !f.commit()) {
+        if (error)
+            *error = f.errorString();
+        return false;
+    }
     return true;
 }
 
@@ -54,13 +69,16 @@ bool TableExporter::exportPdf(const QAbstractItemModel& model, const QString& ti
                               const QString& preparedBy, const QString& filePath, QString* error) {
     // Layout like a Crystal Report: Report Header -> Page Header (column titles repeated on every page)
     // -> Details -> Report Footer (totals); QTextDocument prints the page numbers in the footer.
-    QString html = QStringLiteral(
-        "<html><head><style>"
-        "body{font-family:'Segoe UI','Helvetica Neue',Arial;font-size:9pt;color:#1E293B;}"
-        "h1{color:#1F3864;font-size:16pt;margin:0;} .sub{color:#64748B;margin-bottom:8px;}"
-        "table{border-collapse:collapse;width:100%;} th{background:#1F3864;color:white;padding:4px;}"
-        "td{border-bottom:1px solid #E2E8F0;padding:3px;} .r{text-align:right;} .total{font-weight:bold;}"
-        "</style></head><body>");
+    QString html =
+        QStringLiteral(
+            "<html><head><style>"
+            "body{font-family:'Segoe UI','Helvetica Neue',Arial;font-size:9pt;color:%1;}"
+            "h1{color:%2;font-size:16pt;margin:0;} .sub{color:%3;margin-bottom:8px;}"
+            "table{border-collapse:collapse;width:100%;} th{background:%2;color:white;padding:4px;}"
+            "td{border-bottom:1px solid %4;padding:3px;} .r{text-align:right;} .total{font-weight:bold;}"
+            "</style></head><body>")
+            .arg(QLatin1String(Theme::kText), QLatin1String(Theme::kPrimary), QLatin1String(Theme::kMuted),
+                 QLatin1String(Theme::kBorder));
     html += QStringLiteral("<div class='sub'>%1</div>")
                 .arg(ExporterText::tr("ENGLISH CENTER — QLTTTA MANAGEMENT SYSTEM").toHtmlEscaped());
     html += QStringLiteral("<h1>%1</h1>").arg(title.toHtmlEscaped());
@@ -110,7 +128,14 @@ bool TableExporter::exportPdf(const QAbstractItemModel& model, const QString& ti
     html += QStringLiteral("</tbody></table><p class='sub'>%1</p></body></html>")
                 .arg(ExporterText::tr("Total rows: %1").arg(model.rowCount()).toHtmlEscaped());
 
-    QPdfWriter writer(filePath);
+    // Open the file first: QPdfWriter would silently write nothing to a read-only or locked file
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly)) {
+        if (error)
+            *error = file.errorString();
+        return false;
+    }
+    QPdfWriter writer(&file);
     if (!writer.setPageLayout(QPageLayout(QPageSize(QPageSize::A4),
                                           columnCount > 7 ? QPageLayout::Landscape : QPageLayout::Portrait,
                                           QMarginsF(12, 12, 12, 12), QPageLayout::Millimeter))) {
@@ -124,5 +149,10 @@ bool TableExporter::exportPdf(const QAbstractItemModel& model, const QString& ti
     QTextDocument doc;
     doc.setHtml(html);
     doc.print(&writer);
+    if (file.error() != QFileDevice::NoError) {
+        if (error)
+            *error = file.errorString();
+        return false;
+    }
     return true;
 }

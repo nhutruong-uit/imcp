@@ -14,7 +14,6 @@ class ListService {
 public:
     ListService(IListRepository& repository, const AuthService& auth);
     Result<TableData> fetch(Feature feature);
-    static bool hasList(Feature feature); // false for features with their own page (dashboard, students)
 
 private:
     IListRepository& m_repository;

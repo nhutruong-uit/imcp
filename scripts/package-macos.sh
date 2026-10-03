@@ -7,6 +7,10 @@
 #
 # Requirements: brew install qt qt-unixodbc unixodbc freetds cmake ninja
 # Optional: EXTRA_CMAKE_ARGS="-DCMAKE_OSX_SYSROOT=..." when the Command Line Tools SDK is broken.
+#
+# Usage:
+#   ./scripts/package-macos.sh                        # Qt from Homebrew => dist/QLTTTA-<version>-macos-<arch>.dmg
+#   QT_ROOT_DIR=/path/to/Qt/6.x/macos ./scripts/package-macos.sh   # another Qt installation
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

@@ -8,7 +8,7 @@ QStringList genders() {
 }
 QStringList statuses() {
     return {QStringLiteral("Prospective"), QStringLiteral("Studying"), QStringLiteral("On hold"),
-            QStringLiteral("Dropped out")};
+            QStringLiteral("Dropped out"), QStringLiteral("Completed")};
 }
 QString activeStatus() {
     return QStringLiteral("Studying");
@@ -23,10 +23,12 @@ bool isValidPhone(const QString& phone) {
     return pattern.match(phone).hasMatch();
 }
 
-// something@something.something, close to CK_STUDENT_Email (LIKE '%_@_%._%')
+// something@something.something, close to CK_STUDENT_Email (LIKE '%_@_%._%'); ASCII only, because the column
+// is VARCHAR (a letter such as "ê" would be stored as "?")
 bool isValidEmail(const QString& email) {
-    static const QRegularExpression pattern(QStringLiteral("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"));
-    return pattern.match(email).hasMatch();
+    static const QRegularExpression pattern(
+        QStringLiteral("^[\\x21-\\x7E]+@[\\x21-\\x7E]+\\.[\\x21-\\x7E]+$"));
+    return pattern.match(email).hasMatch() && email.count(QLatin1Char('@')) == 1;
 }
 } // namespace
 
@@ -51,6 +53,7 @@ bool Student::needsGuardian(const QDate& asOf) const {
 //   phone formats -> CK_STUDENT_Phone, CK_STUDENT_GuardianPhone       email -> CK_STUDENT_Email
 //   under 18 needs a guardian -> CK_STUDENT_Guardian                  one contact phone -> CK_STUDENT_Contact
 //   status -> CK_STUDENT_Status                                       branch -> FK_STUDENT_BRANCH (NOT NULL)
+//   text lengths -> the column sizes (StudentLimits), which the procedure parameters would cut silently
 QStringList Student::validate(const QDate& today) const {
     QStringList errors;
     // The database measures the age on the registration date (RegisteredOn); a new student has none yet,
@@ -59,7 +62,7 @@ QStringList Student::validate(const QDate& today) const {
 
     if (fullName.trimmed().isEmpty())
         errors << tr("Full name is required.");
-    else if (fullName.trimmed().size() > 100)
+    else if (fullName.trimmed().size() > StudentLimits::fullName)
         errors << tr("Full name must be at most 100 characters.");
 
     if (!dateOfBirth.isValid())
@@ -74,8 +77,16 @@ QStringList Student::validate(const QDate& today) const {
         errors << tr("Phone numbers contain 9-11 digits only.");
     if (!guardianPhone.isEmpty() && !isValidPhone(guardianPhone))
         errors << tr("Guardian phone numbers contain 9-11 digits only.");
-    if (!email.isEmpty() && !isValidEmail(email))
+    if (!email.isEmpty() && (email.size() > StudentLimits::email || !isValidEmail(email)))
         errors << tr("Invalid email address.");
+    if (address.size() > StudentLimits::address)
+        errors << tr("Address must be at most %1 characters.").arg(StudentLimits::address);
+    if (occupation.size() > StudentLimits::occupation)
+        errors << tr("Occupation must be at most %1 characters.").arg(StudentLimits::occupation);
+    if (guardianName.size() > StudentLimits::guardianName)
+        errors << tr("Guardian name must be at most %1 characters.").arg(StudentLimits::guardianName);
+    if (notes.size() > StudentLimits::notes)
+        errors << tr("Notes must be at most %1 characters.").arg(StudentLimits::notes);
 
     if (dateOfBirth.isValid() && needsGuardian(ageReference) &&
         (guardianName.trimmed().isEmpty() || guardianPhone.isEmpty()))

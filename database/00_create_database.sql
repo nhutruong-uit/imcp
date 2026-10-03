@@ -34,7 +34,7 @@ GO
 --    Users can then have a password stored inside the database, with no
 --    server-level login => backup/restore to another machine causes no "orphaned users".
 --    RECONFIGURE applies the new value at once (this option needs no restart).
-EXEC sp_configure 'contained database authentication', 1;
+EXEC sys.sp_configure 'contained database authentication', 1;
 RECONFIGURE;
 GO
 

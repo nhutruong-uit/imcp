@@ -1,5 +1,6 @@
 # Release: on a merge into main -> build the macOS (.dmg) + Windows (setup.exe, portable .zip) installers
-# and create a GitHub Release with them attached. The version comes from project(VERSION ...) in CMakeLists.txt.
+# and create a GitHub Release with them attached. A manual run (workflow_dispatch) on another branch only builds
+# the installers. The version comes from project(VERSION ...) in CMakeLists.txt.
 name: Release
 
 on:
@@ -68,6 +69,8 @@ jobs:
   publish:
     name: Create the GitHub Release
     needs: [macos, windows]
+    # A manual run from another branch only builds the installers (artifacts); a Release comes from main only
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

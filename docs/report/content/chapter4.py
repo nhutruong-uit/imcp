@@ -41,7 +41,7 @@ def chapter4(r):
         ["08 - 12_*.sql", "Truy vấn minh họa, backup/restore, import/export, CSDL phân tán, kiểm thử", "-"],
     ], widths_cm=[3.8, 9.0, 3.2], caption="Cấu trúc các script cài đặt CSDL", size=9.5)
     r.code("Tạo CSDL độc lập (contained database) với collation tiếng Việt - 00_create_database.sql",
-           sql_block(SQL, "00_create_database.sql", "EXEC sp_configure", "-- 5."))
+           sql_block(SQL, "00_create_database.sql", "EXEC sys.sp_configure", "-- 5."))
     r.p("Mã nghiệp vụ dễ đọc (ST00001, CL0001, EN000001) được sinh bằng **SEQUENCE** đặt trong ràng buộc DEFAULT - "
         "an toàn khi nhiều người thêm dữ liệu đồng thời, khác với cách tự tính MAX()+1 dễ bị trùng:")
     r.code("Sinh mã học viên bằng SEQUENCE trong DEFAULT - 01_tables.sql",
@@ -93,8 +93,8 @@ def chapter4(r):
         "phân quyền bằng `GRANT EXECUTE` thay vì cấp quyền trên bảng, và giảm lưu lượng mạng.")
     r.table(["Nhóm", "Thủ tục", "Kỹ thuật nổi bật"], [
         ["Học viên", "usp_Student_Add, _Update, _Delete, _Search, _Details", "Tham số OUTPUT, OUTPUT INTO lấy mã mới, THROW lỗi nghiệp vụ"],
-        ["Lớp học", "usp_Class_Create, usp_ClassSchedule_Add, usp_Class_GenerateSessions, usp_Class_UpdateStatus, usp_Session_Update", "Vòng lặp WHILE sinh buổi học, giao dịch"],
-        ["Ghi danh", "usp_Enrollment_Create, _TransferClass, _UpdateStatus, _ByClass", "Giao dịch nhiều bước, kiểm tra điều kiện đầu vào và trùng lịch"],
+        ["Lớp học", "usp_Class_Create, usp_ClassSchedule_Add, usp_Class_GenerateSessions, usp_Class_UpdateStatus, usp_Session_Update", "Vòng lặp WHILE sinh buổi học, vòng đời trạng thái lớp, giao dịch"],
+        ["Ghi danh", "usp_Enrollment_Create, _TransferClass, _UpdateStatus, _ByClass", "Giao dịch nhiều bước, điều kiện đầu vào, trùng lịch (fn_StudentScheduleClash), chuyển lớp cùng khóa và chi nhánh"],
         ["Học phí", "usp_Receipt_Create, _Cancel, _Print", "Kết hợp trigger dẫn xuất, hủy mềm (soft delete)"],
         ["Học vụ", "usp_PlacementTest_Add, usp_Attendance_Save/_BySession, usp_Grade_Save, usp_Class_EvaluateResults", "Kiểm tra quyền theo người đăng nhập, CURSOR"],
         ["Lương", "usp_Payroll_Finalize", "CURSOR trên truy vấn gom nhóm"],
@@ -125,16 +125,18 @@ def chapter4(r):
         ["fn_EnrolledCount", "Scalar", "Số học viên đang học của lớp"],
         ["fn_FinalGrade", "Scalar", "Σ(Score × Weight)/100, NULL nếu thiếu điểm"],
         ["fn_Classification", "Scalar, SCHEMABINDING", "Excellent / Very good / Good / Average / Failed (xuất sắc ... không đạt)"],
-        ["fn_AttendanceRate", "Scalar", "% buổi có mặt trên số buổi đã dạy"],
+        ["fn_AttendanceRate", "Scalar", "% buổi có mặt trên số buổi đã dạy kể từ ngày vào lớp (ClassJoinedOn)"],
         ["fn_RecommendCourse", "Scalar", "Khóa học phù hợp với điểm kiểm tra đầu vào"],
         ["fn_DiscountAmount", "Scalar", "Tiền giảm theo khuyến mãi tại một ngày"],
         ["fn_TeacherSchedule", "Inline table-valued", "Lịch dạy của giáo viên trong khoảng ngày"],
         ["fn_StudentBalance", "Inline table-valued", "Các khoản còn nợ của một học viên"],
+        ["fn_ClassPeriod", "Inline table-valued", "Khoảng thời gian của lớp; chưa sinh buổi thì ước lượng StartDate + SessionCount tuần"],
+        ["fn_StudentScheduleClash", "Inline table-valued", "Các lớp đang học của học viên bị trùng lịch với một lớp (dùng chung cho ghi danh, chuyển lớp, học lại)"],
         ["fn_MonthlyRevenue", "Multi-statement table-valued", "Doanh thu đủ 12 tháng (tháng không phát sinh = 0)"],
     ], widths_cm=[5.4, 4.0, 6.6], caption="Danh mục hàm", size=9.5)
     r.code("fn_FinalGrade - hàm vô hướng", sql_object(SQL, "02_functions.sql", "fn_FinalGrade"))
     r.code("fn_MonthlyRevenue - hàm trả về bảng nhiều câu lệnh", sql_object(SQL, "02_functions.sql", "fn_MonthlyRevenue"))
-    _query_table(r, "monthly_revenue", "Kết quả fn_MonthlyRevenue (tháng 3 - 10 năm hiện tại)", widths=[4, 4, 8], money_cols=(2,))
+    _query_table(r, "monthly_revenue", "Kết quả fn_MonthlyRevenue (8 tháng gần nhất)", widths=[4, 4, 8], money_cols=(2,))
     r.p("**Inline TVF** (một câu SELECT) được bộ tối ưu mở rộng như view có tham số nên hiệu năng tốt; **multi-statement "
         "TVF** cần khi phải xử lý nhiều bước (ở đây: tạo trước 12 dòng tháng rồi cập nhật số liệu) nhưng bộ tối ưu không "
         "ước lượng được số dòng, nên chỉ dùng cho tập kết quả nhỏ.")
@@ -151,18 +153,20 @@ def chapter4(r):
     r.h2("4.6. Trigger")
     r.table(["Trigger", "Bảng / sự kiện", "Ràng buộc / mục đích"], [
         ["trg_CLASS_CheckRoom", "CLASS / AFTER INS, UPD", "Phòng cùng chi nhánh, sĩ số tối đa ≤ sức chứa"],
+        ["trg_ROOM_CheckClasses", "ROOM / AFTER UPD", "Phòng đang có lớp hoạt động không được đổi chi nhánh hay giảm sức chứa dưới sĩ số"],
         ["trg_CLASS_SCHEDULE_CheckConflict", "CLASS_SCHEDULE / AFTER INS, UPD", "Không trùng phòng, giáo viên"],
         ["trg_ENROLLMENT_CheckCapacity", "ENROLLMENT / AFTER INS, UPD", "Sĩ số ≤ MaxStudents"],
         ["trg_RECEIPT_UpdateAmountPaid", "RECEIPT / AFTER INS, UPD", "Duy trì AmountPaid, chặn thu vượt"],
         ["trg_RECEIPT_PreventDelete", "RECEIPT / INSTEAD OF DELETE", "Chứng từ không được xóa"],
         ["trg_ATTENDANCE_CheckClass", "ATTENDANCE / AFTER INS, UPD", "Học viên thuộc lớp của buổi học"],
         ["trg_GRADE_CheckComponent", "GRADE / AFTER INS, UPD", "Cột điểm thuộc khóa học của lớp"],
+        ["trg_GRADE_COMPONENT_Lock", "GRADE_COMPONENT / AFTER INS, UPD, DEL", "Khóa cột điểm của khóa học đã có lớp được đánh giá"],
         ["trg_GRADE_Audit", "GRADE / AFTER INS, UPD, DEL", "Nhật ký thay đổi điểm (XML cũ/mới)"],
         ["trg_RECEIPT_Audit", "RECEIPT / AFTER INS, UPD", "Nhật ký lập/hủy phiếu thu"],
         ["trg_AUDIT_LOG_ReadOnly", "AUDIT_LOG / INSTEAD OF UPD, DEL", "Nhật ký chỉ ghi thêm"],
         ["trg_PLACEMENT_TEST_Recommend", "PLACEMENT_TEST / AFTER INS, UPD", "Tự đề xuất khóa học"],
         ["trg_CERTIFICATE_CheckResult", "CERTIFICATE / AFTER INS, UPD", "Chỉ cấp cho học viên Đạt"],
-        ["trg_CLASS_SESSION_LockTaught", "CLASS_SESSION / AFTER UPD", "Không sửa thời gian/phòng/GV của buổi đã dạy"],
+        ["trg_CLASS_SESSION_LockTaught", "CLASS_SESSION / AFTER UPD", "Chỉ đánh dấu đã dạy từ ngày học; buổi đã dạy giữ trạng thái, thời gian, phòng, GV"],
     ], widths_cm=[5.0, 5.0, 6.0], caption="Danh mục trigger", size=9.5)
     r.p("Mọi trigger được viết theo **tập hợp**: bảng ảo `inserted`/`deleted` có thể chứa nhiều dòng (ví dụ nạp dữ "
         "liệu mẫu chèn hàng trăm phiếu thu trong một câu lệnh), nên không dùng biến vô hướng kiểu "
@@ -217,7 +221,11 @@ def chapter4(r):
         "khóa học có khóa tiên quyết nhưng không đặt điểm tối thiểu, trùng lịch và học phí khi chuyển lớp, xét lại kết "
         "quả thì chứng chỉ phải đi theo kết quả mới, tên đăng nhập không dấu, khóa tài khoản, điểm và điểm danh của lớp "
         "đã kết thúc, các thủ tục từ chối xóa học viên có lịch sử hoặc hủy lớp đã thu tiền, và các trigger điểm danh, "
-        "thành phần điểm, nhật ký điểm, gợi ý khóa học.")
+        "thành phần điểm, nhật ký điểm, gợi ý khóa học. T48-T71 (cùng S20 ở mục 5.7) đi kèm lần rà soát toàn bộ mã nguồn "
+        "ngày 03/10/2026 (`docs/reviews/`): buổi học tương lai không được đánh dấu đã dạy, buổi đã dạy không được đặt lại, "
+        "vòng đời trạng thái lớp và ghi danh, chuyên cần tính từ ngày vào lớp (kể cả khi chuyển lớp), chuyển lớp không đổi "
+        "chi nhánh, trạng thái học viên Hoàn thành, khóa cột điểm khi khóa học đã có lớp được đánh giá, làm tròn điểm một "
+        "lần, giới hạn mã của SEQUENCE và các trường hợp còn thiếu ca thành công của điều kiện đầu vào.")
     r.p("Cách chấm được thiết kế để dùng làm **kiểm thử hồi quy**: bảng `#Expected` liệt kê mọi ca phải chạy và mẫu "
         "thông báo của ca “Rejected” (từ chối) - ca chỉ đạt khi bị từ chối **đúng lý do** (một thủ tục hỏng vì lỗi khác không thể "
         "“đạt” nhầm); có ca không đạt hoặc không chạy thì file kết thúc bằng `THROW 50099`, lệnh `scripts/test_all.sh` "
