@@ -81,8 +81,9 @@ GO
       (Schedule: "Mon 18:00-20:00, Wed 18:00-20:00"; the application localizes the day names)
       EnrolledCount counts the Studying and Completed enrollments (same rule as fn_EnrolledCount);
       SeatsLeft = MaxStudents - EnrolledCount.
-      Used by: the Classes screen (SqlListRepository); SELECT is GRANTed to rl_AcademicStaff and
-      rl_Accountant.
+      Used by: the Classes screen and the class pickers of the enrollment and grade book screens
+      (SqlClassRepository, SqlEnrollmentRepository, SqlGradeRepository); SELECT is GRANTed to
+      rl_AcademicStaff and rl_Accountant.
       Concepts: join of six tables, correlated subquery, string concatenation with FOR XML PATH
       (the SQL Server 2012 way; STRING_AGG only exists from SQL Server 2017). */
 IF OBJECT_ID(N'dbo.vw_ClassDetails', N'V') IS NOT NULL DROP VIEW dbo.vw_ClassDetails;
@@ -122,9 +123,10 @@ GO
       One row per enrollment that still owes money and is not Left. ContactPhone = the student's
       phone, or the guardian's phone when the student has none (COALESCE); DaysSinceEnrollment
       shows how old the debt is.
-      Used by: the Outstanding tuition screen (SqlListRepository), usp_Dashboard_Stats
-      (TotalOutstanding), the sqlcmd export example of 10_import_export.sql, the e2e GUI test;
-      SELECT is GRANTed to rl_AcademicStaff and rl_Accountant.
+      Used by: the Outstanding tuition screen (SqlListRepository), the payment form of the Tuition screen
+      (SqlTuitionRepository::outstanding), usp_Dashboard_Stats (TotalOutstanding), the sqlcmd export
+      example of 10_import_export.sql, the e2e GUI test; SELECT is GRANTed to rl_AcademicStaff and
+      rl_Accountant.
       Concepts: view with a row filter, COALESCE, DATEDIFF. */
 IF OBJECT_ID(N'dbo.vw_OutstandingTuition', N'V') IS NOT NULL DROP VIEW dbo.vw_OutstandingTuition;
 GO
@@ -188,8 +190,8 @@ GO
 
 /* 7. vw_SessionDetails: detailed timetable, one row per session
       Room and teacher come from the session itself (CLASS_SESSION), not from the class.
-      Used by: the Weekly schedule screen (SqlListRepository, filtered on the current week);
-      SELECT is GRANTed to rl_AcademicStaff.
+      Used by: the Timetable screen (SqlSessionRepository, one week at a time; its SessionId opens the
+      attendance and the session form); SELECT is GRANTed to rl_AcademicStaff.
       Concepts: multi-table join view. */
 IF OBJECT_ID(N'dbo.vw_SessionDetails', N'V') IS NOT NULL DROP VIEW dbo.vw_SessionDetails;
 GO
@@ -233,13 +235,14 @@ GO
 
 /* 9. vw_Teacher_MyClasses: only the classes of the signed-in teacher
       Row filter: classes whose main teacher (CLASS.TeacherId) is the signed-in teacher.
-      Used by: the My classes screen (SqlListRepository), test P02; SELECT is GRANTed to rl_Teacher.
+      Used by: the My classes screen (SqlListRepository; CourseId opens the syllabus), the class list of the
+      My grade book screen (SqlGradeRepository), test P02; SELECT is GRANTed to rl_Teacher.
       Concepts: security view (row filter by the signed-in user), ownership chaining. */
 IF OBJECT_ID(N'dbo.vw_Teacher_MyClasses', N'V') IS NOT NULL DROP VIEW dbo.vw_Teacher_MyClasses;
 GO
 CREATE VIEW dbo.vw_Teacher_MyClasses
 AS
-SELECT cl.ClassId, cl.ClassName, co.CourseName, rm.RoomName, br.BranchName, cl.StartDate, cl.EndDate,
+SELECT cl.ClassId, cl.ClassName, cl.CourseId, co.CourseName, rm.RoomName, br.BranchName, cl.StartDate, cl.EndDate,
        cl.Status, dbo.fn_EnrolledCount(cl.ClassId) AS EnrolledCount
 FROM dbo.CLASS cl
 JOIN dbo.COURSE co  ON co.CourseId = cl.CourseId
@@ -254,8 +257,8 @@ GO
        data and no money. rl_Teacher has DENY SELECT on STUDENT, yet this view reads STUDENT:
        the view and the table are both owned by dbo (ownership chaining), so SQL Server checks
        only the SELECT permission on the view.
-       Used by: test P02 of 12_tests.sql; SELECT is GRANTed to rl_Teacher. The report quotes this
-       view verbatim.
+       Used by: My classes screen - Students (SqlClassRepository::students), test P02 of 12_tests.sql; SELECT is
+       GRANTed to rl_Teacher. The report quotes this view verbatim.
        Concepts: security view (row and column filter), ownership chaining, GRANT on a view
        instead of the table. */
 IF OBJECT_ID(N'dbo.vw_Teacher_MyStudents', N'V') IS NOT NULL DROP VIEW dbo.vw_Teacher_MyStudents;
@@ -273,8 +276,8 @@ GO
 /* 11. vw_Teacher_MySchedule: sessions taught by the signed-in teacher
        Filters on the teacher of each session (CLASS_SESSION.TeacherId), not on the main teacher
        of the class, so it follows who teaches each session.
-       Used by: the My teaching schedule screen (SqlListRepository, from the Monday of this week);
-       SELECT is GRANTed to rl_Teacher.
+       Used by: the Teaching schedule screen (SqlSessionRepository, one week at a time; its SessionId opens
+       the attendance and the session form); SELECT is GRANTed to rl_Teacher.
        Concepts: security view (row filter by the signed-in user). */
 IF OBJECT_ID(N'dbo.vw_Teacher_MySchedule', N'V') IS NOT NULL DROP VIEW dbo.vw_Teacher_MySchedule;
 GO
@@ -293,7 +296,8 @@ GO
        builds every pair and the LEFT JOIN with GRADE (on both EnrollmentId and ComponentId) adds
        the score when it exists, so a missing score shows as NULL - like a grading sheet with
        empty cells. Grades are saved through usp_Grade_Save, not through this view.
-       Used by: SELECT is GRANTed to rl_Teacher (06_security.sql).
+       Used by: My grade book screen (SqlGradeRepository::sheet); SELECT is GRANTed to rl_Teacher
+       (06_security.sql).
        Concepts: security view, LEFT JOIN on two columns to show missing values. */
 IF OBJECT_ID(N'dbo.vw_Teacher_MyGrades', N'V') IS NOT NULL DROP VIEW dbo.vw_Teacher_MyGrades;
 GO

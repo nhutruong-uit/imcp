@@ -123,10 +123,10 @@ QString sqlCode(const QString& fileName) {
     return withoutComments(readText(QStringLiteral("database/") + fileName), true);
 }
 
-// Test case codes registered in #Expected: ('T01', N'%pattern%') or ('T15', NULL) - two values only.
+// Test case codes registered in #Expected: ('T01', N'%pattern%') or ('T101', NULL) - two values only.
 // The count is compared with the numbers of cases that docs/DATABASE.md and docs/SETUP.md quote.
 int expectedCases(const QString& fileName) {
-    const QRegularExpression re(QStringLiteral("\\('([TPS]\\d{2})',\\s*(?:NULL|N'(?:[^']|'')*')\\s*\\)"));
+    const QRegularExpression re(QStringLiteral("\\('([TPS]\\d{2,3})',\\s*(?:NULL|N'(?:[^']|'')*')\\s*\\)"));
     QSet<QString> codes;
     for (auto it = re.globalMatch(sqlCode(fileName)); it.hasNext();)
         codes.insert(it.next().captured(1));

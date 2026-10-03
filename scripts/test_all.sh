@@ -77,11 +77,11 @@ run_db_tests() {
   exit_code=$?
   set -e
   # Verdict column of the summary table: PASSED / FAILED (case codes Txx, Pxx, Sxx)
-  total=$(grep -cE '^[TPS][0-9]{2}\|' "$log" || true)
-  passed=$(grep -E '^[TPS][0-9]{2}\|' "$log" | grep -c '|PASSED|' || true)
+  total=$(grep -cE '^[TPS][0-9]{2,3}\|' "$log" || true)
+  passed=$(grep -E '^[TPS][0-9]{2,3}\|' "$log" | grep -c '|PASSED|' || true)
   echo "Result: $passed/$total cases passed (details: ${log#"$ROOT"/})"
   if [[ $exit_code -ne 0 ]]; then
-    grep -E '^[TPS][0-9]{2}\|.*\|FAILED\|' "$log" || tail -20 "$log"
+    grep -E '^[TPS][0-9]{2,3}\|.*\|FAILED\|' "$log" || tail -20 "$log"
     echo "FAILED: some test cases of database/$file failed." >&2
     exit 1
   fi

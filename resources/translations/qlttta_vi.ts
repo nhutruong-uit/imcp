@@ -429,6 +429,22 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Lớp chỉ được chuyển từ Đang tuyển sinh sang Đang học, hoặc từ Đang tuyển sinh / Đang học sang Đã hủy.</translation>
     </message>
     <message>
+        <source>Only an enrolling or in-progress class can be changed.</source>
+        <translation>Chỉ được thay đổi lớp đang tuyển sinh hoặc đang học.</translation>
+    </message>
+    <message>
+        <source>The start date can only change while the class is enrolling and none of its sessions has been taught or cancelled.</source>
+        <translation>Chỉ được đổi ngày khai giảng khi lớp đang tuyển sinh và chưa có buổi nào đã dạy hoặc đã hủy.</translation>
+    </message>
+    <message>
+        <source>The maximum size cannot be lower than the number of students enrolled in the class.</source>
+        <translation>Sĩ số tối đa không được nhỏ hơn số học viên đang ghi danh trong lớp.</translation>
+    </message>
+    <message>
+        <source>Schedule slot not found.</source>
+        <translation>Không tìm thấy khung giờ.</translation>
+    </message>
+    <message>
         <source>The student does not exist or has dropped out.</source>
         <translation>Học viên không tồn tại hoặc đã ngừng học.</translation>
     </message>
@@ -533,6 +549,18 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Không thể chốt lương cho tháng trong tương lai.</translation>
     </message>
     <message>
+        <source>Payroll row not found.</source>
+        <translation>Không tìm thấy dòng bảng lương.</translation>
+    </message>
+    <message>
+        <source>A paid payroll row can no longer be changed.</source>
+        <translation>Dòng lương đã chi trả thì không thể thay đổi.</translation>
+    </message>
+    <message>
+        <source>The deduction cannot be larger than the pay of the month.</source>
+        <translation>Khấu trừ không được lớn hơn lương của tháng.</translation>
+    </message>
+    <message>
         <source>A username may only contain letters without diacritics, digits, dots and underscores (at least 3 characters).</source>
         <translation>Tên đăng nhập chỉ gồm chữ không dấu, số, dấu chấm, gạch dưới (tối thiểu 3 ký tự).</translation>
     </message>
@@ -575,6 +603,42 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>The backup type must be FULL, DIFF or LOG.</source>
         <translation>Loại sao lưu phải là FULL, DIFF hoặc LOG.</translation>
+    </message>
+    <message>
+        <source>The record to update does not exist.</source>
+        <translation>Bản ghi cần cập nhật không tồn tại.</translation>
+    </message>
+    <message>
+        <source>This code is already used.</source>
+        <translation>Mã này đã được sử dụng.</translation>
+    </message>
+    <message>
+        <source>A code may only contain letters, digits, dashes and underscores.</source>
+        <translation>Mã chỉ gồm chữ không dấu, số, dấu gạch ngang và gạch dưới.</translation>
+    </message>
+    <message>
+        <source>A branch with active classes cannot be suspended.</source>
+        <translation>Không thể tạm ngưng chi nhánh đang có lớp hoạt động.</translation>
+    </message>
+    <message>
+        <source>A course with active classes cannot be discontinued.</source>
+        <translation>Không thể ngừng mở khóa học đang có lớp hoạt động.</translation>
+    </message>
+    <message>
+        <source>The prerequisite would make a loop: a course cannot require itself, not even through other courses.</source>
+        <translation>Khóa tiên quyết tạo thành vòng lặp: một khóa học không thể yêu cầu chính nó, kể cả qua các khóa khác.</translation>
+    </message>
+    <message>
+        <source>The syllabus does not follow the XML schema of the center: %1</source>
+        <translation>Giáo trình không đúng lược đồ XML của trung tâm: %1</translation>
+    </message>
+    <message>
+        <source>A grade component that already has scores cannot be deleted.</source>
+        <translation>Không thể xóa cột điểm đã có điểm.</translation>
+    </message>
+    <message>
+        <source>An employee or teacher with an active account or an active class cannot be set to Left: lock the account and hand the classes over first.</source>
+        <translation>Không thể chuyển nhân viên/giáo viên đang có tài khoản hoạt động hoặc lớp đang học sang Đã nghỉ: hãy khóa tài khoản và bàn giao lớp trước.</translation>
     </message>
     <message>
         <source>The room must belong to the same branch as the class.</source>
@@ -1139,6 +1203,70 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Học viên đang có dữ liệu ghi danh, không thể xóa.</translation>
     </message>
     <message>
+        <source>Another branch already has this name.</source>
+        <translation>Đã có chi nhánh khác mang tên này.</translation>
+    </message>
+    <message>
+        <source>This branch already has a room with this name.</source>
+        <translation>Chi nhánh đã có phòng mang tên này.</translation>
+    </message>
+    <message>
+        <source>Another program already has this name.</source>
+        <translation>Đã có chương trình khác mang tên này.</translation>
+    </message>
+    <message>
+        <source>Another course already has this name.</source>
+        <translation>Đã có khóa học khác mang tên này.</translation>
+    </message>
+    <message>
+        <source>The course already has a grade component with this name.</source>
+        <translation>Khóa học đã có cột điểm mang tên này.</translation>
+    </message>
+    <message>
+        <source>This phone number is already used by another employee.</source>
+        <translation>Số điện thoại này đã được nhân viên khác sử dụng.</translation>
+    </message>
+    <message>
+        <source>This email is already used by another employee.</source>
+        <translation>Email này đã được nhân viên khác sử dụng.</translation>
+    </message>
+    <message>
+        <source>This phone number is already used by another teacher.</source>
+        <translation>Số điện thoại này đã được giáo viên khác sử dụng.</translation>
+    </message>
+    <message>
+        <source>This email is already used by another teacher.</source>
+        <translation>Email này đã được giáo viên khác sử dụng.</translation>
+    </message>
+    <message>
+        <source>Staff must be at least 18 years old on the hire date.</source>
+        <translation>Nhân sự phải đủ 18 tuổi vào ngày vào làm.</translation>
+    </message>
+    <message>
+        <source>A native-speaker teacher cannot have Vietnamese nationality.</source>
+        <translation>Giáo viên bản ngữ không thể có quốc tịch Việt Nam.</translation>
+    </message>
+    <message>
+        <source>A course cannot be its own prerequisite.</source>
+        <translation>Khóa học không thể là khóa tiên quyết của chính nó.</translation>
+    </message>
+    <message>
+        <source>The discount must be positive, and at most 50 for a percentage.</source>
+        <translation>Mức giảm phải lớn hơn 0, và tối đa 50 nếu giảm theo phần trăm.</translation>
+    </message>
+    <message>
+        <source>The end date cannot be before the start date.</source>
+        <translation>Ngày kết thúc không được trước ngày bắt đầu.</translation>
+    </message>
+    <message>
+        <source>A time slot must end after it starts and stay between 07:00 and 22:00.</source>
+        <translation>Khung giờ phải kết thúc sau khi bắt đầu và nằm trong 07:00 - 22:00.</translation>
+    </message>
+    <message>
+        <source>This person already has an account.</source>
+        <translation>Người này đã có tài khoản.</translation>
+    </message>
+    <message>
         <source>The data violates an integrity constraint: %1</source>
         <translation>Dữ liệu vi phạm ràng buộc toàn vẹn: %1</translation>
     </message>
@@ -1163,6 +1291,10 @@ Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ 
     <message>
         <source>You do not have permission to perform this action (denied by SQL Server).</source>
         <translation>Bạn không có quyền thực hiện thao tác này (SQL Server từ chối).</translation>
+    </message>
+    <message>
+        <source>The text is not well-formed XML: %1</source>
+        <translation>Nội dung không phải XML hợp lệ: %1</translation>
     </message>
 </context>
 <context>

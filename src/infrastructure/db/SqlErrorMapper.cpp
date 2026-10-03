@@ -52,6 +52,45 @@ QString SqlErrorMapper::constraintMessage(const QString& constraintName) {
          QT_TRANSLATE_NOOP("SqlErrorMapper", "This email is already used by another student.")},
         {QStringLiteral("FK_ENROLLMENT_STUDENT"),
          QT_TRANSLATE_NOOP("SqlErrorMapper", "The student has enrollment records and cannot be deleted.")},
+        // Catalog and staff forms (the domain validation catches most of these before the database)
+        {QStringLiteral("UQ_BRANCH_BranchName"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "Another branch already has this name.")},
+        {QStringLiteral("UQ_ROOM_BranchId_RoomName"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "This branch already has a room with this name.")},
+        {QStringLiteral("UQ_PROGRAM_ProgramName"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "Another program already has this name.")},
+        {QStringLiteral("UQ_COURSE_CourseName"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "Another course already has this name.")},
+        {QStringLiteral("UQ_GRADE_COMPONENT_CourseId_ComponentName"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "The course already has a grade component with this name.")},
+        {QStringLiteral("UQ_EMPLOYEE_Phone"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "This phone number is already used by another employee.")},
+        {QStringLiteral("UX_EMPLOYEE_Email"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "This email is already used by another employee.")},
+        {QStringLiteral("UQ_TEACHER_Phone"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "This phone number is already used by another teacher.")},
+        {QStringLiteral("UQ_TEACHER_Email"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "This email is already used by another teacher.")},
+        {QStringLiteral("CK_EMPLOYEE_Age"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "Staff must be at least 18 years old on the hire date.")},
+        {QStringLiteral("CK_TEACHER_Age"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "Staff must be at least 18 years old on the hire date.")},
+        {QStringLiteral("CK_TEACHER_Native"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "A native-speaker teacher cannot have Vietnamese nationality.")},
+        {QStringLiteral("CK_COURSE_Prerequisite"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "A course cannot be its own prerequisite.")},
+        {QStringLiteral("CK_PROMOTION_DiscountValue"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper",
+                           "The discount must be positive, and at most 50 for a percentage.")},
+        {QStringLiteral("CK_PROMOTION_Dates"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "The end date cannot be before the start date.")},
+        {QStringLiteral("CK_CLASS_SCHEDULE_Time"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper",
+                           "A time slot must end after it starts and stay between 07:00 and 22:00.")},
+        {QStringLiteral("UX_ACCOUNT_EmployeeId"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "This person already has an account.")},
+        {QStringLiteral("UX_ACCOUNT_TeacherId"),
+         QT_TRANSLATE_NOOP("SqlErrorMapper", "This person already has an account.")},
     };
     if (const char* source = messages.value(constraintName, nullptr))
         return tr(source);
@@ -60,7 +99,8 @@ QString SqlErrorMapper::constraintMessage(const QString& constraintName) {
 
 // Checks run from the most specific to the most general. SQL Server error numbers used below:
 //   18456 login failed, 4060 cannot open the database, 229/230/262/297 permission denied,
-//   2627 duplicate key (PRIMARY KEY/UNIQUE), 2601 duplicate key in a unique index, 547 CHECK/FOREIGN KEY
+//   9400-9499 XML parsing, 2627 duplicate key (PRIMARY KEY/UNIQUE), 2601 duplicate key in a unique index,
+//   547 CHECK/FOREIGN KEY
 // Anything else is a business message of THROW/RAISERROR (English), translated by DbMessages.
 QString SqlErrorMapper::message(const QSqlError& error) {
     if (!error.isValid())
@@ -90,6 +130,11 @@ QString SqlErrorMapper::message(const QSqlError& error) {
     if (hasCode("229") || hasCode("230") || hasCode("262") || hasCode("297") ||
         raw.contains(QLatin1String("permission was denied"), Qt::CaseInsensitive))
         return tr("You do not have permission to perform this action (denied by SQL Server).");
+
+    // 9400-9499: XML parsing (text that is not well-formed XML, e.g. a syllabus or a teacher profile)
+    for (const QString& code : codes)
+        if (code.size() == 4 && code.startsWith(QLatin1String("94")))
+            return tr("The text is not well-formed XML: %1").arg(cleaned);
 
     if (hasCode("2627") || hasCode("2601") || hasCode("547") || raw.contains(QLatin1String("constraint"))) {
         static const QRegularExpression constraintName(

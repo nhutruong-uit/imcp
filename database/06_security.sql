@@ -68,9 +68,10 @@ GO
 -- db_datareader: fixed database role = SELECT on every table and view (reports, administration).
 -- EXECUTE ON SCHEMA::dbo: a schema-level permission that covers every procedure of dbo, also the ones
 -- created later (account administration usp_Account_*, usp_Backup, ...).
--- INSERT/UPDATE on the catalog tables: the manager maintains them in SSMS (the application has no catalog screen);
--- DELETE only on GRADE_COMPONENT. These are the only direct table writes of a business role (T29). The rules such a
--- write could break are triggers: trg_ROOM_CheckClasses (a room keeps fitting its active classes) and
+-- The catalog screens of the application write through the procedures of group J (usp_Branch_Add ...), covered
+-- by EXECUTE ON SCHEMA. INSERT/UPDATE on the catalog tables stays for maintenance in SSMS; DELETE only on
+-- GRADE_COMPONENT. These are the only direct table writes of a business role (T29). The rules such a write could
+-- break are triggers: trg_ROOM_CheckClasses (a room keeps fitting its active classes) and
 -- trg_GRADE_COMPONENT_Lock (the components of an evaluated course are frozen).
 ALTER ROLE db_datareader ADD MEMBER rl_Manager;
 GRANT EXECUTE ON SCHEMA::dbo TO rl_Manager;
@@ -115,15 +116,21 @@ GRANT EXECUTE ON dbo.usp_ClassSchedule_Add          TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Class_GenerateSessions     TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Class_UpdateStatus         TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Class_EvaluateResults      TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Class_Update               TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_ClassSchedule_Remove       TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_ClassSchedule_ByClass      TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Session_Update             TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Enrollment_Create          TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Enrollment_TransferClass   TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Enrollment_UpdateStatus    TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Enrollment_ByClass         TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Enrollment_Search          TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_PlacementTest_Add          TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_PlacementTest_Search       TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Attendance_BySession       TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Attendance_Save            TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Grade_Save                 TO rl_AcademicStaff;
+GRANT EXECUTE ON dbo.usp_Grade_ByClass              TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Course_FindBySkill         TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Course_Syllabus            TO rl_AcademicStaff;
 GRANT EXECUTE ON dbo.usp_Teacher_FindByCertificate  TO rl_AcademicStaff;
@@ -149,10 +156,14 @@ GRANT SELECT ON dbo.PAYROLL                TO rl_Accountant;
 GRANT SELECT ON dbo.TEACHER (TeacherId, FullName, TeacherType, HourlyRate, BranchId, Status) TO rl_Accountant;
 GRANT EXECUTE ON dbo.usp_Student_Search       TO rl_Accountant;
 GRANT EXECUTE ON dbo.usp_Enrollment_ByClass   TO rl_Accountant;
+GRANT EXECUTE ON dbo.usp_Enrollment_Search    TO rl_Accountant;
 GRANT EXECUTE ON dbo.usp_Receipt_Create       TO rl_Accountant;
 GRANT EXECUTE ON dbo.usp_Receipt_Cancel       TO rl_Accountant;
 GRANT EXECUTE ON dbo.usp_Receipt_Print        TO rl_Accountant;
+GRANT EXECUTE ON dbo.usp_Receipt_Search       TO rl_Accountant;
 GRANT EXECUTE ON dbo.usp_Payroll_Finalize     TO rl_Accountant;
+GRANT EXECUTE ON dbo.usp_Payroll_Adjust       TO rl_Accountant;
+GRANT EXECUTE ON dbo.usp_Payroll_MarkPaid     TO rl_Accountant;
 GRANT EXECUTE ON dbo.usp_Report_Revenue       TO rl_Accountant;
 GRANT EXECUTE ON dbo.usp_Dashboard_Stats      TO rl_Accountant;
 GRANT SELECT  ON dbo.fn_MonthlyRevenue        TO rl_Accountant;

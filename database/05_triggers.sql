@@ -39,8 +39,8 @@ GO
 /* T1. trg_CLASS_CheckRoom (rule across CLASS - ROOM)
        - The room must belong to the same branch as the class
        - The class capacity cannot exceed the room capacity
-       Fired by: every INSERT/UPDATE of CLASS (usp_Class_Create, usp_Class_UpdateStatus, the EndDate
-       written by usp_Class_GenerateSessions); tested by test T09 (a room of another branch).
+       Fired by: every INSERT/UPDATE of CLASS (usp_Class_Create, usp_Class_Update, usp_Class_UpdateStatus,
+       the EndDate written by usp_Class_GenerateSessions); tested by test T09 (a room of another branch).
        Why a trigger: BranchId and Capacity of the room are in another table (ROOM).
        How: AFTER INSERT, UPDATE; inserted (every new/changed class) is joined with ROOM, so a statement
        that changes many classes is checked as a whole. Two checks give two precise messages.
@@ -72,7 +72,8 @@ GO
 /* T2. trg_CLASS_SCHEDULE_CheckConflict (rule across rows and tables)
        Two active classes whose periods overlap, on the same weekday with overlapping
        hours, cannot share the same room or the same teacher.
-       Fired by: usp_ClassSchedule_Add (a weekly time slot); tested by test T08 (a busy room).
+       Fired by: usp_ClassSchedule_Add (a weekly time slot) and usp_Class_Update, which writes the slots of
+       a class again after a new teacher, room or start date; tested by tests T08 (a busy room) and T73.
        Why a trigger: the new slot is compared with the slots of OTHER classes (other rows of
        CLASS_SCHEDULE), and room, teacher and dates come from CLASS.
        How it works (AFTER INSERT, UPDATE; set-based):
@@ -129,7 +130,8 @@ GO
        e.g. FinalGrade returns at once (both are TRUE for an INSERT). The count runs AFTER the change for
        every class found in inserted, with the statuses Studying and Completed (as fn_EnrolledCount);
        @ClassId only carries the first full class into the message.
-       Not covered: lowering CLASS.MaxStudents below the current count is not checked.
+       The other side - lowering CLASS.MaxStudents below the current count - is checked by usp_Class_Update
+       (THROW 50082, test T72).
        Concepts: aggregate constraint, UPDATE(col), AFTER trigger, correlated subquery. */
 IF OBJECT_ID(N'dbo.trg_ENROLLMENT_CheckCapacity', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_ENROLLMENT_CheckCapacity;
 GO
@@ -458,8 +460,9 @@ GO
 /* T14. trg_ROOM_CheckClasses (rule across ROOM - CLASS, seen from the room)
         A room used by an active class (Enrolling / In progress) stays in the branch of that class and keeps a
         capacity of at least the class size: rule 2 of docs/DATABASE.md, which T1 checks when a CLASS row changes.
-        Fired by: a direct UPDATE of ROOM (managers hold UPDATE on the catalog tables, 06_security.sql);
-        tested by test T61 (a capacity below the size of a class in progress).
+        Fired by: usp_Room_Update (Branches screen) and a direct UPDATE of ROOM (managers keep UPDATE on the
+        catalog tables for SSMS, 06_security.sql); tested by tests T61 (a capacity below the size of a class in
+        progress) and T86.
         Why a trigger: the rule reads the CLASS rows that use the room.
         How: AFTER UPDATE; it returns at once unless BranchId or Capacity is in the SET list, then joins
         inserted (every changed room) with the active classes of those rooms. A finished class keeps its
@@ -490,8 +493,9 @@ GO
         A new component, a changed weight or course, or a deleted component would change the final grade that
         vw_LearningResults recomputes next to the Result and the certificate already stored. To grade a course
         differently afterwards, the center opens a new course. Renaming a component is still allowed.
-        Fired by: a direct write to GRADE_COMPONENT (managers maintain the catalog tables in SSMS, 06_security.sql;
-        the application has no screen for them); tested by test T68 (a new weight for an evaluated course).
+        Fired by: usp_GradeComponent_Save / usp_GradeComponent_Delete (Courses screen) and a direct write to
+        GRADE_COMPONENT (managers keep the table rights for SSMS, 06_security.sql); tested by tests T68 (a new weight
+        for an evaluated course) and T90.
         Why a trigger: the rule reads ENROLLMENT through CLASS, and it must hold for every writer.
         How: AFTER INSERT, UPDATE, DELETE; an UPDATE that touches neither CourseId nor Weight returns at once.
         The courses concerned are those of inserted (new rows) UNION deleted (old rows, so moving a component to
