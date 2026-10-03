@@ -32,8 +32,9 @@ paths:
 - Passwords only travel through environment variables (`SQL_PASSWORD`, `SQLCMDPASSWORD`;
   `docker exec -e SQLCMDPASSWORD` without a value) - never on the command line, never printed in logs; restore the
   environment afterwards.
-- `checks.yml` (job `Checks (conventions + unit tests)`, Linux, no database) runs on every PR into `develop`: not a
-  required check (`develop` is not protected). Keep it cheap - no SQL Server, no macOS/Windows.
+- `checks.yml` (job `Checks (conventions + unit tests)`, Linux, no database) runs on every PR into `develop` and is a
+  required check of that branch. Keep the job name (it is the required status check) and keep the job cheap - no SQL
+  Server, no macOS/Windows.
 - CI (`.github/workflows/ci.yml`) runs only on a merge into `develop`, on PRs into `main` (required by branch
   protection) and manually. Keep the three job names `macOS (Apple Silicon)`, `Windows (Qt + MinGW)` and
   `Full tests (Linux + SQL Server)`: renaming a job requires updating the required checks of `main`, otherwise every
@@ -44,6 +45,9 @@ paths:
 - Every tool a job's `test_all` step needs is installed by the job itself (e.g. clang-format for `check_changes`, same
   install as `checks.yml`).
 - Do not add `paths-ignore` to the `pull_request` trigger of `main` (the required checks would never run).
+- `pages.yml` publishes only `docs/data-map.html` (as `index.html`) to GitHub Pages when it changes on `develop`. The
+  Pages site is public although the repository is private: never publish the report, the user guide or other docs
+  there. Only `develop` may deploy (environment `github-pages`).
 - The `Full tests (Linux + SQL Server)` job runs SQL Server 2022 Developer in Docker and installs Microsoft ODBC
   Driver 18 (`msodbcsql18`), both with `ACCEPT_EULA=Y`: the repository owner accepted these two licenses for CI
   (development/test use only) on 2026-10-02. Do not add other components that need their own Microsoft EULA (e.g.

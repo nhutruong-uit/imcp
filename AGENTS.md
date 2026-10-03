@@ -89,10 +89,14 @@ QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/too
   permission matrix, `SET NOCOUNT ON`, UTC times), `tst_i18n` (translations and database messages), `check_changes`
   (format of the changed lines, commit messages). Fix the code, not the check.
 - **Git**: default branch `develop`; work on `feature/...`/`fix/...`/`docs/...`/`chore/...` branches and PR into
-  `develop`; never push directly to `main` (protected: PR + green CI on macOS, Windows and the Linux full tests +
-  branch up to date). Conventional Commits in English (`feat(students): ...`, `fix(db): ...`), no AI attribution
-  lines; commits through `/imcp-commit`. PRs in English through `/imcp-create-pr`, which runs `test_all` first.
-  Never commit real passwords, `.env`, `build/`, `dist/`. Do not start a manual CI run unless the user asks.
+  `develop`. Never push directly to `develop` or `main` (both protected by rulesets: a PR, the branch up to date, and
+  one approving review from the code owner `nhutruong-uit` in `.github/CODEOWNERS`). `develop` also requires the
+  Checks job green; `main` requires green CI on macOS, Windows and the Linux full tests. Only the repository admin
+  (team lead) can bypass the rules, to merge their own PRs (an author cannot approve their own PR); never bypass
+  on behalf of another member, and never with red checks. Conventional Commits in English (`feat(students): ...`,
+  `fix(db): ...`), no AI attribution lines; commits through `/imcp-commit`. PRs in English through
+  `/imcp-create-pr`, which runs `test_all` first. Never commit real passwords, `.env`, `build/`, `dist/`. Do not
+  start a manual CI run unless the user asks.
 
 ## Demo accounts
 Shared password and list: `docs/SETUP.md`. Roles: `ql_quan` (manager), `gvu_lan` (academic staff),
