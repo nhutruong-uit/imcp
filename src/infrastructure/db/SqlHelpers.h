@@ -10,6 +10,9 @@
 #include <QString>
 #include <QVariant>
 
+// Small tools shared by every Sql*Repository. The rule they enforce: a value never becomes part of the SQL
+// text; it is sent separately as a parameter for a '?' marker, so input such as "x'; DROP TABLE ..."
+// stays plain data (no SQL injection) and Vietnamese text keeps its accents.
 namespace SqlHelpers {
 
 // Empty string => NULL of type NVARCHAR (ODBC needs to know the type of a NULL parameter)
@@ -17,11 +20,14 @@ inline QVariant stringOrNull(const QString& s) {
     return s.trimmed().isEmpty() ? QVariant(QMetaType::fromType<QString>()) : QVariant(s);
 }
 
+// Invalid (empty) date => NULL of type DATE
 inline QVariant dateOrNull(const QDate& d) {
     return d.isValid() ? QVariant(d) : QVariant(QMetaType::fromType<QDate>());
 }
 
 // Pre-configured query: decimals returned as double, forward-only reading
+// (forward-only = rows are read once from first to last, which is faster and is all the lists need; money
+// columns are DECIMAL in the database and would otherwise arrive as text)
 inline QSqlQuery makeQuery(const QSqlDatabase& db) {
     QSqlQuery q(db);
     q.setForwardOnly(true);
@@ -29,6 +35,7 @@ inline QSqlQuery makeQuery(const QSqlDatabase& db) {
     return q;
 }
 
+// The user-facing message of the last error of q (see SqlErrorMapper::message)
 inline QString errorOf(const QSqlQuery& q) {
     return SqlErrorMapper::message(q.lastError());
 }

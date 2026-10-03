@@ -8,6 +8,8 @@
 #include <QTranslator>
 
 namespace {
+// The language currently applied (g_ = a global of this file). English until apply() succeeds, because the
+// source strings are English.
 Language g_current = Language::English;
 
 // One shared QTranslator, owned by the application object (destroyed together with QCoreApplication)

@@ -5,6 +5,8 @@
 #include <QWidget>
 
 // Bar chart of the revenue of 12 months, painted with QPainter (no chart library needed)
+// Qt calls paintEvent() whenever the widget must be drawn; setData()/setMessage() call update() to ask for a
+// new paint. The current month is drawn in the darker color.
 class RevenueChart : public QWidget {
     Q_OBJECT
 public:

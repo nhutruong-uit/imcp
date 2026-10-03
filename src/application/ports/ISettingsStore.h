@@ -3,7 +3,9 @@
 #include "domain/entities/Language.h"
 #include "domain/entities/ServerConfig.h"
 
-// Local settings on the user's machine: database server, last username (never the password), UI language
+// Local settings on the user's machine: database server, last username (never the password), UI language.
+// Port (interface, see IStudentRepository.h): implemented by QSettingsStore, faked in tst_application.cpp,
+// used by AuthService (server, last username) and LanguageService (language).
 class ISettingsStore {
 public:
     virtual ~ISettingsStore() = default;

@@ -17,11 +17,17 @@
 // Creates every object in dependency order (manual dependency injection).
 // To switch DBMS (e.g. PostgreSQL) or run with fake data, only the Sql...Repository classes change here;
 // the application and presentation layers stay the same.
+// "Composition root": the only place that includes all layers. Each object receives references to the
+// objects it needs (SqlStudentRepository gets the DatabaseManager, StudentService gets the repository...).
+// The order of the members below matters: C++ builds members in the order they are declared, so the
+// infrastructure objects exist before the services that keep references to them. Also used by the
+// end-to-end test and the screenshot tool (they compile AppContainer.cpp too).
 class AppContainer {
 public:
     AppContainer();
     AuthService& auth() { return m_auth; }
     LanguageService& language() { return m_language; }
+    // The use cases handed to the UI (the UI never sees the repositories or the database)
     AppServices services() { return AppServices{m_auth, m_students, m_statistics, m_lists, m_language}; }
 
 private:

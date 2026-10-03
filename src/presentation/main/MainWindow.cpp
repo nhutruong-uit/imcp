@@ -48,6 +48,8 @@ MainWindow::MainWindow(AppServices services, QWidget* parent) : QMainWindow(pare
         openFeature(m_features.first());
 }
 
+// Left menu: one entry per allowed feature, grouped under non-clickable group headers. Each entry stores its
+// Feature in Qt::UserRole (the item's hidden data); group headers store -1 there.
 QWidget* MainWindow::buildSidebar() {
     auto* sidebar = new QFrame(this);
     sidebar->setObjectName(QStringLiteral("Sidebar"));
@@ -132,6 +134,8 @@ QWidget* MainWindow::buildHeader() {
     return header;
 }
 
+// The page of a feature: created on first use, then reused (switching back keeps its filters and data).
+// Dashboard and Students have their own page; every other feature is a read-only list shown by ListPage.
 QWidget* MainWindow::pageFor(Feature feature) {
     const int key = static_cast<int>(feature);
     if (QWidget* existing = m_pages.value(key, nullptr))
@@ -184,6 +188,8 @@ void MainWindow::changePassword() {
     dialog.exec();
 }
 
+// Saves and loads the new language, then asks main.cpp to rebuild the window (texts are set when widgets are
+// created, so a fresh window is simpler than re-translating every widget)
 void MainWindow::changeLanguage() {
     const Language selected = languageFromCode(m_languageCombo->currentData().toString());
     if (selected == I18n::current())

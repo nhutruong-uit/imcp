@@ -10,6 +10,9 @@ const QString kActiveStatus = QStringLiteral("Active"); // ACCOUNT.Status of an 
 
 SqlAuthGateway::SqlAuthGateway(DatabaseManager& db) : m_db(db) {}
 
+// 1. Open the connection with the user's own account: SQL Server checks the password (contained user).
+// 2. Run usp_Account_RecordLogin: stores the login time and returns the user's row of vw_CurrentAccount.
+// 3. No row: let the database owner in as Manager, otherwise return Role::Unknown (AuthService refuses it).
 Result<Account> SqlAuthGateway::login(const ServerConfig& config, const QString& username,
                                       const QString& password) {
     const VoidResult connected = m_db.open(config, username, password);
@@ -24,6 +27,7 @@ Result<Account> SqlAuthGateway::login(const ServerConfig& config, const QString&
     }
 
     // Columns: Username, Role, EmployeeId, TeacherId, Status, FullName, BranchId
+    // (q.next() moves to the first row; q.value(i) reads column i of that row, 0 = the first column)
     Account account;
     if (q.next()) {
         account.username = q.value(0).toString();

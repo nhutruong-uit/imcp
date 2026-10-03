@@ -5,7 +5,9 @@
 #include <QAbstractTableModel>
 
 // Student list table. Headers come from the shared column catalog (Columns), so the same column key
-// (e.g. "TongConNo") gets the same title, money format and PDF total as in the other lists.
+// (e.g. "TotalBalance") gets the same title, money format and PDF total as in the other lists.
+// A Qt "model" answers the questions of the table view cell by cell: rowCount, columnCount, data(index,
+// role), headerData. See TableDataModel.h for the meaning of the roles.
 class StudentTableModel : public QAbstractTableModel {
     Q_OBJECT
 public:
@@ -26,8 +28,8 @@ public:
     };
 
     explicit StudentTableModel(QObject* parent = nullptr);
-    void setStudents(QList<Student> students);
-    const Student* studentAt(int row) const;
+    void setStudents(QList<Student> students); // replaces the rows (the view redraws itself)
+    const Student* studentAt(int row) const;   // nullptr when the row does not exist
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     int columnCount(const QModelIndex& parent = QModelIndex()) const override;

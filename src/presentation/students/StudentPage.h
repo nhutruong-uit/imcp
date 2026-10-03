@@ -17,6 +17,8 @@ class QTimer;
 
 // Reference module - new modules follow the same structure:
 //   Page (UI) -> Service (use case) -> repository interface -> Sql...Repository -> SQL procedure
+// The Add/Edit/Delete buttons are only shown to roles that may edit students (Permissions::canEditStudents);
+// hiding them is a convenience - SQL Server refuses usp_Student_Add/Update/Delete to the other roles anyway.
 class StudentPage : public QWidget {
     Q_OBJECT
 public:

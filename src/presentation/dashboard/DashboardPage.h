@@ -8,6 +8,9 @@ class QLabel;
 class RevenueChart;
 
 // Overview page: key figures + revenue chart of the current year
+// Data: StatisticsService -> usp_Dashboard_Stats (cards) and fn_MonthlyRevenue (chart). A role that may not
+// see revenue (academic staff) gets "No permission" on that card - the procedure returns NULL for it - and a
+// message instead of the chart, because SQL Server refuses fn_MonthlyRevenue to that role.
 class DashboardPage : public QWidget {
     Q_OBJECT
 public:
@@ -17,6 +20,7 @@ public slots:
     void reload();
 
 private:
+    // One figure card; the new value label is stored in *value, and reload() fills it later
     QWidget* buildCard(const QString& title, const QString& icon, QLabel** value);
 
     AppServices m_services;

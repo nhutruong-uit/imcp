@@ -8,6 +8,7 @@
 #include <QSqlQuery>
 
 namespace {
+// Qt keeps connections in a global list by name; the application uses a single named connection
 const char* const kConnectionName = "qlttta";
 
 // Value inside an ODBC connection string: wrapped in {} when it has special characters, '}' written as '}}'
@@ -20,6 +21,7 @@ QString odbcValue(const QString& v) {
     return QLatin1Char('{') + s + QLatin1Char('}');
 }
 
+// The driver is not installed on this machine => try the next one (IM002 = ODBC "data source not found")
 bool isMissingDriverError(const QSqlError& error) {
     const QString t = error.databaseText() + QLatin1Char(' ') + error.driverText() + QLatin1Char(' ') +
                       error.nativeErrorCode();
@@ -29,6 +31,7 @@ bool isMissingDriverError(const QSqlError& error) {
 }
 
 // The server answered but rejected the login => trying another driver is pointless
+// (18456 = SQL Server "Login failed"; "Cannot open database" = the database name is wrong or not accessible)
 bool isAuthenticationError(const QSqlError& error) {
     const QString t = error.databaseText() + QLatin1Char(' ') + error.nativeErrorCode();
     return t.contains(QLatin1String("18456")) || t.contains(QLatin1String("Login failed"), Qt::CaseInsensitive) ||
@@ -71,6 +74,8 @@ bool DatabaseManager::isFreeTds(const QString& driver) {
     return driver.contains(QLatin1String("tdsodbc")); // libtdsodbc.so, the name Qt checks too
 }
 
+// The ODBC connection string = "KEY=value;" pairs the driver understands. Values that come from the user
+// go through odbcValue() so a ';' in a password cannot inject another key.
 QString DatabaseManager::connectionString(const QString& driver, const ServerConfig& config,
                                           const QString& username, const QString& password) {
     if (isFreeTds(driver)) {
@@ -91,6 +96,9 @@ QString DatabaseManager::connectionString(const QString& driver, const ServerCon
         return s;
     }
 
+    // Microsoft drivers: encrypted connection; TrustServerCertificate is the option of the login dialog
+    // (needed for the self-signed certificate of the Docker image). The legacy Windows driver "SQL Server"
+    // does not know these keywords.
     QString s = QStringLiteral("DRIVER={%1};SERVER=%2;DATABASE=%3;UID=%4;PWD=%5;")
                     .arg(driver, odbcValue(config.host.trimmed()), odbcValue(config.database.trimmed()),
                          odbcValue(username), odbcValue(password));
@@ -112,6 +120,7 @@ VoidResult DatabaseManager::open(const ServerConfig& config, const QString& user
     QSqlError lastError;       // error of the last driver tried
     QSqlError meaningfulError; // first error that is not "driver missing" (the driver/server was reached)
     for (const QString& driver : candidateDrivers()) {
+        // Inner block: the QSqlDatabase handle must be destroyed before removeDatabase() below (Qt rule)
         {
             QSqlDatabase db =
                 QSqlDatabase::addDatabase(QStringLiteral("QODBC"), QLatin1String(kConnectionName));
@@ -119,6 +128,8 @@ VoidResult DatabaseManager::open(const ServerConfig& config, const QString& user
             db.setConnectOptions(QStringLiteral("SQL_ATTR_LOGIN_TIMEOUT=8"));
             if (db.open()) {
                 m_driver = driver;
+                // Same session settings whatever the default language of the login: dates are read as
+                // year-month-day and SQL Server's own messages stay English, which SqlErrorMapper recognizes
                 QSqlQuery(db).exec(QStringLiteral("SET DATEFORMAT ymd; SET LANGUAGE us_english;"));
                 return VoidResult::success();
             }

@@ -13,6 +13,9 @@ class TableDataModel;
 
 // Generic page for every read-only lookup list (classes, outstanding tuition, teaching schedule...):
 // quick filter, sorting, totals line for money columns, Excel/PDF export.
+// Data: ListService::fetch(feature) -> TableData -> TableDataModel -> QSortFilterProxyModel -> QTableView.
+// The page knows nothing about the columns of a list: titles and formats come from the column catalog
+// (Columns), so a new list needs no new page (docs/ARCHITECTURE.md, section 4).
 class ListPage : public QWidget {
     Q_OBJECT
 public:

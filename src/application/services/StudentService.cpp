@@ -1,7 +1,9 @@
 #include "application/services/StudentService.h"
 
 namespace {
-// Normalizes user input: trims extra whitespace, lower-cases the email
+// Normalizes user input: trims extra whitespace, lower-cases the email.
+// simplified() also turns inner runs of spaces into one ("Nguyen   An" -> "Nguyen An"), so the same name
+// typed twice is stored the same way, and phone/email reach the uniqueness checks without stray spaces.
 Student normalized(Student s) {
     s.fullName = s.fullName.simplified();
     s.phone = s.phone.trimmed();
@@ -30,6 +32,8 @@ Result<Student> StudentService::details(const QString& id) {
     return m_repository.findById(id);
 }
 
+// add/update: normalize -> validate (domain rules) -> only then call the repository (the database checks the
+// same rules again). All errors are joined with line breaks so the form shows them together.
 Result<QString> StudentService::add(const Student& student, const QDate& today) {
     const Student s = normalized(student);
     const QStringList errors = s.validate(today);

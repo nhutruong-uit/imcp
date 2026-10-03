@@ -36,6 +36,7 @@ ListQuery queryFor(ListKind kind) {
                     "StartDate DESC"),
                 {}};
     case ListKind::WeeklySchedule:
+        // From Monday of this week (included) to Monday of next week (excluded); the dates are parameters
         return {QStringLiteral(
                     "SELECT SessionDate, %1, %2, ClassId, ClassName, SessionNo, RoomName, TeacherName, "
                     "Status FROM dbo.vw_SessionDetails WHERE SessionDate >= ? AND SessionDate < ? "
@@ -60,6 +61,8 @@ ListQuery queryFor(ListKind kind) {
                            "ORDER BY Year DESC, Month DESC, BranchName"),
             {}};
     case ListKind::Payroll:
+        // Reads only TeacherId/FullName of TEACHER: accountants have a column-level GRANT on TEACHER that
+        // includes these columns (06_security.sql)
         return {QStringLiteral(
                     "SELECT py.Year, py.Month, te.TeacherId, te.FullName AS TeacherName, py.SessionCount, "
                     "py.Hours, py.HourlyRate, py.Bonus, py.Deduction, py.TotalPay, py.Status "
@@ -97,6 +100,7 @@ Result<TableData> SqlListRepository::fetch(ListKind kind) {
     if (!execPrepared(q, m_db, lq.sql, lq.parameters))
         return Result<TableData>::failure(errorOf(q));
 
+    // The column names of the result become the column keys (record() describes the result columns)
     TableData table;
     const QSqlRecord record = q.record();
     const int columnCount = record.count();

@@ -12,6 +12,8 @@ class QLineEdit;
 class QPushButton;
 
 // Login screen: authenticates with a SQL Server account (contained user) + server settings + language
+// Shown by main.cpp with exec(): a modal dialog that blocks until it closes and returns how it closed
+// (Accepted = logged in, Rejected = window closed, LanguageChanged = rebuild it in the new language).
 class LoginDialog : public QDialog {
     Q_OBJECT
 public:

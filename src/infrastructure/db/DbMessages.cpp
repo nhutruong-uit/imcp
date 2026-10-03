@@ -85,6 +85,8 @@ const char* const kTemplates[] = {
                       "The date, time, room and teacher of a taught session cannot be changed."),
 };
 
+// A template and the regular expression built from it (a regular expression = a text pattern; "(.+?)"
+// captures the value that stands where %1 or %2 is)
 struct Entry {
     const char* source;
     QRegularExpression pattern; // the whole message; one capture group per placeholder
@@ -105,6 +107,7 @@ QRegularExpression patternFor(const QString& source) {
     return QRegularExpression(QStringLiteral("^") + regex + QStringLiteral("$"));
 }
 
+// Built once, on first use (a function-local static), then reused
 const QList<Entry>& entries() {
     static const QList<Entry> list = [] {
         QList<Entry> l;

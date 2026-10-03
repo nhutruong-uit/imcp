@@ -6,6 +6,9 @@ class AuthService;
 class QLabel;
 class QLineEdit;
 
+// "Change password" dialog of the main window header. The checks and the change itself are done by
+// AuthService::changePassword (-> usp_Account_ChangePassword); errors are shown inside the dialog.
+// "class AuthService;" above is a forward declaration: it is enough for a reference member.
 class ChangePasswordDialog : public QDialog {
     Q_OBJECT
 public:
