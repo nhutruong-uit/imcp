@@ -58,7 +58,9 @@ def chapter5(r):
         "về trạng thái chưa xác định). Vì vậy dữ liệu nhạy cảm như bảng lương được `DENY` tường minh cho giáo vụ, và "
         "ngay cả role Quản lý cũng bị `DENY DELETE` trên RECEIPT để bảo vệ chứng từ tài chính. Quyền ghi trực tiếp lên bảng "
         "duy nhất của role nghiệp vụ là quyền của Quản lý trên các bảng danh mục (chi nhánh, phòng, khóa học, cột điểm...), "
-        "dùng để quản lý danh mục trong SSMS vì ứng dụng chưa có màn hình này; những quy tắc mà thao tác đó có thể phá vỡ "
+        "giữ lại để bảo trì trong SSMS. Các màn hình danh mục của ứng dụng không dùng quyền này mà gọi thủ tục nhóm J "
+        "(`usp_Branch_Add` ... `usp_Promotion_Update`), nơi kiểm tra các quy tắc cần đọc bảng khác (chi nhánh còn lớp "
+        "đang hoạt động, khóa tiên quyết không tạo vòng lặp...); những quy tắc mà thao tác trực tiếp trong SSMS có thể phá vỡ "
         "được trigger bảo vệ: `trg_ROOM_CheckClasses` (phòng vẫn phù hợp với lớp đang dùng) và `trg_GRADE_COMPONENT_Lock` "
         "(không đổi cột điểm của khóa học đã có lớp được đánh giá).")
 

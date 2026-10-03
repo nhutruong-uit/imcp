@@ -93,11 +93,12 @@ def chapter4(r):
         "phân quyền bằng `GRANT EXECUTE` thay vì cấp quyền trên bảng, và giảm lưu lượng mạng.")
     r.table(["Nhóm", "Thủ tục", "Kỹ thuật nổi bật"], [
         ["Học viên", "usp_Student_Add, _Update, _Delete, _Search, _Details", "Tham số OUTPUT, OUTPUT INTO lấy mã mới, THROW lỗi nghiệp vụ"],
-        ["Lớp học", "usp_Class_Create, usp_ClassSchedule_Add, usp_Class_GenerateSessions, usp_Class_UpdateStatus, usp_Session_Update", "Vòng lặp WHILE sinh buổi học, vòng đời trạng thái lớp, giao dịch"],
-        ["Ghi danh", "usp_Enrollment_Create, _TransferClass, _UpdateStatus, _ByClass", "Giao dịch nhiều bước, điều kiện đầu vào, trùng lịch (fn_StudentScheduleClash), chuyển lớp cùng khóa và chi nhánh"],
-        ["Học phí", "usp_Receipt_Create, _Cancel, _Print", "Kết hợp trigger dẫn xuất, hủy mềm (soft delete)"],
-        ["Học vụ", "usp_PlacementTest_Add, usp_Attendance_Save/_BySession, usp_Grade_Save, usp_Class_EvaluateResults", "Kiểm tra quyền theo người đăng nhập, CURSOR"],
-        ["Lương", "usp_Payroll_Finalize", "CURSOR trên truy vấn gom nhóm"],
+        ["Lớp học", "usp_Class_Create, _Update, _GenerateSessions, _UpdateStatus, usp_ClassSchedule_Add/_Remove/_ByClass, usp_Session_Update", "Vòng lặp WHILE sinh buổi học, vòng đời trạng thái lớp, giao dịch, kích hoạt lại trigger kiểm tra trùng lịch"],
+        ["Ghi danh", "usp_Enrollment_Create, _TransferClass, _UpdateStatus, _ByClass, _Search", "Giao dịch nhiều bước, điều kiện đầu vào, trùng lịch (fn_StudentScheduleClash), chuyển lớp cùng khóa và chi nhánh"],
+        ["Học phí", "usp_Receipt_Create, _Cancel, _Print, _Search", "Kết hợp trigger dẫn xuất, hủy mềm (soft delete)"],
+        ["Học vụ", "usp_PlacementTest_Add/_Search, usp_Attendance_Save/_BySession, usp_Grade_Save/_ByClass, usp_Class_EvaluateResults", "Kiểm tra quyền theo người đăng nhập, CURSOR, LEFT JOIN trên khóa ghép"],
+        ["Lương", "usp_Payroll_Finalize, _Adjust, _MarkPaid", "CURSOR trên truy vấn gom nhóm, cột tính toán PERSISTED"],
+        ["Danh mục", "usp_Branch_*, usp_Room_*, usp_Program_*, usp_Course_* (Add, Update, SetSyllabus), usp_GradeComponent_Save/_Delete, usp_Employee_*, usp_Teacher_*, usp_Promotion_*", "CTE đệ quy chặn vòng lặp khóa tiên quyết, XML có kiểu (XSD), SEQUENCE + OUTPUT"],
         ["Báo cáo", "usp_Dashboard_Stats, usp_Report_Revenue, usp_Report_ClassResults", "Truy vấn con vô hướng, gom nhóm"],
         ["XML", "usp_Course_FindBySkill, usp_Course_Syllabus, usp_Teacher_FindByCertificate, usp_Student_ExportXml/_ImportXml", "XQuery, FOR XML PATH, .nodes()"],
         ["Bảo mật", "usp_Account_Create, _Lock, _ResetPassword, _ChangePassword, _RecordLogin, _List, usp_Backup", "Dynamic SQL an toàn, EXECUTE AS OWNER, BACKUP"],
@@ -113,6 +114,13 @@ def chapter4(r):
     r.p("Hàm `fn_Weekday` tính thứ theo chuẩn ISO 8601 (1 = thứ Hai ... 7 = Chủ nhật) dựa trên mốc 01/01/1900 là thứ Hai, "
         "nên kết quả **không phụ thuộc** thiết lập `SET DATEFIRST` của máy chủ - điểm thường gây lỗi khi chuyển CSDL "
         "giữa máy cài tiếng Anh và tiếng Việt.")
+    r.h3("4.4.3. usp_Course_Update - CTE đệ quy chặn vòng lặp khóa tiên quyết")
+    r.p("`CK_COURSE_Prerequisite` chỉ ngăn một khóa học làm tiên quyết của chính nó. Vòng dài hơn (A cần B, B cần A) sẽ "
+        "khóa cả hai khóa học vĩnh viễn vì không học viên nào đạt được điều kiện đầu vào. Khi đổi khóa tiên quyết, thủ "
+        "tục đi ngược chuỗi tiên quyết bắt đầu từ khóa mới bằng **CTE đệ quy** (thành viên neo `UNION ALL` thành viên đệ "
+        "quy); gặp lại chính khóa đang sửa nghĩa là có vòng lặp và thủ tục báo lỗi 50095 (ca kiểm thử T90). Điều kiện "
+        "`Depth < 100` bảo đảm vòng duyệt luôn dừng.")
+    r.code("usp_Course_Update (04_procedures.sql)", sql_object(SQL, "04_procedures.sql", "usp_Course_Update"), size=8.5)
 
     # ------------------------------------------------------------------ 4.5
     r.h2("4.5. Function")
@@ -225,7 +233,12 @@ def chapter4(r):
         "ngày 03/10/2026 (`docs/reviews/`): buổi học tương lai không được đánh dấu đã dạy, buổi đã dạy không được đặt lại, "
         "vòng đời trạng thái lớp và ghi danh, chuyên cần tính từ ngày vào lớp (kể cả khi chuyển lớp), chuyển lớp không đổi "
         "chi nhánh, trạng thái học viên Hoàn thành, khóa cột điểm khi khóa học đã có lớp được đánh giá, làm tròn điểm một "
-        "lần, giới hạn mã của SEQUENCE và các trường hợp còn thiếu ca thành công của điều kiện đầu vào.")
+        "lần, giới hạn mã của SEQUENCE và các trường hợp còn thiếu ca thành công của điều kiện đầu vào. T72-T101 đi kèm "
+        "các form nhập liệu của ứng dụng: sửa lớp (sĩ số không nhỏ hơn số học viên, đổi ngày khai giảng, giáo viên mới "
+        "trùng lịch, buổi học sắp tới theo giáo viên và phòng mới), xóa khung giờ, các thủ tục tìm kiếm (ghi danh, phiếu "
+        "thu khớp với báo cáo doanh thu, kiểm tra xếp lớp, sổ điểm), khấu trừ và chi trả lương, và các thủ tục danh mục "
+        "(mã trùng hoặc sai ký tự, ngừng chi nhánh/khóa học còn lớp, vòng lặp khóa tiên quyết, giáo trình sai XML Schema, "
+        "xóa cột điểm đã có điểm, giáo viên còn lớp nghỉ việc).")
     r.p("Cách chấm được thiết kế để dùng làm **kiểm thử hồi quy**: bảng `#Expected` liệt kê mọi ca phải chạy và mẫu "
         "thông báo của ca “Rejected” (từ chối) - ca chỉ đạt khi bị từ chối **đúng lý do** (một thủ tục hỏng vì lỗi khác không thể "
         "“đạt” nhầm); có ca không đạt hoặc không chạy thì file kết thúc bằng `THROW 50099`, lệnh `scripts/test_all.sh` "

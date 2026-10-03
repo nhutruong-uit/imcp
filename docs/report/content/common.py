@@ -1,10 +1,14 @@
-"""Shared report data: team members, paths, data exported from the database."""
+"""Shared report data: team members, paths, data exported from the database, facts read from the source code."""
+import html
 import json
+import re
 from pathlib import Path
 
 REPORT_DIR = Path(__file__).resolve().parent.parent
 REPO = REPORT_DIR.parent.parent
 SQL = REPO / "database"
+SRC = REPO / "src"
+TESTS = REPO / "tests"
 IMG = REPORT_DIR / "images"
 DATA = REPORT_DIR / "data"
 # Real student IDs for the copy handed in to the lecturer: {"<member name>": "<student ID>"}, never committed
@@ -80,3 +84,37 @@ def database_tests():
         if len(parts) >= 6:
             rows.append(parts[:6])
     return rows
+
+
+def unit_test_suites():
+    """Unit test executables (qlttta_add_test in tests/CMakeLists.txt); the end-to-end test is declared apart."""
+    return re.findall(r"^qlttta_add_test\((\w+)", (TESTS / "CMakeLists.txt").read_text(encoding="utf-8"), re.M)
+
+
+def e2e_scenarios():
+    """Test functions of tests/tst_e2e_gui.cpp: its private slots without the Qt Test hooks and *_data tables."""
+    slots = (TESTS / "tst_e2e_gui.cpp").read_text(encoding="utf-8").split("private slots:", 1)[1]
+    hooks = {"initTestCase", "cleanupTestCase", "init", "cleanup"}
+    return [name for name in re.findall(r"^    void (\w+)\(\)", slots, re.M)
+            if name not in hooks and not name.endswith("_data")]
+
+
+def _vietnamese(context):
+    """English source text -> Vietnamese translation of one context of resources/translations/qlttta_vi.ts."""
+    ts = (REPO / "resources" / "translations" / "qlttta_vi.ts").read_text(encoding="utf-8")
+    block = re.search(rf"<context>\s*<name>{context}</name>(.*?)</context>", ts, re.S).group(1)
+    return {html.unescape(source): html.unescape(target) for source, target in
+            re.findall(r"<source>(.*?)</source>\s*<translation>(.*?)</translation>", block, re.S)}
+
+
+def menu_by_role():
+    """[(role, [menu entries])] in Vietnamese, as the application shows them: Permissions::allowedFeatures for the
+    menu of each role, Labels for the English names and the translation file for the Vietnamese ones."""
+    labels = (SRC / "presentation" / "common" / "Labels.cpp").read_text(encoding="utf-8")
+    feature_names = dict(re.findall(r'case Feature::(\w+):\s*return \{f, LabelsText::tr\("([^"]+)"\)', labels))
+    role_names = dict(re.findall(r'case Role::(\w+):\s*return LabelsText::tr\("([^"]+)"\)', labels))
+    vi = _vietnamese("Labels")
+    permissions = (SRC / "application" / "services" / "Permissions.cpp").read_text(encoding="utf-8")
+    body = re.search(r"allowedFeatures\(Role role\)\s*\{(.*?)\n\}", permissions, re.S).group(1)
+    return [(vi[role_names[role]], [vi[feature_names[f]] for f in re.findall(r"Feature::(\w+)", features)])
+            for role, features in re.findall(r"case Role::(\w+):\s*return\s*\{(.*?)\};", body, re.S)]

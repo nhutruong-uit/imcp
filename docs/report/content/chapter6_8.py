@@ -1,6 +1,6 @@
 """Chapter 6 - Presenting information (application); Chapter 7 - Advanced databases; Chapter 8 - Conclusion;
 references, appendix."""
-from content.common import IMG, SQL, object_counts, database_tests
+from content.common import IMG, SQL, object_counts, database_tests, e2e_scenarios, menu_by_role, unit_test_suites
 from report_lib import sql_block
 
 SCR = IMG / "screens"
@@ -15,10 +15,10 @@ def chapter6(r):
         "phụ thuộc tầng bên ngoài (giao diện, CSDL); chiều phụ thuộc được ép bằng cấu hình liên kết thư viện của CMake.")
     r.figure(IMG / "diagrams" / "architecture.png", "Clean Architecture của ứng dụng QLTTTA", width_cm=12.5)
     r.table(["Tầng", "Nội dung", "Ví dụ"], [
-        ["domain", "Thực thể và quy tắc nghiệp vụ thuần, chỉ dùng Qt Core", "Student::validate() - dưới 18 tuổi phải có phụ huynh; Result<T>"],
-        ["application", "Use case + port (interface) mà tầng ngoài phải hiện thực; ma trận phân quyền menu", "StudentService, AuthService, LanguageService, Permissions, IStudentRepository"],
-        ["infrastructure", "Kết nối ODBC, gọi thủ tục, ánh xạ lỗi SQL thành thông báo dễ hiểu, lưu cấu hình", "DatabaseManager, SqlStudentRepository, SqlErrorMapper"],
-        ["presentation", "Giao diện Qt Widgets song ngữ Việt/Anh; không chứa câu lệnh SQL", "LoginDialog, MainWindow, StudentPage, form .ui, I18n"],
+        ["domain", "Thực thể và quy tắc nghiệp vụ thuần, chỉ dùng Qt Core", "Student::validate() - dưới 18 tuổi phải có phụ huynh; ClassInfo, EnrollmentRequest, Result<T>"],
+        ["application", "Use case + port (interface) mà tầng ngoài phải hiện thực; ma trận phân quyền menu và nút", "StudentService, ClassService, EnrollmentService, TuitionService, Permissions, IClassRepository"],
+        ["infrastructure", "Kết nối ODBC, gọi thủ tục, ánh xạ lỗi SQL thành thông báo dễ hiểu, lưu cấu hình", "DatabaseManager, SqlStudentRepository, SqlClassRepository, SqlHelpers, SqlErrorMapper"],
+        ["presentation", "Giao diện Qt Widgets song ngữ Việt/Anh; không chứa câu lệnh SQL", "LoginDialog, MainWindow, DataPage, FormDialog, StudentPage, ClassPage, form .ui, I18n"],
         ["app", "Composition root: khởi tạo đối tượng, nối các tầng", "main.cpp, AppContainer"],
     ], widths_cm=[2.6, 6.6, 6.8], caption="Các tầng của ứng dụng", size=9.5)
     r.p("Lợi ích cụ thể: toàn bộ SQL nằm ở tầng infrastructure nên dễ đối chiếu với thủ tục trong CSDL; use case được "
@@ -32,12 +32,11 @@ def chapter6(r):
         "trên máy chưa cài driver mới. Sau khi đăng nhập, menu bên trái được sinh theo vai trò (Chương 4 môn học - Menu).")
     r.figure(SCR / "login.png", "Màn hình đăng nhập (cấu hình máy chủ thu gọn)", width_cm=12)
     r.figure(SCR / "ql_quan_dashboard.png", "Trang Tổng quan của Quản lý: chỉ số chính và biểu đồ doanh thu theo tháng", width_cm=16)
-    r.table(["Vai trò", "Menu hiển thị"], [
-        ["Quản lý", "Tổng quan, Học viên, Lớp học, Lịch học tuần này, Kết quả học tập, Công nợ, Doanh thu, Lương giáo viên, Tài khoản"],
-        ["Giáo vụ", "Tổng quan, Học viên, Lớp học, Lịch học tuần này, Kết quả học tập, Công nợ"],
-        ["Kế toán", "Tổng quan, Học viên (chỉ xem), Công nợ, Doanh thu, Lương giáo viên"],
-        ["Giáo viên", "Lớp của tôi, Lịch dạy, Lương của tôi"],
-    ], widths_cm=[3.0, 13.0], caption="Menu theo vai trò", size=10)
+    r.table(["Vai trò", "Menu hiển thị"], [[role, ", ".join(entries)] for role, entries in menu_by_role()],
+            widths_cm=[3.0, 13.0], caption="Menu theo vai trò (đọc từ Permissions::allowedFeatures)", size=10)
+    r.p("Trong một màn hình, các nút thay đổi dữ liệu chỉ được tạo khi `Permissions::canEdit` cho phép: kế toán chỉ "
+        "xem Học viên, giáo vụ chỉ xem Khóa học và Giáo viên (danh mục do Quản lý cập nhật). Giáo vụ không có menu Thu "
+        "học phí vì CSDL cấm role này thu tiền (`DENY EXECUTE` trên `usp_Receipt_Create`, ca kiểm thử P16).")
     r.figure(SCR / "gv_john_my_teaching_schedule.png", "Giáo viên chỉ thấy lịch dạy của chính mình (dữ liệu từ view vw_Teacher_MySchedule)", width_cm=16)
     r.p("Ẩn menu chỉ là lớp giao diện; quyền thật sự được kiểm tra trong CSDL. Ví dụ giáo vụ vẫn mở được Tổng quan "
         "(gọi `usp_Dashboard_Stats`) nhưng thủ tục dùng `fn_CurrentRole()` để trả **NULL** cho cột doanh thu, còn "
@@ -49,9 +48,38 @@ def chapter6(r):
     r.p("Form học viên được thiết kế bằng **Qt Designer** (file `StudentFormDialog.ui`): ô điện thoại chỉ nhận chữ số, "
         "ngày sinh chọn bằng lịch, nhóm thông tin phụ huynh tự đổi thành bắt buộc khi học viên dưới 18 tuổi, lỗi hiển thị "
         "ngay trên form. Khi lưu, ứng dụng gọi `usp_Student_Add`/`usp_Student_Update`; lỗi từ CSDL (trùng SĐT, vi phạm "
-        "CHECK) được chuyển thành thông báo dễ hiểu theo ngôn ngữ giao diện.")
+        "CHECK) được chuyển thành thông báo dễ hiểu theo ngôn ngữ giao diện. Từ màn hình Học viên còn mở được hồ sơ (các "
+        "lần ghi danh, kiểm tra xếp lớp), ghi danh, nhập điểm kiểm tra xếp lớp và xuất/nhập XML.")
     r.figure(SCR / "gvu_lan_student_form.png", "Form sửa thông tin học viên (thiết kế bằng Qt Designer)", width_cm=10)
     r.figure(SCR / "ql_quan_students.png", "Màn hình quản lý học viên: tìm kiếm, lọc, thêm/sửa/xóa, xuất Excel/PDF", width_cm=16)
+    r.p("Các màn hình nghiệp vụ còn lại dùng chung hai lớp nền để giống nhau về cách dùng và cách xử lý lỗi. "
+        "`DataPage` gồm thanh lọc (bộ lọc riêng, lọc nhanh, Làm mới, Excel, PDF), thanh nút, bảng dữ liệu và dòng tổng; "
+        "nút cần chọn dòng chỉ bật khi đã chọn một dòng. `FormDialog` là form nhập dạng nhãn - ô nhập với dòng báo lỗi và "
+        "hai nút Lưu/Hủy: khi CSDL từ chối, thông báo (đã dịch) hiện ngay trên form và dữ liệu đã nhập được giữ nguyên. "
+        "Mỗi thao tác gọi đúng một thủ tục của CSDL, nên quy tắc nghiệp vụ chỉ nằm ở một nơi.")
+    r.table(["Màn hình", "Thao tác", "Thủ tục CSDL"], [
+        ["Kiểm tra xếp lớp", "Nhập điểm 4 kỹ năng, xem khóa học được đề xuất", "usp_PlacementTest_Add, usp_PlacementTest_Search"],
+        ["Lớp học", "Mở lớp, sửa, lịch tuần, sinh buổi học, bắt đầu học, hủy lớp, đánh giá kết quả, xem học viên và kết quả",
+         "usp_Class_Create, usp_Class_Update, usp_ClassSchedule_Add/_Remove, usp_Class_GenerateSessions, "
+         "usp_Class_UpdateStatus, usp_Class_EvaluateResults, usp_Report_ClassResults"],
+        ["Ghi danh", "Ghi danh mới (có khuyến mãi), chuyển lớp, bảo lưu, học lại, nghỉ học",
+         "usp_Enrollment_Create, usp_Enrollment_TransferClass, usp_Enrollment_UpdateStatus, usp_Enrollment_Search"],
+        ["Lịch học - điểm danh, Lịch dạy", "Xem theo tuần, cập nhật buổi học (đã dạy, hủy, nội dung), điểm danh",
+         "usp_Session_Update, usp_Attendance_BySession, usp_Attendance_Save"],
+        ["Sổ điểm, Sổ điểm của tôi", "Nhập điểm dạng lưới học viên × cột điểm, lưu mọi điểm đã sửa trong một giao dịch",
+         "usp_Grade_ByClass, usp_Grade_Save"],
+        ["Thu học phí", "Thu tiền, hủy phiếu thu (bắt buộc lý do), in phiếu thu PDF", "usp_Receipt_Create, usp_Receipt_Cancel, usp_Receipt_Print, usp_Receipt_Search"],
+        ["Lương giáo viên", "Chốt lương tháng, khấu trừ, xác nhận đã chi trả", "usp_Payroll_Finalize, usp_Payroll_Adjust, usp_Payroll_MarkPaid"],
+        ["Khóa học, Giáo viên, Nhân viên, Chi nhánh - phòng học, Khuyến mãi",
+         "Thêm, sửa, ngừng hoạt động; chương trình, giáo trình XML và cột điểm của khóa học",
+         "Nhóm J: usp_Branch_Add ... usp_Promotion_Update, usp_Course_SetSyllabus, usp_GradeComponent_Save/_Delete"],
+        ["Tài khoản, Sao lưu", "Tạo, khóa/mở khóa tài khoản, đặt lại mật khẩu; sao lưu Full/Differential/Log",
+         "usp_Account_Create, usp_Account_Lock, usp_Account_ResetPassword, usp_Backup"],
+    ], widths_cm=[3.4, 6.2, 6.4], caption="Các màn hình nhập liệu và thủ tục CSDL tương ứng", size=9)
+    r.figure(SCR / "gvu_lan_classes.png", "Màn hình Lớp học của Giáo vụ: mỗi nút gọi một thủ tục quản lý vòng đời lớp", width_cm=16)
+    r.figure(SCR / "kt_minh_tuition.png", "Màn hình Thu học phí của Kế toán: thu tiền, hủy phiếu thu có lý do, in phiếu thu", width_cm=16)
+    r.figure(SCR / "gvu_lan_grade_book.png", "Sổ điểm của một lớp: nhập điểm từng cột, điểm tổng kết tính theo trọng số (cùng công thức với fn_FinalGrade)", width_cm=16)
+    r.figure(SCR / "ql_quan_courses.png", "Danh mục khóa học của Quản lý, kèm các cột điểm và trọng số của khóa đang chọn", width_cm=16)
 
     r.h2("6.4. Báo cáo")
     r.p("Bài giảng giới thiệu Crystal Report với các phần Report Header, Page Header, Details, Group, Page/Report Footer. "
@@ -65,6 +93,10 @@ def chapter6(r):
         ["Page Footer", "Số trang tự động"],
         ["Nguồn dữ liệu / tham số", "View và thủ tục báo cáo (usp_Report_Revenue, usp_Report_ClassResults...)"],
     ], widths_cm=[5.0, 11.0], caption="Đối chiếu cấu trúc báo cáo", size=10)
+    r.p("Bên cạnh các danh sách, ứng dụng có những báo cáo có tham số: **doanh thu theo khoảng thời gian** (chọn từ ngày - "
+        "đến ngày và chi nhánh, gom theo chi nhánh, chương trình, khóa học - `usp_Report_Revenue`), **kết quả của một lớp** "
+        "(điểm tổng kết, xếp loại, số hiệu chứng chỉ - `usp_Report_ClassResults`) và **phiếu thu** in ra PDF theo mẫu "
+        "chứng từ (`usp_Receipt_Print`).")
     r.figure(SCR / "kt_minh_outstanding_tuition.png", "Màn hình công nợ học phí của Kế toán, có dòng tổng và nút xuất báo cáo PDF", width_cm=16)
     r.figure(SCR / "gvu_lan_learning_results.png", "Báo cáo kết quả học tập (điểm tổng kết, xếp loại, chuyên cần)", width_cm=16)
 
@@ -86,15 +118,19 @@ def chapter6(r):
     r.bullets([
         "**Unit test** (Qt Test): kiểm tra quy tắc Student, ánh xạ vai trò, use case thêm học viên (dùng repository giả), "
         "đăng nhập/đổi mật khẩu, ma trận phân quyền, ánh xạ lỗi SQL và chuỗi kết nối ODBC, bản dịch giao diện (mọi chuỗi, "
-        "giá trị lưu trong CSDL và thông báo nghiệp vụ của CSDL đều có bản tiếng Việt) - 4 bộ test, chạy tự động trên CI.",
+        "giá trị lưu trong CSDL và thông báo nghiệp vụ của CSDL đều có bản tiếng Việt), use case của mọi module (lớp học, "
+        f"ghi danh, học phí, điểm danh, sổ điểm, lương, danh mục) với repository giả - {len(unit_test_suites())} bộ test, "
+        "chạy tự động trên CI.",
         "**Kiểm thử end-to-end qua giao diện** (`tests/tst_e2e_gui.cpp`): chương trình gõ phím, bấm nút trên chính các "
         "màn hình với CSDL thật - đăng nhập sai bị từ chối; giáo vụ tìm kiếm, thêm học viên 10 tuổi (lần đầu thiếu phụ "
         "huynh bị báo lỗi, bổ sung thì lưu được) rồi xóa; giáo viên chỉ thấy 2 lớp của mình; kế toán không có nút thêm học "
         "viên, xem công nợ và xuất PDF/CSV; đổi mật khẩu nhập lại sai hoặc sai mật khẩu hiện tại bị chặn (thông báo tiếng "
         "Anh của CSDL được hiển thị bằng tiếng Việt); vừa đăng nhập phải mở sẵn trang đầu tiên, thẻ doanh thu của giáo vụ "
         "ghi \"Không có quyền\"; **mỗi vai trò mở lần lượt mọi chức năng được phép** và trang phải có dữ liệu (thiếu một "
-        "lệnh GRANT là bị phát hiện); sửa học viên qua form và đọc lại từ CSDL; lọc nhanh thì dòng tổng tính lại đúng; "
-        "chuyển giao diện sang tiếng Anh rồi về tiếng Việt. Kết quả: 10/10 kịch bản đạt, dữ liệu trở về nguyên trạng. "
+        "lệnh GRANT là bị phát hiện); sửa học viên, đổi tên lớp qua form rồi đọc lại từ CSDL; bảo lưu rồi cho học lại "
+        "một ghi danh (có hộp xác nhận); giáo viên đổi điểm danh của một học viên ở buổi mình dạy; lọc nhanh thì dòng "
+        "tổng tính lại đúng; chuyển giao diện sang tiếng Anh rồi về tiếng Việt. Kết quả: "
+        f"{len(e2e_scenarios())}/{len(e2e_scenarios())} kịch bản đạt, dữ liệu trở về nguyên trạng. "
         "Trên CI (không có SQL Server) bài kiểm thử được ghi nhận là bỏ qua (Skipped).",
         "**Kiểm thử hiển thị**: công cụ `tools/qlttta_screenshots` tự đăng nhập bằng 4 tài khoản demo, mở "
         "từng chức năng và chụp màn hình (hình trong chương này được tạo bằng công cụ đó).",
@@ -224,8 +260,12 @@ def chapter8(r):
                          "{FunctionCount} hàm, {ViewCount} view, {ProcedureCount} thủ tục, {TriggerCount} trigger, {RoleCount} role".format(**object_counts())],
         ["Xử lý thông tin", "Truy vấn SQL (chia, đệ quy, cửa sổ, PIVOT), XPath/XQuery đủ 5 phương thức, cursor, giao dịch"],
         ["An ninh", "Contained user, phân quyền mức đối tượng và mức cột, view bảo mật, nhật ký XML, backup Full/Diff/Log"],
-        ["Kiểm thử", f"{passed}/{len(database_tests())} ca kiểm thử CSDL đạt; 4 bộ unit test; 10/10 kịch bản end-to-end qua giao diện"],
-        ["Ứng dụng", "Qt 6 đa nền tảng, Clean Architecture, giao diện song ngữ Việt/Anh, đăng nhập theo vai trò, Tổng quan, Học viên, 10 màn hình tra cứu, xuất PDF/Excel"],
+        ["Kiểm thử", f"{passed}/{len(database_tests())} ca kiểm thử CSDL đạt; {len(unit_test_suites())} bộ unit test; "
+                     f"{len(e2e_scenarios())}/{len(e2e_scenarios())} kịch bản end-to-end qua giao diện"],
+        ["Ứng dụng", "Qt 6 đa nền tảng, Clean Architecture, giao diện song ngữ Việt/Anh, đăng nhập theo vai trò, "
+                     f"{len({e for _, entries in menu_by_role() for e in entries})} màn hình; form nhập liệu cho mọi bước "
+                     "nghiệp vụ (danh mục, học viên, lớp, ghi danh, học phí, điểm danh, điểm, lương, tài khoản, sao lưu); "
+                     "báo cáo có tham số, phiếu thu, xuất PDF/Excel"],
         ["Triển khai", "CI build/test macOS + Windows, tự đóng gói setup.exe/zip/dmg, tài liệu cài đặt"],
         ["Mô hình tiên tiến", "Chuyển đổi sang OODB, thiết kế + demo phân mảnh phân tán, thiết kế NoSQL, bảng so sánh"],
     ], widths_cm=[3.6, 12.4], caption="Tổng hợp kết quả", size=10)
@@ -248,8 +288,8 @@ def chapter8(r):
 
     r.h2("8.3. Hạn chế và hướng phát triển")
     r.bullets([
-        "Ứng dụng mới hoàn thiện module mẫu Học viên và các màn hình tra cứu; các form Ghi danh, Thu học phí - in biên lai, "
-        "Điểm danh, Nhập điểm, Quản trị tài khoản đang được phát triển theo cùng kiến trúc (thủ tục CSDL đã sẵn sàng).",
+        "Một số thao tác quản trị vẫn làm trong SSMS: khôi phục (restore) CSDL, xem nhật ký thay đổi `AUDIT_LOG`, xóa hẳn "
+        "chi nhánh, khóa học, giáo viên hay nhân viên (ứng dụng chỉ chuyển sang trạng thái ngừng hoạt động để giữ lịch sử).",
         "Bản cài macOS chưa ký bằng Apple Developer ID nên lần đầu mở cần xác nhận trong System Settings.",
         "Chưa triển khai CSDL phân tán thật trên nhiều máy chủ (mới mô phỏng trên một máy chủ).",
         "Hướng phát triển: cổng thông tin cho học viên/phụ huynh (web), nhắc nợ học phí qua email/SMS, đồng bộ dữ liệu "
