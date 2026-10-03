@@ -7,8 +7,9 @@
 //   QLTTTA_SHOT_DIR      output folder (default docs/report/images/screens for vi, build/screenshots/en for
 //   en,
 //                        so English screenshots never overwrite the images of the Vietnamese report)
-// File names are stable and independent of the UI language: login.png, <account>_<feature>.png,
-// <account>_student_form.png (the report refers to them by name).
+// File names are stable and independent of the UI language: login.png, login_server_settings.png,
+// change_password.png, <account>_<feature>.png, <account>_student_form.png (the report and the user guide
+// refer to them by name).
 // Runs without a display: QT_QPA_PLATFORM=offscreen ./qlttta_screenshots
 #include "app/AppContainer.h"
 #include "application/services/Permissions.h"
@@ -16,12 +17,14 @@
 #include "presentation/common/Labels.h"
 #include "presentation/common/Theme.h"
 #include "presentation/login/LoginDialog.h"
+#include "presentation/main/ChangePasswordDialog.h"
 #include "presentation/main/MainWindow.h"
 #include "presentation/students/StudentFormDialog.h"
 
 #include <QApplication>
 #include <QDir>
 #include <QElapsedTimer>
+#include <QPushButton>
 #include <QTextStream>
 #include <QThread>
 
@@ -104,6 +107,19 @@ int main(int argc, char* argv[]) {
         login.show();
         wait(300);
         login.grab().save(QDir(folder).filePath(QStringLiteral("login.png")));
+        // Same screen with the server settings opened (user guide: connecting to SQL Server)
+        if (auto* toggle = login.findChild<QPushButton*>(QStringLiteral("LinkButton"))) {
+            toggle->click();
+            login.resize(960, 640); // wide enough for the whole certificate option label
+            wait(300);
+            login.grab().save(QDir(folder).filePath(QStringLiteral("login_server_settings.png")));
+        }
+    }
+    { // Change password dialog (opened from the header of the main window)
+        ChangePasswordDialog dialog(container.auth());
+        dialog.show();
+        wait(300);
+        dialog.grab().save(QDir(folder).filePath(QStringLiteral("change_password.png")));
     }
 
     int failures = 0;
