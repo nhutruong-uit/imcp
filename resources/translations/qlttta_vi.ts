@@ -1320,7 +1320,7 @@
     </message>
     <message>
         <source>Description</source>
-        <translation>Nội dung</translation>
+        <translation>Mô tả</translation>
     </message>
     <message>
         <source>Please select a program in the list.</source>
@@ -2227,7 +2227,7 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     </message>
     <message>
         <source>New class</source>
-        <translation>Mở lớp</translation>
+        <translation>Lớp mới</translation>
     </message>
     <message>
         <source>The payments stay with the enrollment; the tuition of the new class applies and the attendance starts again.</source>
