@@ -52,17 +52,17 @@
    },
    {
     "position": 6,
-    "name": "CreatedAt",
+    "name": "CreatedAtUtc",
     "data_type": "datetime",
     "is_nullable": false,
     "is_identity": false,
     "is_computed": false,
     "is_primary_key": false,
-    "default_value": "(getdate())"
+    "default_value": "(getutcdate())"
    },
    {
     "position": 7,
-    "name": "LastLoginAt",
+    "name": "LastLoginAtUtc",
     "data_type": "datetime",
     "is_nullable": true,
     "is_identity": false,
@@ -135,7 +135,7 @@
     "definition": "([Status]=N'Unexcused absence' OR [Status]=N'Excused absence' OR [Status]=N'Late' OR [Status]=N'Present')"
    }
   ],
-  "row_count": 1392
+  "row_count": 1412
  },
  {
   "table_name": "AUDIT_LOG",
@@ -151,13 +151,13 @@
    },
    {
     "position": 2,
-    "name": "LoggedAt",
+    "name": "LoggedAtUtc",
     "data_type": "datetime",
     "is_nullable": false,
     "is_identity": false,
     "is_computed": false,
     "is_primary_key": false,
-    "default_value": "(getdate())"
+    "default_value": "(getutcdate())"
    },
    {
     "position": 3,
@@ -352,7 +352,7 @@
     "is_identity": false,
     "is_computed": false,
     "is_primary_key": false,
-    "default_value": "(CONVERT([date],getdate()))"
+    "default_value": "(CONVERT([date],switchoffset(sysdatetimeoffset(),'+07:00')))"
    },
    {
     "position": 5,
@@ -933,7 +933,7 @@
     "is_identity": false,
     "is_computed": false,
     "is_primary_key": false,
-    "default_value": "(CONVERT([date],getdate()))"
+    "default_value": "(CONVERT([date],switchoffset(sysdatetimeoffset(),'+07:00')))"
    },
    {
     "position": 11,
@@ -1034,7 +1034,7 @@
     "is_identity": false,
     "is_computed": false,
     "is_primary_key": false,
-    "default_value": "(CONVERT([date],getdate()))"
+    "default_value": "(CONVERT([date],switchoffset(sysdatetimeoffset(),'+07:00')))"
    },
    {
     "position": 5,
@@ -1191,13 +1191,13 @@
    },
    {
     "position": 4,
-    "name": "EnteredAt",
+    "name": "EnteredAtUtc",
     "data_type": "datetime",
     "is_nullable": false,
     "is_identity": false,
     "is_computed": false,
     "is_primary_key": false,
-    "default_value": "(getdate())"
+    "default_value": "(getutcdate())"
    },
    {
     "position": 5,
@@ -1371,13 +1371,13 @@
    },
    {
     "position": 11,
-    "name": "FinalizedAt",
+    "name": "FinalizedAtUtc",
     "data_type": "datetime",
     "is_nullable": false,
     "is_identity": false,
     "is_computed": false,
     "is_primary_key": false,
-    "default_value": "(getdate())"
+    "default_value": "(getutcdate())"
    },
    {
     "position": 12,
@@ -1446,7 +1446,7 @@
     "is_identity": false,
     "is_computed": false,
     "is_primary_key": false,
-    "default_value": "(CONVERT([date],getdate()))"
+    "default_value": "(CONVERT([date],switchoffset(sysdatetimeoffset(),'+07:00')))"
    },
    {
     "position": 4,
@@ -1678,13 +1678,13 @@
    },
    {
     "position": 3,
-    "name": "PaidAt",
+    "name": "PaidAtUtc",
     "data_type": "datetime",
     "is_nullable": false,
     "is_identity": false,
     "is_computed": false,
     "is_primary_key": false,
-    "default_value": "(getdate())"
+    "default_value": "(getutcdate())"
    },
    {
     "position": 4,
@@ -1958,7 +1958,7 @@
     "is_identity": false,
     "is_computed": false,
     "is_primary_key": false,
-    "default_value": "(CONVERT([date],getdate()))"
+    "default_value": "(CONVERT([date],switchoffset(sysdatetimeoffset(),'+07:00')))"
    },
    {
     "position": 13,
@@ -2138,7 +2138,7 @@
     "is_identity": false,
     "is_computed": false,
     "is_primary_key": false,
-    "default_value": "(CONVERT([date],getdate()))"
+    "default_value": "(CONVERT([date],switchoffset(sysdatetimeoffset(),'+07:00')))"
    },
    {
     "position": 14,

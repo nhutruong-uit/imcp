@@ -40,7 +40,7 @@ INSERT #Expected VALUES
     ('T15', NULL), ('T16', NULL), ('T17', NULL), ('T18', NULL), ('T19', NULL), ('T20', NULL),
     ('T21', N'%is full%'),                      ('T22', NULL), ('T23', NULL), ('T24', NULL),
     ('T25', N'%future month%'),                 ('T26', NULL), ('T27', N'%XML%'),
-    ('T28', NULL), ('T29', NULL), ('T30', NULL),
+    ('T28', NULL), ('T29', NULL), ('T30', NULL), ('T31', NULL), ('T32', NULL),
     ('P01', N'%STUDENT%'),                      ('P02', NULL),
     ('P03', N'%only enter grades%'),            ('P04', N'%usp_Enrollment_Create%'),
     ('P05', NULL),                              ('P06', N'%HourlyRate%'),
@@ -518,7 +518,7 @@ GO
 
 -- T24: usp_Payroll_Finalize (cursor): last month's pay matches the taught sessions; 500,000 bonus at >= 20 sessions
 BEGIN TRY
-    DECLARE @Date24 DATE = DATEADD(MONTH, -1, GETDATE());
+    DECLARE @Date24 DATE = DATEADD(MONTH, -1, dbo.fn_Today());
     DECLARE @Month24 TINYINT = MONTH(@Date24), @Year24 SMALLINT = YEAR(@Date24), @Teachers24 INT, @Wrong24 INT;
 
     IF OBJECT_ID('tempdb..#R24') IS NOT NULL DROP TABLE #R24;
@@ -556,7 +556,7 @@ GO
 
 -- T25: finalizing the payroll of a future month
 BEGIN TRY
-    DECLARE @Date25 DATE = DATEADD(MONTH, 1, GETDATE());
+    DECLARE @Date25 DATE = DATEADD(MONTH, 1, dbo.fn_Today());
     DECLARE @Month25 TINYINT = MONTH(@Date25), @Year25 SMALLINT = YEAR(@Date25);
     EXEC dbo.usp_Payroll_Finalize @Month = @Month25, @Year = @Year25;
     INSERT #Results VALUES ('T25', N'Finalizing the payroll of a future month', N'Rejected', N'Succeeded', NULL);
@@ -617,6 +617,50 @@ END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('T27', N'Course syllabus that violates the XML schema', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T31: instants in UTC, days of the center: a receipt paid at 17:30 UTC on 31 January (00:30 on 1 February in the
+--      center, UTC+07:00) is stored unchanged and counts in February in fn_MonthlyRevenue, vw_MonthlyRevenue and
+--      usp_Report_Revenue (two years back: the seed data has no receipts then)
+BEGIN TRY
+    DECLARE @Year31 INT = YEAR(dbo.fn_Today()) - 2;
+    DECLARE @Jan31 DATE = DATEFROMPARTS(@Year31, 1, 31), @Feb31 DATE = DATEFROMPARTS(@Year31, 2, 1);
+    DECLARE @PaidUtc31 DATETIME = DATEADD(MINUTE, 17 * 60 + 30, CAST(@Jan31 AS DATETIME)),
+            @Enrollment31 VARCHAR(10), @Receipt31 VARCHAR(10), @Stored31 DATETIME, @FnJan31 INT, @FnFeb31 INT,
+            @ViewFeb31 INT, @ReportJan31 INT, @ReportFeb31 DECIMAL(14,0);
+    IF OBJECT_ID('tempdb..#R31') IS NOT NULL DROP TABLE #R31;
+    CREATE TABLE #R31 (BranchName NVARCHAR(100), ProgramName NVARCHAR(100), CourseName NVARCHAR(150),
+                       ReceiptCount INT, Revenue DECIMAL(14,0));
+    SELECT TOP (1) @Enrollment31 = EnrollmentId FROM dbo.ENROLLMENT
+    WHERE Status <> N'Left' AND TuitionDue - AmountPaid >= 100000 ORDER BY EnrollmentId;
+
+    BEGIN TRAN;
+    EXEC dbo.usp_Receipt_Create @EnrollmentId = @Enrollment31, @Amount = 100000, @EmployeeId = 'EM0003',
+         @PaidAtUtc = @PaidUtc31, @ReceiptId = @Receipt31 OUTPUT;
+    SELECT @Stored31 = PaidAtUtc FROM dbo.RECEIPT WHERE ReceiptId = @Receipt31;
+    SELECT @FnJan31 = SUM(CASE WHEN Month = 1 THEN ReceiptCount END),
+           @FnFeb31 = SUM(CASE WHEN Month = 2 THEN ReceiptCount END)
+    FROM dbo.fn_MonthlyRevenue(@Year31, NULL);
+    SELECT @ViewFeb31 = ISNULL(SUM(ReceiptCount), 0) FROM dbo.vw_MonthlyRevenue WHERE Year = @Year31 AND Month = 2;
+    INSERT #R31 EXEC dbo.usp_Report_Revenue @FromDate = @Jan31, @ToDate = @Jan31;
+    SELECT @ReportJan31 = COUNT(*) FROM #R31;
+    DELETE FROM #R31;
+    INSERT #R31 EXEC dbo.usp_Report_Revenue @FromDate = @Feb31, @ToDate = @Feb31;
+    SELECT @ReportFeb31 = ISNULL(SUM(Revenue), 0) FROM #R31;
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T31', N'Receipt at 00:30 center time counts in the center''s day and month', N'Succeeded',
+        CASE WHEN @Stored31 = @PaidUtc31 AND @FnJan31 = 0 AND @FnFeb31 = 1 AND @ViewFeb31 = 1
+                  AND @ReportJan31 = 0 AND @ReportFeb31 = 100000
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(N'paid ', CONVERT(NVARCHAR(16), @PaidUtc31, 120), N' UTC: fn_MonthlyRevenue Jan/Feb = ', @FnJan31, N'/',
+               @FnFeb31, N', vw_MonthlyRevenue Feb = ', @ViewFeb31, N', usp_Report_Revenue rows on 31 Jan = ',
+               @ReportJan31, N', revenue on 1 Feb = ', @ReportFeb31));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T31', N'Receipt at 00:30 center time counts in the center''s day and month', N'Succeeded', N'Error', ERROR_MESSAGE());
 END CATCH;
 GO
 
@@ -750,6 +794,46 @@ BEGIN TRY
 END TRY
 BEGIN CATCH
     INSERT #Results VALUES ('T30', N'Procedures/triggers set NOCOUNT ON, no SELECT * in modules', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T32: time conventions of 01-sql.md: instants are DATETIME columns named ...Utc; no module or default reads the
+--      server's local clock (GETDATE, SYSDATETIME, CURRENT_TIMESTAMP); a DATE default that reads the clock converts
+--      it to the center's offset (dbo.fn_CenterUtcOffset), never to the UTC day
+BEGIN TRY
+    DECLARE @Offset VARCHAR(6) = dbo.fn_CenterUtcOffset();
+    DECLARE @Bad TABLE (Name NVARCHAR(300));
+    INSERT @Bad
+    SELECT N'column ' + t.name + N'.' + c.name + N' must be DATETIME named ...Utc'
+    FROM sys.columns c
+    JOIN sys.tables t ON t.object_id = c.object_id
+    JOIN sys.types ty ON ty.user_type_id = c.user_type_id
+    WHERE t.is_ms_shipped = 0 AND ty.name IN ('datetime', 'datetime2', 'smalldatetime', 'datetimeoffset')
+      AND (ty.name <> 'datetime' OR c.name COLLATE Latin1_General_BIN NOT LIKE N'%Utc')
+    UNION ALL
+    SELECT o.type_desc + N' ' + o.name + N' reads the server''s local clock'
+    FROM sys.sql_modules m JOIN sys.objects o ON o.object_id = m.object_id
+    WHERE m.definition LIKE N'%GETDATE[(]%' OR m.definition LIKE N'%SYSDATETIME[(]%'
+       OR m.definition LIKE N'%CURRENT[_]TIMESTAMP%'
+    UNION ALL
+    SELECT N'default ' + dc.name + N' ' + dc.definition
+    FROM sys.default_constraints dc
+    JOIN sys.columns c ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
+    JOIN sys.types ty  ON ty.user_type_id = c.user_type_id
+    WHERE dc.definition LIKE N'%GETDATE[(]%' OR dc.definition LIKE N'%SYSDATETIME[(]%'
+       OR (ty.name = 'date' AND dc.definition LIKE N'%getutcdate()%')
+       OR (ty.name = 'date' AND dc.definition LIKE N'%sysdatetimeoffset()%'
+           AND dc.definition NOT LIKE N'%switchoffset(sysdatetimeoffset(),''' + @Offset + N''')%');
+    DECLARE @BadCount INT = (SELECT COUNT(*) FROM @Bad);
+    INSERT #Results VALUES ('T32', N'Instants in UTC (...Utc), no server-local clock, DATE defaults in center time', N'Succeeded',
+                            CASE WHEN @BadCount = 0 THEN N'Succeeded' ELSE N'Rejected' END,
+                            CASE WHEN @BadCount = 0 THEN CONCAT((SELECT COUNT(*) FROM sys.sql_modules), N' modules and ',
+                                                                (SELECT COUNT(*) FROM sys.default_constraints), N' defaults checked; center offset ',
+                                                                @Offset)
+                                 ELSE LEFT(STUFF((SELECT N', ' + Name FROM @Bad FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, N''), 400) END);
+END TRY
+BEGIN CATCH
+    INSERT #Results VALUES ('T32', N'Instants in UTC (...Utc), no server-local clock, DATE defaults in center time', N'Succeeded', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 

@@ -87,8 +87,8 @@ const Column kCatalog[] = {
     // Accounts
     {"Username", QT_TRANSLATE_NOOP("Columns", "Username"), Text, nullptr},
     {"Role", QT_TRANSLATE_NOOP("Columns", "Role"), RoleCode, nullptr},
-    {"CreatedAt", QT_TRANSLATE_NOOP("Columns", "Created"), Text, nullptr},
-    {"LastLoginAt", QT_TRANSLATE_NOOP("Columns", "Last login"), Text, nullptr},
+    {"CreatedAtUtc", QT_TRANSLATE_NOOP("Columns", "Created"), Text, nullptr}, // shown in local time (Format)
+    {"LastLoginAtUtc", QT_TRANSLATE_NOOP("Columns", "Last login"), Text, nullptr},
 };
 
 const Column* find(const QString& key) {

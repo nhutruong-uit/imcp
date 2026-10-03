@@ -103,6 +103,11 @@ itself enforces what each role may do.
 > [SETUP.md section 2](docs/SETUP.md#2-running-the-application-from-the-installer-level-a). The app still needs a
 > SQL Server with the QLTTTA database (steps 1-2 below).
 
+> **Joining the team?** One command installs what is missing on your machine, creates the database and runs the
+> tests: `./scripts/setup_dev.sh --accept-licenses` on macOS, or
+> `powershell -ExecutionPolicy Bypass -File scripts\setup_dev.ps1 -AcceptLicenses` on Windows (in Claude Code:
+> `/imcp-setup`). See [SETUP.md section 3](docs/SETUP.md#one-command-setup-recommended); the manual steps follow.
+
 ### Prerequisites
 
 | | macOS (Apple Silicon) | Windows 10/11 |
@@ -211,7 +216,7 @@ tests/               Unit tests (fake repositories), convention and translation 
 tools/               Screenshot generator used for the report and the user guide
 resources/           Icons, the QSS style sheet and translations/qlttta_vi.ts (Vietnamese UI)
 packaging/           Icons, Info.plist, Inno Setup installer, end-user install notes
-scripts/             Database init, change checks, full test run, macOS/Windows packaging
+scripts/             Dev machine setup, database init, change checks, full test run, macOS/Windows packaging
 .github/             Workflows: Checks (PRs into develop), CI, Release (installers); the PR template
 .claude/             Claude Code team setup: rules per area, skills, shared settings, C++ format hook
 docs/                Documentation, the project report (docs/report) and the user guide (docs/user-guide)

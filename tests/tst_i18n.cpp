@@ -87,6 +87,14 @@ private slots:
                  QStringLiteral("Giáo vụ"));
     }
 
+    // DATETIME columns hold UTC: 17:30 UTC on 31 Jan is 00:30 on 1 Feb in Vietnam (UTC+07:00, no DST)
+    void formatDateTime_utcFromDatabase_showsTimeOfZone() {
+        const QDateTime fromDatabase(QDate(2026, 1, 31), QTime(17, 30)); // ODBC: date and time, no zone
+        QCOMPARE(Format::dateTime(fromDatabase, QTimeZone(7 * 3600)), QStringLiteral("01/02/2026 00:30"));
+        QCOMPARE(Format::dateTime(fromDatabase, QTimeZone::utc()), QStringLiteral("31/01/2026 17:30"));
+        QCOMPARE(Format::dateTime(QDateTime()), QString());
+    }
+
     // Each menu entry, role and column has a Vietnamese text that differs from the English one
     void everyCatalogTextIsTranslated() {
         I18n::apply(Language::English);

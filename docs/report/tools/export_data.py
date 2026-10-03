@@ -67,9 +67,9 @@ QUERIES = {
         FROM dbo.PAYROLL py JOIN dbo.TEACHER te ON te.TeacherId=py.TeacherId
         ORDER BY py.Year DESC, py.Month DESC, py.TotalPay DESC""",
     "student_balance": "SELECT * FROM dbo.fn_StudentBalance('ST00028')",
-    "monthly_revenue": """SELECT Month, ReceiptCount, Revenue FROM dbo.fn_MonthlyRevenue(YEAR(GETDATE()), NULL)
+    "monthly_revenue": """SELECT Month, ReceiptCount, Revenue FROM dbo.fn_MonthlyRevenue(YEAR(dbo.fn_Today()), NULL)
         WHERE Month BETWEEN 3 AND 10""",
-    "audit_log": """SELECT TOP 3 CONVERT(VARCHAR(16), LoggedAt, 120) AS LoggedAt, PerformedBy, TableName, Action,
+    "audit_log": """SELECT TOP 3 CONVERT(VARCHAR(16), LoggedAtUtc, 120) AS LoggedAtUtc, PerformedBy, TableName, Action,
             RecordKey, CAST(NewData AS NVARCHAR(200)) AS NewData
         FROM dbo.AUDIT_LOG WHERE TableName=N'RECEIPT' ORDER BY LogId DESC""",
     "row_counts": """SELECT t.name AS TableName, SUM(p.rows) AS RecordCount FROM sys.tables t

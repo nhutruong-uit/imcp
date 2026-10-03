@@ -55,7 +55,7 @@ BEGIN
     OUTPUT inserted.StudentId INTO @New
     VALUES (LTRIM(RTRIM(@FullName)), @DateOfBirth, @Gender, NULLIF(@Phone, ''), NULLIF(@Email, ''), @Address,
             @Occupation, @GuardianName, NULLIF(@GuardianPhone, ''), @BranchId, @Notes,
-            ISNULL(@RegisteredOn, CAST(GETDATE() AS DATE)));
+            ISNULL(@RegisteredOn, dbo.fn_Today()));
 
     SELECT @StudentId = StudentId FROM @New;
 END;
@@ -342,7 +342,7 @@ BEGIN
             @Prerequisite VARCHAR(10), @MinScore DECIMAL(4,2), @Discount DECIMAL(12,0),
             @StartDate DATE, @EndDate DATE, @Msg NVARCHAR(2048);
 
-    SET @EnrolledOn = ISNULL(@EnrolledOn, CAST(GETDATE() AS DATE));
+    SET @EnrolledOn = ISNULL(@EnrolledOn, dbo.fn_Today());
     SET @EmployeeId = COALESCE(@EmployeeId, dbo.fn_CurrentEmployeeId());
 
     IF NOT EXISTS (SELECT 1 FROM dbo.STUDENT WHERE StudentId = @StudentId AND Status <> N'Dropped out')
@@ -510,7 +510,7 @@ CREATE PROCEDURE dbo.usp_Receipt_Create
     @Amount         DECIMAL(12,0),
     @PaymentMethod  NVARCHAR(20)  = N'Cash',
     @Description    NVARCHAR(200) = NULL,
-    @PaidAt         DATETIME      = NULL,
+    @PaidAtUtc      DATETIME      = NULL,
     @EmployeeId     VARCHAR(10)   = NULL,
     @ReceiptId      VARCHAR(10)   OUTPUT
 AS
@@ -524,9 +524,9 @@ BEGIN
         THROW 50031, N'Valid enrollment not found.', 1;
 
     DECLARE @New TABLE (ReceiptId VARCHAR(10));
-    INSERT INTO dbo.RECEIPT (EnrollmentId, PaidAt, Amount, PaymentMethod, CollectedByEmployeeId, Description)
+    INSERT INTO dbo.RECEIPT (EnrollmentId, PaidAtUtc, Amount, PaymentMethod, CollectedByEmployeeId, Description)
     OUTPUT inserted.ReceiptId INTO @New
-    VALUES (@EnrollmentId, ISNULL(@PaidAt, GETDATE()), @Amount, @PaymentMethod, @EmployeeId,
+    VALUES (@EnrollmentId, ISNULL(@PaidAtUtc, GETUTCDATE()), @Amount, @PaymentMethod, @EmployeeId,
             ISNULL(@Description, N'Tuition payment'));
 
     SELECT @ReceiptId = ReceiptId FROM @New;
@@ -560,7 +560,7 @@ CREATE PROCEDURE dbo.usp_Receipt_Print
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT rc.ReceiptId, rc.PaidAt, rc.Amount, rc.PaymentMethod, rc.Description, rc.Status,
+    SELECT rc.ReceiptId, rc.PaidAtUtc, rc.Amount, rc.PaymentMethod, rc.Description, rc.Status,
            st.StudentId, st.FullName AS StudentName, cl.ClassId, cl.ClassName, co.CourseName,
            en.TuitionDue, en.AmountPaid, en.TuitionDue - en.AmountPaid AS Balance,
            em.FullName AS CollectedBy, br.BranchName, br.Address AS BranchAddress, br.Phone AS BranchPhone
@@ -599,7 +599,7 @@ BEGIN
     INSERT INTO dbo.PLACEMENT_TEST (StudentId, TestDate, ListeningScore, SpeakingScore, ReadingScore, WritingScore,
                                     GradedByTeacherId, Notes)
     OUTPUT inserted.TestId INTO @New
-    VALUES (@StudentId, ISNULL(@TestDate, CAST(GETDATE() AS DATE)), @ListeningScore, @SpeakingScore, @ReadingScore,
+    VALUES (@StudentId, ISNULL(@TestDate, dbo.fn_Today()), @ListeningScore, @SpeakingScore, @ReadingScore,
             @WritingScore, @TeacherId, @Notes);
 
     SELECT @TestId = TestId FROM @New;
@@ -685,7 +685,7 @@ BEGIN
         THROW 50042, N'The class has finished and its results are final; grades can no longer be changed.', 1;
 
     IF EXISTS (SELECT 1 FROM dbo.GRADE WHERE EnrollmentId = @EnrollmentId AND ComponentId = @ComponentId)
-        UPDATE dbo.GRADE SET Score = @Score, EnteredAt = GETDATE(), EnteredBy = ORIGINAL_LOGIN()
+        UPDATE dbo.GRADE SET Score = @Score, EnteredAtUtc = GETUTCDATE(), EnteredBy = ORIGINAL_LOGIN()
         WHERE EnrollmentId = @EnrollmentId AND ComponentId = @ComponentId;
     ELSE
         INSERT INTO dbo.GRADE (EnrollmentId, ComponentId, Score) VALUES (@EnrollmentId, @ComponentId, @Score);
@@ -708,7 +708,7 @@ BEGIN
             @Result NVARCHAR(20), @PassedCount INT = 0, @FailedCount INT = 0, @MissingCount INT = 0,
             @IssuedOn DATE, @Msg NVARCHAR(2048);
 
-    SELECT @CourseId = CourseId, @IssuedOn = ISNULL(EndDate, CAST(GETDATE() AS DATE))
+    SELECT @CourseId = CourseId, @IssuedOn = ISNULL(EndDate, dbo.fn_Today())
     FROM dbo.CLASS WHERE ClassId = @ClassId AND Status IN (N'In progress', N'Finished');
     IF @CourseId IS NULL
         THROW 50043, N'The class does not exist or has not started yet.', 1;
@@ -795,7 +795,7 @@ BEGIN
     DECLARE @TeacherId VARCHAR(10), @HourlyRate DECIMAL(12,0), @SessionCount INT, @Hours DECIMAL(6,2),
             @Bonus DECIMAL(12,0), @TeacherCount INT = 0;
 
-    IF DATEFROMPARTS(@Year, @Month, 1) > CAST(GETDATE() AS DATE)
+    IF DATEFROMPARTS(@Year, @Month, 1) > dbo.fn_Today()
         THROW 50050, N'Payroll cannot be finalized for a future month.', 1;
 
     BEGIN TRY
@@ -819,7 +819,7 @@ BEGIN
             IF EXISTS (SELECT 1 FROM dbo.PAYROLL WHERE TeacherId = @TeacherId AND Month = @Month AND Year = @Year)
                 UPDATE dbo.PAYROLL
                 SET SessionCount = @SessionCount, Hours = @Hours, HourlyRate = @HourlyRate, Bonus = @Bonus,
-                    FinalizedAt = GETDATE()
+                    FinalizedAtUtc = GETUTCDATE()
                 WHERE TeacherId = @TeacherId AND Month = @Month AND Year = @Year AND Status = N'Finalized';
             ELSE
                 INSERT INTO dbo.PAYROLL (TeacherId, Month, Year, SessionCount, Hours, HourlyRate, Bonus)
@@ -861,7 +861,10 @@ CREATE PROCEDURE dbo.usp_Dashboard_Stats
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @Today DATE = CAST(GETDATE() AS DATE);
+    DECLARE @Today DATE = dbo.fn_Today();
+    -- This month of the center as a UTC range (receipts are stored in UTC)
+    DECLARE @MonthStartUtc DATETIME = dbo.fn_CenterTimeToUtc(DATEADD(DAY, 1 - DAY(@Today), @Today));
+    DECLARE @NextMonthUtc DATETIME = dbo.fn_CenterTimeToUtc(DATEADD(MONTH, 1, DATEADD(DAY, 1 - DAY(@Today), @Today)));
     DECLARE @CanSeeRevenue BIT = CASE WHEN dbo.fn_CurrentRole() IN ('MANAGER', 'ACCOUNTANT') THEN 1 ELSE 0 END;
 
     SELECT
@@ -874,7 +877,7 @@ BEGIN
         CASE WHEN @CanSeeRevenue = 0 THEN NULL ELSE
         (SELECT ISNULL(SUM(rc.Amount), 0) FROM dbo.RECEIPT rc
             JOIN dbo.ENROLLMENT en ON en.EnrollmentId = rc.EnrollmentId JOIN dbo.CLASS cl ON cl.ClassId = en.ClassId
-            WHERE rc.Status = N'Valid' AND YEAR(rc.PaidAt) = YEAR(@Today) AND MONTH(rc.PaidAt) = MONTH(@Today)
+            WHERE rc.Status = N'Valid' AND rc.PaidAtUtc >= @MonthStartUtc AND rc.PaidAtUtc < @NextMonthUtc
               AND (@BranchId IS NULL OR cl.BranchId = @BranchId)) END AS RevenueThisMonth,
         (SELECT ISNULL(SUM(Balance), 0) FROM dbo.vw_OutstandingTuition
             WHERE (@BranchId IS NULL OR BranchId = @BranchId)) AS TotalOutstanding,
@@ -884,7 +887,7 @@ BEGIN
 END;
 GO
 
-/* G2. usp_Report_Revenue: revenue per course between two dates */
+/* G2. usp_Report_Revenue: revenue per course between two dates (days of the center) */
 IF OBJECT_ID(N'dbo.usp_Report_Revenue', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Report_Revenue;
 GO
 CREATE PROCEDURE dbo.usp_Report_Revenue
@@ -894,6 +897,9 @@ CREATE PROCEDURE dbo.usp_Report_Revenue
 AS
 BEGIN
     SET NOCOUNT ON;
+    -- From the start of @FromDate to the end of @ToDate in the center, as UTC bounds
+    DECLARE @FromUtc DATETIME = dbo.fn_CenterTimeToUtc(@FromDate),
+            @ToUtc   DATETIME = dbo.fn_CenterTimeToUtc(DATEADD(DAY, 1, @ToDate));
     SELECT br.BranchName, pg.ProgramName, co.CourseName, COUNT(*) AS ReceiptCount, SUM(rc.Amount) AS Revenue
     FROM dbo.RECEIPT rc
     JOIN dbo.ENROLLMENT en ON en.EnrollmentId = rc.EnrollmentId
@@ -902,7 +908,7 @@ BEGIN
     JOIN dbo.PROGRAM pg    ON pg.ProgramId = co.ProgramId
     JOIN dbo.BRANCH br     ON br.BranchId = cl.BranchId
     WHERE rc.Status = N'Valid'
-      AND rc.PaidAt >= @FromDate AND rc.PaidAt < DATEADD(DAY, 1, @ToDate)
+      AND rc.PaidAtUtc >= @FromUtc AND rc.PaidAtUtc < @ToUtc
       AND (@BranchId IS NULL OR cl.BranchId = @BranchId)
     GROUP BY br.BranchName, pg.ProgramName, co.CourseName
     ORDER BY br.BranchName, pg.ProgramName, Revenue DESC;
@@ -1186,12 +1192,13 @@ CREATE PROCEDURE dbo.usp_Account_RecordLogin
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE dbo.ACCOUNT SET LastLoginAt = GETDATE() WHERE Username = USER_NAME() COLLATE DATABASE_DEFAULT;
+    UPDATE dbo.ACCOUNT SET LastLoginAtUtc = GETUTCDATE() WHERE Username = USER_NAME() COLLATE DATABASE_DEFAULT;
     SELECT Username, Role, EmployeeId, TeacherId, Status, FullName, BranchId FROM dbo.vw_CurrentAccount;
 END;
 GO
 
-/* I6. usp_Account_List: accounts with the role code (the application shows the localized role name) */
+/* I6. usp_Account_List: accounts with the role code (the application shows the localized role name and converts the
+       UTC times to the user's time zone) */
 IF OBJECT_ID(N'dbo.usp_Account_List', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Account_List;
 GO
 CREATE PROCEDURE dbo.usp_Account_List
@@ -1199,7 +1206,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT ac.Username, ac.Role, COALESCE(em.FullName, te.FullName) AS FullName,
-           ac.Status, ac.CreatedAt, ac.LastLoginAt
+           ac.Status, ac.CreatedAtUtc, ac.LastLoginAtUtc
     FROM dbo.ACCOUNT ac
     LEFT JOIN dbo.EMPLOYEE em ON em.EmployeeId = ac.EmployeeId
     LEFT JOIN dbo.TEACHER te  ON te.TeacherId = ac.TeacherId
@@ -1219,8 +1226,10 @@ WITH EXECUTE AS OWNER
 AS
 BEGIN
     SET NOCOUNT ON;
+    -- File names carry the center's local time, the time people at the center recognize
     DECLARE @Sql NVARCHAR(MAX), @Timestamp VARCHAR(20) =
-        REPLACE(REPLACE(REPLACE(CONVERT(VARCHAR(19), GETDATE(), 120), '-', ''), ':', ''), ' ', '_');
+        REPLACE(REPLACE(REPLACE(CONVERT(VARCHAR(19), dbo.fn_UtcToCenterTime(GETUTCDATE()), 120), '-', ''), ':', ''),
+                ' ', '_');
 
     IF @Type NOT IN ('FULL', 'DIFF', 'LOG')
         THROW 50070, N'The backup type must be FULL, DIFF or LOG.', 1;
