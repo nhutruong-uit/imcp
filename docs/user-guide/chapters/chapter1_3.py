@@ -128,14 +128,14 @@ def chapter2(g):
 
     g.h3("2.2.2. Khởi động SQL Server")
     g.p("Tại thư mục mã nguồn có sẵn file `docker-compose.yml` mô tả container SQL Server 2022 tên "
-        "`imcp-mssql` (cổng 1433, múi giờ Việt Nam, dữ liệu lưu trong volume `mssql-data`).")
+        "`imcp-mssql` (cổng 1433, dữ liệu lưu trong volume `mssql-data`). Múi giờ của container không ảnh "
+        "hưởng: CSDL lưu thời điểm theo giờ UTC và tự tính ngày theo giờ của trung tâm.")
     g.steps([
         "Tạo file `.env` ở thư mục gốc mã nguồn với nội dung một dòng `MSSQL_SA_PASSWORD=<mật khẩu sa>`. "
         "Mật khẩu của tài khoản quản trị `sa` phải từ 8 ký tự, có chữ hoa, chữ thường, chữ số và ký hiệu. "
         "File này chứa mật khẩu nên không bao giờ được đưa lên Git (đã có trong `.gitignore`).",
         "Chạy `docker compose up -d`. Lần đầu Docker tải image SQL Server (dung lượng lớn) nên mất vài phút. "
-        "Chạy lệnh này "
-        "nghĩa là bạn đồng ý điều khoản giấy phép SQL Server Developer Edition.",
+        "Chạy lệnh này nghĩa là bạn đồng ý điều khoản giấy phép SQL Server Developer Edition.",
         "Kiểm tra bằng `docker ps`: dòng `imcp-mssql` có trạng thái `Up`. Chờ thêm khoảng 20 giây để SQL "
         "Server khởi động xong trước khi khởi tạo CSDL.",
     ])
@@ -312,7 +312,17 @@ def chapter3(g):
                   "khóa registry ở trên.")
 
     g.h2("3.5. Chạy từ mã nguồn (dành cho nhóm phát triển)")
-    g.p("Thành viên nhóm có thể build ứng dụng bằng Qt 6, CMake và Ninja thay vì dùng bộ cài; các bước chi "
-        "tiết cho macOS và Windows nằm trong `docs/SETUP.md` (mục 3). Ví dụ trên macOS:")
+    g.p("Thành viên nhóm có thể build ứng dụng bằng Qt 6, CMake và Ninja thay vì dùng bộ cài. Script "
+        "`scripts/setup_dev` kiểm tra máy và chỉ cài những gì còn thiếu: bộ công cụ build, SQL Server (macOS: "
+        "container Docker; Windows: instance đã cài, container đang chạy hoặc SQL Server 2022 Developer), khởi tạo "
+        "CSDL rồi chạy toàn bộ kiểm thử. Trong Claude Code, gõ `/imcp-setup` để chạy script này. Chi tiết và các "
+        "tùy chọn nằm trong `docs/SETUP.md` (mục 3).")
+    g.code("Terminal (macOS)", "./scripts/setup_dev.sh --check             # chỉ báo còn thiếu gì\n"
+                               "./scripts/setup_dev.sh --accept-licenses   # cài đặt toàn bộ", lang="text")
+    g.code("PowerShell (Windows)",
+           "powershell -ExecutionPolicy Bypass -File scripts\\setup_dev.ps1 -Check\n"
+           "powershell -ExecutionPolicy Bypass -File scripts\\setup_dev.ps1 -AcceptLicenses", lang="text")
+    g.p("Tham số `--accept-licenses` (`-AcceptLicenses`) nghĩa là bạn đồng ý giấy phép SQL Server Developer Edition "
+        "(và điều khoản Docker Desktop trên macOS). Sau đó build và chạy ứng dụng, ví dụ trên macOS:")
     g.code("Terminal (macOS)", "cmake --preset macos-debug\ncmake --build --preset macos-debug\n"
                                "open build/macos-debug/src/app/QLTTTA.app", lang="text")

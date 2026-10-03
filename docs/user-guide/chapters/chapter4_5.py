@@ -232,7 +232,8 @@ def chapter5(g):
 
     g.h2("5.9. Tài khoản")
     g.p("*Vai trò: Quản lý.* Danh sách tài khoản đăng nhập: tên đăng nhập, vai trò, họ tên nhân viên/giáo "
-        "viên, trạng thái (**Hoạt động** hoặc **Đã khóa**), ngày tạo và lần đăng nhập cuối. Màn hình này chỉ "
+        "viên, trạng thái (**Hoạt động** hoặc **Đã khóa**), ngày tạo và lần đăng nhập cuối (hiển thị theo múi giờ "
+        "của máy tính đang chạy ứng dụng). Màn hình này chỉ "
         "để tra cứu; việc tạo, khóa/mở khóa tài khoản và đặt lại mật khẩu do quản lý thực hiện trong SSMS (đăng "
         "nhập bằng tài khoản quản lý, chọn CSDL `QLTTTA`) bằng các thủ tục `usp_Account_Create`, "
         "`usp_Account_Lock`, `usp_Account_ResetPassword` (xem "

@@ -30,7 +30,7 @@ Arguments: `all` (default) | `screens` | `windows` (fill in the Windows placehol
   | `DatabaseManager.cpp` (drivers), `ServerConfig.h` (defaults), `QSettingsStore.cpp`, `main.cpp` | 3.3.3, 3.4, 4.2, 6.1 |
   | `database/07_seed_data.sql` (accounts) | read automatically (`demo_accounts()`); check `ROLE_SCOPE` in `chapter4_5.py` |
   | `04_procedures.sql`, `06_security.sql` (business task, grants) | table of 5.11 |
-  | `scripts/db_init.*`, `docker-compose.yml` | chapter 2 and appendix A (commands must stay copy-paste correct) |
+  | `scripts/db_init.*`, `scripts/setup_dev.*`, `docker-compose.yml` | chapter 2, 3.5 and appendix A (commands must stay copy-paste correct) |
   | `packaging/**`, `scripts/package-*` | chapter 3 (file names, installer steps) |
   | `CMakeLists.txt` `VERSION` | read automatically (cover information, file names) |
 - Read the code that changed before writing about it: describe what the app really does, never what it should do.
