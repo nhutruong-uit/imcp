@@ -6,7 +6,7 @@ There are three levels of use; pick the one that fits you:
 |---|---|---|
 | A. Try it out / grading | Instructor, non-programming members | SQL Server + the QLTTTA installer (GitHub Releases) |
 | B. Work with the database | Every member (presenting the database part) | SQL Server + SSMS or VS Code (mssql extension) |
-| C. Develop the application | Team lead (+ Claude Code) | Level B + Qt 6, CMake, Ninja, an ODBC driver |
+| C. Develop the application | Team lead (+ Claude Code), every member who changes code | Level B + Qt 6, CMake, Ninja, an ODBC driver - one command: `scripts/setup_dev` (section 3) |
 
 ---
 
@@ -89,6 +89,29 @@ language chosen last in the app).
 
 ## 3. Development environment (level C)
 
+### One-command setup (recommended)
+`scripts/setup_dev` checks the machine and installs only what is missing: the toolchain of the manual steps below,
+clang-format of the team version (through `pipx`), SQL Server (macOS: a Docker container; Windows: the installed
+instance, a running container or SQL Server 2022 Developer) and the recommended VS Code extensions. It then
+initializes the database, signs in as a demo account and runs `test_all`. It is safe to re-run. In Claude Code, type
+`/imcp-setup`: it runs the script, asks before installing anything and explains what is left to do.
+```bash
+./scripts/setup_dev.sh --check             # macOS: report what is missing, change nothing
+./scripts/setup_dev.sh --accept-licenses   # macOS: set up everything
+```
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup_dev.ps1 -Check
+powershell -ExecutionPolicy Bypass -File scripts\setup_dev.ps1 -AcceptLicenses
+```
+`--accept-licenses` (`-AcceptLicenses`) means you accept the SQL Server Developer Edition license and, on macOS, the
+Docker Desktop terms; without it those steps are skipped. Other options: `--container <name>` (`-Docker <name>`),
+`-Server <instance>` (Windows), `--with-msodbc` (`-WithMsOdbc`: Microsoft ODBC Driver 18, optional) and `--skip-tests`
+(`-SkipTests`). On macOS a missing SQL Server becomes the `imcp-mssql` container of `docker-compose.yml`, with a random
+sa password written to `.env`. On Windows, Qt 6.8 + MinGW, CMake and Ninja are installed into `C:\Qt` with aqtinstall
+(the tool CI uses, no Qt account needed) and `QT_ROOT_DIR` and `PATH` are set for your user. What only you can do -
+install Homebrew, sign in with `gh auth login`, set your git name, restart Windows - is listed at the end with the
+command to run. Linux is not covered: install the tools of the "Full tests" job in `.github/workflows/ci.yml`.
+
 ### macOS
 ```bash
 brew install qt qt-unixodbc unixodbc freetds cmake ninja
@@ -107,7 +130,8 @@ Open the project with **Qt Creator** (*File > Open File or Project > CMakeLists.
 1. Install the **Qt Online Installer** (a free Qt account is required) and select:
    *Qt 6.8.x > MinGW 64-bit*, *Developer and Designer Tools > MinGW 13.1 64-bit, CMake, Ninja*, *Qt Creator*.
 2. Open Qt Creator → *Open Project* → choose `CMakeLists.txt` → choose the kit *Desktop Qt 6.8.x MinGW 64-bit* → Run.
-3. Command line (PowerShell, with `C:\Qt\Tools\mingw1310_64\bin`, `C:\Qt\Tools\Ninja` and `C:\Qt\Tools\CMake_64\bin` on PATH):
+3. Command line (PowerShell, with `C:\Qt\Tools\mingw1310_64\bin`, `C:\Qt\Tools\Ninja`, `C:\Qt\Tools\CMake_64\bin` and,
+   for running the tests and the app outside Qt Creator, `C:\Qt\6.8.3\mingw_64\bin` on PATH):
    ```powershell
    $env:QT_ROOT_DIR = "C:\Qt\6.8.3\mingw_64"
    cmake --preset windows-debug; cmake --build --preset windows-debug; ctest --preset windows-debug

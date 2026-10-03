@@ -16,6 +16,13 @@ paths:
   `$ErrorActionPreference = "Stop"`, check `$LASTEXITCODE` after external commands; check the syntax with the
   `pwsh` parser before committing.
 - ✔ (`tst_conventions`) every script has both versions and follows the `.sh`/`.ps1` format above.
+- `scripts/setup_dev` (machine setup, `/imcp-setup`) checks before it installs and installs only what is missing, so
+  it is safe to re-run; `--check` / `-Check` changes nothing. Components with their own license (SQL Server Developer,
+  Docker Desktop, Microsoft ODBC Driver 18) are installed only with `--accept-licenses` / `-AcceptLicenses`: the member
+  accepts them, never the script. It never asks for or types a password and never changes system security settings
+  (sudo, group membership, SQL Server authentication mode) - it prints what the member must do. The steps differ per
+  OS (Homebrew / winget + aqtinstall), so `setup_dev.ps1` runs `setup_dev.sh` on macOS/Linux; keep the options and the
+  summary format of both the same, and its Qt version equal to the Windows job of `ci.yml`.
 - `scripts/check_changes` checks what only git can see (format of the changed C++ lines, commit messages, tracked
   `build/`/`dist/`/`.env`); it is step 1 of `test_all` and runs on every PR into `develop`. The clang-format version
   of the team is pinned in `.clang-format-version` (CI installs it with `pip install clang-format==<version>`).
