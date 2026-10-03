@@ -8,7 +8,8 @@
             the time zone of the center (UTC <-> local time, today's date),
             an ISO weekday helper, who is signed in, final grade / classification / attendance,
             discounts, course recommendation, and table-valued functions for a teacher's
-            schedule, a student's balance and the monthly revenue.
+            schedule, a student's balance, the monthly revenue, the period of a class and the
+            schedule clashes of a student.
    Order  : third script of db_init (00 -> 07): after the tables they read, before the views,
             procedures and triggers that call them. 06_security.sql GRANTs SELECT on the
             table-valued functions to the roles that may use them.
@@ -193,13 +194,15 @@ BEGIN
     JOIN dbo.GRADE_COMPONENT gc  ON gc.CourseId = cl.CourseId
     WHERE en.EnrollmentId = @EnrollmentId;
 
-    SELECT @ScoredCount = COUNT(*), @Total = SUM(gr.Score * gc.Weight) / 100
+    -- Score x Weight has 4 decimals, so the sum is exact; dividing and rounding happen once, at the end
+    -- (rounding the quotient to 4 decimals first could turn 4.99495 into 4.9950 and then into a pass of 5.00)
+    SELECT @ScoredCount = COUNT(*), @Total = SUM(gr.Score * gc.Weight)
     FROM dbo.GRADE gr
     JOIN dbo.GRADE_COMPONENT gc ON gc.ComponentId = gr.ComponentId
     WHERE gr.EnrollmentId = @EnrollmentId;
 
     IF @ComponentCount = 0 OR @ScoredCount < @ComponentCount RETURN NULL;
-    RETURN CAST(ROUND(@Total, 2) AS DECIMAL(4,2));
+    RETURN CAST(ROUND(@Total / 100, 2) AS DECIMAL(4,2));
 END;
 GO
 
@@ -231,12 +234,14 @@ END;
 GO
 
 /* 6. fn_AttendanceRate: % of taught sessions attended (late counts as present)
-      = 100 x (marks Present or Late at taught sessions) / (taught sessions of the class).
+      = 100 x (marks Present or Late at taught sessions) / (taught sessions of the class since the
+      enrollment date).
       Only sessions with status Taught count; an absence (excused or not) and a missing mark both
-      count as not attended. NULL when the class has no taught session yet (no division by zero);
-      usp_Class_EvaluateResults then uses 100.
+      count as not attended. Sessions taught before the student enrolled do not count: a student may
+      join a class in progress (usp_Enrollment_Create) and could otherwise never reach 80%. NULL when
+      no session was taught since then (no division by zero); usp_Class_EvaluateResults then uses 100.
       Used by: vw_LearningResults, vw_Teacher_MyStudents, usp_Class_EvaluateResults (pass rule:
-      attendance >= 80%), tests T18 and T23.
+      attendance >= 80%), tests T18, T23 and T48.
       Concepts: scalar function, two aggregate queries, decimal instead of integer division. */
 IF OBJECT_ID(N'dbo.fn_AttendanceRate', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_AttendanceRate;
 GO
@@ -249,12 +254,13 @@ BEGIN
     SELECT @TaughtCount = COUNT(*)
     FROM dbo.CLASS_SESSION se
     JOIN dbo.ENROLLMENT en ON en.ClassId = se.ClassId
-    WHERE en.EnrollmentId = @EnrollmentId AND se.Status = N'Taught';
+    WHERE en.EnrollmentId = @EnrollmentId AND se.Status = N'Taught' AND se.SessionDate >= en.EnrolledOn;
 
     SELECT @PresentCount = COUNT(*)
     FROM dbo.ATTENDANCE at
     JOIN dbo.CLASS_SESSION se ON se.SessionId = at.SessionId
-    WHERE at.EnrollmentId = @EnrollmentId AND se.Status = N'Taught'
+    JOIN dbo.ENROLLMENT en ON en.EnrollmentId = at.EnrollmentId
+    WHERE at.EnrollmentId = @EnrollmentId AND se.Status = N'Taught' AND se.SessionDate >= en.EnrolledOn
       AND at.Status IN (N'Present', N'Late');
 
     IF @TaughtCount = 0 RETURN NULL;
@@ -267,6 +273,8 @@ GO
       (the open course with the highest minimum score the student reached)
       A course without MinPlacementScore counts as minimum 0 (open to everybody); between courses
       with the same minimum the cheaper one wins. @ProgramId = NULL searches every program.
+      A course with a prerequisite and no minimum score is left out: usp_Enrollment_Create admits
+      it only after the prerequisite course (test T33), never on a placement score (test T49).
       Used by: trg_PLACEMENT_TEST_Recommend (fills PLACEMENT_TEST.RecommendedCourseId, called with
       @ProgramId = NULL).
       Concepts: scalar function, TOP (1) + ORDER BY, parameter with a default value (a caller of a
@@ -282,6 +290,7 @@ BEGIN
         FROM dbo.COURSE
         WHERE Status = N'Open'
           AND ISNULL(MinPlacementScore, 0) <= @OverallScore
+          AND (PrerequisiteCourseId IS NULL OR MinPlacementScore IS NOT NULL)
           AND (@ProgramId IS NULL OR ProgramId = @ProgramId)
         ORDER BY ISNULL(MinPlacementScore, 0) DESC, Tuition ASC);
 END;
@@ -291,8 +300,8 @@ GO
       PERCENT: tuition x value / 100 rounded to the nearest 1,000 VND; AMOUNT: the fixed value.
       The discount never exceeds the tuition. 0 when the promotion does not exist or is not valid
       on @Date: the SELECT then finds no row and @Discount keeps its initial value 0.
-      Used by: usp_Enrollment_Create (a discount of 0 for a given promotion code means "unknown or
-      expired code", error 50025), test T19.
+      Used by: usp_Enrollment_Create and usp_Enrollment_TransferClass (they check themselves that the
+      code exists and is valid, error 50025: a valid code may give 0 on a free class), test T19.
       Concepts: scalar function, CASE on a column, assigning a variable from a SELECT. */
 IF OBJECT_ID(N'dbo.fn_DiscountAmount', N'FN') IS NOT NULL DROP FUNCTION dbo.fn_DiscountAmount;
 GO
@@ -415,4 +424,55 @@ BEGIN
 
     RETURN;
 END;
+GO
+
+/* 12. fn_ClassPeriod (inline TVF): the period of a class, from StartDate to EndDate
+       EndDate stays NULL until usp_Class_GenerateSessions has created the sessions. Until then the end is
+       estimated as StartDate + SessionCount weeks: a class meets at least once a week, so its sessions are over
+       within that many weeks. The estimate can only be too long, never too short, so two classes that might
+       overlap are compared as if they do (a clash is never missed; one weekly slot is the worst case).
+       Used by: fn_StudentScheduleClash, trg_CLASS_SCHEDULE_CheckConflict (one definition instead of the same
+       guess repeated in every clash check).
+       Concepts: inline table-valued function used with CROSS APPLY, ISNULL, DATEADD. */
+IF OBJECT_ID(N'dbo.fn_ClassPeriod', N'IF') IS NOT NULL DROP FUNCTION dbo.fn_ClassPeriod;
+GO
+CREATE FUNCTION dbo.fn_ClassPeriod (@ClassId VARCHAR(10))
+RETURNS TABLE
+AS
+RETURN (
+    SELECT cl.StartDate, ISNULL(cl.EndDate, DATEADD(WEEK, co.SessionCount, cl.StartDate)) AS EndDate
+    FROM dbo.CLASS cl
+    JOIN dbo.COURSE co ON co.CourseId = cl.CourseId
+    WHERE cl.ClassId = @ClassId
+);
+GO
+
+/* 13. fn_StudentScheduleClash (inline TVF): the classes of a student that clash with class @ClassId
+       One row per Studying enrollment of @StudentId (other than @ExceptEnrollmentId) in another active class
+       (Enrolling / In progress) that meets on the same weekday at overlapping hours while the two class periods
+       overlap. Two ranges overlap when each one starts before the other ends: 18:00-20:00 and 20:00-21:30 do not.
+       Used by: usp_Enrollment_Create, usp_Enrollment_TransferClass (@ExceptEnrollmentId = the enrollment that
+       moves) and usp_Enrollment_UpdateStatus (a student who resumes), all with error 50024; tests T05, T34, T52.
+       Concepts: inline table-valued function, self-join of CLASS_SCHEDULE (cs = the class, cs2 = another class),
+       interval overlap, CROSS APPLY of another inline function. */
+IF OBJECT_ID(N'dbo.fn_StudentScheduleClash', N'IF') IS NOT NULL DROP FUNCTION dbo.fn_StudentScheduleClash;
+GO
+CREATE FUNCTION dbo.fn_StudentScheduleClash (@StudentId VARCHAR(10), @ClassId VARCHAR(10),
+                                             @ExceptEnrollmentId VARCHAR(10))
+RETURNS TABLE
+AS
+RETURN (
+    SELECT en.EnrollmentId, en.ClassId
+    FROM dbo.ENROLLMENT en
+    JOIN dbo.CLASS cl2           ON cl2.ClassId = en.ClassId
+    JOIN dbo.CLASS_SCHEDULE cs2  ON cs2.ClassId = cl2.ClassId
+    JOIN dbo.CLASS_SCHEDULE cs   ON cs.ClassId = @ClassId AND cs.Weekday = cs2.Weekday
+    CROSS APPLY dbo.fn_ClassPeriod(@ClassId) p1
+    CROSS APPLY dbo.fn_ClassPeriod(en.ClassId) p2
+    WHERE en.StudentId = @StudentId AND en.Status = N'Studying' AND en.ClassId <> @ClassId
+      AND (@ExceptEnrollmentId IS NULL OR en.EnrollmentId <> @ExceptEnrollmentId)
+      AND cl2.Status IN (N'Enrolling', N'In progress')
+      AND cs.StartTime < cs2.EndTime AND cs2.StartTime < cs.EndTime
+      AND p2.StartDate <= p1.EndDate AND p1.StartDate <= p2.EndDate
+);
 GO

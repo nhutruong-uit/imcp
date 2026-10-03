@@ -50,18 +50,20 @@ GO
       The DEFAULT applies when an INSERT leaves the column out; the seed data inserts fixed
       IDs and then moves the sequence on with ALTER SEQUENCE ... RESTART (07_seed_data.sql).
       The padded part has a fixed width (4 to 6 digits), which limits how many IDs a sequence can
-      produce. Tables with codes chosen by the user (BRANCH, ROOM, PROGRAM, COURSE, PROMOTION)
+      produce: MAXVALUE is that limit (9999 for EM0001), so the next number fails with a clear error
+      instead of RIGHT() cutting 10000 down to EM0000, a code that already exists (test T66).
+      Tables with codes chosen by the user (BRANCH, ROOM, PROGRAM, COURSE, PROMOTION)
       have no sequence; technical keys use IDENTITY (GRADE_COMPONENT, CLASS_SESSION, PAYROLL,
       AUDIT_LOG).
    --------------------------------------------------------------------- */
-CREATE SEQUENCE dbo.seq_EMPLOYEE       AS INT START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE dbo.seq_TEACHER        AS INT START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE dbo.seq_STUDENT        AS INT START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE dbo.seq_CLASS          AS INT START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE dbo.seq_ENROLLMENT     AS INT START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE dbo.seq_RECEIPT        AS INT START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE dbo.seq_PLACEMENT_TEST AS INT START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE dbo.seq_CERTIFICATE    AS INT START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE dbo.seq_EMPLOYEE       AS INT START WITH 1 INCREMENT BY 1 MAXVALUE 9999   NO CYCLE;
+CREATE SEQUENCE dbo.seq_TEACHER        AS INT START WITH 1 INCREMENT BY 1 MAXVALUE 9999   NO CYCLE;
+CREATE SEQUENCE dbo.seq_STUDENT        AS INT START WITH 1 INCREMENT BY 1 MAXVALUE 99999  NO CYCLE;
+CREATE SEQUENCE dbo.seq_CLASS          AS INT START WITH 1 INCREMENT BY 1 MAXVALUE 9999   NO CYCLE;
+CREATE SEQUENCE dbo.seq_ENROLLMENT     AS INT START WITH 1 INCREMENT BY 1 MAXVALUE 999999 NO CYCLE;
+CREATE SEQUENCE dbo.seq_RECEIPT        AS INT START WITH 1 INCREMENT BY 1 MAXVALUE 999999 NO CYCLE;
+CREATE SEQUENCE dbo.seq_PLACEMENT_TEST AS INT START WITH 1 INCREMENT BY 1 MAXVALUE 99999  NO CYCLE;
+CREATE SEQUENCE dbo.seq_CERTIFICATE    AS INT START WITH 1 INCREMENT BY 1 MAXVALUE 99999  NO CYCLE;
 GO
 
 /* ---------------------------------------------------------------------
@@ -240,6 +242,8 @@ CREATE TABLE dbo.TEACHER (
     CONSTRAINT CK_TEACHER_HourlyRate CHECK (HourlyRate > 0),
     -- Cross-column constraint: a native-speaker teacher cannot have Vietnamese nationality
     CONSTRAINT CK_TEACHER_Native CHECK (TeacherType = N'Vietnamese' OR Nationality <> N'Vietnam'),
+    -- Cross-column constraint: like an employee, a teacher is at least 18 years old when hired
+    CONSTRAINT CK_TEACHER_Age CHECK (DATEADD(YEAR, 18, DateOfBirth) <= HireDate),
     CONSTRAINT CK_TEACHER_Status CHECK (Status IN (N'Teaching', N'On leave', N'Left'))
 );
 GO
@@ -505,6 +509,9 @@ CREATE TABLE dbo.CLASS_SESSION (
 GO
 CREATE INDEX IX_CLASS_SESSION_SessionDate ON dbo.CLASS_SESSION (SessionDate)
     INCLUDE (ClassId, TeacherId, RoomId, StartTime, EndTime);
+-- The sessions of one teacher in a date range: the teacher views and usp_Payroll_Finalize
+CREATE INDEX IX_CLASS_SESSION_TeacherId_SessionDate ON dbo.CLASS_SESSION (TeacherId, SessionDate)
+    INCLUDE (Status, StartTime, EndTime);
 GO
 
 /* ---------------------------------------------------------------------
@@ -643,6 +650,10 @@ CREATE TABLE dbo.ATTENDANCE (
     CONSTRAINT CK_ATTENDANCE_Status CHECK (Status IN (N'Present', N'Late', N'Excused absence', N'Unexcused absence'))
 );
 GO
+-- The primary key starts with SessionId; the marks of one enrollment (fn_AttendanceRate, the class transfer, the
+-- foreign key check when an enrollment changes) need their own index
+CREATE INDEX IX_ATTENDANCE_EnrollmentId ON dbo.ATTENDANCE (EnrollmentId) INCLUDE (Status);
+GO
 
 /* ---------------------------------------------------------------------
    19. GRADE - Score of a student for each grade component of a class
@@ -696,6 +707,10 @@ CREATE TABLE dbo.PLACEMENT_TEST (
         ListeningScore BETWEEN 0 AND 10 AND SpeakingScore BETWEEN 0 AND 10 AND
         ReadingScore   BETWEEN 0 AND 10 AND WritingScore  BETWEEN 0 AND 10)
 );
+GO
+-- The latest test of a student (usp_Enrollment_Create: TOP (1) ... ORDER BY TestDate DESC, TestId DESC)
+CREATE INDEX IX_PLACEMENT_TEST_StudentId ON dbo.PLACEMENT_TEST (StudentId, TestDate DESC, TestId DESC)
+    INCLUDE (OverallScore);
 GO
 
 /* ---------------------------------------------------------------------

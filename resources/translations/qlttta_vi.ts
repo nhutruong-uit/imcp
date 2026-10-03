@@ -421,6 +421,14 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Bạn chỉ được cập nhật buổi học do mình phụ trách.</translation>
     </message>
     <message>
+        <source>The sessions of a finished or cancelled class cannot be changed.</source>
+        <translation>Không được thay đổi buổi học của lớp đã kết thúc hoặc đã hủy.</translation>
+    </message>
+    <message>
+        <source>A class can only move from Enrolling to In progress, or from Enrolling or In progress to Cancelled.</source>
+        <translation>Lớp chỉ được chuyển từ Đang tuyển sinh sang Đang học, hoặc từ Đang tuyển sinh / Đang học sang Đã hủy.</translation>
+    </message>
+    <message>
         <source>The student does not exist or has dropped out.</source>
         <translation>Học viên không tồn tại hoặc đã ngừng học.</translation>
     </message>
@@ -463,6 +471,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>The student has paid more than the tuition of the new class; cancel a receipt before the transfer.</source>
         <translation>Học viên đã đóng nhiều hơn học phí của lớp mới; hãy hủy phiếu thu trước khi chuyển lớp.</translation>
+    </message>
+    <message>
+        <source>Only an enrollment that is not completed can be set to Studying, On hold or Left.</source>
+        <translation>Chỉ ghi danh chưa hoàn thành mới được chuyển sang Đang học, Bảo lưu hoặc Đã nghỉ.</translation>
     </message>
     <message>
         <source>The current account is not linked to an employee who can collect payments.</source>
@@ -513,6 +525,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Còn %1 học viên chưa nhập đủ điểm.</translation>
     </message>
     <message>
+        <source>The class still has scheduled sessions; mark them as taught or cancelled first.</source>
+        <translation>Lớp vẫn còn buổi chưa dạy; hãy đánh dấu các buổi đó là đã dạy hoặc đã hủy trước.</translation>
+    </message>
+    <message>
         <source>Payroll cannot be finalized for a future month.</source>
         <translation>Không thể chốt lương cho tháng trong tương lai.</translation>
     </message>
@@ -527,6 +543,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>The username already exists.</source>
         <translation>Tên đăng nhập đã tồn tại.</translation>
+    </message>
+    <message>
+        <source>An account cannot be created for an employee or teacher who has left.</source>
+        <translation>Không thể tạo tài khoản cho nhân viên hoặc giáo viên đã nghỉ việc.</translation>
     </message>
     <message>
         <source>Invalid role.</source>
@@ -603,6 +623,18 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>The date, time, room and teacher of a taught session cannot be changed.</source>
         <translation>Không được thay đổi thời gian, phòng, giáo viên của buổi đã dạy.</translation>
+    </message>
+    <message>
+        <source>A taught session cannot change its status.</source>
+        <translation>Không được thay đổi trạng thái của buổi đã dạy.</translation>
+    </message>
+    <message>
+        <source>A session can only be marked as taught on or after its date.</source>
+        <translation>Chỉ được đánh dấu đã dạy từ ngày diễn ra buổi học trở đi.</translation>
+    </message>
+    <message>
+        <source>The room is used by an active class: it must stay in the branch of the class and hold its maximum size.</source>
+        <translation>Phòng đang được một lớp sử dụng: phòng phải ở cùng chi nhánh với lớp và đủ chỗ cho sĩ số tối đa của lớp.</translation>
     </message>
 </context>
 <context>

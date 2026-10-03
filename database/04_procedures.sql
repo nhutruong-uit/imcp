@@ -198,7 +198,10 @@ GO
        Rules:   a student with any enrollment keeps the history (enrollments, receipts, grades point to it),
                 so the message (50005) suggests the status Dropped out instead. The placement tests go first
                 because FK_PLACEMENT_TEST_STUDENT (no ON DELETE CASCADE) would block deleting the student.
-       Concepts: FOREIGN KEY without cascade (children first), @@ROWCOUNT to detect "not found". */
+                Both deletes run in one transaction: if the student row cannot be deleted (an enrollment added
+                meanwhile), the placement tests are not lost either.
+       Concepts: FOREIGN KEY without cascade (children first), @@ROWCOUNT to detect "not found", multi-step
+                 transaction (SET XACT_ABORT ON + TRY/CATCH). */
 IF OBJECT_ID(N'dbo.usp_Student_Delete', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Student_Delete;
 GO
 CREATE PROCEDURE dbo.usp_Student_Delete
@@ -206,16 +209,24 @@ CREATE PROCEDURE dbo.usp_Student_Delete
 AS
 BEGIN
     SET NOCOUNT ON;
-    -- 1. Refuse when the student has an enrollment history
+    SET XACT_ABORT ON;
+    -- 1. Refuse when the student has an enrollment history, or when there is no such student
     IF EXISTS (SELECT 1 FROM dbo.ENROLLMENT WHERE StudentId = @StudentId)
         THROW 50005, N'The student has an enrollment history and cannot be deleted. Change the status to "Dropped out" instead.', 1;
-
-    -- 2. Delete the child rows, then the student; @@ROWCOUNT is the row count of the last statement,
-    --    so 0 here means that no student has this ID
-    DELETE FROM dbo.PLACEMENT_TEST WHERE StudentId = @StudentId;
-    DELETE FROM dbo.STUDENT WHERE StudentId = @StudentId;
-    IF @@ROWCOUNT = 0
+    IF NOT EXISTS (SELECT 1 FROM dbo.STUDENT WHERE StudentId = @StudentId)
         THROW 50004, N'Student not found.', 1;
+
+    -- 2. Delete the child rows, then the student, together
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        DELETE FROM dbo.PLACEMENT_TEST WHERE StudentId = @StudentId;
+        DELETE FROM dbo.STUDENT WHERE StudentId = @StudentId;
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 
@@ -421,13 +432,18 @@ BEGIN
 END;
 GO
 
-/* B4. usp_Class_UpdateStatus: change the status of a class
-       Used by: roles rl_Manager, rl_AcademicStaff; test T42 (cancelling a class whose students paid).
-       Rules:   a class cannot be cancelled while some of its students hold a valid receipt (50015: refund or
-                transfer them first). The allowed values are those of CK_CLASS_Status. At the end of a course
-                E5 sets the status Finished itself, after computing the results.
-       Concepts: a rule across tables (CLASS - ENROLLMENT - RECEIPT) checked before a single UPDATE,
-                 @@ROWCOUNT for "not found". */
+/* B4. usp_Class_UpdateStatus: start or cancel a class (the life cycle Enrolling -> In progress -> Finished,
+       or Cancelled)
+       Used by: roles rl_Manager, rl_AcademicStaff; tests T42 (cancelling a class whose students paid), T54 (an
+                invalid change), T55 (cancelling sets the enrollments to Left).
+       Rules:   only two moves are made here (50019): Enrolling -> In progress, and Enrolling / In progress ->
+                Cancelled. Finished is set by E5 after computing the results, and a finished or cancelled class
+                never reopens (its grades and attendance are final, its room and teacher may be booked again).
+                A class cannot be cancelled while some of its students hold a valid receipt (50015: refund or
+                transfer them first); its other enrollments become Left, so they no longer count as debt and
+                accept no payment.
+       Concepts: a state machine checked in a procedure (allowed transitions), a rule across tables
+                 (CLASS - ENROLLMENT - RECEIPT), multi-step transaction. */
 IF OBJECT_ID(N'dbo.usp_Class_UpdateStatus', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Class_UpdateStatus;
 GO
 CREATE PROCEDURE dbo.usp_Class_UpdateStatus
@@ -436,16 +452,36 @@ CREATE PROCEDURE dbo.usp_Class_UpdateStatus
 AS
 BEGIN
     SET NOCOUNT ON;
-    -- 1. Cancelling is refused while money was collected for the class (valid receipts of its enrollments)
+    SET XACT_ABORT ON;
+    DECLARE @OldStatus NVARCHAR(20);
+
+    -- 1. The class must exist and the move must be one of the two allowed ones
+    SELECT @OldStatus = Status FROM dbo.CLASS WHERE ClassId = @ClassId;
+    IF @OldStatus IS NULL
+        THROW 50012, N'Class not found.', 1;
+    IF NOT ((@OldStatus = N'Enrolling' AND @Status = N'In progress')
+            OR (@OldStatus IN (N'Enrolling', N'In progress') AND @Status = N'Cancelled'))
+        THROW 50019, N'A class can only move from Enrolling to In progress, or from Enrolling or In progress to Cancelled.', 1;
+
+    -- 2. Cancelling is refused while money was collected for the class (valid receipts of its enrollments)
     IF @Status = N'Cancelled' AND EXISTS (SELECT 1 FROM dbo.RECEIPT rc
                                           JOIN dbo.ENROLLMENT en ON en.EnrollmentId = rc.EnrollmentId
                                           WHERE en.ClassId = @ClassId AND rc.Status = N'Valid')
         THROW 50015, N'Some students of this class have paid tuition; refund or transfer them before cancelling the class.', 1;
 
-    -- 2. Change the status; no row changed => the class does not exist
-    UPDATE dbo.CLASS SET Status = @Status WHERE ClassId = @ClassId;
-    IF @@ROWCOUNT = 0
-        THROW 50012, N'Class not found.', 1;
+    -- 3. Change the status; a cancelled class closes its open enrollments
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        UPDATE dbo.CLASS SET Status = @Status WHERE ClassId = @ClassId;
+        IF @Status = N'Cancelled'
+            UPDATE dbo.ENROLLMENT SET Status = N'Left'
+            WHERE ClassId = @ClassId AND Status IN (N'Studying', N'On hold');
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 
@@ -454,9 +490,11 @@ GO
                 another teacher).
        Rules:   a TEACHER account may only change the sessions it teaches (CLASS_SESSION.TeacherId = the
                 teacher linked to the signed-in account, 50017); the other roles may change any session.
-                A NULL description keeps the old one. Status values: CK_CLASS_SESSION_Status. Once Taught, the
-                date, time, room and teacher are locked (trigger trg_CLASS_SESSION_LockTaught), and F1 pays
-                the Taught sessions.
+                The sessions of a Finished or Cancelled class are final (50018, like grades and attendance).
+                A NULL description keeps the old one. Status values: CK_CLASS_SESSION_Status. The trigger
+                trg_CLASS_SESSION_LockTaught refuses a future session marked Taught and a Taught session that
+                changes its status, date, time, room or teacher; F1 pays the Taught sessions.
+                Tests: P20, T50 and T51 (trigger), T56 (a finished class).
        Concepts: a row-level permission inside a procedure (fn_CurrentRole, fn_CurrentTeacherId),
                  ISNULL to keep the current value. */
 IF OBJECT_ID(N'dbo.usp_Session_Update', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Session_Update;
@@ -468,15 +506,19 @@ CREATE PROCEDURE dbo.usp_Session_Update
 AS
 BEGIN
     SET NOCOUNT ON;
-    -- 1. Read the teacher of the session; still NULL => the session does not exist
-    DECLARE @SessionTeacherId VARCHAR(10);
-    SELECT @SessionTeacherId = TeacherId FROM dbo.CLASS_SESSION WHERE SessionId = @SessionId;
+    -- 1. Read the teacher and the class status of the session; still NULL => the session does not exist
+    DECLARE @SessionTeacherId VARCHAR(10), @ClassStatus NVARCHAR(20);
+    SELECT @SessionTeacherId = se.TeacherId, @ClassStatus = cl.Status
+    FROM dbo.CLASS_SESSION se JOIN dbo.CLASS cl ON cl.ClassId = se.ClassId
+    WHERE se.SessionId = @SessionId;
 
     IF @SessionTeacherId IS NULL
         THROW 50016, N'Session not found.', 1;
     -- 2. A rule GRANT cannot express (it depends on the row): a teacher only updates their own sessions
     IF dbo.fn_CurrentRole() = 'TEACHER' AND @SessionTeacherId <> dbo.fn_CurrentTeacherId()
         THROW 50017, N'You can only update sessions you teach.', 1;
+    IF @ClassStatus IN (N'Finished', N'Cancelled')
+        THROW 50018, N'The sessions of a finished or cancelled class cannot be changed.', 1;
 
     -- 3. Save the status and, when given, the content of the lesson
     UPDATE dbo.CLASS_SESSION
@@ -501,9 +543,9 @@ GO
        Steps:   1. Defaults: the enrollment date is today and the employee is the signed-in one
                    (fn_CurrentEmployeeId) when the caller passes NULL.
                 2. The student must exist and not be Dropped out (50020).
-                3. One SELECT reads the class and its course: tuition, status, prerequisite, minimum placement
-                   score and period (a class without EndDate counts as 6 months long). Then: the class exists
-                   (50012), still accepts enrollments (50021), the student is not in it yet (50022).
+                3. One SELECT reads the class and its course: tuition, status, prerequisite and minimum
+                   placement score. Then: the class exists (50012), still accepts enrollments (50021), the
+                   student is not in it yet (50022).
                 4. Entry requirement (50023), only when the course has a prerequisite or a minimum score. It is
                    met when EITHER a Passed enrollment in a class of the prerequisite course exists OR the
                    LATEST placement test (TOP (1) ... ORDER BY TestDate DESC) reaches the minimum score. The
@@ -511,17 +553,18 @@ GO
                    minimum score, the prerequisite course is the only way in (test T33). The message contains
                    values, so it is built in @Msg first (THROW takes no format arguments); it only mentions the
                    placement score when the course has one.
-                5. Schedule clash (50024): CLASS_SCHEDULE is joined twice (cs = this class, cs2 = the other
-                   class) to find a Studying enrollment of the student in an active class on the same weekday
-                   with overlapping hours (start1 < end2 AND start2 < end1) and overlapping periods.
-                6. Discount from fn_DiscountAmount on the enrollment date; a promotion code that gives 0 is
-                   unknown or expired (50025).
+                5. Schedule clash (50024): fn_StudentScheduleClash lists the Studying enrollments of the
+                   student in an active class on the same weekday with overlapping hours and overlapping
+                   periods (the same check as C2 and C3).
+                6. A promotion code must exist and be valid on the enrollment date (50025); the discount comes
+                   from fn_DiscountAmount (0 on a free class is a valid discount).
                 7. In one transaction: insert the ENROLLMENT (TuitionDue = BaseTuition - DiscountAmount is a
                    computed column; the capacity trigger may roll back here), set a Prospective / On hold
                    student to Studying, commit, and return the new ID through the OUTPUT parameter.
        Concepts: multi-step transaction (SET XACT_ABORT ON + TRY/CATCH + THROW;), NOT EXISTS subqueries,
-                 TOP (1) with ORDER BY, interval overlap test, scalar functions, OUTPUT inserted.x INTO @New,
-                 a business rule that a CHECK constraint cannot express (it needs other tables). */
+                 TOP (1) with ORDER BY, an inline table-valued function in EXISTS, scalar functions,
+                 OUTPUT inserted.x INTO @New, a business rule that a CHECK constraint cannot express (it needs
+                 other tables). */
 IF OBJECT_ID(N'dbo.usp_Enrollment_Create', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Enrollment_Create;
 GO
 CREATE PROCEDURE dbo.usp_Enrollment_Create
@@ -537,8 +580,7 @@ BEGIN
     SET XACT_ABORT ON;
 
     DECLARE @CourseId VARCHAR(10), @Tuition DECIMAL(12,0), @ClassStatus NVARCHAR(20),
-            @Prerequisite VARCHAR(10), @MinScore DECIMAL(4,2), @Discount DECIMAL(12,0),
-            @StartDate DATE, @EndDate DATE, @Msg NVARCHAR(2048);
+            @Prerequisite VARCHAR(10), @MinScore DECIMAL(4,2), @Discount DECIMAL(12,0), @Msg NVARCHAR(2048);
 
     SET @EnrolledOn = ISNULL(@EnrolledOn, dbo.fn_Today());
     SET @EmployeeId = COALESCE(@EmployeeId, dbo.fn_CurrentEmployeeId());
@@ -547,8 +589,7 @@ BEGIN
         THROW 50020, N'The student does not exist or has dropped out.', 1;
 
     SELECT @CourseId = cl.CourseId, @Tuition = cl.Tuition, @ClassStatus = cl.Status,
-           @Prerequisite = co.PrerequisiteCourseId, @MinScore = co.MinPlacementScore,
-           @StartDate = cl.StartDate, @EndDate = ISNULL(cl.EndDate, DATEADD(MONTH, 6, cl.StartDate))
+           @Prerequisite = co.PrerequisiteCourseId, @MinScore = co.MinPlacementScore
     FROM dbo.CLASS cl JOIN dbo.COURSE co ON co.CourseId = cl.CourseId
     WHERE cl.ClassId = @ClassId;
 
@@ -577,23 +618,15 @@ BEGIN
     END;
 
     -- No schedule clash with another class the student is taking
-    IF EXISTS (
-        SELECT 1
-        FROM dbo.ENROLLMENT en
-        JOIN dbo.CLASS cl2           ON cl2.ClassId = en.ClassId
-        JOIN dbo.CLASS_SCHEDULE cs2  ON cs2.ClassId = cl2.ClassId
-        JOIN dbo.CLASS_SCHEDULE cs   ON cs.ClassId = @ClassId AND cs.Weekday = cs2.Weekday
-        WHERE en.StudentId = @StudentId AND en.Status = N'Studying'
-          AND cl2.Status IN (N'Enrolling', N'In progress')
-          AND cs.StartTime < cs2.EndTime AND cs2.StartTime < cs.EndTime
-          AND cl2.StartDate <= @EndDate
-          AND ISNULL(cl2.EndDate, DATEADD(MONTH, 6, cl2.StartDate)) >= @StartDate)
+    IF EXISTS (SELECT 1 FROM dbo.fn_StudentScheduleClash(@StudentId, @ClassId, NULL))
         THROW 50024, N'The class schedule clashes with another class the student is taking.', 1;
 
+    IF @PromotionId IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM dbo.PROMOTION
+                       WHERE PromotionId = @PromotionId AND @EnrolledOn BETWEEN StartDate AND EndDate)
+        THROW 50025, N'The promotion code does not exist or has expired.', 1;
     SET @Discount = CASE WHEN @PromotionId IS NULL THEN 0
                          ELSE dbo.fn_DiscountAmount(@PromotionId, @Tuition, @EnrolledOn) END;
-    IF @PromotionId IS NOT NULL AND @Discount = 0
-        THROW 50025, N'The promotion code does not exist or has expired.', 1;
 
     BEGIN TRY
         BEGIN TRANSACTION;
@@ -624,15 +657,16 @@ GO
                 class applies), T47 (a student who paid more than the new tuition cannot move).
        Rules:   only a Studying / On hold enrollment can move (50026); the new class must be of the same course
                 and still open, Enrolling / In progress (50027); the student must not be in it already (50022);
-                its weekly schedule must not clash with another class the student is taking (50024, the same
-                check as usp_Enrollment_Create, leaving out the enrollment that moves).
+                its weekly schedule must not clash with another class the student is taking (50024,
+                fn_StudentScheduleClash as in usp_Enrollment_Create, leaving out the enrollment that moves).
                 The tuition follows the new class: BaseTuition becomes its tuition and the promotion of the
                 enrollment is applied again (fn_DiscountAmount on the enrollment date). A student who already
                 paid more than the new tuition due cannot move until a receipt is cancelled (50028), because
                 AmountPaid may never exceed TuitionDue (CK_ENROLLMENT_AmountPaid).
                 The enrollment row is kept (same EnrollmentId), so receipts and grades stay attached to it;
                 only the attendance of the old class is removed. The capacity trigger
-                (trg_ENROLLMENT_CheckCapacity) checks the new class because ClassId changes.
+                (trg_ENROLLMENT_CheckCapacity) checks the new class because ClassId changes. An enrollment
+                that was On hold becomes Studying, and so does the student.
        Concepts: UPDATE of a foreign key instead of delete + insert, DELETE with a JOIN, self-join of CLASS
                  (a = old class, b = new class), multi-step transaction. */
 IF OBJECT_ID(N'dbo.usp_Enrollment_TransferClass', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Enrollment_TransferClass;
@@ -644,9 +678,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
-    DECLARE @OldClassId VARCHAR(10), @StudentId VARCHAR(10), @StartDate DATE, @EndDate DATE,
-            @PromotionId VARCHAR(10), @EnrolledOn DATE, @AmountPaid DECIMAL(12,0),
-            @NewTuition DECIMAL(12,0), @NewDiscount DECIMAL(12,0);
+    DECLARE @OldClassId VARCHAR(10), @StudentId VARCHAR(10), @PromotionId VARCHAR(10), @EnrolledOn DATE,
+            @AmountPaid DECIMAL(12,0), @NewTuition DECIMAL(12,0), @NewDiscount DECIMAL(12,0);
 
     -- 1. Read the active enrollment (old class, student, promotion, payments); still NULL => none
     SELECT @OldClassId = ClassId, @StudentId = StudentId, @PromotionId = PromotionId, @EnrolledOn = EnrolledOn,
@@ -665,19 +698,7 @@ BEGIN
 
     -- 3. No schedule clash with the other classes of the student (same test as usp_Enrollment_Create; the
     --    enrollment that moves is left out, its old class no longer counts)
-    SELECT @StartDate = StartDate, @EndDate = ISNULL(EndDate, DATEADD(MONTH, 6, StartDate))
-    FROM dbo.CLASS WHERE ClassId = @NewClassId;
-    IF EXISTS (
-        SELECT 1
-        FROM dbo.ENROLLMENT en
-        JOIN dbo.CLASS cl2           ON cl2.ClassId = en.ClassId
-        JOIN dbo.CLASS_SCHEDULE cs2  ON cs2.ClassId = cl2.ClassId
-        JOIN dbo.CLASS_SCHEDULE cs   ON cs.ClassId = @NewClassId AND cs.Weekday = cs2.Weekday
-        WHERE en.StudentId = @StudentId AND en.Status = N'Studying' AND en.EnrollmentId <> @EnrollmentId
-          AND cl2.Status IN (N'Enrolling', N'In progress')
-          AND cs.StartTime < cs2.EndTime AND cs2.StartTime < cs.EndTime
-          AND cl2.StartDate <= @EndDate
-          AND ISNULL(cl2.EndDate, DATEADD(MONTH, 6, cl2.StartDate)) >= @StartDate)
+    IF EXISTS (SELECT 1 FROM dbo.fn_StudentScheduleClash(@StudentId, @NewClassId, @EnrollmentId))
         THROW 50024, N'The class schedule clashes with another class the student is taking.', 1;
 
     -- 4. The tuition of the new class, with the promotion of the enrollment applied again
@@ -698,6 +719,8 @@ BEGIN
         UPDATE dbo.ENROLLMENT
         SET ClassId = @NewClassId, Status = N'Studying', BaseTuition = @NewTuition, DiscountAmount = @NewDiscount
         WHERE EnrollmentId = @EnrollmentId;
+
+        UPDATE dbo.STUDENT SET Status = N'Studying' WHERE StudentId = @StudentId AND Status = N'On hold';
         COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
@@ -708,11 +731,16 @@ END;
 GO
 
 /* C3. usp_Enrollment_UpdateStatus: put on hold / leave / resume
-       Used by: roles rl_Manager, rl_AcademicStaff.
-       Rules:   the enrollment gets the new status (allowed values: CK_ENROLLMENT_Status). When it becomes
-                On hold or Left and the student has no other Studying enrollment, the student status follows:
-                On hold => On hold, Left => Dropped out. Resuming (Studying) does not change the student row.
-       Concepts: UPDATE ... FROM with a JOIN, NOT EXISTS, CASE inside SET, @@ROWCOUNT. */
+       Used by: roles rl_Manager, rl_AcademicStaff; tests T52 (resuming into a schedule clash), T53 (a completed
+                enrollment).
+       Rules:   only Studying, On hold and Left are set here, and only on an enrollment that is not Completed
+                (50029): Completed comes from usp_Class_EvaluateResults with the final grade. Resuming
+                (Studying) checks the schedule clash like an enrollment (50024; the capacity trigger checks the
+                free seats) and makes the student Studying again. When the enrollment becomes On hold or Left and
+                the student has no other Studying enrollment, the student status follows: On hold => On hold,
+                Left => Dropped out.
+       Concepts: a state check before the write, NOT EXISTS, CASE inside SET, an inline table-valued function,
+                 multi-step transaction. */
 IF OBJECT_ID(N'dbo.usp_Enrollment_UpdateStatus', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Enrollment_UpdateStatus;
 GO
 CREATE PROCEDURE dbo.usp_Enrollment_UpdateStatus
@@ -721,17 +749,39 @@ CREATE PROCEDURE dbo.usp_Enrollment_UpdateStatus
 AS
 BEGIN
     SET NOCOUNT ON;
-    -- 1. Change the enrollment; no row changed => wrong ID
-    UPDATE dbo.ENROLLMENT SET Status = @Status WHERE EnrollmentId = @EnrollmentId;
-    IF @@ROWCOUNT = 0
-        THROW 50026, N'Enrollment not found.', 1;
+    SET XACT_ABORT ON;
+    DECLARE @OldStatus NVARCHAR(20), @StudentId VARCHAR(10), @ClassId VARCHAR(10);
 
-    -- 2. The student has no class in progress any more => update the student's status
-    --    (step 1 already ran, so this enrollment no longer counts as Studying in the NOT EXISTS)
-    UPDATE st SET Status = CASE @Status WHEN N'On hold' THEN N'On hold' ELSE N'Dropped out' END
-    FROM dbo.STUDENT st JOIN dbo.ENROLLMENT en ON en.StudentId = st.StudentId
-    WHERE en.EnrollmentId = @EnrollmentId AND @Status IN (N'On hold', N'Left')
-      AND NOT EXISTS (SELECT 1 FROM dbo.ENROLLMENT x WHERE x.StudentId = st.StudentId AND x.Status = N'Studying');
+    -- 1. Read the enrollment; still NULL => wrong ID. Then the allowed change and, to resume, no clash
+    SELECT @OldStatus = Status, @StudentId = StudentId, @ClassId = ClassId
+    FROM dbo.ENROLLMENT WHERE EnrollmentId = @EnrollmentId;
+    IF @OldStatus IS NULL
+        THROW 50026, N'Enrollment not found.', 1;
+    IF @OldStatus = N'Completed' OR @Status IS NULL OR @Status NOT IN (N'Studying', N'On hold', N'Left')
+        THROW 50029, N'Only an enrollment that is not completed can be set to Studying, On hold or Left.', 1;
+    IF @Status = N'Studying' AND @OldStatus <> N'Studying'
+       AND EXISTS (SELECT 1 FROM dbo.fn_StudentScheduleClash(@StudentId, @ClassId, @EnrollmentId))
+        THROW 50024, N'The class schedule clashes with another class the student is taking.', 1;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        -- 2. Change the enrollment
+        UPDATE dbo.ENROLLMENT SET Status = @Status WHERE EnrollmentId = @EnrollmentId;
+
+        -- 3. The student follows: Studying again on resume; On hold / Dropped out when no class is in
+        --    progress any more (step 2 already ran, so this enrollment no longer counts in the NOT EXISTS)
+        IF @Status = N'Studying'
+            UPDATE dbo.STUDENT SET Status = N'Studying' WHERE StudentId = @StudentId AND Status <> N'Studying';
+        ELSE
+            UPDATE dbo.STUDENT SET Status = CASE @Status WHEN N'On hold' THEN N'On hold' ELSE N'Dropped out' END
+            WHERE StudentId = @StudentId
+              AND NOT EXISTS (SELECT 1 FROM dbo.ENROLLMENT x WHERE x.StudentId = @StudentId AND x.Status = N'Studying');
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 
@@ -1024,10 +1074,11 @@ GO
        Running it again on a Finished class (after a correction) keeps the certificates in line with the new
        results: a student who now fails loses the certificate, a student who still passes gets the new grade.
        Used by: 07_seed_data.sql (closes the finished demo classes); roles rl_Manager, rl_AcademicStaff;
-                tests T23, T35 (re-evaluation).
-       Steps:   1. The class must be In progress or Finished (50043) and the weights of its course must add up
-                   to 100% (view vw_CourseInvalidWeights, 50044). Certificates are dated with the class
-                   EndDate, else today.
+                tests T23, T35 (re-evaluation), T57 (sessions still scheduled).
+       Steps:   1. The class must be In progress or Finished (50043), the weights of its course must add up
+                   to 100% (view vw_CourseInvalidWeights, 50044) and no session may still be Scheduled (50047:
+                   the attendance rate would leave them out and they could still be taught and paid after the
+                   class is closed). Certificates are dated with the class EndDate, else today.
                 2. Check first, write later: count the Studying / Completed students whose fn_FinalGrade is
                    still NULL (a grade component without a score) and stop with 50045; the message contains
                    the count, so it is built in @Msg.
@@ -1068,6 +1119,8 @@ BEGIN
         THROW 50043, N'The class does not exist or has not started yet.', 1;
     IF EXISTS (SELECT 1 FROM dbo.vw_CourseInvalidWeights WHERE CourseId = @CourseId)
         THROW 50044, N'The grade component weights of the course do not add up to 100%.', 1;
+    IF EXISTS (SELECT 1 FROM dbo.CLASS_SESSION WHERE ClassId = @ClassId AND Status = N'Scheduled')
+        THROW 50047, N'The class still has scheduled sessions; mark them as taught or cancelled first.', 1;
 
     -- Check first: every student must have all scores
     SELECT @MissingCount = COUNT(*) FROM dbo.ENROLLMENT
@@ -1144,15 +1197,19 @@ GO
 /* F1. usp_Payroll_Finalize: finalize the monthly pay of every teacher with a CURSOR.
        Pay = hours taught x hourly rate; a 500,000 VND bonus for 20 sessions or more.
        Used by: 07_seed_data.sql (the last 2 months); roles rl_Manager, rl_Accountant; tests T24 (figures
-                match the taught sessions), T25 (a future month is rejected).
-       Steps:   1. Refuse a future month (50050); DATEFROMPARTS builds the first day of that month.
+                match the taught sessions), T25 (a future month is rejected), T58 (running it again removes a
+                row that no longer has a taught session).
+       Steps:   1. Refuse a future month (50050); DATEFROMPARTS builds the first day of that month, and
+                   [@From, @To) is the month as a date range (a sargable filter on SessionDate).
                 2. In one transaction a cursor reads one row per teacher who taught in that month (teachers
                    without a Taught session get no row): the number of Taught sessions, the hours
                    (SUM of DATEDIFF in minutes / 60) and the current hourly rate.
                 3. Bonus 500,000 when the teacher taught 20 sessions or more.
                 4. Upsert into PAYROLL (one row per teacher and month, UQ_PAYROLL_TeacherId_Month_Year): an
                    existing row is refreshed only while its status is Finalized - a Paid row is never changed;
-                   otherwise a new row is inserted. Running the procedure again for a month is therefore safe.
+                   otherwise a new row is inserted. After the loop, a Finalized row of a teacher who no longer
+                   has a Taught session that month is deleted. Running the procedure again for a month is
+                   therefore safe.
                 5. Commit and return the payroll of the month. TotalPay is a computed column
                    (Hours x HourlyRate + Bonus - Deduction), never written by hand. The hourly rate is copied
                    into PAYROLL, so a later rate change does not alter old payslips.
@@ -1169,9 +1226,11 @@ BEGIN
     SET XACT_ABORT ON;
 
     DECLARE @TeacherId VARCHAR(10), @HourlyRate DECIMAL(12,0), @SessionCount INT, @Hours DECIMAL(6,2),
-            @Bonus DECIMAL(12,0), @TeacherCount INT = 0;
+            @Bonus DECIMAL(12,0), @TeacherCount INT = 0, @From DATE, @To DATE;
 
-    IF DATEFROMPARTS(@Year, @Month, 1) > dbo.fn_Today()
+    SET @From = DATEFROMPARTS(@Year, @Month, 1);
+    SET @To = DATEADD(MONTH, 1, @From);
+    IF @From > dbo.fn_Today()
         THROW 50050, N'Payroll cannot be finalized for a future month.', 1;
 
     BEGIN TRY
@@ -1182,7 +1241,7 @@ BEGIN
                    CAST(SUM(DATEDIFF(MINUTE, se.StartTime, se.EndTime)) / 60.0 AS DECIMAL(6,2))
             FROM dbo.TEACHER te
             JOIN dbo.CLASS_SESSION se ON se.TeacherId = te.TeacherId
-            WHERE se.Status = N'Taught' AND MONTH(se.SessionDate) = @Month AND YEAR(se.SessionDate) = @Year
+            WHERE se.Status = N'Taught' AND se.SessionDate >= @From AND se.SessionDate < @To
             GROUP BY te.TeacherId, te.HourlyRate;
 
         OPEN cur_Teacher;
@@ -1208,6 +1267,13 @@ BEGIN
         CLOSE cur_Teacher;
         DEALLOCATE cur_Teacher;
 
+        -- A row finalized earlier whose sessions are no longer Taught (e.g. cancelled) must not stay
+        DELETE py FROM dbo.PAYROLL py
+        WHERE py.Month = @Month AND py.Year = @Year AND py.Status = N'Finalized'
+          AND NOT EXISTS (SELECT 1 FROM dbo.CLASS_SESSION se
+                          WHERE se.TeacherId = py.TeacherId AND se.Status = N'Taught'
+                            AND se.SessionDate >= @From AND se.SessionDate < @To);
+
         COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
@@ -1232,7 +1298,9 @@ GO
        RevenueThisMonth is NULL unless the caller is a manager/accountant.
        Used by: Dashboard screen (SqlStatisticsRepository, called without @BranchId); roles rl_Manager,
                 rl_AcademicStaff, rl_Accountant; test P11; 08_demo_queries.sql; docs/report/tools/export_data.py.
-       Returns: one row - students Studying, classes In progress, classes Enrolling, revenue of this month
+       Returns: one row - students with a Studying enrollment (STUDENT.Status stays Studying after the last
+                course is completed, so the enrollments are counted), classes In progress, classes Enrolling,
+                revenue of this month
                 (valid receipts paid between the start of this month and the start of next month in the
                 center, as a UTC range), outstanding tuition (vw_OutstandingTuition) and today's sessions (not
                 cancelled; "today" = fn_Today, the center's date); @BranchId NULL = the whole center.
@@ -1254,8 +1322,8 @@ BEGIN
 
     -- 2. One row of independent figures: each column is its own scalar subquery
     SELECT
-        (SELECT COUNT(*) FROM dbo.STUDENT
-            WHERE Status = N'Studying' AND (@BranchId IS NULL OR BranchId = @BranchId)) AS ActiveStudents,
+        (SELECT COUNT(DISTINCT en.StudentId) FROM dbo.ENROLLMENT en JOIN dbo.STUDENT st ON st.StudentId = en.StudentId
+            WHERE en.Status = N'Studying' AND (@BranchId IS NULL OR st.BranchId = @BranchId)) AS ActiveStudents,
         (SELECT COUNT(*) FROM dbo.CLASS
             WHERE Status = N'In progress' AND (@BranchId IS NULL OR BranchId = @BranchId)) AS ActiveClasses,
         (SELECT COUNT(*) FROM dbo.CLASS
@@ -1446,18 +1514,22 @@ GO
 
 /* H5. usp_Student_ImportXml: import students from XML (same structure as the export).
        Rows with a duplicate phone/email are skipped; returns the number of imported rows.
-       Used by: roles rl_Manager, rl_AcademicStaff; 10_import_export.sql; test T26.
+       Used by: roles rl_Manager, rl_AcademicStaff; 10_import_export.sql; tests T26, T59 (duplicates inside the
+                file, an empty name).
        Steps:   1. Shred the XML into the table variable @Source with .nodes('/Students/Student') and .value();
-                   an empty Phone / Email / GuardianName / GuardianPhone becomes NULL (NULLIF), a missing Gender
-                   element becomes Other, a missing FullName or DateOfBirth element gives NULL.
-                2. One INSERT ... SELECT in a transaction adds every row that has a name and a birth date and
-                   whose phone/email no existing student uses. The StudentId/BranchId attributes of the file are
-                   ignored: new IDs come from the sequence and every row goes to @BranchId.
+                   an empty FullName / Phone / Email / GuardianName / GuardianPhone becomes NULL (NULLIF; the
+                   name is trimmed first), a missing Gender element becomes Other, a missing FullName or
+                   DateOfBirth element gives NULL. RowNo numbers the elements, so one row per phone/email is kept.
+                2. One INSERT ... SELECT in a transaction adds every row that has a name and a birth date,
+                   whose phone/email no existing student uses and no row with a smaller RowNo uses either (the
+                   first one wins; a filtered unique index would otherwise reject the whole statement). The
+                   StudentId/BranchId attributes of the file are ignored: new IDs come from the sequence and
+                   every row goes to @BranchId.
                 3. Return ImportedRows and SkippedRows.
                 The INSERT is one statement, so a row that breaks a constraint (for example a minor without
                 guardian, CK_STUDENT_Guardian) makes the whole import fail and nothing is imported.
-       Concepts: XML shredding (.nodes + .value), table variable, set-based INSERT ... SELECT with NOT EXISTS,
-                 @@ROWCOUNT, transaction. */
+       Concepts: XML shredding (.nodes + .value), table variable, ROW_NUMBER() to keep the file order,
+                 set-based INSERT ... SELECT with NOT EXISTS, @@ROWCOUNT, transaction. */
 IF OBJECT_ID(N'dbo.usp_Student_ImportXml', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Student_ImportXml;
 GO
 CREATE PROCEDURE dbo.usp_Student_ImportXml
@@ -1470,11 +1542,12 @@ BEGIN
 
     -- 1. Shred the XML: one row of @Source per <Student> element (x = that element)
     DECLARE @Source TABLE (
-        FullName NVARCHAR(100), DateOfBirth DATE, Gender NVARCHAR(10), Phone VARCHAR(15),
+        RowNo INT, FullName NVARCHAR(100), DateOfBirth DATE, Gender NVARCHAR(10), Phone VARCHAR(15),
         Email VARCHAR(100), GuardianName NVARCHAR(100), GuardianPhone VARCHAR(15));
 
-    INSERT INTO @Source
-    SELECT x.value('(FullName)[1]', 'NVARCHAR(100)'),
+    INSERT INTO @Source (RowNo, FullName, DateOfBirth, Gender, Phone, Email, GuardianName, GuardianPhone)
+    SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)),
+           NULLIF(LTRIM(RTRIM(x.value('(FullName)[1]', 'NVARCHAR(100)'))), N''),
            x.value('(DateOfBirth)[1]', 'DATE'),
            ISNULL(x.value('(Gender)[1]', 'NVARCHAR(10)'), N'Other'),
            NULLIF(x.value('(Phone)[1]', 'VARCHAR(15)'), ''),
@@ -1490,7 +1563,8 @@ BEGIN
         SELECT s.FullName, s.DateOfBirth, s.Gender, s.Phone, s.Email, s.GuardianName, s.GuardianPhone, @BranchId
         FROM @Source s
         WHERE s.FullName IS NOT NULL AND s.DateOfBirth IS NOT NULL
-          AND NOT EXISTS (SELECT 1 FROM dbo.STUDENT x WHERE x.Phone = s.Phone OR x.Email = s.Email);
+          AND NOT EXISTS (SELECT 1 FROM dbo.STUDENT x WHERE x.Phone = s.Phone OR x.Email = s.Email)
+          AND NOT EXISTS (SELECT 1 FROM @Source e WHERE e.RowNo < s.RowNo AND (e.Phone = s.Phone OR e.Email = s.Email));
         -- 3. @@ROWCOUNT = rows inserted by the statement just above; read it at once (the next statement
         --    resets it), then report imported and skipped rows
         DECLARE @RowCount INT = @@ROWCOUNT;
@@ -1517,9 +1591,10 @@ GO
        Steps:   1. Validate: the username matches the LIKE pattern (only letters a-z/A-Z without diacritics,
                    digits, dot and underscore) and has at least 3 characters (50060); the password has at
                    least 8 characters (50061); the name is neither a database principal (user or role) nor an
-                   ACCOUNT row yet (50062). The pattern is compared with the binary collation
-                   Latin1_General_BIN: under the database collation Vietnamese_CI_AS the range a-z would also
-                   accept letters such as "ấ" or "đ" (test T36).
+                   ACCOUNT row yet (50062); the employee or teacher has not left the center (50069, test T62).
+                   The pattern is compared with the binary collation Latin1_General_BIN: under the database
+                   collation Vietnamese_CI_AS the range a-z would also accept letters such as "ấ" or "đ"
+                   (test T36).
                 2. Map the role code stored in ACCOUNT.Role to its database role (CASE; NULL = unknown, 50063).
                 3. In one transaction: insert the ACCOUNT row (CK_ACCOUNT_Owner: a TEACHER account needs
                    @TeacherId, the other roles @EmployeeId), then build and run with sys.sp_executesql:
@@ -1551,6 +1626,9 @@ BEGIN
         THROW 50061, N'The password must be at least 8 characters long.', 1;
     IF DATABASE_PRINCIPAL_ID(@Username) IS NOT NULL OR EXISTS (SELECT 1 FROM dbo.ACCOUNT WHERE Username = @Username)
         THROW 50062, N'The username already exists.', 1;
+    IF EXISTS (SELECT 1 FROM dbo.EMPLOYEE WHERE EmployeeId = @EmployeeId AND Status = N'Left')
+       OR EXISTS (SELECT 1 FROM dbo.TEACHER WHERE TeacherId = @TeacherId AND Status = N'Left')
+        THROW 50069, N'An account cannot be created for an employee or teacher who has left.', 1;
 
     SET @DbRole = CASE @Role WHEN 'MANAGER' THEN 'rl_Manager' WHEN 'ACADEMIC_STAFF' THEN 'rl_AcademicStaff'
                              WHEN 'ACCOUNTANT' THEN 'rl_Accountant' WHEN 'TEACHER' THEN 'rl_Teacher' END;
@@ -1740,10 +1818,13 @@ GO
        Used by: rl_Manager only; tests S04 (the manager backs up: the file passes RESTORE VERIFYONLY and is
                 recorded in msdb), S05 (academic staff are refused), S06 (unknown type). The whole backup and
                 restore chain is shown in 09_backup_restore.sql.
-       Rules:   @Type is FULL, DIFF or LOG (50070). The folder defaults to the server backup folder, else the
-                data folder; the file is named QLTTTA_<type>_<yyyymmdd_hhmmss>.bak (.trn for LOG) and returned
-                in @FilePath and as a result set. A LOG backup needs the FULL recovery model
-                (00_create_database.sql) and an earlier FULL backup.
+       Rules:   @Type is FULL, DIFF or LOG (50070; NULL is refused too, test S20). The current database is
+                backed up (DB_NAME(), so a restored copy under another name backs up itself). The folder
+                defaults to the server backup folder, else the data folder; the file is named
+                <database>_<type>_<yyyymmdd_hhmmssmmm>.bak (.trn for LOG; the milliseconds keep two backups of
+                the same second apart, WITH INIT would overwrite the first) and returned in @FilePath and as a
+                result set. A LOG backup needs the FULL recovery model (00_create_database.sql) and an earlier
+                FULL backup.
        Concepts: FULL / DIFFERENTIAL / LOG backups, EXECUTE AS OWNER (the caller needs no BACKUP DATABASE
                  permission), sp_executesql with a parameter (@f) for the file path, OUTPUT parameter. */
 IF OBJECT_ID(N'dbo.usp_Backup', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Backup;
@@ -1757,14 +1838,14 @@ AS
 BEGIN
     SET NOCOUNT ON;
     -- File names carry the center's local time, the time people at the center recognize.
-    -- Timestamp yyyymmdd_hhmmss: style 120 gives yyyy-mm-dd hh:mi:ss, then - and : are removed and the
+    -- Timestamp yyyymmdd_hhmmssmmm: style 121 gives yyyy-mm-dd hh:mi:ss.mmm, then - : . are removed and the
     -- space becomes _
-    DECLARE @Sql NVARCHAR(MAX), @Timestamp VARCHAR(20) =
-        REPLACE(REPLACE(REPLACE(CONVERT(VARCHAR(19), dbo.fn_UtcToCenterTime(GETUTCDATE()), 120), '-', ''), ':', ''),
-                ' ', '_');
+    DECLARE @Sql NVARCHAR(MAX), @Database SYSNAME = DB_NAME(), @Timestamp VARCHAR(30) =
+        REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(VARCHAR(23), dbo.fn_UtcToCenterTime(GETUTCDATE()), 121),
+                                        '-', ''), ':', ''), '.', ''), ' ', '_');
 
-    -- 1. Only the three backup types
-    IF @Type NOT IN ('FULL', 'DIFF', 'LOG')
+    -- 1. Only the three backup types (NOT IN is UNKNOWN for NULL, so NULL is tested on its own)
+    IF @Type IS NULL OR @Type NOT IN ('FULL', 'DIFF', 'LOG')
         THROW 50070, N'The backup type must be FULL, DIFF or LOG.', 1;
 
     -- 2. Choose the folder (InstanceDefaultBackupPath may be NULL, then the data folder is used) and end it
@@ -1778,11 +1859,13 @@ BEGIN
         SET @Folder += CASE WHEN CHARINDEX('/', @Folder) > 0 THEN '/' ELSE '\' END;
 
     -- 3. File name, then the BACKUP statement for the type; the path goes in as the parameter @f, not as text
-    SET @FilePath = @Folder + N'QLTTTA_' + @Type + N'_' + @Timestamp + CASE @Type WHEN 'LOG' THEN N'.trn' ELSE N'.bak' END;
+    SET @FilePath = @Folder + @Database + N'_' + @Type + N'_' + @Timestamp
+                  + CASE @Type WHEN 'LOG' THEN N'.trn' ELSE N'.bak' END;
+    -- The database name is an identifier (QUOTENAME), the file path a parameter
     SET @Sql = CASE @Type
-                   WHEN 'FULL' THEN N'BACKUP DATABASE QLTTTA TO DISK = @f WITH INIT, NAME = N''QLTTTA Full'''
-                   WHEN 'DIFF' THEN N'BACKUP DATABASE QLTTTA TO DISK = @f WITH DIFFERENTIAL, INIT, NAME = N''QLTTTA Differential'''
-                   ELSE             N'BACKUP LOG QLTTTA TO DISK = @f WITH INIT, NAME = N''QLTTTA Log'''
+                   WHEN 'FULL' THEN N'BACKUP DATABASE ' + QUOTENAME(@Database) + N' TO DISK = @f WITH INIT, NAME = N''QLTTTA Full'''
+                   WHEN 'DIFF' THEN N'BACKUP DATABASE ' + QUOTENAME(@Database) + N' TO DISK = @f WITH DIFFERENTIAL, INIT, NAME = N''QLTTTA Differential'''
+                   ELSE             N'BACKUP LOG ' + QUOTENAME(@Database) + N' TO DISK = @f WITH INIT, NAME = N''QLTTTA Log'''
                END;
     EXEC sys.sp_executesql @Sql, N'@f NVARCHAR(400)', @f = @FilePath;
     SELECT @FilePath AS BackupFile;

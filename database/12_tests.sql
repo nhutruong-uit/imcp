@@ -85,6 +85,15 @@ INSERT #Expected VALUES
     ('T44', N'%attendance can no longer be changed%'),
     ('T45', N'%lock or unlock%'),               ('T46', NULL),
     ('T47', N'%paid more than the tuition of the new class%'),
+    ('T48', NULL), ('T49', NULL),
+    ('T50', N'%on or after its date%'),         ('T51', N'%cannot change its status%'),
+    ('T52', N'%clashes with another class%'),   ('T53', N'%not completed can be set%'),
+    ('T54', N'%can only move from Enrolling%'), ('T55', NULL),
+    ('T56', N'%finished or cancelled class cannot be changed%'),
+    ('T57', N'%still has scheduled sessions%'), ('T58', NULL), ('T59', NULL),
+    ('T60', N'%CK_TEACHER_Age%'),               ('T61', N'%used by an active class%'),
+    ('T62', N'%who has left%'),                 ('T63', NULL), ('T64', NULL), ('T65', NULL),
+    ('T66', NULL), ('T67', NULL),
     ('P01', N'%STUDENT%'),                      ('P02', NULL),
     ('P03', N'%only enter grades%'),            ('P04', N'%usp_Enrollment_Create%'),
     ('P05', NULL),                              ('P06', N'%HourlyRate%'),
@@ -627,6 +636,184 @@ BEGIN CATCH
 END CATCH;
 GO
 
+-- T50: marking a future session as taught
+--      Proves trg_CLASS_SESSION_LockTaught: a session becomes Taught only on or after its date (dbo.fn_Today), so a
+--      teacher cannot be paid in advance by usp_Payroll_Finalize. A Scheduled session of a class in progress
+--      that lies after today is used. Concept: transition rule (old vs new row) in an AFTER UPDATE trigger.
+BEGIN TRY
+    DECLARE @Session50 INT = (SELECT TOP (1) se.SessionId
+                              FROM dbo.CLASS_SESSION se JOIN dbo.CLASS cl ON cl.ClassId = se.ClassId
+                              WHERE cl.Status = N'In progress' AND se.Status = N'Scheduled'
+                                AND se.SessionDate > dbo.fn_Today()
+                              ORDER BY se.SessionDate, se.SessionId);
+    BEGIN TRAN;
+    EXEC dbo.usp_Session_Update @SessionId = @Session50, @Status = N'Taught';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T50', N'Marking a future session as taught', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T50', N'Marking a future session as taught', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T51: setting a taught session back to Scheduled
+--      Proves trg_CLASS_SESSION_LockTaught keeps a Taught session taught: otherwise its date/teacher could change
+--      again (T13) and usp_Class_GenerateSessions could delete it together with its attendance.
+BEGIN TRY
+    DECLARE @Session51 INT = (SELECT TOP (1) se.SessionId
+                              FROM dbo.CLASS_SESSION se JOIN dbo.CLASS cl ON cl.ClassId = se.ClassId
+                              WHERE cl.Status = N'In progress' AND se.Status = N'Taught'
+                              ORDER BY se.SessionId);
+    BEGIN TRAN;
+    EXEC dbo.usp_Session_Update @SessionId = @Session51, @Status = N'Scheduled';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T51', N'Setting a taught session back to Scheduled', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T51', N'Setting a taught session back to Scheduled', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T52: resuming an enrollment whose class clashes with another class of the student
+--      Proves usp_Enrollment_UpdateStatus checks fn_StudentScheduleClash when an enrollment becomes Studying again
+--      (THROW 50024). Scenario, rolled back: ST00001 studies in CL0003 (Mon/Wed/Fri 18:00-20:00) and has an
+--      enrollment On hold in CL0007, which meets at the same hours; resuming it must be refused.
+BEGIN TRY
+    DECLARE @E52 TABLE (EnrollmentId VARCHAR(10));
+    DECLARE @Enrollment52 VARCHAR(10);
+    BEGIN TRAN;
+    INSERT INTO dbo.ENROLLMENT (StudentId, ClassId, BaseTuition, Status) OUTPUT inserted.EnrollmentId INTO @E52
+    VALUES ('ST00001', 'CL0007', 6500000, N'On hold');
+    SELECT @Enrollment52 = EnrollmentId FROM @E52;
+    EXEC dbo.usp_Enrollment_UpdateStatus @EnrollmentId = @Enrollment52, @Status = N'Studying';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T52', N'Resuming an enrollment that clashes with another class', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T52', N'Resuming an enrollment that clashes with another class', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T53: changing the status of a completed enrollment
+--      Proves usp_Enrollment_UpdateStatus refuses a Completed enrollment (THROW 50029): Completed, FinalGrade and
+--      Result come from usp_Class_EvaluateResults and must stay together.
+BEGIN TRY
+    DECLARE @Enrollment53 VARCHAR(10) = (SELECT TOP (1) EnrollmentId FROM dbo.ENROLLMENT
+                                         WHERE Status = N'Completed' ORDER BY EnrollmentId);
+    BEGIN TRAN;
+    EXEC dbo.usp_Enrollment_UpdateStatus @EnrollmentId = @Enrollment53, @Status = N'Studying';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T53', N'Changing the status of a completed enrollment', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T53', N'Changing the status of a completed enrollment', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T54: reopening a finished class
+--      Proves the life cycle of usp_Class_UpdateStatus (THROW 50019): a Finished class never goes back to
+--      In progress (its grades, attendance and certificates are final).
+BEGIN TRY
+    DECLARE @Class54 VARCHAR(10) = (SELECT TOP (1) ClassId FROM dbo.CLASS WHERE Status = N'Finished' ORDER BY ClassId);
+    BEGIN TRAN;
+    EXEC dbo.usp_Class_UpdateStatus @ClassId = @Class54, @Status = N'In progress';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T54', N'Reopening a finished class', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T54', N'Reopening a finished class', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T56: changing a session of a finished class
+--      Proves usp_Session_Update refuses the sessions of a Finished class (THROW 50018), like grades (T43) and
+--      attendance (T44).
+BEGIN TRY
+    DECLARE @Session56 INT = (SELECT TOP (1) se.SessionId
+                              FROM dbo.CLASS_SESSION se JOIN dbo.CLASS cl ON cl.ClassId = se.ClassId
+                              WHERE cl.Status = N'Finished' ORDER BY se.SessionId);
+    BEGIN TRAN;
+    EXEC dbo.usp_Session_Update @SessionId = @Session56, @Status = N'Taught', @Description = N'T56 correction';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T56', N'Changing a session of a finished class', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T56', N'Changing a session of a finished class', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T57: evaluating a class that still has scheduled sessions
+--      Proves usp_Class_EvaluateResults refuses to close a class while sessions are still Scheduled (THROW 50047):
+--      the attendance rate would leave them out, and they could be taught and paid after the class is closed.
+BEGIN TRY
+    DECLARE @Class57 VARCHAR(10) = (SELECT TOP (1) cl.ClassId FROM dbo.CLASS cl
+                                    WHERE cl.Status = N'In progress'
+                                      AND EXISTS (SELECT 1 FROM dbo.CLASS_SESSION se
+                                                  WHERE se.ClassId = cl.ClassId AND se.Status = N'Scheduled')
+                                    ORDER BY cl.ClassId);
+    BEGIN TRAN;
+    EXEC dbo.usp_Class_EvaluateResults @ClassId = @Class57;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T57', N'Evaluating a class with sessions still scheduled', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T57', N'Evaluating a class with sessions still scheduled', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T60: a teacher younger than 18 on the hire date
+--      Proves CK_TEACHER_Age, the same cross-column CHECK as CK_EMPLOYEE_Age.
+BEGIN TRY
+    BEGIN TRAN;
+    UPDATE dbo.TEACHER SET DateOfBirth = DATEADD(YEAR, -17, HireDate) WHERE TeacherId = 'TE0001';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T60', N'Teacher younger than 18 when hired', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T60', N'Teacher younger than 18 when hired', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T61: lowering the capacity of a room below the size of a class in progress
+--      Proves trg_ROOM_CheckClasses: rule 2 (the class size fits the room) also holds when ROOM changes, which
+--      managers may update directly. CL0003 (20 students at most) uses room D1-201.
+BEGIN TRY
+    BEGIN TRAN;
+    UPDATE dbo.ROOM SET Capacity = 10 WHERE RoomId = (SELECT RoomId FROM dbo.CLASS WHERE ClassId = 'CL0003');
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T61', N'Room capacity below the size of an active class', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T61', N'Room capacity below the size of an active class', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T62: creating an account for an employee who has left
+--      Proves usp_Account_Create checks the person (THROW 50069) before it creates the database user. Scenario,
+--      rolled back: the consultant EM0006 (no account) leaves the center.
+BEGIN TRY
+    BEGIN TRAN;
+    UPDATE dbo.EMPLOYEE SET Status = N'Left' WHERE EmployeeId = 'EM0006';
+    EXEC dbo.usp_Account_Create @Username = N't_left_employee', @Password = N'T62-test-only', @Role = 'ACADEMIC_STAFF',
+                                @EmployeeId = 'EM0006';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T62', N'Account for an employee who has left', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T62', N'Account for an employee who has left', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
 /* ---------------- C. FUNCTIONS, TRIGGERS, CURSORS, XML: CHECKING THE RESULTS ----------------
    Not only "it runs": results are compared with independently computed values or prepared scenarios. */
 
@@ -650,14 +837,15 @@ BEGIN CATCH
 END CATCH;
 GO
 
--- T17: fn_FinalGrade = SUM(Score x Weight) / 100; NULL when a component has no score
---      Proves fn_FinalGrade against the same formula computed here with GROUP BY for every graded enrollment;
+-- T17: fn_FinalGrade = SUM(Score x Weight) / 100 rounded once to 2 decimals; NULL when a component has no score
+--      Proves fn_FinalGrade against the same formula computed here with GROUP BY for every graded enrollment
+--      (T63 adds a hand-computed case where rounding twice would turn a fail into a pass);
 --      then one score is deleted (rolled back) and the function must return NULL. Concept: scalar function.
 BEGIN TRY
     DECLARE @Count17 INT, @Mismatch17 INT, @Enrollment17 VARCHAR(10), @AfterDelete17 DECIMAL(4,2);
     SELECT @Count17 = COUNT(*), @Mismatch17 = ISNULL(SUM(CASE WHEN x.ByFunction = x.Computed THEN 0 ELSE 1 END), 0)
     FROM (SELECT gr.EnrollmentId, dbo.fn_FinalGrade(gr.EnrollmentId) AS ByFunction,
-                 CAST(ROUND(CAST(SUM(gr.Score * gc.Weight) / 100 AS DECIMAL(9,4)), 2) AS DECIMAL(4,2)) AS Computed
+                 CAST(ROUND(SUM(gr.Score * gc.Weight) / 100, 2) AS DECIMAL(4,2)) AS Computed
           FROM dbo.GRADE gr JOIN dbo.GRADE_COMPONENT gc ON gc.ComponentId = gr.ComponentId
           GROUP BY gr.EnrollmentId) x
     WHERE x.ByFunction IS NOT NULL;
@@ -1154,8 +1342,9 @@ GO
 
 -- T40: a placement test recommends a course by itself (trg_PLACEMENT_TEST_Recommend)
 --      Proves the trigger after an INSERT and after an UPDATE of the scores: RecommendedCourseId is the open course
---      with the highest minimum score that the overall score reaches (the cheaper one first), recomputed here from
---      COURSE. Rolled back. Concept: AFTER trigger that completes the rows just written, UPDATE(col).
+--      with the highest minimum score that the overall score reaches (the cheaper one first; a course that only its
+--      prerequisite opens is left out, T49), recomputed here from COURSE. Rolled back. Concept: AFTER trigger that
+--      completes the rows just written, UPDATE(col).
 BEGIN TRY
     DECLARE @T40 TABLE (TestId VARCHAR(10));
     DECLARE @Test40 VARCHAR(10), @Overall40 DECIMAL(4,2), @Got40 VARCHAR(10), @Expected40 VARCHAR(10),
@@ -1168,6 +1357,7 @@ BEGIN TRY
     SELECT @Overall40 = OverallScore, @Got40 = RecommendedCourseId FROM dbo.PLACEMENT_TEST WHERE TestId = @Test40;
     SELECT TOP (1) @Expected40 = CourseId FROM dbo.COURSE
     WHERE Status = N'Open' AND ISNULL(MinPlacementScore, 0) <= @Overall40
+      AND (PrerequisiteCourseId IS NULL OR MinPlacementScore IS NOT NULL)
     ORDER BY ISNULL(MinPlacementScore, 0) DESC, Tuition ASC;
 
     UPDATE dbo.PLACEMENT_TEST SET ListeningScore = 3, SpeakingScore = 3, ReadingScore = 3, WritingScore = 3
@@ -1175,6 +1365,7 @@ BEGIN TRY
     SELECT @OverallLater40 = OverallScore, @GotLater40 = RecommendedCourseId FROM dbo.PLACEMENT_TEST WHERE TestId = @Test40;
     SELECT TOP (1) @ExpectedLater40 = CourseId FROM dbo.COURSE
     WHERE Status = N'Open' AND ISNULL(MinPlacementScore, 0) <= @OverallLater40
+      AND (PrerequisiteCourseId IS NULL OR MinPlacementScore IS NOT NULL)
     ORDER BY ISNULL(MinPlacementScore, 0) DESC, Tuition ASC;
     ROLLBACK;
 
@@ -1188,6 +1379,296 @@ END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('T40', N'trg_PLACEMENT_TEST_Recommend: course recommended from the score', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T48: the attendance rate of a student who joined a class in progress
+--      Proves fn_AttendanceRate counts only the sessions taught since the enrollment date. Scenario, rolled back:
+--      a student of CL0004 enrolls on the day of its 4th taught session and attends every session from then on;
+--      the rate must be 100% (counting the 3 earlier sessions would give less and fail the 80% rule).
+BEGIN TRY
+    DECLARE @Enrollment48 VARCHAR(10), @Joined48 DATE, @Rate48 DECIMAL(5,2), @Sessions48 INT;
+    SELECT TOP (1) @Enrollment48 = EnrollmentId FROM dbo.ENROLLMENT
+    WHERE ClassId = 'CL0004' AND Status = N'Studying' ORDER BY EnrollmentId;
+    SELECT @Joined48 = SessionDate
+    FROM (SELECT SessionDate, ROW_NUMBER() OVER (ORDER BY SessionDate) AS n
+          FROM dbo.CLASS_SESSION WHERE ClassId = 'CL0004' AND Status = N'Taught') s
+    WHERE n = 4;
+    BEGIN TRAN;
+    UPDATE dbo.ENROLLMENT SET EnrolledOn = @Joined48 WHERE EnrollmentId = @Enrollment48;
+    DELETE at FROM dbo.ATTENDANCE at JOIN dbo.CLASS_SESSION se ON se.SessionId = at.SessionId
+    WHERE at.EnrollmentId = @Enrollment48 AND se.SessionDate < @Joined48;
+    UPDATE dbo.ATTENDANCE SET Status = N'Present' WHERE EnrollmentId = @Enrollment48;
+    INSERT INTO dbo.ATTENDANCE (SessionId, EnrollmentId, Status)
+    SELECT se.SessionId, @Enrollment48, N'Present' FROM dbo.CLASS_SESSION se
+    WHERE se.ClassId = 'CL0004' AND se.Status = N'Taught' AND se.SessionDate >= @Joined48
+      AND NOT EXISTS (SELECT 1 FROM dbo.ATTENDANCE a WHERE a.SessionId = se.SessionId AND a.EnrollmentId = @Enrollment48);
+    SELECT @Sessions48 = COUNT(*) FROM dbo.ATTENDANCE WHERE EnrollmentId = @Enrollment48;
+    SET @Rate48 = dbo.fn_AttendanceRate(@Enrollment48);
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T48', N'fn_AttendanceRate: only sessions since the enrollment date count', N'Succeeded',
+        CASE WHEN @Joined48 IS NOT NULL AND @Sessions48 > 0 AND @Rate48 = 100 THEN N'Succeeded' ELSE N'Wrong result' END,
+        ISNULL(@Enrollment48, N'?') + N' joined on ' + ISNULL(CONVERT(NVARCHAR(10), @Joined48, 23), N'?') + N', present at '
+        + CAST(ISNULL(@Sessions48, 0) AS NVARCHAR(10)) + N' sessions => ' + ISNULL(CAST(@Rate48 AS NVARCHAR(10)), N'NULL') + N'%');
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T48', N'fn_AttendanceRate: only sessions since the enrollment date count', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T49: fn_RecommendCourse never recommends a course that only the prerequisite course opens
+--      Proves the rule shared with usp_Enrollment_Create (T33). Scenario, rolled back: IE-55 (prerequisite IE-FND)
+--      loses its minimum score and becomes free, so it would be the cheapest course "open to everybody"; the
+--      recommendation for a low score must be another course, the one computed here from COURSE.
+BEGIN TRY
+    DECLARE @Got49 VARCHAR(10), @Expected49 VARCHAR(10);
+    BEGIN TRAN;
+    UPDATE dbo.COURSE SET MinPlacementScore = NULL, Tuition = 0 WHERE CourseId = 'IE-55';
+    SET @Got49 = dbo.fn_RecommendCourse(0.5, NULL);
+    SELECT TOP (1) @Expected49 = CourseId FROM dbo.COURSE
+    WHERE Status = N'Open' AND ISNULL(MinPlacementScore, 0) <= 0.5 AND PrerequisiteCourseId IS NULL
+    ORDER BY ISNULL(MinPlacementScore, 0) DESC, Tuition ASC;
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T49', N'fn_RecommendCourse: no course that needs its prerequisite', N'Succeeded',
+        CASE WHEN @Got49 = @Expected49 AND @Got49 <> 'IE-55' THEN N'Succeeded' ELSE N'Wrong result' END,
+        N'score 0.5 => ' + ISNULL(@Got49, N'NULL') + N' (expected ' + ISNULL(@Expected49, N'NULL') + N')');
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T49', N'fn_RecommendCourse: no course that needs its prerequisite', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T55: cancelling a class closes its enrollments
+--      Proves usp_Class_UpdateStatus sets the open enrollments of a cancelled class to Left, so they no longer
+--      count as outstanding tuition and accept no receipt. Scenario, rolled back: the deposits of an Enrolling
+--      class are refunded (cancelled), then the class is cancelled.
+BEGIN TRY
+    DECLARE @Class55 VARCHAR(10), @Open55 INT, @Left55 INT, @StillOpen55 INT, @Status55 NVARCHAR(20);
+    SELECT TOP (1) @Class55 = cl.ClassId FROM dbo.CLASS cl
+    WHERE cl.Status = N'Enrolling' AND EXISTS (SELECT 1 FROM dbo.ENROLLMENT en WHERE en.ClassId = cl.ClassId)
+    ORDER BY cl.ClassId;
+    SELECT @Open55 = COUNT(*) FROM dbo.ENROLLMENT WHERE ClassId = @Class55 AND Status IN (N'Studying', N'On hold');
+    BEGIN TRAN;
+    UPDATE rc SET Status = N'Cancelled', CancelReason = N'T55: refunded before the class is cancelled'
+    FROM dbo.RECEIPT rc JOIN dbo.ENROLLMENT en ON en.EnrollmentId = rc.EnrollmentId
+    WHERE en.ClassId = @Class55 AND rc.Status = N'Valid';
+    EXEC dbo.usp_Class_UpdateStatus @ClassId = @Class55, @Status = N'Cancelled';
+    SELECT @Status55 = Status FROM dbo.CLASS WHERE ClassId = @Class55;
+    SELECT @Left55 = SUM(CASE WHEN Status = N'Left' THEN 1 ELSE 0 END),
+           @StillOpen55 = SUM(CASE WHEN Status IN (N'Studying', N'On hold') THEN 1 ELSE 0 END)
+    FROM dbo.ENROLLMENT WHERE ClassId = @Class55;
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T55', N'usp_Class_UpdateStatus: a cancelled class closes its enrollments', N'Succeeded',
+        CASE WHEN @Status55 = N'Cancelled' AND @Open55 > 0 AND @Left55 >= @Open55 AND @StillOpen55 = 0
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        ISNULL(@Class55, N'?') + N' => ' + ISNULL(@Status55, N'?') + N', ' + CAST(ISNULL(@Left55, 0) AS NVARCHAR(10))
+        + N' Left, ' + CAST(ISNULL(@StillOpen55, 0) AS NVARCHAR(10)) + N' still open');
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T55', N'usp_Class_UpdateStatus: a cancelled class closes its enrollments', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T58: running usp_Payroll_Finalize again removes a row that has no taught session any more
+--      Scenario, rolled back: a Finalized row of last month is added for a teacher who taught nothing that month
+--      (as if the sessions had been cancelled after a first run); the next run must delete it.
+BEGIN TRY
+    DECLARE @Date58 DATE = DATEADD(MONTH, -1, dbo.fn_Today());
+    DECLARE @Month58 TINYINT = MONTH(@Date58), @Year58 SMALLINT = YEAR(@Date58), @Teacher58 VARCHAR(10),
+            @Left58 INT, @Returned58 INT;
+    SELECT TOP (1) @Teacher58 = te.TeacherId FROM dbo.TEACHER te
+    WHERE NOT EXISTS (SELECT 1 FROM dbo.CLASS_SESSION se
+                      WHERE se.TeacherId = te.TeacherId AND se.Status = N'Taught'
+                        AND MONTH(se.SessionDate) = @Month58 AND YEAR(se.SessionDate) = @Year58)
+      AND NOT EXISTS (SELECT 1 FROM dbo.PAYROLL py
+                      WHERE py.TeacherId = te.TeacherId AND py.Month = @Month58 AND py.Year = @Year58)
+    ORDER BY te.TeacherId;
+
+    IF OBJECT_ID('tempdb..#R58') IS NOT NULL DROP TABLE #R58;
+    CREATE TABLE #R58 (TeacherId VARCHAR(10), TeacherName NVARCHAR(100), SessionCount INT, Hours DECIMAL(6,2),
+                       HourlyRate DECIMAL(12,0), Bonus DECIMAL(12,0), Deduction DECIMAL(12,0), TotalPay DECIMAL(14,0),
+                       Status NVARCHAR(20));
+    BEGIN TRAN;
+    INSERT INTO dbo.PAYROLL (TeacherId, Month, Year, SessionCount, Hours, HourlyRate)
+    SELECT TeacherId, @Month58, @Year58, 3, 6, HourlyRate FROM dbo.TEACHER WHERE TeacherId = @Teacher58;
+    INSERT #R58 EXEC dbo.usp_Payroll_Finalize @Month = @Month58, @Year = @Year58;
+    SELECT @Left58 = COUNT(*) FROM dbo.PAYROLL WHERE TeacherId = @Teacher58 AND Month = @Month58 AND Year = @Year58;
+    SELECT @Returned58 = COUNT(*) FROM #R58 WHERE TeacherId = @Teacher58;
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T58', N'usp_Payroll_Finalize: a row without taught sessions is removed', N'Succeeded',
+        CASE WHEN @Teacher58 IS NOT NULL AND @Left58 = 0 AND @Returned58 = 0 THEN N'Succeeded' ELSE N'Wrong result' END,
+        ISNULL(@Teacher58, N'?') + N': ' + CAST(ISNULL(@Left58, -1) AS NVARCHAR(10)) + N' row(s) left for month '
+        + CAST(@Month58 AS NVARCHAR(2)) + N'/' + CAST(@Year58 AS NVARCHAR(4)));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T58', N'usp_Payroll_Finalize: a row without taught sessions is removed', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T59: XML import with the same new phone twice in the file and an empty name
+--      Proves usp_Student_ImportXml keeps the first of two rows with the same phone (instead of failing the whole
+--      import on UX_STUDENT_Phone) and skips a name made of spaces. Rolled back.
+BEGIN TRY
+    DECLARE @Dob59 NVARCHAR(10) = CONVERT(NVARCHAR(10), DATEADD(YEAR, -25, dbo.fn_Today()), 23);
+    DECLARE @Xml59 XML = CAST(N'<Students>'
+        + N'<Student><FullName>T59 First</FullName><DateOfBirth>' + @Dob59
+        + N'</DateOfBirth><Gender>Male</Gender><Phone>0999590001</Phone></Student>'
+        + N'<Student><FullName>T59 Same phone</FullName><DateOfBirth>' + @Dob59
+        + N'</DateOfBirth><Gender>Female</Gender><Phone>0999590001</Phone></Student>'
+        + N'<Student><FullName>   </FullName><DateOfBirth>' + @Dob59
+        + N'</DateOfBirth><Gender>Male</Gender><Phone>0999590002</Phone></Student>'
+        + N'</Students>' AS XML);
+    DECLARE @Imported59 INT, @Skipped59 INT, @Phone1Rows59 INT, @Phone2Rows59 INT, @Name59 NVARCHAR(100);
+    IF OBJECT_ID('tempdb..#R59') IS NOT NULL DROP TABLE #R59;
+    CREATE TABLE #R59 (ImportedRows INT, SkippedRows INT);
+    BEGIN TRAN;
+    INSERT #R59 EXEC dbo.usp_Student_ImportXml @Data = @Xml59, @BranchId = 'BR01';
+    SELECT @Imported59 = ImportedRows, @Skipped59 = SkippedRows FROM #R59;
+    SELECT @Phone1Rows59 = COUNT(*), @Name59 = MAX(FullName) FROM dbo.STUDENT WHERE Phone = '0999590001';
+    SELECT @Phone2Rows59 = COUNT(*) FROM dbo.STUDENT WHERE Phone = '0999590002';
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T59', N'usp_Student_ImportXml: duplicates inside the file, empty name', N'Succeeded',
+        CASE WHEN @Imported59 = 1 AND @Skipped59 = 2 AND @Phone1Rows59 = 1 AND @Name59 = N'T59 First' AND @Phone2Rows59 = 0
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CAST(ISNULL(@Imported59, -1) AS NVARCHAR(10)) + N' imported, ' + CAST(ISNULL(@Skipped59, -1) AS NVARCHAR(10))
+        + N' skipped; kept: ' + ISNULL(@Name59, N'none'));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T59', N'usp_Student_ImportXml: duplicates inside the file, empty name', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T63: fn_FinalGrade rounds once, at the end
+--      Hand-computed case, rolled back: weights 6.22 / 18.61 / 75.17 and scores 4.75 / 5.42 / 4.91 give
+--      (4.75 x 6.22 + 5.42 x 18.61 + 4.91 x 75.17) / 100 = 4.994959 => 4.99 (failed). Rounding to 4 decimals first
+--      would give 4.9950 and then 5.00 (a pass). The components of one course are changed, in ComponentId order.
+BEGIN TRY
+    DECLARE @Enrollment63 VARCHAR(10), @Course63 VARCHAR(10), @Grade63 DECIMAL(4,2);
+    SELECT TOP (1) @Enrollment63 = en.EnrollmentId, @Course63 = cl.CourseId
+    FROM dbo.ENROLLMENT en JOIN dbo.CLASS cl ON cl.ClassId = en.ClassId
+    WHERE (SELECT COUNT(*) FROM dbo.GRADE_COMPONENT gc WHERE gc.CourseId = cl.CourseId) = 3
+      AND (SELECT COUNT(*) FROM dbo.GRADE gr WHERE gr.EnrollmentId = en.EnrollmentId) = 3
+    ORDER BY en.EnrollmentId;
+    BEGIN TRAN;
+    ;WITH c AS (SELECT ComponentId, ROW_NUMBER() OVER (ORDER BY ComponentId) AS n
+                FROM dbo.GRADE_COMPONENT WHERE CourseId = @Course63)
+    UPDATE gc SET Weight = CASE c.n WHEN 1 THEN 6.22 WHEN 2 THEN 18.61 ELSE 75.17 END
+    FROM dbo.GRADE_COMPONENT gc JOIN c ON c.ComponentId = gc.ComponentId;
+    ;WITH c AS (SELECT ComponentId, ROW_NUMBER() OVER (ORDER BY ComponentId) AS n
+                FROM dbo.GRADE_COMPONENT WHERE CourseId = @Course63)
+    UPDATE gr SET Score = CASE c.n WHEN 1 THEN 4.75 WHEN 2 THEN 5.42 ELSE 4.91 END
+    FROM dbo.GRADE gr JOIN c ON c.ComponentId = gr.ComponentId
+    WHERE gr.EnrollmentId = @Enrollment63;
+    SET @Grade63 = dbo.fn_FinalGrade(@Enrollment63);
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T63', N'fn_FinalGrade: one rounding at the end (4.994959 => 4.99)', N'Succeeded',
+        CASE WHEN @Grade63 = 4.99 THEN N'Succeeded' ELSE N'Wrong result' END,
+        ISNULL(@Enrollment63, N'?') + N' => ' + ISNULL(CAST(@Grade63 AS NVARCHAR(10)), N'NULL'));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T63', N'fn_FinalGrade: one rounding at the end (4.994959 => 4.99)', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T64: a valid promotion code on a free class
+--      Proves usp_Enrollment_Create checks the code itself: a valid code whose discount is 0 (the class is free) is
+--      accepted instead of being reported as unknown or expired. Scenario, rolled back: a free CM-A1 class.
+BEGIN TRY
+    DECLARE @Class64 VARCHAR(10), @Enrollment64 VARCHAR(10), @Student64 VARCHAR(10), @Due64 DECIMAL(12,0),
+            @Promotion64 VARCHAR(10);
+    SELECT TOP (1) @Student64 = st.StudentId FROM dbo.STUDENT st
+    WHERE st.Status <> N'Dropped out' AND NOT EXISTS (SELECT 1 FROM dbo.ENROLLMENT en WHERE en.StudentId = st.StudentId)
+    ORDER BY st.StudentId;
+    BEGIN TRAN;
+    DECLARE @StartDate64 DATE = DATEADD(MONTH, 1, dbo.fn_Today());
+    EXEC dbo.usp_Class_Create @ClassName = N'T64 free class', @CourseId = 'CM-A1', @BranchId = 'BR01',
+                              @TeacherId = 'TE0003', @RoomId = 'D1-102', @StartDate = @StartDate64,
+                              @MaxStudents = 10, @Tuition = 0, @ClassId = @Class64 OUTPUT;
+    EXEC dbo.usp_Enrollment_Create @StudentId = @Student64, @ClassId = @Class64, @PromotionId = 'PR-REFER',
+                                   @EmployeeId = 'EM0002', @EnrollmentId = @Enrollment64 OUTPUT;
+    SELECT @Due64 = TuitionDue, @Promotion64 = PromotionId FROM dbo.ENROLLMENT WHERE EnrollmentId = @Enrollment64;
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T64', N'usp_Enrollment_Create: a valid promotion code on a free class', N'Succeeded',
+        CASE WHEN @Enrollment64 IS NOT NULL AND @Due64 = 0 AND @Promotion64 = 'PR-REFER' THEN N'Succeeded' ELSE N'Wrong result' END,
+        ISNULL(@Student64, N'?') + N' => ' + ISNULL(@Enrollment64, N'no enrollment') + N', tuition due '
+        + ISNULL(CAST(@Due64 AS NVARCHAR(20)), N'?'));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T64', N'usp_Enrollment_Create: a valid promotion code on a free class', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T65: the two ways to meet an entry requirement (T04 and T33 only test refusals)
+--      CL0003 is a class of IE-55 (prerequisite IE-FND, minimum placement score 5.5). Scenario, rolled back:
+--      (a) a student who never enrolled scores 6.0 in a new placement test => admitted on the score;
+--      (b) a student who passed IE-FND gets a new placement test of 1.0 (so the score cannot help) => admitted on
+--      the prerequisite. Both enrollments must exist afterwards.
+BEGIN TRY
+    DECLARE @ByScore65 VARCHAR(10), @ByCourse65 VARCHAR(10), @EnrollA65 VARCHAR(10), @EnrollB65 VARCHAR(10), @Rows65 INT;
+    SELECT TOP (1) @ByScore65 = st.StudentId FROM dbo.STUDENT st
+    WHERE st.Status <> N'Dropped out' AND NOT EXISTS (SELECT 1 FROM dbo.ENROLLMENT en WHERE en.StudentId = st.StudentId)
+    ORDER BY st.StudentId;
+    SELECT TOP (1) @ByCourse65 = en.StudentId
+    FROM dbo.ENROLLMENT en JOIN dbo.CLASS cl ON cl.ClassId = en.ClassId JOIN dbo.STUDENT st ON st.StudentId = en.StudentId
+    WHERE cl.CourseId = 'IE-FND' AND en.Result = N'Passed' AND st.Status <> N'Dropped out'
+      AND NOT EXISTS (SELECT 1 FROM dbo.ENROLLMENT x WHERE x.StudentId = en.StudentId AND x.ClassId = 'CL0003')
+      AND NOT EXISTS (SELECT 1 FROM dbo.fn_StudentScheduleClash(en.StudentId, 'CL0003', NULL))
+    ORDER BY en.StudentId;
+    BEGIN TRAN;
+    INSERT INTO dbo.PLACEMENT_TEST (StudentId, ListeningScore, SpeakingScore, ReadingScore, WritingScore)
+    VALUES (@ByScore65, 6, 6, 6, 6), (@ByCourse65, 1, 1, 1, 1);
+    EXEC dbo.usp_Enrollment_Create @StudentId = @ByScore65, @ClassId = 'CL0003', @EmployeeId = 'EM0002',
+                                   @EnrollmentId = @EnrollA65 OUTPUT;
+    EXEC dbo.usp_Enrollment_Create @StudentId = @ByCourse65, @ClassId = 'CL0003', @EmployeeId = 'EM0002',
+                                   @EnrollmentId = @EnrollB65 OUTPUT;
+    SELECT @Rows65 = COUNT(*) FROM dbo.ENROLLMENT WHERE EnrollmentId IN (@EnrollA65, @EnrollB65) AND ClassId = 'CL0003';
+    ROLLBACK;
+
+    INSERT #Results VALUES ('T65', N'usp_Enrollment_Create: admitted on the score or on the prerequisite', N'Succeeded',
+        CASE WHEN @Rows65 = 2 THEN N'Succeeded' ELSE N'Wrong result' END,
+        ISNULL(@ByScore65, N'?') + N' (score 6.0) => ' + ISNULL(@EnrollA65, N'none') + N'; ' + ISNULL(@ByCourse65, N'?')
+        + N' (passed IE-FND, score 1.0) => ' + ISNULL(@EnrollB65, N'none'));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T65', N'usp_Enrollment_Create: admitted on the score or on the prerequisite', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T67: the Dashboard counts the students who are taking a class
+--      Proves usp_Dashboard_Stats.ActiveStudents = the students with a Studying enrollment, counted here. The
+--      status of the STUDENT row is not used: it stays Studying after the last course is completed.
+BEGIN TRY
+    DECLARE @Active67 INT, @Expected67 INT, @ByStatus67 INT;
+    IF OBJECT_ID('tempdb..#R67') IS NOT NULL DROP TABLE #R67;
+    CREATE TABLE #R67 (ActiveStudents INT, ActiveClasses INT, EnrollingClasses INT, RevenueThisMonth DECIMAL(14,0),
+                       TotalOutstanding DECIMAL(14,0), SessionsToday INT);
+    INSERT #R67 EXEC dbo.usp_Dashboard_Stats;
+    SELECT @Active67 = ActiveStudents FROM #R67;
+    SELECT @Expected67 = COUNT(DISTINCT StudentId) FROM dbo.ENROLLMENT WHERE Status = N'Studying';
+    SELECT @ByStatus67 = COUNT(*) FROM dbo.STUDENT WHERE Status = N'Studying';
+
+    INSERT #Results VALUES ('T67', N'usp_Dashboard_Stats: students with a Studying enrollment', N'Succeeded',
+        CASE WHEN @Active67 = @Expected67 THEN N'Succeeded' ELSE N'Wrong result' END,
+        CAST(@Active67 AS NVARCHAR(10)) + N' active students (expected ' + CAST(@Expected67 AS NVARCHAR(10))
+        + N'; STUDENT rows with status Studying: ' + CAST(@ByStatus67 AS NVARCHAR(10)) + N')');
+END TRY
+BEGIN CATCH
+    INSERT #Results VALUES ('T67', N'usp_Dashboard_Stats: students with a Studying enrollment', N'Succeeded', N'Error', ERROR_MESSAGE());
 END CATCH;
 GO
 
@@ -1371,6 +1852,40 @@ BEGIN TRY
 END TRY
 BEGIN CATCH
     INSERT #Results VALUES ('T32', N'Instants in UTC (...Utc), no server-local clock, DATE defaults in center time', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T66: every ID sequence stops at the largest number its code can hold
+--      The DEFAULT of an ID pads the number to a fixed width (RIGHT('0000' + ..., 4) => EM0001), so the sequence
+--      must end at 10^width - 1 (MAXVALUE 9999): the next number then fails instead of being cut to a code that
+--      already exists. The width is read from the zeros of the DEFAULT definition (sys.default_constraints) and
+--      compared as text (REPLICATE: no arithmetic overflow on rows the join has not filtered yet).
+BEGIN TRY
+    DECLARE @Bad66 TABLE (Name NVARCHAR(400));
+    INSERT @Bad66
+    SELECT sq.name + N' has MAXVALUE ' + CAST(sq.maximum_value AS NVARCHAR(20)) + N' for a code of '
+           + CAST(w.Width AS NVARCHAR(5)) + N' digits'
+    FROM sys.sequences sq
+    JOIN sys.default_constraints dc
+        ON CHARINDEX(N'[dbo].[' + sq.name COLLATE DATABASE_DEFAULT + N']', dc.definition COLLATE DATABASE_DEFAULT) > 0
+    CROSS APPLY (SELECT dc.definition COLLATE DATABASE_DEFAULT AS Def) d   -- catalog text, database collation
+    CROSS APPLY (SELECT CHARINDEX(N'right(''', d.Def) + 7 AS Start) s
+    CROSS APPLY (SELECT CHARINDEX(N'''', d.Def, s.Start) - s.Start AS Width) w
+    WHERE CAST(sq.maximum_value AS VARCHAR(20)) <> REPLICATE('9', w.Width)   -- 10^width - 1 = width nines
+    UNION ALL
+    SELECT sq.name + N' is not used by an ID default' FROM sys.sequences sq
+    WHERE NOT EXISTS (SELECT 1 FROM sys.default_constraints dc
+                      WHERE CHARINDEX(N'[dbo].[' + sq.name COLLATE DATABASE_DEFAULT + N']',
+                                      dc.definition COLLATE DATABASE_DEFAULT) > 0);
+    DECLARE @BadCount66 INT = (SELECT COUNT(*) FROM @Bad66);
+    INSERT #Results VALUES ('T66', N'ID sequences end at the largest number their code can hold', N'Succeeded',
+                            CASE WHEN @BadCount66 = 0 THEN N'Succeeded' ELSE N'Wrong result' END,
+                            CASE WHEN @BadCount66 = 0
+                                 THEN CAST((SELECT COUNT(*) FROM sys.sequences) AS NVARCHAR(10)) + N' sequences checked'
+                                 ELSE LEFT(STUFF((SELECT N', ' + Name FROM @Bad66 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, N''), 400) END);
+END TRY
+BEGIN CATCH
+    INSERT #Results VALUES ('T66', N'ID sequences end at the largest number their code can hold', N'Succeeded', N'Error', ERROR_MESSAGE());
 END CATCH;
 GO
 

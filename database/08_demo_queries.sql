@@ -60,13 +60,13 @@ WHERE NOT EXISTS (SELECT 1 FROM dbo.ENROLLMENT en WHERE en.StudentId = st.Studen
 -- Q4. (Relational division) Students who took EVERY IELTS course that has a started class
 --      (there is no such IELTS course the student has not enrolled in)
 --      Relational division written with a double NOT EXISTS: "for all courses" becomes "there is no course
---      without an enrollment". Divisor = the IELTS courses that have a class whose status is not Enrolling.
+--      without an enrollment". Divisor = the IELTS courses that have a class In progress or Finished.
 SELECT st.StudentId, st.FullName
 FROM dbo.STUDENT st
 WHERE NOT EXISTS (
     SELECT 1 FROM dbo.COURSE co
     WHERE co.ProgramId = 'IELTS'
-      AND EXISTS (SELECT 1 FROM dbo.CLASS cl WHERE cl.CourseId = co.CourseId AND cl.Status <> N'Enrolling')
+      AND EXISTS (SELECT 1 FROM dbo.CLASS cl WHERE cl.CourseId = co.CourseId AND cl.Status IN (N'In progress', N'Finished'))
       AND NOT EXISTS (SELECT 1 FROM dbo.ENROLLMENT en JOIN dbo.CLASS cl ON cl.ClassId = en.ClassId
                       WHERE en.StudentId = st.StudentId AND cl.CourseId = co.CourseId));
 
