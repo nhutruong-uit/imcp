@@ -43,6 +43,9 @@ paths:
 - Every tool a job's `test_all` step needs is installed by the job itself (e.g. clang-format for `check_changes`, same
   install as `checks.yml`).
 - Do not add `paths-ignore` to the `pull_request` trigger of `main` (the required checks would never run).
+- `pages.yml` publishes only `docs/data-map.html` (as `index.html`) to GitHub Pages when it changes on `develop`. The
+  Pages site is public although the repository is private: never publish the report, the user guide or other docs
+  there. Only `develop` may deploy (environment `github-pages`).
 - The `Full tests (Linux + SQL Server)` job runs SQL Server 2022 Developer in Docker and installs Microsoft ODBC
   Driver 18 (`msodbcsql18`), both with `ACCEPT_EULA=Y`: the repository owner accepted these two licenses for CI
   (development/test use only) on 2026-10-02. Do not add other components that need their own Microsoft EULA (e.g.
