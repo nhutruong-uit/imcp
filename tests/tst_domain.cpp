@@ -57,7 +57,7 @@ private slots:
         Student s = validStudent();
         s.email = QStringLiteral("not-an-email");
         QVERIFY(!s.validate(QDate(2026, 10, 1)).isEmpty());
-        s.email = QStringLiteral("an.nv@gmail.com");
+        s.email = QStringLiteral("an.nv@example.com");
         QVERIFY(s.validate(QDate(2026, 10, 1)).isEmpty());
     }
 
