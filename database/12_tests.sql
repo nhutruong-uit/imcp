@@ -1,8 +1,8 @@
 /* =====================================================================
    File   : 12_tests.sql - Tests of the constraints, business rules and permissions
-   - Every test case leaves the data unchanged: a case that writes runs in a transaction that is
-     ROLLED BACK. A few cases that expect a rejection BEFORE anything is written (e.g. T03-T05)
-     call the procedure without a transaction of their own.
+   - Every test case leaves the data unchanged: every case that writes - or would write if the rule
+     under test were broken - runs in a transaction that is ROLLED BACK, so a failing case cannot leave
+     data behind for the next run. Only the read-only checks (catalog views, functions) need none.
    - Permissions are tested with EXECUTE AS USER (impersonating a user) ... REVERT.
    - Run as sa / db_owner after 07_seed_data.sql. The summary table is at the end of the output.
    - A "Rejected" case only PASSES when it is rejected for the RIGHT REASON (the message matches the
@@ -54,7 +54,7 @@ CREATE TABLE #Results (
     TestId       VARCHAR(5)     NOT NULL,
     Description  NVARCHAR(200)  NOT NULL,
     Expected     NVARCHAR(20)   NOT NULL,   -- 'Rejected' or 'Succeeded'
-    Actual       NVARCHAR(20)   NULL,       -- also 'Wrong result' / 'Error' (always FAILED)
+    Actual       NVARCHAR(20)   NULL,       -- also 'Wrong result' / 'Wrong error' / 'Error' (always FAILED)
     Message      NVARCHAR(400)  NULL
 );
 
@@ -121,11 +121,13 @@ GO
 -- T03: duplicate enrollment (the student is already enrolled in this class)
 --      Proves usp_Enrollment_Create refuses a second enrollment of the same student in the same class (THROW 50022;
 --      the UNIQUE constraint UQ_ENROLLMENT_StudentId_ClassId backs it up). Concept: business check in a procedure
---      before any write, so no transaction is needed here.
+--      before any write. The transaction only matters if the rule breaks: the extra enrollment is then undone.
 BEGIN TRY
+    BEGIN TRAN;
     DECLARE @EnrollmentId VARCHAR(10);
     EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00001', @ClassId = 'CL0003', @EmployeeId = 'EM0002',
          @EnrollmentId = @EnrollmentId OUTPUT;
+    ROLLBACK;
     INSERT #Results VALUES ('T03', N'Enrolling twice in the same class', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
@@ -139,9 +141,11 @@ GO
 --      latest placement score (THROW 50023, message built from values). Concept: rule over several tables with
 --      NOT EXISTS subqueries.
 BEGIN TRY
+    BEGIN TRAN;
     DECLARE @EnrollmentId VARCHAR(10);
     EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00070', @ClassId = 'CL0008', @EmployeeId = 'EM0002',
          @EnrollmentId = @EnrollmentId OUTPUT;
+    ROLLBACK;
     INSERT #Results VALUES ('T04', N'Prerequisite course / placement score not met', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
@@ -154,9 +158,11 @@ GO
 --      Proves usp_Enrollment_Create refuses a class whose weekly slots overlap a class the student is taking
 --      (THROW 50024). Concept: interval overlap test (start1 < end2 AND start2 < end1) on the same weekday.
 BEGIN TRY
+    BEGIN TRAN;
     DECLARE @EnrollmentId VARCHAR(10);
     EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00023', @ClassId = 'CL0007', @EmployeeId = 'EM0004',
          @EnrollmentId = @EnrollmentId OUTPUT;
+    ROLLBACK;
     INSERT #Results VALUES ('T05', N'A student in 2 classes with clashing schedules', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
@@ -313,17 +319,30 @@ END CATCH;
 GO
 
 -- T15: a valid enrollment (class without entry requirement, with a promotion), then rolled back
---      Success case: usp_Enrollment_Create with a promotion code runs to the end; Message shows the new ID from
---      the OUTPUT parameter and the tuition due. Concept: procedure with a multi-step transaction, OUTPUT parameter.
+--      Success case: usp_Enrollment_Create with a promotion code runs to the end. The stored BaseTuition,
+--      DiscountAmount and TuitionDue are compared with the class tuition and the discount computed here from the
+--      PROMOTION row (AMOUNT = the value, PERCENT = rounded to thousands, never above the tuition); Message shows
+--      the new ID from the OUTPUT parameter and the tuition due. Concept: multi-step transaction, OUTPUT parameter.
 BEGIN TRY
+    DECLARE @Tuition15 DECIMAL(12,0) = (SELECT Tuition FROM dbo.CLASS WHERE ClassId = 'CL0010');
+    DECLARE @ExpectedDiscount15 DECIMAL(12,0) =
+        (SELECT CASE DiscountType WHEN 'AMOUNT' THEN DiscountValue ELSE ROUND(@Tuition15 * DiscountValue / 100, -3) END
+         FROM dbo.PROMOTION WHERE PromotionId = 'PR-REFER');
+    IF @ExpectedDiscount15 > @Tuition15 SET @ExpectedDiscount15 = @Tuition15;
+    DECLARE @Base15 DECIMAL(12,0), @Discount15 DECIMAL(12,0), @Due15 DECIMAL(12,0);
     BEGIN TRAN;
     DECLARE @EnrollmentId VARCHAR(10);
     EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00071', @ClassId = 'CL0010', @PromotionId = 'PR-REFER',
          @EmployeeId = 'EM0002', @EnrollmentId = @EnrollmentId OUTPUT;
-    DECLARE @Info NVARCHAR(200) = (SELECT N'ID ' + EnrollmentId + N', tuition due ' + FORMAT(TuitionDue, 'N0') + N' VND'
-                                   FROM dbo.ENROLLMENT WHERE EnrollmentId = @EnrollmentId);
+    SELECT @Base15 = BaseTuition, @Discount15 = DiscountAmount, @Due15 = TuitionDue
+    FROM dbo.ENROLLMENT WHERE EnrollmentId = @EnrollmentId;
+    DECLARE @Info NVARCHAR(200) = N'ID ' + ISNULL(@EnrollmentId, N'?') + N', tuition due '
+                                  + ISNULL(FORMAT(@Due15, 'N0'), N'?') + N' VND (expected '
+                                  + FORMAT(@Tuition15 - @ExpectedDiscount15, 'N0') + N')';
     ROLLBACK;
-    INSERT #Results VALUES ('T15', N'Valid enrollment with a promotion', N'Succeeded', N'Succeeded', @Info);
+    INSERT #Results VALUES ('T15', N'Valid enrollment with a promotion', N'Succeeded',
+        CASE WHEN @Base15 = @Tuition15 AND @Discount15 = @ExpectedDiscount15 AND @Due15 = @Tuition15 - @ExpectedDiscount15
+             THEN N'Succeeded' ELSE N'Wrong result' END, @Info);
 END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK;
@@ -647,7 +666,9 @@ GO
 BEGIN TRY
     DECLARE @Date25 DATE = DATEADD(MONTH, 1, dbo.fn_Today());
     DECLARE @Month25 TINYINT = MONTH(@Date25), @Year25 SMALLINT = YEAR(@Date25);
+    BEGIN TRAN;
     EXEC dbo.usp_Payroll_Finalize @Month = @Month25, @Year = @Year25;
+    ROLLBACK;
     INSERT #Results VALUES ('T25', N'Finalizing the payroll of a future month', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
@@ -964,15 +985,25 @@ GO
 -- P02: a teacher reads the views of their own classes (ownership chaining + USER_NAME() filter)
 --      gv_john has SELECT on the views only, not on CLASS/STUDENT: because the views and the tables have the same
 --      owner (dbo), SQL Server does not check the tables again (ownership chaining). fn_CurrentTeacherId() maps
---      USER_NAME() to the teacher, so the views return only the rows of TE0001.
+--      USER_NAME() to the teacher, so the views return only the rows of TE0001. The counts are compared with
+--      the classes and enrollments of that teacher counted by dbo in the base tables, and must be fewer than all
+--      classes: a broken filter (no row, or every row) fails the case.
 BEGIN TRY
+    DECLARE @Teacher02 VARCHAR(10) = (SELECT TeacherId FROM dbo.ACCOUNT WHERE Username = N'gv_john');
+    DECLARE @ExpectedClasses02 INT = (SELECT COUNT(*) FROM dbo.CLASS WHERE TeacherId = @Teacher02);
+    DECLARE @ExpectedStudents02 INT = (SELECT COUNT(*) FROM dbo.ENROLLMENT en
+                                       JOIN dbo.CLASS cl ON cl.ClassId = en.ClassId WHERE cl.TeacherId = @Teacher02);
+    DECLARE @AllClasses02 INT = (SELECT COUNT(*) FROM dbo.CLASS);
     EXECUTE AS USER = N'gv_john';
     DECLARE @n INT = (SELECT COUNT(*) FROM dbo.vw_Teacher_MyClasses);
     DECLARE @st INT = (SELECT COUNT(*) FROM dbo.vw_Teacher_MyStudents);
     REVERT;
-    INSERT #Results VALUES ('P02', N'Teacher SELECTs the views of their classes/students', N'Succeeded', N'Succeeded',
-                            CAST(@n AS NVARCHAR(10)) + N' classes, ' + CAST(@st AS NVARCHAR(10))
-                            + N' students (only the classes of TE0001)');
+    INSERT #Results VALUES ('P02', N'Teacher SELECTs the views of their classes/students', N'Succeeded',
+        CASE WHEN @n = @ExpectedClasses02 AND @st = @ExpectedStudents02 AND @n > 0 AND @n < @AllClasses02
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CAST(@n AS NVARCHAR(10)) + N' classes, ' + CAST(@st AS NVARCHAR(10)) + N' students of '
+        + ISNULL(@Teacher02, N'?') + N' (expected ' + CAST(@ExpectedClasses02 AS NVARCHAR(10)) + N' / '
+        + CAST(@ExpectedStudents02 AS NVARCHAR(10)) + N')');
 END TRY
 BEGIN CATCH
     REVERT;
@@ -986,13 +1017,16 @@ GO
 BEGIN TRY
     DECLARE @EnrollmentId VARCHAR(10) = (SELECT TOP 1 EnrollmentId FROM dbo.ENROLLMENT WHERE ClassId = 'CL0004');
     DECLARE @ComponentId INT = (SELECT TOP 1 ComponentId FROM dbo.GRADE_COMPONENT WHERE CourseId = 'TO-450');
+    BEGIN TRAN;
     EXECUTE AS USER = N'gv_john';
     EXEC dbo.usp_Grade_Save @EnrollmentId = @EnrollmentId, @ComponentId = @ComponentId, @Score = 9;
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P03', N'Teacher grades a class of another teacher', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P03', N'Teacher grades a class of another teacher', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
@@ -1001,13 +1035,16 @@ GO
 --      Proves DENY EXECUTE ON usp_Enrollment_Create TO rl_Accountant; the permission error names the procedure.
 BEGIN TRY
     DECLARE @EnrollmentId VARCHAR(10);
+    BEGIN TRAN;
     EXECUTE AS USER = N'kt_minh';
     EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00071', @ClassId = 'CL0010', @EnrollmentId = @EnrollmentId OUTPUT;
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P04', N'Accountant enrolls a student', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P04', N'Accountant enrolls a student', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
@@ -1058,7 +1095,9 @@ GO
 
 -- P08: the manager deletes a receipt (DENY DELETE - even for the manager)
 --      Proves DENY DELETE ON RECEIPT TO rl_Manager: the permission check comes before the INSTEAD OF trigger of
---      T07, so this error is a permission error. Concept: DENY as an explicit block that a later GRANT cannot open.
+--      T07, so this error is a permission error. The case checks the error number 229 (permission denied): the
+--      pattern %RECEIPT% alone would also match the message of that trigger. Concept: DENY as an explicit block
+--      that a later GRANT cannot open.
 BEGIN TRY
     BEGIN TRAN;
     EXECUTE AS USER = N'ql_quan';
@@ -1070,7 +1109,8 @@ END TRY
 BEGIN CATCH
     REVERT;
     IF @@TRANCOUNT > 0 ROLLBACK;
-    INSERT #Results VALUES ('P08', N'Manager DELETEs from the RECEIPT table', N'Rejected', N'Rejected', ERROR_MESSAGE());
+    INSERT #Results VALUES ('P08', N'Manager DELETEs from the RECEIPT table', N'Rejected',
+        CASE WHEN ERROR_NUMBER() = 229 THEN N'Rejected' ELSE N'Wrong error' END, ERROR_MESSAGE());
 END CATCH;
 GO
 
@@ -1078,13 +1118,16 @@ GO
 --      Proves usp_Account_Create is not available to rl_AcademicStaff: only rl_Manager has EXECUTE (through
 --      GRANT EXECUTE ON SCHEMA::dbo). Concept: no GRANT = no access.
 BEGIN TRY
+    BEGIN TRAN;
     EXECUTE AS USER = N'gvu_lan';
     EXEC dbo.usp_Account_Create N'test_user', N'Test@12345', 'ACADEMIC_STAFF', 'EM0006', NULL;
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P09', N'Academic staff create a sign-in account', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P09', N'Academic staff create a sign-in account', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
@@ -1136,13 +1179,16 @@ GO
 --      SQL Server checks the current password itself (error 15151); the CATCH block of usp_Account_ChangePassword
 --      turns that into the business message THROW 50066. Concept: TRY/CATCH translating a system error.
 BEGIN TRY
+    BEGIN TRAN;
     EXECUTE AS USER = N'gvu_lan';
     EXEC dbo.usp_Account_ChangePassword N'wrong-password', N'NewPassword@1';
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P12', N'Password change with a wrong current password', N'Rejected', N'Succeeded', NULL);
 END TRY
 BEGIN CATCH
     REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P12', N'Password change with a wrong current password', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
