@@ -112,8 +112,8 @@ run `usp_Account_RecordLogin` and `usp_Account_ChangePassword`, and read the cat
 | Menu / form / report | Qt application: role-based menu, Qt Designer forms, PDF reports with header/footer/totals | `src/presentation` |
 | Distributed database | Horizontal fragmentation by branch, replicated catalog tables, distributed view, completeness/disjointness check | `11_distributed_demo.sql` |
 | Object-oriented DB, NoSQL | Model conversion and comparison | report Ch.7 |
-| Automated database tests | 53 cases: `T01`-`T27`, `T31` and `T33`-`T40` (integrity constraints and business rules, functions, triggers, cursors, XML, UTC times), `T28`-`T30` and `T32` (schema conventions: naming, least-privilege permission matrix, `SET NOCOUNT ON` / no `SELECT *`, time conventions) and `P01`-`P13` (permissions, via `EXECUTE AS USER`); every case that writes runs in a transaction that is rolled back | `12_tests.sql` |
-| Automated server-level tests | 18 cases `S01`-`S18`: backup chain + restore into a new database (contained users sign in to the copy), `usp_Backup`, BULK INSERT of the sample CSV, fragmentation/replication/partition elimination/linked server for `11_distributed_demo.sql`, account lockout with real sign-ins through a loopback linked server | `13_server_tests.sql` |
+| Automated database tests | 68 cases: `T01`-`T27`, `T31` and `T33`-`T47` (integrity constraints and business rules, functions, triggers, cursors, XML, UTC times), `T28`-`T30` and `T32` (schema conventions: naming, least-privilege permission matrix, `SET NOCOUNT ON` / no `SELECT *`, time conventions) and `P01`-`P21` (permissions, via `EXECUTE AS USER`); every case that writes runs in a transaction that is rolled back | `12_tests.sql` |
+| Automated server-level tests | 19 cases `S01`-`S19`: backup chain + restore into a new database (contained users sign in to the copy), `usp_Backup`, BULK INSERT of the sample CSV, fragmentation/replication/partition elimination/linked server for `11_distributed_demo.sql`, account lockout and password reset with real sign-ins through a loopback linked server | `13_server_tests.sql` |
 
 `db_init` runs scripts `00`-`07` (create database, tables, functions, views, procedures, triggers, security, seed
 data). Scripts `08`-`11` are demonstrations to run by hand; `12` and `13` are the automated test suites (`13` runs
@@ -129,9 +129,10 @@ data). Scripts `08`-`11` are demonstrations to run by hand; `12` and `13` are th
 4. Enrollment: the class must be open and have free seats; the student must have passed the prerequisite course
    **or** reached the required placement-test score (a course without a minimum score accepts only the prerequisite).
 5. Amount paid = sum of valid receipts (trigger); payment cannot exceed tuition; receipts are never deleted, only
-   cancelled with a reason.
+   cancelled with a reason. A transfer to another class of the course applies the tuition of the new class (refused
+   while the student has paid more than that).
 6. Grades are 0-10 and must belong to a grade component of the course; a teacher can only enter grades/attendance for
-   their own classes.
+   their own classes; grades and attendance are final once the class is finished.
 7. A student passes when the final grade is ≥ 5 and attendance is ≥ 80%; only a passed enrollment can receive a
    certificate (re-evaluating a class withdraws the certificate of a student who no longer passes).
 8. A session that has already been taught cannot change time/room/teacher (this keeps payroll data correct).

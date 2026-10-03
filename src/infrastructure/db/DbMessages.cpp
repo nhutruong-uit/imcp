@@ -42,6 +42,9 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages", "Active enrollment not found."),
     QT_TRANSLATE_NOOP("DbMessages", "A student can only be transferred to an open class of the same course."),
     QT_TRANSLATE_NOOP("DbMessages", "Enrollment not found."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "The student has paid more than the tuition of the new class; cancel a receipt "
+                      "before the transfer."),
     // D. Tuition
     QT_TRANSLATE_NOOP("DbMessages",
                       "The current account is not linked to an employee who can collect payments."),
@@ -54,6 +57,9 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages", "You can only enter grades for classes you teach."),
     QT_TRANSLATE_NOOP("DbMessages",
                       "The class has finished and its results are final; grades can no longer be changed."),
+    QT_TRANSLATE_NOOP(
+        "DbMessages",
+        "The class has finished and its results are final; attendance can no longer be changed."),
     QT_TRANSLATE_NOOP("DbMessages", "The class does not exist or has not started yet."),
     QT_TRANSLATE_NOOP("DbMessages", "The grade component weights of the course do not add up to 100%."),
     QT_TRANSLATE_NOOP("DbMessages", "Grades are still missing for %1 student(s)."),
@@ -67,6 +73,7 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages", "The username already exists."),
     QT_TRANSLATE_NOOP("DbMessages", "Invalid role."),
     QT_TRANSLATE_NOOP("DbMessages", "Account not found."),
+    QT_TRANSLATE_NOOP("DbMessages", "Choose whether to lock or unlock the account."),
     QT_TRANSLATE_NOOP("DbMessages", "You cannot lock the account you are signed in with."),
     QT_TRANSLATE_NOOP("DbMessages", "The current password is incorrect."),
     QT_TRANSLATE_NOOP("DbMessages", "The new password is not strong enough: it needs uppercase and lowercase "
