@@ -31,6 +31,7 @@
 #include "presentation/students/StudentFormDialog.h"
 
 #include <QApplication>
+#include <QComboBox>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QLineEdit>
@@ -46,6 +47,18 @@ void wait(int ms) {
     while (t.elapsed() < ms) {
         QApplication::processEvents(QEventLoop::AllEvents, 20);
         QThread::msleep(10);
+    }
+}
+
+// The grade books open on the first class of their list, which may have no score yet: show a class in
+// progress that has scores (CL0003 in the seed data, taught by gv_john) when the list contains it
+void showClassWithScores(QWidget& window) {
+    for (QComboBox* combo : window.findChildren<QComboBox*>(QStringLiteral("classCombo"))) {
+        const int index = combo->findData(QStringLiteral("CL0003"));
+        if (combo->isVisible() && index >= 0) {
+            combo->setCurrentIndex(index);
+            wait(400);
+        }
     }
 }
 
@@ -182,6 +195,8 @@ int main(int argc, char* argv[]) {
             for (Feature f : w.features()) {
                 w.openFeature(f);
                 wait(400);
+                if (f == Feature::Grades || f == Feature::MyGrades)
+                    showClassWithScores(w);
                 // e.g. gvu_lan_students.png (names used by the report)
                 const QString name = QStringLiteral("%1_%2.png").arg(account, fileName(f));
                 w.grab().save(QDir(folder).filePath(name));
