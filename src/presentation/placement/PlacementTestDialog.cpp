@@ -61,7 +61,7 @@ PlacementTestDialog::PlacementTestDialog(PlacementService& placement, StudentSer
     form()->addRow(tr("Notes"), m_notes);
 
     connect(findButton, &QPushButton::clicked, this, &PlacementTestDialog::searchStudents);
-    connect(m_studentSearch, &QLineEdit::returnPressed, this, &PlacementTestDialog::searchStudents);
+    setSearchField(m_studentSearch, [this] { searchStudents(); });
     if (!studentId.isEmpty())
         searchStudents();
     updateOverall();

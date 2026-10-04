@@ -46,6 +46,7 @@ CollectPaymentDialog::CollectPaymentDialog(TuitionService& service, QWidget* par
     else
         showError(outstanding.error());
     connect(m_filter, &QLineEdit::textChanged, m_enrollments, &DataTable::setFilterText);
+    setSearchField(m_filter); // the list filters while typing; Return must not collect a payment
     connect(m_enrollments, &DataTable::selectionChanged, this, &CollectPaymentDialog::enrollmentChanged);
     enrollmentChanged();
 }

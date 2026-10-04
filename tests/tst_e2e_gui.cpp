@@ -616,6 +616,52 @@ private slots:
         QVERIFY2(boxes.texts().isEmpty(), qPrintable(boxes.texts().join(QStringLiteral(" | "))));
     }
 
+    // New enrollment form: Return in the student search field finds the students and nothing else. QLineEdit
+    // passes Return on to the dialog, whose default button would enroll the first match at once (or show the
+    // error of that attempt); the form must stay open without an error and no enrollment may be added.
+    void academicStaff_returnInStudentSearch_searchesWithoutEnrolling() {
+        QVERIFY(login(QStringLiteral("gvu_lan"), m_password));
+        MessageBoxCatcher boxes;
+        MainWindow w(m_app->services());
+        w.show();
+        w.openFeature(Feature::Enrollments);
+        DataTable* list = nullptr;
+        QTRY_VERIFY((list = visibleList(w)) != nullptr);
+        QTRY_VERIFY(list->rowCount() > 0);
+        const auto before = m_app->services().enrollments.search(EnrollmentFilter());
+        QVERIFY2(before.ok(), qPrintable(before.error()));
+
+        bool stayedOpen = false;
+        bool errorShown = true;
+        int matches = 0;
+        QTimer::singleShot(300, this, [&] {
+            auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
+            if (!dialog)
+                return;
+            auto* search = dialog->findChild<QLineEdit*>(QStringLiteral("studentSearchEdit"));
+            auto* students = dialog->findChild<QComboBox*>(QStringLiteral("studentCombo"));
+            auto* error = dialog->findChild<QLabel*>(QStringLiteral("ErrorText"));
+            if (search && students && error) {
+                search->setFocus();
+                QTest::keyClicks(search, QStringLiteral("ST0000"));
+                QTest::keyClick(search, Qt::Key_Return);
+                stayedOpen = dialog->isVisible();
+                errorShown = !error->isHidden();
+                matches = students->count();
+            }
+            if (dialog->isVisible())
+                dialog->reject(); // never hang
+        });
+        QTest::mouseClick(visibleButton(w, QStringLiteral("addButton")), Qt::LeftButton);
+        QVERIFY2(stayedOpen, "Return in the search field closed the form");
+        QVERIFY2(!errorShown, "Return in the search field tried to save the enrollment");
+        QVERIFY(matches > 0);
+        const auto after = m_app->services().enrollments.search(EnrollmentFilter());
+        QVERIFY2(after.ok(), qPrintable(after.error()));
+        QCOMPARE(after.value().rows.size(), before.value().rows.size());
+        QVERIFY2(boxes.texts().isEmpty(), qPrintable(boxes.texts().join(QStringLiteral(" | "))));
+    }
+
     // Teaching schedule: a teacher changes the attendance of one student at a session they taught
     // (usp_Attendance_Save), checks it is saved, then restores it. Only a session whose marks are all saved
     // is used, so saving creates no new row; early in the week it is found in the previous week.
@@ -646,7 +692,10 @@ private slots:
         }
         QVERIFY2(sessionId != 0, "no session of this week or the previous one has its attendance saved");
 
-        // Opens the attendance of the session, sets the first student to that status and saves
+        // Opens the attendance of the session, sets the first student to that status and saves. Before that,
+        // Return in the Notes cell must keep a mark that is not Present (no "All present" click); checked
+        // after the data is restored.
+        bool keptOnReturn = true;
         auto mark = [&](const QString& status, QString* oldStatus) {
             bool saved = false;
             QTimer::singleShot(300, this, [&] {
@@ -655,9 +704,16 @@ private slots:
                     return;
                 auto* grid = dialog->findChild<QTableWidget*>(QStringLiteral("attendanceTable"));
                 auto* combo = grid ? qobject_cast<QComboBox*>(grid->cellWidget(0, 2)) : nullptr;
-                if (combo) {
+                auto* notes = grid ? qobject_cast<QLineEdit*>(grid->cellWidget(0, 3)) : nullptr;
+                if (combo && notes) {
                     if (oldStatus)
                         *oldStatus = combo->currentData().toString();
+                    const QString absent = AttendanceValues::statuses().constLast();
+                    combo->setCurrentIndex(combo->findData(absent));
+                    notes->setFocus();
+                    QTest::keyClick(notes, Qt::Key_Return);
+                    keptOnReturn =
+                        keptOnReturn && dialog->isVisible() && combo->currentData().toString() == absent;
                     combo->setCurrentIndex(combo->findData(status));
                     dialog->findChild<QPushButton*>(QStringLiteral("saveAttendanceButton"))->click();
                     saved = !dialog->isVisible();
@@ -687,6 +743,7 @@ private slots:
 
         QVERIFY(mark(before, nullptr)); // restore the seed data
         QCOMPARE(firstStatus(), before);
+        QVERIFY2(keptOnReturn, "Return in the Notes cell changed the mark");
         QVERIFY2(boxes.texts().isEmpty(), qPrintable(boxes.texts().join(QStringLiteral(" | "))));
     }
 

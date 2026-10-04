@@ -55,7 +55,7 @@ EnrollDialog::EnrollDialog(EnrollmentService& enrollments, StudentService& stude
     setSaveText(tr("Enroll"));
 
     connect(findButton, &QPushButton::clicked, this, &EnrollDialog::searchStudents);
-    connect(m_studentSearch, &QLineEdit::returnPressed, this, &EnrollDialog::searchStudents);
+    setSearchField(m_studentSearch, [this] { searchStudents(); });
     connect(m_class, &QComboBox::currentIndexChanged, this, &EnrollDialog::showClassInfo);
     connect(m_enrolledOn, &QDateEdit::dateChanged, this, &EnrollDialog::loadPromotions);
     if (!studentId.isEmpty())

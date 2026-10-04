@@ -140,7 +140,9 @@ two base classes of `src/presentation/common/`:
   `Fields` helpers (`Fields::text`, `date`, `money`, `values` for stored database values, `lookup` for a code +
   name list) and passes the save action (`setSaveAction`, which returns a `VoidResult`). A failed save shows the
   translated database message in the form and keeps the dialog open, so nothing typed is lost. A larger form
-  subclasses it (`ClassFormDialog`, `EnrollDialog`, `CollectPaymentDialog`, `PlacementTestDialog`).
+  subclasses it (`ClassFormDialog`, `EnrollDialog`, `CollectPaymentDialog`, `PlacementTestDialog`). Return in a
+  field clicks Save, as in any Qt dialog; a search or filter field inside the form is registered with
+  `setSearchField`, so Return runs the search instead of saving the first match.
 - `TableDialog` shows a read-only list in a window of its own (the students or results of a class, a syllabus,
   a search result) with Excel / PDF export.
 

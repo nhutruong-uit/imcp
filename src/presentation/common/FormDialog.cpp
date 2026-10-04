@@ -2,7 +2,9 @@
 
 #include <QDialogButtonBox>
 #include <QFormLayout>
+#include <QKeyEvent>
 #include <QLabel>
+#include <QLineEdit>
 #include <QPushButton>
 #include <QStyle>
 #include <QVBoxLayout>
@@ -60,6 +62,23 @@ void FormDialog::hideSaveButton() {
 void FormDialog::showError(const QString& message) {
     m_error->setText(message);
     m_error->setVisible(!message.isEmpty());
+}
+
+void FormDialog::setSearchField(QLineEdit* field, std::function<void()> search) {
+    m_searchFields.insert(field, std::move(search));
+    field->installEventFilter(this);
+}
+
+bool FormDialog::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::KeyPress && m_searchFields.contains(watched)) {
+        const int key = static_cast<QKeyEvent*>(event)->key();
+        if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+            if (const std::function<void()> search = m_searchFields.value(watched))
+                search();
+            return true; // handled here: the dialog never sees the key, so Save is not clicked
+        }
+    }
+    return QDialog::eventFilter(watched, event);
 }
 
 bool FormDialog::save() {

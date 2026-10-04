@@ -55,6 +55,10 @@ AttendanceDialog::AttendanceDialog(SessionService& service, int sessionId, const
     auto* saveButton = UiHelpers::primaryButton(tr("Save attendance"), QStringLiteral("check"), this);
     saveButton->setObjectName(QStringLiteral("saveAttendanceButton"));
     auto* closeButton = UiHelpers::secondaryButton(tr("Close"), QString(), this);
+    // Return in a Notes cell reaches the dialog, which clicks its first auto-default button: "All present"
+    // would reset the marks just chosen. No button reacts to Return here.
+    for (QPushButton* button : {allPresent, saveButton, closeButton})
+        button->setAutoDefault(false);
     buttons->addWidget(allPresent);
     buttons->addStretch(1);
     buttons->addWidget(saveButton);
