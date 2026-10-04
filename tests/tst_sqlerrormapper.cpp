@@ -67,6 +67,18 @@ private slots:
         QVERIFY(SqlErrorMapper::message(e).startsWith(QStringLiteral("Wrong username or password")));
     }
 
+    // Legacy Windows driver "SQL Server" with no server listening at the address (also: TCP/IP disabled) -
+    // the raw text of that driver, as seen on Windows 11
+    void message_legacyWindowsDriverCannotConnect_asksToCheckTheServer() {
+        const QSqlError e(
+            QStringLiteral("QODBC: Unable to connect"),
+            QStringLiteral("[Microsoft][ODBC SQL Server Driver][DBNETLIB]SQL Server does not exist "
+                           "or access denied. [Microsoft][ODBC SQL Server Driver][DBNETLIB]"
+                           "ConnectionOpen (Connect())."),
+            QSqlError::ConnectionError, QStringLiteral("17;53"));
+        QVERIFY(SqlErrorMapper::message(e).startsWith(QStringLiteral("Cannot connect to SQL Server.")));
+    }
+
     // Error 547 (CHECK constraint): the constraint name is read from the message and mapped to its own text
     void checkConstraintViolation() {
         const QSqlError e(

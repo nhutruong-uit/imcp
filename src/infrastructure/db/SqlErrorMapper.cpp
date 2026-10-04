@@ -115,9 +115,12 @@ QString SqlErrorMapper::message(const QSqlError& error) {
         return tr("Wrong username or password, or the account is locked.");
     if (hasCode("4060") || raw.contains(QLatin1String("Cannot open database"), Qt::CaseInsensitive))
         return tr("Cannot open the database. Check the database name in the server settings.");
+    // "does not exist or access denied": the legacy Windows driver "SQL Server" ([DBNETLIB]) when nothing
+    // listens at the address, e.g. TCP/IP still disabled after installing SQL Server Developer/Express
     if (raw.contains(QLatin1String("TCP Provider"), Qt::CaseInsensitive) ||
         raw.contains(QLatin1String("Login timeout expired"), Qt::CaseInsensitive) ||
         raw.contains(QLatin1String("server was not found"), Qt::CaseInsensitive) ||
+        raw.contains(QLatin1String("does not exist or access denied"), Qt::CaseInsensitive) ||
         raw.contains(QLatin1String("Named Pipes"), Qt::CaseInsensitive) ||
         raw.contains(QLatin1String("Communication link failure"), Qt::CaseInsensitive))
         return tr("Cannot connect to SQL Server.\n"
