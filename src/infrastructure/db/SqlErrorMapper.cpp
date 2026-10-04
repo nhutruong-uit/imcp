@@ -84,6 +84,10 @@ QString SqlErrorMapper::constraintMessage(const QString& constraintName) {
                            "The discount must be positive, and at most 50 for a percentage.")},
         {QStringLiteral("CK_PROMOTION_Dates"),
          QT_TRANSLATE_NOOP("SqlErrorMapper", "The end date cannot be before the start date.")},
+        {QStringLiteral("CK_PAYROLL_Deduction"),
+         QT_TRANSLATE_NOOP(
+             "SqlErrorMapper",
+             "The pay of the month would fall below its deduction: lower the deduction first.")},
         {QStringLiteral("CK_CLASS_SCHEDULE_Time"),
          QT_TRANSLATE_NOOP("SqlErrorMapper",
                            "A time slot must end after it starts and stay between 07:00 and 22:00.")},

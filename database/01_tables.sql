@@ -752,9 +752,11 @@ GO
    22. PAYROLL - Monthly teacher payroll (finalized with a cursor)
        One row = the pay of one teacher for one month (UQ_PAYROLL_TeacherId_Month_Year).
        Written by usp_Payroll_Finalize: SessionCount and Hours come from the taught sessions of the
-       month; HourlyRate is copied from TEACHER, so a later rate change does not alter a closed month.
+       month; HourlyRate is copied from TEACHER, so a later rate change does not alter a Paid month.
        TotalPay: PERSISTED computed column = Hours x HourlyRate + Bonus - Deduction.
-       Status Finalized can still be recomputed by finalizing the month again; a Paid row is left as is.
+       Status Finalized can still be recomputed by finalizing the month again (with the rate of that day);
+       a Paid row is left as is. CK_PAYROLL_Deduction keeps TotalPay at 0 or more, also when a month finalized
+       again gets a lower rate under a deduction set earlier (usp_Payroll_Adjust checks it first, 50053).
        Teachers see only their own rows, through vw_Teacher_MyPay.
    --------------------------------------------------------------------- */
 CREATE TABLE dbo.PAYROLL (
@@ -776,6 +778,7 @@ CREATE TABLE dbo.PAYROLL (
     CONSTRAINT CK_PAYROLL_Month CHECK (Month BETWEEN 1 AND 12),
     CONSTRAINT CK_PAYROLL_Year CHECK (Year >= 2020),
     CONSTRAINT CK_PAYROLL_Figures CHECK (SessionCount >= 0 AND Hours >= 0 AND Bonus >= 0 AND Deduction >= 0),
+    CONSTRAINT CK_PAYROLL_Deduction CHECK (Deduction <= CAST(Hours * HourlyRate AS DECIMAL(14,0)) + Bonus),
     CONSTRAINT CK_PAYROLL_Status CHECK (Status IN (N'Finalized', N'Paid'))
 );
 GO

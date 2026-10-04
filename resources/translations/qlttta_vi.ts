@@ -3378,6 +3378,10 @@ Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ 
         <source>The text is not well-formed XML: %1</source>
         <translation>Nội dung không phải XML hợp lệ: %1</translation>
     </message>
+    <message>
+        <source>The pay of the month would fall below its deduction: lower the deduction first.</source>
+        <translation>Lương của tháng sẽ thấp hơn khoản khấu trừ: hãy giảm khoản khấu trừ trước.</translation>
+    </message>
 </context>
 <context>
     <name>SqlPlacementRepository</name>

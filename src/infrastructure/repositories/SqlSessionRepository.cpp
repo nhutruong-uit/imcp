@@ -22,9 +22,12 @@ Result<TableData> SqlSessionRepository::sessions(const QDate& from, const QDate&
 }
 
 VoidResult SqlSessionRepository::update(const SessionUpdate& update) {
+    // The text of the field as it is: the procedure keeps the content for NULL and removes it for an empty
+    // text, so stringOrNull (empty => NULL) would make a cleared field keep the old content
+    const QString description = update.description.isNull() ? QStringLiteral("") : update.description;
     return execCall(
         m_db, QStringLiteral("EXEC dbo.usp_Session_Update @SessionId = ?, @Status = ?, @Description = ?"),
-        {update.sessionId, update.status, stringOrNull(update.description)});
+        {update.sessionId, update.status, description});
 }
 
 Result<QList<AttendanceMark>> SqlSessionRepository::attendance(int sessionId) {

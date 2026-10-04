@@ -112,6 +112,21 @@ private slots:
         QCOMPARE(SqlErrorMapper::message(e), QStringLiteral("Students under 18 need guardian information."));
     }
 
+    // Finalizing a month again with a lower rate under a deduction (usp_Payroll_Finalize,
+    // CK_PAYROLL_Deduction)
+    void message_payrollDeductionAbovePay_asksToLowerTheDeduction() {
+        const QSqlError e(
+            QStringLiteral("QODBC: Unable to execute statement"),
+            QStringLiteral(
+                "[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]The UPDATE statement conflicted "
+                "with the CHECK constraint \"CK_PAYROLL_Deduction\". The conflict occurred in database "
+                "\"QLTTTA\", table \"dbo.PAYROLL\"."),
+            QSqlError::StatementError, QStringLiteral("547"));
+        QCOMPARE(SqlErrorMapper::message(e),
+                 QStringLiteral(
+                     "The pay of the month would fall below its deduction: lower the deduction first."));
+    }
+
     // A value with ; or } is wrapped in {...} with } doubled, so a password cannot add another ODBC keyword
     void connectionString_escapesSpecialCharacters() {
         ServerConfig c;

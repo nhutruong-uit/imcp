@@ -103,7 +103,7 @@ run `usp_Account_RecordLogin` and `usp_Account_ChangePassword`, and read the cat
 | Syllabus topic | Implementation in the project | File |
 |---|---|---|
 | Conceptual and logical model; ERD, CD | 21 entities, recursive relationship, n-n, specialization (people) | report Ch.3 |
-| Integrity constraints | 21 PK, 32 FK, 74 CHECK, 13 UNIQUE + 5 filtered unique indexes, 45 DEFAULT, 8 SEQUENCE | `01_tables.sql` |
+| Integrity constraints | 21 PK, 32 FK, 75 CHECK, 13 UNIQUE + 5 filtered unique indexes, 45 DEFAULT, 8 SEQUENCE | `01_tables.sql` |
 | XML model | Typed XML (XSD) for course syllabi, untyped XML for teacher profiles and the audit log | `01`, `07` |
 | SQL queries | JOIN, GROUP BY/HAVING, NOT EXISTS, relational division, CTE, recursion, window functions, PIVOT | `08_demo_queries.sql` |
 | XPath/XQuery | `.value() .query() .exist() .nodes() .modify()`, FLWOR, `sql:variable`, `FOR XML PATH` | `04`, `08` |
@@ -118,7 +118,7 @@ run `usp_Account_RecordLogin` and `usp_Account_ChangePassword`, and read the cat
 | Menu / form / report | Qt application: role-based menu, Qt Designer forms, PDF reports with header/footer/totals | `src/presentation` |
 | Distributed database | Horizontal fragmentation by branch, replicated catalog tables, distributed view, completeness/disjointness check | `11_distributed_demo.sql` |
 | Object-oriented DB, NoSQL | Model conversion and comparison | report Ch.7 |
-| Automated database tests | 126 cases: `T01`-`T27`, `T31`, `T33`-`T65` and `T67`-`T101` (integrity constraints and business rules, functions, triggers, cursors, XML, UTC times, class changes, catalogs, payroll), `T28`-`T30`, `T32` and `T66` (schema conventions: naming, least-privilege permission matrix, `SET NOCOUNT ON` / no `SELECT *`, time conventions, ID sequence limits) and `P01`-`P25` (permissions, via `EXECUTE AS USER`); every case that writes runs in a transaction that is rolled back | `12_tests.sql` |
+| Automated database tests | 139 cases: `T01`-`T27`, `T31`, `T33`-`T65` and `T67`-`T114` (integrity constraints and business rules, functions, triggers, cursors, XML, UTC times, class changes, catalogs, payroll, receipts), `T28`-`T30`, `T32` and `T66` (schema conventions: naming, least-privilege permission matrix, `SET NOCOUNT ON` / no `SELECT *`, time conventions, ID sequence limits) and `P01`-`P25` (permissions, via `EXECUTE AS USER`); every case that writes runs in a transaction that is rolled back | `12_tests.sql` |
 | Automated server-level tests | 20 cases `S01`-`S20`: backup chain + restore into a new database (contained users sign in to the copy), `usp_Backup` (and its input checks), BULK INSERT of the sample CSV, fragmentation/replication/partition elimination/linked server for `11_distributed_demo.sql`, account lockout and password reset with real sign-ins through a loopback linked server | `13_server_tests.sql` |
 
 `db_init` runs scripts `00`-`07` (create database, tables, functions, views, procedures, triggers, security, seed

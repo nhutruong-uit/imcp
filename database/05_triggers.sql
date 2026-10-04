@@ -462,7 +462,7 @@ GO
         capacity of at least the class size: rule 2 of docs/DATABASE.md, which T1 checks when a CLASS row changes.
         Fired by: usp_Room_Update (Branches & rooms screen) and a direct UPDATE of ROOM (managers keep UPDATE on the
         catalog tables for SSMS, 06_security.sql); tested by tests T61 (a capacity below the size of a class in
-        progress) and T86.
+        progress) and T86 (a valid change of a room passes).
         Why a trigger: the rule reads the CLASS rows that use the room.
         How: AFTER UPDATE; it returns at once unless BranchId or Capacity is in the SET list, then joins
         inserted (every changed room) with the active classes of those rooms. A finished class keeps its
@@ -495,7 +495,7 @@ GO
         differently afterwards, the center opens a new course. Renaming a component is still allowed.
         Fired by: usp_GradeComponent_Save / usp_GradeComponent_Delete (Courses screen) and a direct write to
         GRADE_COMPONENT (managers keep the table rights for SSMS, 06_security.sql); tested by tests T68 (a new weight
-        for an evaluated course) and T90.
+        for an evaluated course) and T92 (the components of a new course can still change).
         Why a trigger: the rule reads ENROLLMENT through CLASS, and it must hold for every writer.
         How: AFTER INSERT, UPDATE, DELETE; an UPDATE that touches neither CourseId nor Weight returns at once.
         The courses concerned are those of inserted (new rows) UNION deleted (old rows, so moving a component to
