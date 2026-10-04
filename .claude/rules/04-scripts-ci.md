@@ -46,6 +46,12 @@ paths:
 - Every tool a job's `test_all` step needs is installed by the job itself (e.g. clang-format for `check_changes`, same
   install as `checks.yml`).
 - Do not add `paths-ignore` to the `pull_request` trigger of `main` (the required checks would never run).
+- `release.yml` packages macOS on a pinned runner (`macos-15`, not `macos-latest`): the Homebrew libraries in the
+  `.dmg` are built for the runner's macOS, so the runner sets the oldest macOS the app supports. `package-macos.sh`
+  writes the real minimum (highest `minos` of the bundle) into `Info.plist` and the release notes show it; when you
+  move the runner, update `docs/SETUP.md` ("macOS 15+"; the report and the user guide read the runner of
+  `release.yml` through `macos_min_version()`). The Windows minimum is
+  `MinVersion` in `packaging/windows/installer.iss` (Qt 6.8: Windows 10 version 1809).
 - `pages.yml` publishes only `docs/data-map.html` (as `index.html`) to GitHub Pages when it changes on `develop`. The
   Pages site is public although the repository is private: never publish the report, the user guide or other docs
   there. Only `develop` may deploy (environment `github-pages`).

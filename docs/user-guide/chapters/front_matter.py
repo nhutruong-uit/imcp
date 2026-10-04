@@ -2,7 +2,7 @@
 from datetime import date
 
 from chapters.common import app_version
-from content.common import MEMBERS  # the team list of the report (docs/report/content/common.py)
+from content.common import MEMBERS, macos_min_version  # shared with the report (docs/report/content/common.py)
 
 
 def cover_page(g):
@@ -27,8 +27,8 @@ def document_info(g):
     g.centered_title("THÔNG TIN TÀI LIỆU")
     t = g.table(["Mục", "Nội dung"], [
         ["Phần mềm", f"QLTTTA - Quản lý Trung tâm Tiếng Anh, phiên bản {app_version()}"],
-        ["Hệ điều hành", "macOS 12 trở lên (máy Mac chip Apple Silicon M1/M2/M3...)\n"
-                         "Windows 10/11 64-bit"],
+        ["Hệ điều hành", f"macOS {macos_min_version()} trở lên (máy Mac chip Apple Silicon M1/M2/M3...)\n"
+                         "Windows 10 (bản 1809 trở lên) hoặc 11, 64-bit"],
         ["Cơ sở dữ liệu", "Microsoft SQL Server 2012 trở lên: chạy trong Docker (macOS, Windows) hoặc "
                           "cài trực tiếp trên máy Windows (bản Express/Developer miễn phí)"],
         ["Ngôn ngữ giao diện", "Tiếng Việt (mặc định) và English, đổi được ngay khi đang dùng"],

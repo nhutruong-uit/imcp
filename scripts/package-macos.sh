@@ -3,7 +3,11 @@
 #   1. Release build
 #   2. macdeployqt: copies the Qt frameworks + plugins (including the ODBC plugin) into QLTTTA.app
 #   3. Bundles the FreeTDS driver (LGPL) + unixODBC + OpenSSL => the Mac needs no extra driver
-#   4. Ad-hoc signing (mandatory on Apple Silicon) and the .dmg file in dist/
+#   4. Writes the oldest macOS every bundled binary runs on into Info.plist (LSMinimumSystemVersion)
+#   5. Ad-hoc signing (mandatory on Apple Silicon) and the .dmg file in dist/ with "READ ME FIRST.txt"
+#
+# The Homebrew libraries are built for the macOS of the build machine, so the .dmg runs on that macOS version or
+# later: build on the oldest macOS you want to support (release.yml pins its runner for this reason).
 #
 # Requirements: brew install qt qt-unixodbc unixodbc freetds cmake ninja
 # Optional: EXTRA_CMAKE_ARGS="-DCMAKE_OSX_SYSROOT=..." when the Command Line Tools SDK is broken.
@@ -19,10 +23,13 @@ BREW="$(brew --prefix)"
 QT_PREFIX="${QT_ROOT_DIR:-$(brew --prefix qt)}"
 VERSION="$(sed -n 's/^ *VERSION \([0-9][0-9.]*\).*/\1/p' CMakeLists.txt | head -1)"
 ARCH="$(uname -m)"
+# Our own binary targets the macOS major version of this machine (e.g. 15.0), like the Homebrew libraries; left
+# unset, the compiler targets the exact version (e.g. 15.5) and would lock out earlier updates of the same macOS
+DEPLOYMENT_TARGET="$(sw_vers -productVersion | cut -d. -f1).0"
 
-echo ">> Release build (QLTTTA $VERSION, $ARCH)"
+echo ">> Release build (QLTTTA $VERSION, $ARCH, deployment target macOS $DEPLOYMENT_TARGET)"
 # shellcheck disable=SC2086
-cmake --preset macos-release ${EXTRA_CMAKE_ARGS:-}
+cmake --preset macos-release -DCMAKE_OSX_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET" ${EXTRA_CMAKE_ARGS:-}
 cmake --build --preset macos-release
 
 APP="build/macos-release/src/app/QLTTTA.app"
@@ -57,6 +64,17 @@ for lib in "$FW"/libtdsodbc.so "$FW"/libodbc*.dylib "$FW"/libltdl*.dylib "$FW"/l
   done
 done
 
+echo ">> Minimum macOS version"
+# The app runs only where all its binaries run: take the highest "minos" of every Mach-O file in the bundle. With it
+# in Info.plist, an older macOS refuses to open the app with its own "requires macOS X or later" message instead of
+# crashing at launch. Must happen before signing (the signature covers Info.plist).
+MIN_MACOS="$(find "$APP" -type f | while IFS= read -r f; do
+  case "$(file -b "$f")" in Mach-O*) otool -l "$f" | awk '$1 == "minos" { print $2 }' ;; esac
+done | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)"
+[[ -n "$MIN_MACOS" ]] || { echo "No minos found in the binaries of $APP" >&2; exit 1; }
+plutil -replace LSMinimumSystemVersion -string "$MIN_MACOS" "$APP/Contents/Info.plist"
+echo "   LSMinimumSystemVersion = $MIN_MACOS"
+
 echo ">> Ad-hoc signing"
 codesign --force --deep --sign - "$APP"
 codesign --verify --deep "$APP"
@@ -66,8 +84,9 @@ STAGE="build/macos-release/dmg"
 rm -rf "$STAGE" && mkdir -p "$STAGE" dist
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
-cp "$ROOT/packaging/macos/INSTALL.txt" "$STAGE/"
+# The name tells the user to read it before the first launch, which macOS blocks once (the app is not notarized)
+sed "s/@MIN_MACOS@/$MIN_MACOS/" "$ROOT/packaging/macos/INSTALL.txt" > "$STAGE/READ ME FIRST.txt"
 DMG="dist/QLTTTA-$VERSION-macos-$ARCH.dmg"
 rm -f "$DMG"
 hdiutil create -volname "QLTTTA $VERSION" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
-echo "Done: $DMG"
+echo "Done: $DMG (macOS $MIN_MACOS or later)"
