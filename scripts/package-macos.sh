@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds the macOS installer (.dmg) - works on a personal machine and on GitHub Actions.
 #   1. Release build
-#   2. macdeployqt: copies the Qt frameworks + plugins (including the ODBC plugin) into QLTTTA.app
+#   2. macdeployqt: copies the Qt frameworks + plugins (including the ODBC plugin) into QLTTTA.app, then removes
+#      the plugins of Qt modules the app does not use (their frameworks are not in the bundle)
 #   3. Bundles the FreeTDS driver (LGPL) + unixODBC + OpenSSL => the Mac needs no extra driver
 #   4. Writes the oldest macOS every bundled binary runs on into Info.plist (LSMinimumSystemVersion)
 #   5. Ad-hoc signing (mandatory on Apple Silicon) and the .dmg file in dist/ with "READ ME FIRST.txt"
@@ -40,6 +41,23 @@ echo ">> macdeployqt"
 install_name_tool -add_rpath "$BREW/lib" "$APP/Contents/MacOS/QLTTTA" 2>/dev/null || true
 "$QT_PREFIX/bin/macdeployqt" "$APP" -always-overwrite
 install_name_tool -delete_rpath "$BREW/lib" "$APP/Contents/MacOS/QLTTTA" 2>/dev/null || true
+
+echo ">> Remove the plugins of Qt modules the app does not use"
+# macdeployqt copies every imageformats and platforminputcontexts plugin of the Qt installation. The full Homebrew
+# "qt" also has QtPdf (imageformats/libqpdf) and QtVirtualKeyboard (its input context and keyboard layouts); the app
+# does not link these modules, so macdeployqt prints "Cannot resolve rpath" for their frameworks and the copied
+# plugins could never load. Remove every plugin that needs a Qt framework missing from the bundle.
+find "$APP/Contents/PlugIns" -name '*.dylib' | while IFS= read -r plugin; do
+  for framework in $(otool -L "$plugin" | awk 'NR > 1 { print $1 }' |
+                     sed -n 's|^.*/\(Qt[A-Za-z0-9]*\)\.framework/.*$|\1|p'); do
+    if [[ ! -d "$FW/$framework.framework" ]]; then
+      echo "   removed ${plugin#"$APP/Contents/PlugIns/"} (needs $framework.framework)"
+      rm "$plugin"
+      break
+    fi
+  done
+done
+find "$APP/Contents/PlugIns" -type d -empty -delete
 
 echo ">> Bundle the FreeTDS driver"
 mkdir -p "$FW"
