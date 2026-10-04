@@ -46,9 +46,15 @@ if (Test-Path $zip) { Remove-Item $zip }
 Write-Host ">> Create the portable ZIP"
 Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip
 
+# ISCC.exe on PATH, or in an Inno Setup 6 installed for all users (Program Files) or for the current user only
+# (%LOCALAPPDATA%\Programs: what "winget install JRSoftware.InnoSetup" does without administrator rights)
 $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
-if (-not $iscc) { $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe" }
-if (Test-Path $iscc) {
+if (-not $iscc) {
+    $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6", "$env:ProgramFiles\Inno Setup 6",
+              "$env:LOCALAPPDATA\Programs\Inno Setup 6") |
+        ForEach-Object { Join-Path $_ "ISCC.exe" } | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+if ($iscc) {
     Write-Host ">> Create the Inno Setup installer"
     & $iscc "/DAppVersion=$version" "/DSourceDir=$stage" "/DOutputDir=$dist" (Join-Path $root "packaging\windows\installer.iss")
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
