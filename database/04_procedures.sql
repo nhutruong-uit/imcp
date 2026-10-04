@@ -569,7 +569,8 @@ GO
                 tests T72 (a size below the enrolled students), T73 (a teacher who is busy at that time), T74 (the
                 scheduled sessions follow the new teacher and room), T83 (a new start date for a class in
                 progress), T101 and T102 (a new start date, also after the old end date), T111 (a new start date
-                that clashes with another class of a student), T114 (a teacher who is not teaching).
+                that clashes with another class of a student), T114 (a teacher who is not teaching), T116 (a past
+                session that is still Scheduled keeps its teacher).
        Rules:   the class must exist (50012) and be Enrolling or In progress (50080); a new teacher must still
                 be Teaching (50011); the start date only moves while the class is Enrolling and none of its
                 sessions was taught or cancelled (50081); the maximum size never falls below the number of
@@ -580,8 +581,10 @@ GO
                 2. In one transaction: UPDATE CLASS. A new start date makes the generated sessions wrong: they
                    are all still Scheduled (rule above), so they are deleted and EndDate becomes NULL in the
                    same UPDATE (the old EndDate may lie before the new start date: CK_CLASS_Dates) - the screen
-                   then generates them with B3. Otherwise the Scheduled sessions take the new teacher and room
-                   (a taught session keeps them, trg_CLASS_SESSION_LockTaught).
+                   then generates them with B3. Otherwise the Scheduled sessions from today on take the new
+                   teacher and room; a past session keeps them even while it is still Scheduled (taught but not
+                   confirmed yet: its own teacher confirms it and F1 pays that teacher), and a taught session
+                   keeps them anyway (trg_CLASS_SESSION_LockTaught).
                 3. Every weekly slot of the class is written again unchanged (SET StartTime = StartTime): that
                    fires trg_CLASS_SCHEDULE_CheckConflict, which compares the slots with the NEW teacher, room
                    and period of the class and rolls back a clash with another class - one rule, one place.
@@ -636,7 +639,7 @@ BEGIN
             DELETE FROM dbo.CLASS_SESSION WHERE ClassId = @ClassId;
         ELSE
             UPDATE dbo.CLASS_SESSION SET TeacherId = @TeacherId, RoomId = @RoomId
-            WHERE ClassId = @ClassId AND Status = N'Scheduled';
+            WHERE ClassId = @ClassId AND Status = N'Scheduled' AND SessionDate >= dbo.fn_Today();
 
         -- 3. Re-check the weekly slots against the other classes (fires trg_CLASS_SCHEDULE_CheckConflict)
         UPDATE dbo.CLASS_SCHEDULE SET StartTime = StartTime WHERE ClassId = @ClassId;
@@ -714,9 +717,11 @@ GO
        Used by: Enrollments screen - New enrollment (SqlEnrollmentRepository::enroll), 07_seed_data.sql (every
                 demo enrollment); roles rl_Manager, rl_AcademicStaff (DENY EXECUTE to rl_Accountant, test P04);
                 tests T03 (already enrolled), T04 (entry requirement), T05 (schedule clash), T15 (valid enrollment
-                with a promotion).
+                with a promotion), T120 (a date in the future).
        Steps:   1. Defaults: the enrollment date is today and the employee is the signed-in one
-                   (fn_CurrentEmployeeId) when the caller passes NULL.
+                   (fn_CurrentEmployeeId) when the caller passes NULL. A past date is allowed (a paper form typed
+                   later), a future one is not (50100): attendance counts from that day (ClassJoinedOn), so a
+                   student dated in the future would have no session to count and pass on attendance.
                 2. The student must exist and not be Dropped out (50020).
                 3. One SELECT reads the class and its course: tuition, status, prerequisite and minimum
                    placement score. Then: the class exists (50012), still accepts enrollments (50021), the
@@ -760,6 +765,8 @@ BEGIN
 
     SET @EnrolledOn = ISNULL(@EnrolledOn, dbo.fn_Today());
     SET @EmployeeId = COALESCE(@EmployeeId, dbo.fn_CurrentEmployeeId());
+    IF @EnrolledOn > dbo.fn_Today()
+        THROW 50100, N'An enrollment cannot be dated in the future.', 1;
 
     IF NOT EXISTS (SELECT 1 FROM dbo.STUDENT WHERE StudentId = @StudentId AND Status <> N'Dropped out')
         THROW 50020, N'The student does not exist or has dropped out.', 1;
@@ -897,7 +904,7 @@ BEGIN
         DELETE at FROM dbo.ATTENDANCE at JOIN dbo.CLASS_SESSION se ON se.SessionId = at.SessionId
         WHERE at.EnrollmentId = @EnrollmentId AND se.ClassId = @OldClassId;
 
-        -- ClassJoinedOn: today, never before EnrolledOn (an enrollment may be dated in advance)
+        -- ClassJoinedOn: today, never before EnrolledOn (CK_ENROLLMENT_ClassJoinedOn)
         UPDATE dbo.ENROLLMENT
         SET ClassId = @NewClassId, Status = N'Studying', BaseTuition = @NewTuition, DiscountAmount = @NewDiscount,
             ClassJoinedOn = CASE WHEN dbo.fn_Today() > EnrolledOn THEN dbo.fn_Today() ELSE EnrolledOn END
@@ -1037,9 +1044,12 @@ GO
        and blocks payments above the tuition due.
        Used by: Tuition collection screen - Collect payment (SqlTuitionRepository::collect); roles rl_Manager,
                 rl_Accountant (DENY EXECUTE to rl_AcademicStaff: they cannot collect money); tests T06 (payment above
-                the tuition), T20 (payment, then cancellation), P16 (academic staff are refused).
+                the tuition), T20 (payment, then cancellation), P16 (academic staff are refused), T121 (a payment
+                dated in the future).
        Rules:   a collecting employee is required (50030): the signed-in one (fn_CurrentEmployeeId) unless
-                @EmployeeId is passed; the enrollment must exist and not be Left (50031); the amount must be
+                @EmployeeId is passed; @PaidAtUtc may be in the past (a payment typed later, the demo history) but
+                not in the future (50034: revenue would show money not received yet); the enrollment must exist
+                and not be Left (50031); the amount must be
                 > 0 (CK_RECEIPT_Amount). After the INSERT, trg_RECEIPT_UpdateAmountPaid recomputes AmountPaid
                 and rolls back a payment above the tuition due; trg_RECEIPT_Audit writes an XML audit row.
        Concepts: a derived attribute kept by a trigger, OUTPUT inserted.ReceiptId INTO @New, default values. */
@@ -1061,6 +1071,8 @@ BEGIN
 
     IF @EmployeeId IS NULL
         THROW 50030, N'The current account is not linked to an employee who can collect payments.', 1;
+    IF @PaidAtUtc > GETUTCDATE()
+        THROW 50034, N'A payment cannot be dated in the future.', 1;
     IF NOT EXISTS (SELECT 1 FROM dbo.ENROLLMENT WHERE EnrollmentId = @EnrollmentId AND Status <> N'Left')
         THROW 50031, N'Valid enrollment not found.', 1;
 
@@ -1546,8 +1558,9 @@ GO
                 last 2 months); roles rl_Manager, rl_Accountant; tests T24 (figures
                 match the taught sessions), T25 (a future month is rejected), T58 (running it again removes a
                 row that no longer has a taught session), T103 (a lower rate under a deduction is refused).
-       Steps:   1. Refuse a future month (50050); DATEFROMPARTS builds the first day of that month, and
-                   [@From, @To) is the month as a date range (a sargable filter on SessionDate).
+       Steps:   1. Refuse a future month (50050); the running month is allowed as a preview that the next run
+                   refreshes (F3 pays a month only once it is over). DATEFROMPARTS builds the first day of that
+                   month, and [@From, @To) is the month as a date range (a sargable filter on SessionDate).
                 2. In one transaction a cursor reads one row per teacher who taught in that month (teachers
                    without a Taught session get no row): the number of Taught sessions, the hours
                    (SUM of DATEDIFF in minutes / 60) and the current hourly rate.
@@ -1674,10 +1687,12 @@ GO
 
 /* F3. usp_Payroll_MarkPaid: record that the pay of a row has been paid out
        Used by: Teacher payroll screen - Mark as paid (SqlPayrollRepository::markPaid); roles rl_Manager,
-                rl_Accountant; test T81 (the row is Paid, then F2 refuses it).
-       Rules:   the row must exist (50051) and be Finalized (50052). Paid is the last state: F1 and F2 never
-                change a Paid row again.
-       Concepts: a one-way state change, @@ROWCOUNT. */
+                rl_Accountant; tests T81 (the row is Paid, then F2 refuses it), T115 (a month that has not ended).
+       Rules:   the row must exist (50051) and be Finalized (50052); its month must be over (50054). Paid is the
+                last state: F1 and F2 never change a Paid row again, so a month paid while it is still running
+                would never pay the sessions taught after that day. F1 may still finalize the running month: a
+                Finalized row is a preview that the next run refreshes.
+       Concepts: a one-way state change, @@ROWCOUNT, a month as a date range (DATEFROMPARTS, DATEADD). */
 IF OBJECT_ID(N'dbo.usp_Payroll_MarkPaid', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Payroll_MarkPaid;
 GO
 CREATE PROCEDURE dbo.usp_Payroll_MarkPaid
@@ -1685,8 +1700,13 @@ CREATE PROCEDURE dbo.usp_Payroll_MarkPaid
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF NOT EXISTS (SELECT 1 FROM dbo.PAYROLL WHERE PayrollId = @PayrollId)
+    DECLARE @Month TINYINT, @Year SMALLINT;
+    SELECT @Month = Month, @Year = Year FROM dbo.PAYROLL WHERE PayrollId = @PayrollId;
+    IF @Month IS NULL
         THROW 50051, N'Payroll row not found.', 1;
+    -- The first day of the next month is still to come => the month is not over
+    IF DATEADD(MONTH, 1, DATEFROMPARTS(@Year, @Month, 1)) > dbo.fn_Today()
+        THROW 50054, N'A month can only be marked as paid after it has ended.', 1;
     UPDATE dbo.PAYROLL SET Status = N'Paid' WHERE PayrollId = @PayrollId AND Status = N'Finalized';
     IF @@ROWCOUNT = 0
         THROW 50052, N'A paid payroll row can no longer be changed.', 1;
@@ -2825,11 +2845,17 @@ END;
 GO
 
 /* J17. usp_Promotion_Update: change a promotion (for example end it early)
-        Used by: Promotions screen - Edit (SqlCatalogRepository::updatePromotion); rl_Manager; tests T99, T100.
-        Rules:   the promotion must exist (50090); the CHECK constraints of J16 apply. Enrollments made earlier
-                 keep the DiscountAmount they were given (C1 stores the amount, not the rule of the promotion);
-                 only a class transfer (C2) computes the discount again, from the promotion as it is then.
-        Concepts: a single UPDATE; a stored amount instead of a value recomputed from the current rule. */
+        Used by: Promotions screen - Edit (SqlCatalogRepository::updatePromotion); rl_Manager; tests T99, T100,
+                 T117 (a used promotion gets another discount), T118 (it ends before its last use), T119 (it is
+                 renamed and ended on the day of its last use).
+        Rules:   the promotion must exist (50090); the CHECK constraints of J16 apply. Enrollments keep the
+                 DiscountAmount they were given (C1 stores the amount), but a class transfer (C2) applies the
+                 promotion again on the tuition of the new class with fn_DiscountAmount on EnrolledOn. So once an
+                 enrollment uses the promotion, its rule is frozen: the discount type, value and start date no
+                 longer change (50110) and the end date never moves before the last enrollment that used it
+                 (50111). The name can always change, and the promotion can still be ended early.
+        Concepts: a rule that depends on other rows (COUNT / MAX over ENROLLMENT), a stored amount next to a rule
+                  that is applied again later. */
 IF OBJECT_ID(N'dbo.usp_Promotion_Update', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Promotion_Update;
 GO
 CREATE PROCEDURE dbo.usp_Promotion_Update
@@ -2842,8 +2868,19 @@ CREATE PROCEDURE dbo.usp_Promotion_Update
 AS
 BEGIN
     SET NOCOUNT ON;
+    DECLARE @Uses INT, @LastUse DATE;
     IF NOT EXISTS (SELECT 1 FROM dbo.PROMOTION WHERE PromotionId = @PromotionId)
         THROW 50090, N'The record to update does not exist.', 1;
+
+    -- A promotion in use keeps its rule: C2 applies it again when a student changes class
+    SELECT @Uses = COUNT(*), @LastUse = MAX(EnrolledOn) FROM dbo.ENROLLMENT WHERE PromotionId = @PromotionId;
+    IF @Uses > 0 AND EXISTS (SELECT 1 FROM dbo.PROMOTION
+                             WHERE PromotionId = @PromotionId
+                               AND (DiscountType <> @DiscountType OR DiscountValue <> @DiscountValue
+                                    OR StartDate <> @StartDate))
+        THROW 50110, N'A promotion already used by enrollments keeps its discount and start date; only its name and end date can change.', 1;
+    IF @EndDate < @LastUse
+        THROW 50111, N'The end date cannot be before the last enrollment that used the promotion.', 1;
 
     UPDATE dbo.PROMOTION
     SET PromotionName = LTRIM(RTRIM(@PromotionName)), DiscountType = @DiscountType, DiscountValue = @DiscountValue,

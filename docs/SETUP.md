@@ -169,7 +169,7 @@ SQL_PASSWORD='<sa password>' ./scripts/test_all.sh --docker imcp-mssql   # or dr
 ```
 It runs, in order: change checks against `origin/develop` (`scripts/check_changes.sh`: format of the changed C++
 lines, commit messages, no build output / `.env` in the repository) → re-initialize the database →
-`database/12_tests.sql` (139 cases: constraints, business rules, functions/triggers/cursors, XML, authorization, schema
+`database/12_tests.sql` (147 cases: constraints, business rules, functions/triggers/cursors, XML, authorization, schema
 conventions) → `database/13_server_tests.sql` (20 server-level cases: backup and restore, BULK INSERT of the sample
 CSV, the distributed database of `11_distributed_demo.sql`, account lockout and password reset with real sign-ins) → build → unit tests
 (incl. `tst_conventions`) → end-to-end GUI tests. It stops at the first failing step and exits with a non-zero code; details are written to `build/test-results/`. Add `--no-init` to skip the
@@ -182,7 +182,7 @@ The change checks need `clang-format` and `git clang-format` of the team version
 `./scripts/check_changes.sh` (Windows: `.\scripts\check_changes.ps1`).
 A skipped end-to-end test counts as a failure, so a missing password or an unreachable database cannot pass silently.
 The last line is
-`ALL TESTS PASSED: database 159/159 cases (12_tests + 13_server_tests), unit tests + end-to-end GUI tests passed.`
+`ALL TESTS PASSED: database 167/167 cases (12_tests + 13_server_tests), unit tests + end-to-end GUI tests passed.`
 
 The server-level step needs a **sysadmin** login (`sa`, or a Windows account that is sysadmin) and the MSOLEDBSQL
 provider (installed with SQL Server 2019+, also in the Docker image): it creates scratch databases `QLTTTA_T_*`, backup

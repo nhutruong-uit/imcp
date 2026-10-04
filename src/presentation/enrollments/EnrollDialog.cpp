@@ -43,6 +43,7 @@ EnrollDialog::EnrollDialog(EnrollmentService& enrollments, StudentService& stude
         Fields::select(m_class, classId);
 
     m_enrolledOn = Fields::date(this, QDate::currentDate());
+    m_enrolledOn->setMaximumDate(QDate::currentDate()); // an enrollment is never dated in the future (50100)
     m_promotion = new QComboBox(this);
     m_promotion->setObjectName(QStringLiteral("promotionCombo"));
 
@@ -115,7 +116,7 @@ bool EnrollDialog::save() {
     request.classId = Fields::value(m_class);
     request.promotionId = Fields::value(m_promotion);
     request.enrolledOn = m_enrolledOn->date();
-    const auto result = m_enrollments.enroll(request);
+    const auto result = m_enrollments.enroll(request, QDate::currentDate());
     if (!result.ok()) {
         showError(result.error());
         return false;

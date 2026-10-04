@@ -1802,6 +1802,26 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <source>The grade components of a course with evaluated classes cannot be changed; open a new course instead.</source>
         <translation>Không được thay đổi thành phần điểm của khóa học đã có lớp được đánh giá kết quả; hãy mở khóa học mới.</translation>
     </message>
+    <message>
+        <source>An enrollment cannot be dated in the future.</source>
+        <translation>Không thể ghi danh với ngày trong tương lai.</translation>
+    </message>
+    <message>
+        <source>A payment cannot be dated in the future.</source>
+        <translation>Không thể ghi phiếu thu với thời điểm trong tương lai.</translation>
+    </message>
+    <message>
+        <source>A month can only be marked as paid after it has ended.</source>
+        <translation>Chỉ đánh dấu đã trả lương được khi tháng đó đã kết thúc.</translation>
+    </message>
+    <message>
+        <source>A promotion already used by enrollments keeps its discount and start date; only its name and end date can change.</source>
+        <translation>Khuyến mãi đã được dùng cho ghi danh thì giữ nguyên mức giảm và ngày bắt đầu; chỉ đổi được tên và ngày kết thúc.</translation>
+    </message>
+    <message>
+        <source>The end date cannot be before the last enrollment that used the promotion.</source>
+        <translation>Ngày kết thúc không được trước lần ghi danh cuối cùng đã dùng khuyến mãi này.</translation>
+    </message>
 </context>
 <context>
     <name>DbValues</name>
@@ -2271,6 +2291,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>Please choose a class.</source>
         <translation>Vui lòng chọn lớp.</translation>
+    </message>
+    <message>
+        <source>The enrollment date cannot be in the future.</source>
+        <translation>Ngày ghi danh không được ở tương lai.</translation>
     </message>
 </context>
 <context>

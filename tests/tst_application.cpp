@@ -594,6 +594,21 @@ private slots:
         QVERIFY(service.transferTargets(QStringLiteral("CL9999")).value().isEmpty()); // unknown current class
     }
 
+    // An enrollment dated tomorrow never reaches usp_Enrollment_Create (50100): attendance would count from
+    // it
+    void enrollmentService_futureDate_doesNotCallRepository() {
+        FakeEnrollmentRepository repository;
+        EnrollmentService service(repository);
+        EnrollmentRequest request;
+        request.studentId = QStringLiteral("ST00001");
+        request.classId = QStringLiteral("CL0010");
+        request.enrolledOn = QDate(2026, 10, 6);
+        QVERIFY(!service.enroll(request, QDate(2026, 10, 5)).ok());
+        QVERIFY(repository.calls.isEmpty());
+        request.enrolledOn = QDate(2026, 9, 30); // typed later from a paper form
+        QVERIFY(service.enroll(request, QDate(2026, 10, 5)).ok());
+    }
+
     // An enrollment needs a student and a class; transfer needs another class; the status moves are sent as
     // stored values
     void enrollmentService_validatesInput() {
@@ -601,13 +616,13 @@ private slots:
         EnrollmentService service(repository);
         EnrollmentRequest request;
         request.studentId = QStringLiteral("ST00001");
-        QVERIFY(!service.enroll(request).ok());
+        QVERIFY(!service.enroll(request, QDate(2026, 10, 5)).ok());
         QVERIFY(
             !service.transfer(QStringLiteral("EN000001"), QStringLiteral("CL0004"), QStringLiteral("CL0004"))
                  .ok());
         QVERIFY(repository.calls.isEmpty());
         request.classId = QStringLiteral("CL0010");
-        QVERIFY(service.enroll(request).ok());
+        QVERIFY(service.enroll(request, QDate(2026, 10, 5)).ok());
         QVERIFY(service.putOnHold(QStringLiteral("EN000001")).ok());
         QVERIFY(service.resume(QStringLiteral("EN000001")).ok());
         QVERIFY(service.leave(QStringLiteral("EN000001")).ok());

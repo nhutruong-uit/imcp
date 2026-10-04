@@ -118,6 +118,13 @@ INSERT #Expected VALUES
     ('T110', N'%cannot be set to Left%'),       ('T111', N'%clashes with another class%'),
     ('T112', N'%Schedule slot not found%'),     ('T113', N'%Payroll row not found%'),
     ('T114', N'%teacher does not exist or is no longer teaching%'),
+    ('T115', N'%only be marked as paid after it has ended%'),
+    ('T116', NULL),
+    ('T117', N'%keeps its discount and start date%'),
+    ('T118', N'%before the last enrollment that used the promotion%'),
+    ('T119', NULL),
+    ('T120', N'%enrollment cannot be dated in the future%'),
+    ('T121', N'%payment cannot be dated in the future%'),
     ('P01', N'%STUDENT%'),                      ('P02', NULL),
     ('P03', N'%only enter grades%'),            ('P04', N'%usp_Enrollment_Create%'),
     ('P05', NULL),                              ('P06', N'%HourlyRate%'),
@@ -130,7 +137,8 @@ INSERT #Expected VALUES
     ('P20', N'%only update sessions you teach%'),
     ('P21', N'%only take attendance for sessions you teach%'),
     ('P22', N'%usp_Branch_Add%'),               ('P23', N'%usp_Class_Update%'),
-    ('P24', NULL),                              ('P25', N'%usp_Grade_ByClass%');
+    ('P24', NULL),                              ('P25', N'%usp_Grade_ByClass%'),
+    ('P26', N'%''COURSE''%');
 GO
 
 /* ---------------- A. INTEGRITY CONSTRAINTS & BUSINESS RULES ---------------- */
@@ -1325,6 +1333,108 @@ BEGIN CATCH
 END CATCH;
 GO
 
+-- T115: marking the pay of the running month as paid
+--       Proves usp_Payroll_MarkPaid waits until the month is over (THROW 50054): a Paid row is never refreshed by
+--       usp_Payroll_Finalize, so the sessions taught later that month would never be paid. Scenario, rolled back:
+--       a Finalized row of the running month (finalizing it is allowed, as a preview) is marked paid.
+BEGIN TRY
+    DECLARE @Month115 TINYINT = MONTH(dbo.fn_Today()), @Year115 SMALLINT = YEAR(dbo.fn_Today()), @Payroll115 INT,
+            @Teacher115 VARCHAR(10);
+    -- A teacher without a row for this month, so the case does not depend on the sessions taught so far
+    SELECT TOP (1) @Teacher115 = te.TeacherId FROM dbo.TEACHER te
+    WHERE NOT EXISTS (SELECT 1 FROM dbo.PAYROLL py
+                      WHERE py.TeacherId = te.TeacherId AND py.Month = @Month115 AND py.Year = @Year115)
+    ORDER BY te.TeacherId;
+    BEGIN TRAN;
+    INSERT INTO dbo.PAYROLL (TeacherId, Month, Year, SessionCount, Hours, HourlyRate)
+    VALUES (@Teacher115, @Month115, @Year115, 1, 1.5, 300000);
+    SET @Payroll115 = SCOPE_IDENTITY();
+    EXEC dbo.usp_Payroll_MarkPaid @PayrollId = @Payroll115;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T115', N'Pay of the running month marked as paid', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T115', N'Pay of the running month marked as paid', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T117: another discount for a promotion that enrollments already use
+--       Proves usp_Promotion_Update freezes the rule of a used promotion (THROW 50110): usp_Enrollment_TransferClass
+--       applies it again with fn_DiscountAmount, so 15% -> 10% would silently lower the discount of a later transfer.
+--       PR-OPEN (15%) is used by enrollments of the seed.
+BEGIN TRY
+    DECLARE @Name117 NVARCHAR(100), @Start117 DATE, @End117 DATE;
+    SELECT @Name117 = PromotionName, @Start117 = StartDate, @End117 = EndDate
+    FROM dbo.PROMOTION WHERE PromotionId = 'PR-OPEN';
+    BEGIN TRAN;
+    EXEC dbo.usp_Promotion_Update @PromotionId = 'PR-OPEN', @PromotionName = @Name117, @DiscountType = 'PERCENT',
+         @DiscountValue = 10, @StartDate = @Start117, @EndDate = @End117;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T117', N'Used promotion gets another discount', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T117', N'Used promotion gets another discount', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T118: ending a used promotion before the last enrollment that used it
+--       Proves THROW 50111 of usp_Promotion_Update: fn_DiscountAmount on that EnrolledOn would give 0, so a later
+--       transfer would lose the whole discount. PR-REFER ends the day before its last use.
+BEGIN TRY
+    DECLARE @Name118 NVARCHAR(100), @Type118 VARCHAR(10), @Value118 DECIMAL(12,2), @Start118 DATE, @End118 DATE;
+    SELECT @Name118 = PromotionName, @Type118 = DiscountType, @Value118 = DiscountValue, @Start118 = StartDate
+    FROM dbo.PROMOTION WHERE PromotionId = 'PR-REFER';
+    SELECT @End118 = DATEADD(DAY, -1, MAX(EnrolledOn)) FROM dbo.ENROLLMENT WHERE PromotionId = 'PR-REFER';
+    BEGIN TRAN;
+    EXEC dbo.usp_Promotion_Update @PromotionId = 'PR-REFER', @PromotionName = @Name118, @DiscountType = @Type118,
+         @DiscountValue = @Value118, @StartDate = @Start118, @EndDate = @End118;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T118', N'Used promotion ends before its last use', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T118', N'Used promotion ends before its last use', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T120: an enrollment dated in the future
+--       Proves usp_Enrollment_Create refuses a future EnrolledOn (THROW 50100): ClassJoinedOn would be in the future,
+--       fn_AttendanceRate would count no session and the evaluation would take the attendance as 100%.
+BEGIN TRY
+    DECLARE @Tomorrow120 DATE = DATEADD(DAY, 1, dbo.fn_Today()), @Enrollment120 VARCHAR(10);
+    BEGIN TRAN;
+    EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00001', @ClassId = 'CL0010', @EnrolledOn = @Tomorrow120,
+         @EnrollmentId = @Enrollment120 OUTPUT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T120', N'Enrollment dated in the future', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T120', N'Enrollment dated in the future', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T121: a payment dated in the future
+--       Proves usp_Receipt_Create refuses a future @PaidAtUtc (THROW 50034): the revenue of a later month would show
+--       money that was not received yet. A past time stays allowed (the demo history is entered that way).
+BEGIN TRY
+    DECLARE @Enrollment121 VARCHAR(10), @Receipt121 VARCHAR(10), @Later121 DATETIME = DATEADD(DAY, 1, GETUTCDATE());
+    SELECT TOP (1) @Enrollment121 = EnrollmentId FROM dbo.ENROLLMENT
+    WHERE Status = N'Studying' AND TuitionDue > AmountPaid ORDER BY EnrollmentId;
+    BEGIN TRAN;
+    EXEC dbo.usp_Receipt_Create @EnrollmentId = @Enrollment121, @Amount = 100000, @PaidAtUtc = @Later121,
+         @EmployeeId = 'EM0003', @ReceiptId = @Receipt121 OUTPUT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T121', N'Payment dated in the future', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T121', N'Payment dated in the future', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
 /* ---------------- C. FUNCTIONS, TRIGGERS, CURSORS, XML: CHECKING THE RESULTS ----------------
    Not only "it runs": results are compared with independently computed values or prepared scenarios. */
 
@@ -2266,7 +2376,8 @@ GO
 
 -- T74: a class in progress gets another teacher and room: the coming sessions follow, the past ones keep theirs
 --      Proves usp_Class_Update on CL0004 (TE0005, D1-102 -> TE0002, D1-101, both free at that time): CLASS changes,
---      every Scheduled session takes the new teacher and room, every taught or cancelled session keeps the old ones
+--      every Scheduled session from today on takes the new teacher and room (T116: a past one keeps them), every
+--      taught or cancelled session keeps the old ones
 --      (trg_CLASS_SESSION_LockTaught would refuse a change of a taught session). Rolled back.
 BEGIN TRY
     DECLARE @Name74 NVARCHAR(100), @Start74 DATE, @Max74 INT, @Tuition74 DECIMAL(12,0), @OldTeacher74 VARCHAR(10),
@@ -2468,6 +2579,68 @@ END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('T109', N'usp_PlacementTest_Add: overall score rounds half up', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T116: a new teacher for a class leaves the past sessions that are still Scheduled with the old teacher
+--       Proves step 2 of usp_Class_Update moves only the sessions from today on (decision of 2026-10-05): a session
+--       of yesterday that nobody confirmed yet was taught by the old teacher, who confirms it and is paid for it.
+--       Scenario, rolled back: CL0004 gets an unconfirmed session yesterday, then TE0002 and room D1-101.
+BEGIN TRY
+    DECLARE @Name116 NVARCHAR(100), @Start116 DATE, @Max116 INT, @Tuition116 DECIMAL(12,0), @OldTeacher116 VARCHAR(10),
+            @OldRoom116 VARCHAR(10), @Session116 INT, @PastTeacher116 VARCHAR(10), @Coming116 INT, @Moved116 INT;
+    SELECT @Name116 = ClassName, @Start116 = StartDate, @Max116 = MaxStudents, @Tuition116 = Tuition,
+           @OldTeacher116 = TeacherId, @OldRoom116 = RoomId
+    FROM dbo.CLASS WHERE ClassId = 'CL0004';
+    DECLARE @New116 TABLE (SessionId INT);
+    BEGIN TRAN;
+    INSERT INTO dbo.CLASS_SESSION (ClassId, SessionNo, SessionDate, StartTime, EndTime, RoomId, TeacherId, Status)
+    OUTPUT inserted.SessionId INTO @New116
+    SELECT 'CL0004', MAX(SessionNo) + 1, DATEADD(DAY, -1, dbo.fn_Today()), '19:00', '20:30', @OldRoom116,
+           @OldTeacher116, N'Scheduled'
+    FROM dbo.CLASS_SESSION WHERE ClassId = 'CL0004';
+    SELECT @Session116 = SessionId FROM @New116;
+    EXEC dbo.usp_Class_Update @ClassId = 'CL0004', @ClassName = @Name116, @TeacherId = 'TE0002', @RoomId = 'D1-101',
+         @StartDate = @Start116, @MaxStudents = @Max116, @Tuition = @Tuition116;
+    SELECT @PastTeacher116 = TeacherId FROM dbo.CLASS_SESSION WHERE SessionId = @Session116;
+    SELECT @Coming116 = COUNT(*), @Moved116 = SUM(CASE WHEN TeacherId = 'TE0002' AND RoomId = 'D1-101' THEN 1 ELSE 0 END)
+    FROM dbo.CLASS_SESSION
+    WHERE ClassId = 'CL0004' AND Status = N'Scheduled' AND SessionDate >= dbo.fn_Today();
+    ROLLBACK;
+    INSERT #Results VALUES ('T116', N'usp_Class_Update: a past unconfirmed session keeps its teacher', N'Succeeded',
+        CASE WHEN @PastTeacher116 = @OldTeacher116 AND @Coming116 > 0 AND @Moved116 = @Coming116
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(N'past session: ', @PastTeacher116, N' (old ', @OldTeacher116, N'), ', @Moved116, N'/', @Coming116,
+               N' coming sessions moved'));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T116', N'usp_Class_Update: a past unconfirmed session keeps its teacher', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T119: a used promotion is renamed and ended on the day of its last use
+--       Proves what usp_Promotion_Update still allows for a promotion in use: a new name and an earlier end date
+--       that keeps every enrollment inside the period (the discount of a later transfer does not change). Rolled
+--       back.
+BEGIN TRY
+    DECLARE @Type119 VARCHAR(10), @Value119 DECIMAL(12,2), @Start119 DATE, @LastUse119 DATE, @Name119 NVARCHAR(100),
+            @End119 DATE;
+    SELECT @Type119 = DiscountType, @Value119 = DiscountValue, @Start119 = StartDate
+    FROM dbo.PROMOTION WHERE PromotionId = 'PR-OPEN';
+    SELECT @LastUse119 = MAX(EnrolledOn) FROM dbo.ENROLLMENT WHERE PromotionId = 'PR-OPEN';
+    BEGIN TRAN;
+    EXEC dbo.usp_Promotion_Update @PromotionId = 'PR-OPEN', @PromotionName = N'Opening offer (ended)',
+         @DiscountType = @Type119, @DiscountValue = @Value119, @StartDate = @Start119, @EndDate = @LastUse119;
+    SELECT @Name119 = PromotionName, @End119 = EndDate FROM dbo.PROMOTION WHERE PromotionId = 'PR-OPEN';
+    ROLLBACK;
+    INSERT #Results VALUES ('T119', N'usp_Promotion_Update: a used promotion renamed and ended early', N'Succeeded',
+        CASE WHEN @Name119 = N'Opening offer (ended)' AND @End119 = @LastUse119 THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(@Name119, N', ends ', CONVERT(VARCHAR(10), @End119, 23)));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T119', N'usp_Promotion_Update: a used promotion renamed and ended early', N'Succeeded', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 
@@ -2852,6 +3025,8 @@ GO
 
 -- T29: least privilege - the table permissions of the business roles are EXACTLY those of 06_security.sql
 --      (column grants count as the table; DENY only narrows rights). A new GRANT must be added here on purpose.
+--      No business role writes a table directly: since 2026-10-05 the manager writes the catalogs through the
+--      group J procedures only, like the application (P26).
 --      @Spec = the expected matrix, @Actual = what sys.database_permissions (state G = GRANT, W = WITH GRANT OPTION)
 --      and sys.database_role_members really hold; EXCEPT in both directions lists the extra and missing rights.
 --      Only table rights, schema rights and role memberships are compared - EXECUTE/SELECT on procedures, views
@@ -2862,15 +3037,6 @@ BEGIN TRY
         (N'rl_Manager', N'MEMBER OF', N'db_datareader'), (N'rl_Manager', N'EXECUTE', N'SCHEMA::dbo'),
         (N'rl_Manager', N'SELECT', N'BRANCH'), (N'rl_Manager', N'SELECT', N'PROGRAM'),
         (N'rl_Manager', N'SELECT', N'COURSE'), (N'rl_Manager', N'SELECT', N'ROOM'),
-        (N'rl_Manager', N'INSERT', N'BRANCH'), (N'rl_Manager', N'UPDATE', N'BRANCH'),
-        (N'rl_Manager', N'INSERT', N'ROOM'), (N'rl_Manager', N'UPDATE', N'ROOM'),
-        (N'rl_Manager', N'INSERT', N'PROGRAM'), (N'rl_Manager', N'UPDATE', N'PROGRAM'),
-        (N'rl_Manager', N'INSERT', N'COURSE'), (N'rl_Manager', N'UPDATE', N'COURSE'),
-        (N'rl_Manager', N'INSERT', N'GRADE_COMPONENT'), (N'rl_Manager', N'UPDATE', N'GRADE_COMPONENT'),
-        (N'rl_Manager', N'DELETE', N'GRADE_COMPONENT'),
-        (N'rl_Manager', N'INSERT', N'EMPLOYEE'), (N'rl_Manager', N'UPDATE', N'EMPLOYEE'),
-        (N'rl_Manager', N'INSERT', N'TEACHER'), (N'rl_Manager', N'UPDATE', N'TEACHER'),
-        (N'rl_Manager', N'INSERT', N'PROMOTION'), (N'rl_Manager', N'UPDATE', N'PROMOTION'),
         (N'rl_AcademicStaff', N'SELECT', N'BRANCH'), (N'rl_AcademicStaff', N'SELECT', N'PROGRAM'),
         (N'rl_AcademicStaff', N'SELECT', N'COURSE'), (N'rl_AcademicStaff', N'SELECT', N'ROOM'),
         (N'rl_AcademicStaff', N'SELECT', N'GRADE_COMPONENT'), (N'rl_AcademicStaff', N'SELECT', N'PLACEMENT_TEST'),
@@ -3509,6 +3675,25 @@ END TRY
 BEGIN CATCH
     REVERT;
     INSERT #Results VALUES ('P25', N'Teacher reads the grade book of another class', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P26: the manager changes a course directly in SSMS instead of through usp_Course_Update
+--      Proves that no business role writes a catalog table directly (decision of 2026-10-05): the rules that live
+--      only in the group J procedures (50092-50098, 50110-50111) cannot be skipped. The permission error names the
+--      table.
+BEGIN TRY
+    BEGIN TRAN;
+    EXECUTE AS USER = N'ql_quan';
+    UPDATE dbo.COURSE SET Status = N'Discontinued' WHERE CourseId = 'IE-55';
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P26', N'Manager writes a catalog table directly', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P26', N'Manager writes a catalog table directly', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 

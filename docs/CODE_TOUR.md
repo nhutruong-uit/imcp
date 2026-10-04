@@ -255,12 +255,13 @@ case proves it. Use this table to find the code behind a rule during the defense
 | A student with an enrollment history is never deleted | - | `usp_Student_Delete` | `T41` |
 | A class whose students paid cannot be cancelled | - | `usp_Class_UpdateStatus` | `T42` |
 | A class goes Enrolling → In progress → Finished or Cancelled, never back (a new class instead); cancelling closes its enrollments | - | `usp_Class_UpdateStatus` | `T54`, `T55` |
-| A changed class keeps at least its enrolled students, moves its start date only while it is enrolling and no session took place (also past its old end date), and its new teacher or room is checked for clashes | - | `usp_Class_Update`, `trg_CLASS_SCHEDULE_CheckConflict` fired again | `T72`, `T73`, `T74`, `T83`, `T101`, `T102`, `T114` |
+| A changed class keeps at least its enrolled students, moves its start date only while it is enrolling and no session took place (also past its old end date), and its new teacher or room is checked for clashes and applies to the sessions from today on | - | `usp_Class_Update`, `trg_CLASS_SCHEDULE_CheckConflict` fired again | `T72`, `T73`, `T74`, `T83`, `T101`, `T102`, `T114`, `T116` |
 | Only the timetable of an Enrolling or In progress class changes | - | `usp_ClassSchedule_Add`, `usp_ClassSchedule_Remove` | `T75`, `T94`, `T112` |
 | A student is Completed after the last class, Studying again with the next enrollment | - | `usp_Class_EvaluateResults`, `usp_Enrollment_Create` | `T71` |
 | Phone numbers have 9-11 digits | `Student::validate`, digits-only fields | `CK_STUDENT_Phone` | `T02` |
 | No double enrollment in a class | - | `usp_Enrollment_Create`, `UQ_ENROLLMENT_StudentId_ClassId` | `T03` |
 | Entry requirement (prerequisite course or placement score) | - | `usp_Enrollment_Create` | `T04`, `T33`, `T65` |
+| An enrollment or a receipt is never dated in the future (attendance counts from the enrollment date) | `EnrollmentRequest::validate`, date field limit | `usp_Enrollment_Create`, `usp_Receipt_Create` | `T120`, `T121` |
 | A student cannot take two classes at the same time, also when a class gets a new slot or start date | - | `fn_StudentScheduleClash` in `usp_Enrollment_Create`, `usp_Enrollment_TransferClass`, `usp_Enrollment_UpdateStatus`, `usp_ClassSchedule_Add`, `usp_Class_Update` | `T05`, `T34`, `T52`, `T105`, `T111` |
 | A completed enrollment keeps its status (grade and result come from the evaluation) | - | `usp_Enrollment_UpdateStatus` | `T53` |
 | Amount paid = sum of valid receipts, never above the tuition | - | `trg_RECEIPT_UpdateAmountPaid` | `T06`, `T20` |
@@ -288,14 +289,15 @@ case proves it. Use this table to find the code behind a rule during the defense
 | Only academic staff and managers edit students | `Permissions::canEditStudents` | `GRANT EXECUTE` on `usp_Student_*` | end-to-end test |
 | Usernames use letters without diacritics, digits, `.` and `_` | - | `usp_Account_Create` | `T36` |
 | No account for an employee or teacher who has left | - | `usp_Account_Create` | `T62` |
-| A paid payroll row is final; a deduction never makes the pay negative, also when a month is finalized again with a lower rate | - | `usp_Payroll_Adjust`, `usp_Payroll_MarkPaid`, `CK_PAYROLL_Deduction` | `T80`, `T81`, `T82`, `T103`, `T113` |
+| A paid payroll row is final and only a month that has ended is paid; a deduction never makes the pay negative, also when a month is finalized again with a lower rate | - | `usp_Payroll_Adjust`, `usp_Payroll_MarkPaid`, `CK_PAYROLL_Deduction` | `T80`, `T81`, `T82`, `T103`, `T113`, `T115` |
+| A promotion in use keeps its discount and start date and does not end before its last use | - | `usp_Promotion_Update` | `T117`, `T118`, `T119` |
 | Catalog codes are new and use letters, digits, `-` and `_` only | `Fields::code` (input validator) | `usp_Branch_Add`, `usp_Room_Add`, `usp_Program_Add`, `usp_Course_Add`, `usp_Promotion_Add` | `T84`, `T95` |
 | A branch or course used by an active class is not suspended or discontinued | - | `usp_Branch_Update`, `usp_Course_Update` | `T85`, `T89` |
 | The prerequisites of the courses never form a loop | - | `usp_Course_Update` (recursive CTE) | `T90` |
 | A syllabus follows the XML schema of the center | - | `xsc_CourseSyllabus` (typed XML), `usp_Course_SetSyllabus` | `T91` |
 | A grade component with scores is not deleted, and no component moves to another course | - | `usp_GradeComponent_Delete`, `usp_GradeComponent_Save` | `T93`, `T104` |
 | A teacher or employee still needed (active class, active account) does not leave | - | `usp_Teacher_Update`, `usp_Employee_Update` | `T98`, `T110` |
-| Only the manager changes the catalogs; the accountant changes no class | menu and buttons (`Permissions::canEdit`) | no `GRANT EXECUTE` on the group J procedures for the other roles; `usp_Class_Update` granted to academic staff | `P22`, `P23` |
+| Only the manager changes the catalogs, and only through the procedures; the accountant changes no class | menu and buttons (`Permissions::canEdit`) | no `GRANT EXECUTE` on the group J procedures for the other roles, no table write right for any role; `usp_Class_Update` granted to academic staff | `P22`, `P23`, `P26`, `T29` |
 | Texts fit their columns (no silent cut) | `Student::validate`, field lengths | column sizes | `tst_domain` |
 
 ## 7. Glossary

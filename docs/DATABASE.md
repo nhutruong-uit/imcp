@@ -89,7 +89,7 @@ objects without table permissions.
 
 | Role | Application role | What it can do | Explicitly denied |
 |---|---|---|---|
-| `rl_Manager` (`MANAGER`) | Manager | Read all tables (`db_datareader`), `EXECUTE` on every procedure in `dbo` (the catalog screens write through the group J procedures `usp_Branch_Add` ... `usp_Promotion_Update`), insert/update on the catalog tables for SSMS maintenance (branches, rooms, programs, courses, grade components - also delete -, employees, teachers, promotions; guarded by `trg_ROOM_CheckClasses` and `trg_GRADE_COMPONENT_Lock`), account administration, backup | `UPDATE`/`DELETE` on `AUDIT_LOG` (audit log is append-only even for managers); `DELETE` on `RECEIPT` |
+| `rl_Manager` (`MANAGER`) | Manager | Read all tables (`db_datareader`), `EXECUTE` on every procedure in `dbo` (the catalog screens write through the group J procedures `usp_Branch_Add` ... `usp_Promotion_Update`), account administration, backup; no insert/update/delete right on a table - like every business role, the manager writes the catalogs only through the group J procedures, which hold rules a direct write would skip (P26) | `UPDATE`/`DELETE` on `AUDIT_LOG` (audit log is append-only even for managers); `DELETE` on `RECEIPT` |
 | `rl_AcademicStaff` (`ACADEMIC_STAFF`) | Academic staff | Student/class/schedule/enrollment/attendance/grade procedures (including `usp_Class_Update`, the enrollment and placement test searches and the grade book `usp_Grade_ByClass`), views of students, classes, sessions, results and balances, teacher list (column-level: no hourly rate) | `SELECT` on `PAYROLL`; `EXECUTE` on `usp_Receipt_Create` (cannot collect money) |
 | `rl_Accountant` (`ACCOUNTANT`) | Accountant | Balances, revenue, receipts (`usp_Receipt_Search`, collect, cancel, print), payroll (`PAYROLL`, `usp_Payroll_Finalize`, `usp_Payroll_Adjust`, `usp_Payroll_MarkPaid`), read-only student and enrollment search | `EXECUTE` on `usp_Grade_Save` and `usp_Enrollment_Create` (cannot change grades or enroll) |
 | `rl_Teacher` (`TEACHER`) | Teacher | Only the five `vw_Teacher_My*` views (my classes, students, schedule, grades, pay, filtered by the logged-in teacher), grades for own classes, attendance and `usp_Session_Update` for the sessions they teach, `usp_Course_Syllabus` (read a course syllabus) | `SELECT` on `STUDENT`, `RECEIPT`, `PAYROLL` (`DENY` overrides any `GRANT`) |
@@ -118,7 +118,7 @@ run `usp_Account_RecordLogin` and `usp_Account_ChangePassword`, and read the cat
 | Menu / form / report | Qt application: role-based menu, Qt Designer forms, PDF reports with header/footer/totals | `src/presentation` |
 | Distributed database | Horizontal fragmentation by branch, replicated catalog tables, distributed view, completeness/disjointness check | `11_distributed_demo.sql` |
 | Object-oriented DB, NoSQL | Model conversion and comparison | report Ch.7 |
-| Automated database tests | 139 cases: `T01`-`T27`, `T31`, `T33`-`T65` and `T67`-`T114` (integrity constraints and business rules, functions, triggers, cursors, XML, UTC times, class changes, catalogs, payroll, receipts), `T28`-`T30`, `T32` and `T66` (schema conventions: naming, least-privilege permission matrix, `SET NOCOUNT ON` / no `SELECT *`, time conventions, ID sequence limits) and `P01`-`P25` (permissions, via `EXECUTE AS USER`); every case that writes runs in a transaction that is rolled back | `12_tests.sql` |
+| Automated database tests | 147 cases: `T01`-`T27`, `T31`, `T33`-`T65` and `T67`-`T121` (integrity constraints and business rules, functions, triggers, cursors, XML, UTC times, class changes, catalogs, payroll, receipts), `T28`-`T30`, `T32` and `T66` (schema conventions: naming, least-privilege permission matrix, `SET NOCOUNT ON` / no `SELECT *`, time conventions, ID sequence limits) and `P01`-`P26` (permissions, via `EXECUTE AS USER`); every case that writes runs in a transaction that is rolled back | `12_tests.sql` |
 | Automated server-level tests | 20 cases `S01`-`S20`: backup chain + restore into a new database (contained users sign in to the copy), `usp_Backup` (and its input checks), BULK INSERT of the sample CSV, fragmentation/replication/partition elimination/linked server for `11_distributed_demo.sql`, account lockout and password reset with real sign-ins through a loopback linked server | `13_server_tests.sql` |
 
 `db_init` runs scripts `00`-`07` (create database, tables, functions, views, procedures, triggers, security, seed
@@ -132,12 +132,14 @@ data). Scripts `08`-`11` are demonstrations to run by hand; `12` and `13` are th
 2. A class's room belongs to the same branch as the class; the maximum class size must not exceed the room capacity
    (checked when the class changes and when the room changes).
 3. No room or teacher double-booking between active classes; a student cannot attend two classes that overlap in time
-   (checked when enrolling, when transferring to another class and when an enrollment resumes). Until its sessions
+   (checked when enrolling, when transferring to another class, when an enrollment resumes and when a class gets a new
+   weekly slot or start date). Until its sessions
    are generated, a class is assumed to last SessionCount weeks (`fn_ClassPeriod`), which never misses a clash.
 4. Enrollment: the class must be open and have free seats; the student must have passed the prerequisite course
    **or** reached the required placement-test score (a course without a minimum score accepts only the prerequisite).
+   An enrollment may be dated in the past (a form typed later) but never in the future.
 5. Amount paid = sum of valid receipts (trigger); payment cannot exceed tuition; receipts are never deleted, only
-   cancelled with a reason. A transfer goes to another class of the same course **and branch** (the revenue of a
+   cancelled with a reason, and never dated in the future. A transfer goes to another class of the same course **and branch** (the revenue of a
    receipt belongs to the branch of its class, so it never moves) and applies the tuition of the new class (refused
    while the student has paid more than that).
 6. Grades are 0-10 and must belong to a grade component of the course; a teacher can only enter grades for their own
@@ -149,7 +151,8 @@ data). Scripts `08`-`11` are demonstrations to run by hand; `12` and `13` are th
    enrollment can receive a certificate (re-evaluating a class withdraws the certificate of a student who no longer
    passes). A class is evaluated only when none of its sessions is still scheduled.
 8. A session is marked taught only on or after its date and then stays taught; a taught session cannot change
-   time/room/teacher (this keeps payroll data correct).
+   time/room/teacher (this keeps payroll data correct). A new teacher or room of a class applies to its sessions from
+   today on: a past session keeps the teacher who taught it.
 9. The audit log is append-only (INSTEAD OF UPDATE, DELETE, plus `DENY` even for managers).
 10. A class goes Enrolling → In progress → Finished (set by the evaluation), or is Cancelled; it never reopens - the
     center opens a new class instead. Cancelling is refused while students hold valid receipts and closes the other
@@ -157,6 +160,10 @@ data). Scripts `08`-`11` are demonstrations to run by hand; `12` and `13` are th
 11. A student is Prospective until the first enrollment, Studying while taking a class, Completed when the last class
     is evaluated (Studying again with the next enrollment), On hold or Dropped out when the enrollments are put on
     hold or left.
+12. Payroll: a deduction never exceeds the pay of the month (`TotalPay` ≥ 0, also when a month is finalized again
+    with a lower rate); a month is marked paid only after it has ended, and a paid row never changes.
+13. A promotion that enrollments use keeps its discount and start date (a class transfer applies it again), and its end
+    date never moves before the last enrollment that used it.
 
 ## 7. Time: UTC instants and center dates
 
