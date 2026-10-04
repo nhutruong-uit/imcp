@@ -25,6 +25,9 @@ CODE_TITLE_BG = "E7ECF5"
 CODE_BG = "F7F7F7"
 INLINE_CODE = "C7254E"
 PAGE_WIDTH_TWIPS = 9070  # A4, 2.5 cm left/right margins
+# A longer caption wraps to a second line in the list of figures: the longest one that still fit had 70
+# characters, 60 leaves room for wide letters and two-digit figure numbers
+FIGURE_CAPTION_MAX = 60
 
 SQL_KEYWORDS = set("""
 ADD AFTER ALL ALTER AND APPLY AS ASC AUTHORIZATION BACKUP BEGIN BETWEEN BREAK BY CASCADE CASE CATCH CHECK CLOSE
@@ -122,6 +125,13 @@ def _add_field(paragraph, instr: str, placeholder: str = "") -> None:
     fld = OxmlElement("w:fldChar")
     fld.set(qn("w:fldCharType"), "end")
     run._r.append(fld)
+
+
+def _check_figure_caption(caption: str) -> None:
+    """Stops the build on a caption that would take two lines in the list of figures."""
+    if len(caption) > FIGURE_CAPTION_MAX:
+        raise ValueError(f"Figure caption longer than {FIGURE_CAPTION_MAX} characters ({len(caption)}), it wraps in "
+                         f"the list of figures - shorten it: {caption}")
 
 
 def _para_format(p, after=120, line=276, first_line=284, align="both", before=0, keep_next=False):
@@ -431,6 +441,7 @@ class Report:
 
     # ----- figures
     def figure(self, path: Path, caption: str, width_cm: float = 15.5):
+        _check_figure_caption(caption)
         p = self.doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.paragraph_format.keep_with_next = True
