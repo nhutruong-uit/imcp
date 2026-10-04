@@ -184,6 +184,23 @@ def chapter2(g):
         "ngừng (chạy sẽ báo *This version of the installer is no longer supported*); máy đã có sẵn SQL Server "
         "2012-2022 thì dùng luôn. Bản Express tạo instance tên `SQLEXPRESS` (địa chỉ `localhost\\SQLEXPRESS`); bản "
         "Developer tạo instance mặc định (địa chỉ `localhost`).")
+    g.p("Chạy file vừa tải, bấm **Yes** khi Windows hỏi quyền quản trị. Màn hình **Select an installation type** có "
+        "ba lựa chọn:")
+    g.bullets([
+        "**Basic** (khuyên dùng): chỉ qua hai trang - **Microsoft SQL Server License Terms** (bấm **Accept**) và "
+        "**Specify SQL Server install location** (giữ thư mục, bấm **Install**). Kiểu này không hỏi chế độ xác thực "
+        "nên chỉ bật Windows Authentication: bật Mixed Mode sau khi cài bằng hai lệnh ở dưới.",
+        "**Custom**: trang **Specify SQL Server media download target location** tải bộ cài (khoảng 1,3 GB), rồi "
+        "mở **SQL Server Installation Center**; chọn **Installation > New SQL Server standalone installation or add "
+        "features to an existing installation** và bấm **Next** qua từng trang (cảnh báo **Windows Firewall** ở "
+        "trang **Install Rules** là bình thường; trang **Edition** giữ bản miễn phí **Standard Developer**). Ở trang "
+        "**Azure Extension for SQL Server**, **bỏ dấu tick** ở ô *Azure Extension for SQL Server*: ô này được tick "
+        "sẵn và bắt nhập thông tin Azure, để nguyên thì **Next** báo *There are validation errors on this page*. Ở "
+        "trang **Feature Selection** chỉ cần tick **Database Engine Services** (không cần các mục con); trình hướng "
+        "dẫn thêm các trang **Instance Configuration**, **Server Configuration** và **Database Engine "
+        "Configuration** - chọn Mixed Mode ở trang cuối này.",
+        "**Download Media**: chỉ tải bộ cài để cài trên máy khác.",
+    ])
     g.p("Ứng dụng đăng nhập bằng **tài khoản SQL Server** (không phải tài khoản Windows), nên máy chủ **bắt buộc** "
         "bật chế độ **Mixed Mode** (*SQL Server and Windows Authentication mode*). Cài theo mặc định (kiểu "
         "**Basic**, hoặc bằng `setup_dev.ps1`) thì SQL Server **chỉ bật Windows Authentication**: CSDL vẫn khởi "
@@ -201,13 +218,6 @@ def chapter2(g):
            "sqlcmd -S localhost -E -C -h -1 -Q \"SELECT SERVERPROPERTY('IsIntegratedSecurityOnly')\"", lang="text")
     g.p("Bản Express: thay `localhost` bằng `localhost\\SQLEXPRESS` và `MSSQLSERVER` bằng `'MSSQL$SQLEXPRESS'`. "
         "Tài khoản `sa` vẫn bị khóa; các tài khoản demo nằm trong CSDL `QLTTTA` nên không cần `sa`.")
-    g.placeholder("Các bước chi tiết của trình cài SQL Server 2025 Express/Developer bằng giao diện: chọn kiểu "
-                  "cài Basic hay Custom, màn hình Instance Configuration (tên instance), Database Engine "
-                  "Configuration (Mixed Mode, mật khẩu sa, Add Current User).")
-    g.figure_or_placeholder(WINDOWS_IMAGES / "sql_server_authentication_mode.png",
-                            "Chọn chế độ xác thực Mixed Mode khi cài SQL Server",
-                            "màn hình Database Engine Configuration > Server Configuration của trình cài SQL "
-                            "Server, đang chọn Mixed Mode.")
 
     g.h3("2.3.2. Cài công cụ quản trị và driver")
     g.bullets([
@@ -236,9 +246,12 @@ def chapter2(g):
         "Configuration Manager** (với SQL Server 2025 có thể gõ `SQLServerManager17.msc` trong hộp **Run**, "
         "`Win + R`) > **SQL Server Network Configuration > Protocols for MSSQLSERVER** (hoặc **SQLEXPRESS**), bật "
         "**TCP/IP**, rồi khởi động lại dịch vụ **SQL Server** trong mục **SQL Server Services**.")
-    g.placeholder("Xác nhận trên Windows các bước bật TCP/IP trong SQL Server Configuration Manager; có cần bật "
-                  "dịch vụ SQL Server Browser để máy khác dùng địa chỉ `<tên máy>\\SQLEXPRESS` không; có cần đặt "
-                  "cổng cố định 1433 (tab IP Addresses > IPAll) khi máy khác kết nối tới không.")
+    g.p("Instance mặc định của bản Developer đã đặt sẵn **cổng cố định 1433** (tab **IP Addresses > IPAll**: "
+        "**TCP Port** = `1433`, **TCP Dynamic Ports** để trống), nên sau khi bật TCP/IP máy khác kết nối bằng "
+        "`<IP>,1433` mà không cần đổi cổng hay bật SQL Server Browser.")
+    g.placeholder("Xác nhận trên Windows các bước bật TCP/IP trong SQL Server Configuration Manager (giao diện); "
+                  "với bản Express (instance có tên, mặc định dùng cổng động): có cần bật SQL Server Browser hoặc đặt "
+                  "cổng cố định 1433 khi máy khác kết nối tới không.")
     g.figure_or_placeholder(WINDOWS_IMAGES / "sql_configuration_manager_tcpip.png",
                             "Bật giao thức TCP/IP trong SQL Server Configuration Manager",
                             "SQL Server Configuration Manager, mục Protocols for SQLEXPRESS, TCP/IP = Enabled.")
@@ -323,18 +336,19 @@ def chapter3(g):
     ])
     g.p("Bộ cài tạo mục **QLTTTA** và **Installation guide** (hướng dẫn ngắn bằng tiếng Anh) trong menu Start. "
         "Cài cho riêng người dùng hiện tại thì ứng dụng nằm ở `%LOCALAPPDATA%\\Programs\\QLTTTA` và không cần "
-        "quyền Administrator.")
+        "quyền Administrator. Chọn **Install for all users** thì Windows hỏi quyền Administrator (UAC), ứng dụng "
+        "nằm ở `C:\\Program Files\\QLTTTA` và mục **QLTTTA** có trong menu Start của mọi tài khoản trên máy.")
     g.tip("Cài không hiện hộp thoại (ví dụ cài sẵn cho nhiều máy phòng thực hành), cho riêng người dùng, không tạo "
           f"biểu tượng ngoài màn hình: `QLTTTA-{version}-windows-x64-setup.exe /VERYSILENT /CURRENTUSER "
-          "/MERGETASKS=\"!desktopicon\"`. Gỡ im lặng: `unins000.exe /VERYSILENT` trong thư mục cài.")
-    g.placeholder("Kiểm tra trên Windows thư mục cài mặc định khi chọn **Install for all users** (dự kiến "
-                  "`C:\\Program Files\\QLTTTA`, cần quyền Administrator).")
+          "/MERGETASKS=\"!desktopicon\"` (cho mọi người dùng: thay `/CURRENTUSER` bằng `/ALLUSERS`, cần quyền "
+          "Administrator). Gỡ im lặng: `unins000.exe /VERYSILENT` trong thư mục cài.")
     g.figure_or_placeholder(WINDOWS_IMAGES / "installer_smartscreen.png",
                             "Cảnh báo SmartScreen khi chạy bộ cài",
-                            "hộp thoại Windows protected your PC sau khi bấm More info (thấy nút Run anyway).")
+                            "hộp thoại Windows protected your PC sau khi bấm More info (thấy nút Run anyway).",
+                            width_cm=9.5)
     g.figure_or_placeholder(WINDOWS_IMAGES / "installer_finish.png",
                             "Bước cuối của bộ cài QLTTTA trên Windows",
-                            "màn hình cuối của bộ cài QLTTTA (Launch QLTTTA, nút Finish).")
+                            "màn hình cuối của bộ cài QLTTTA (Launch QLTTTA, nút Finish).", width_cm=12.5)
 
     g.h3("3.3.2. Dùng bản portable")
     g.p(f"Giải nén `QLTTTA-{version}-windows-x64-portable.zip` vào một thư mục bất kỳ (ví dụ `D:\\QLTTTA`) "
@@ -358,7 +372,9 @@ def chapter3(g):
     g.p("Gỡ cài đặt xóa thư mục ứng dụng và các mục trong menu Start nhưng **giữ lại cấu hình** đã lưu trong "
         "registry, nên cài lại vẫn nhớ máy chủ cũ. Muốn xóa hẳn cấu hình (Windows), chạy trong PowerShell:")
     g.code("PowerShell (Windows)", "Remove-Item -Path 'HKCU:\\Software\\UIT-IE103\\QLTTTA' -Recurse", lang="text")
-    g.placeholder("Xác nhận trên Windows đường dẫn gỡ cài đặt trong Settings (Windows 10 và 11 khác nhau).")
+    g.p("Trên Windows 11, trang gỡ ứng dụng là **Settings > Apps > Installed apps** (mở nhanh bằng lệnh "
+        "`start ms-settings:appsfeatures`): tìm **QLTTTA**, bấm nút **...** bên phải rồi chọn **Uninstall**.")
+    g.placeholder("Xác nhận đường dẫn gỡ cài đặt trên Windows 10 (dự kiến **Settings > Apps > Apps & features**).")
 
     g.h2("3.5. Chạy từ mã nguồn (dành cho nhóm phát triển)")
     g.p("Thành viên nhóm có thể build ứng dụng bằng Qt 6, CMake và Ninja thay vì dùng bộ cài. Script "
