@@ -8,9 +8,11 @@ Usage:
 The content lives in chapters/ (one file per group of chapters). It reuses the report template and library
 (docs/report/template, docs/report/report_lib.py) and the screenshots of tools/qlttta_screenshots
 (docs/report/images/screens). Menu entries per role, demo accounts and the version are read from the source code.
-Parts not written yet are g.placeholder(...) calls (yellow boxes, listed in appendix B); Windows screenshots taken
-by hand go to images/windows/ and replace their placeholder on the next run.
+Parts not written yet are g.placeholder(...) calls (yellow boxes, listed in appendix B); Windows screenshots
+(tools/capture_installer.ps1, tools/capture_window.ps1) go to images/windows/ and replace their placeholder on the
+next run.
 Export the PDF on macOS: ./docs/report/tools/export_pdf.sh docs/user-guide/QLTTTA_User_Guide.docx
+Export the PDF on Windows: ./docs/report/tools/export_pdf.ps1 docs/user-guide/QLTTTA_User_Guide.docx
 --submission reads the real student IDs from docs/report/student_ids.local.json (not committed, see
 docs/report/build_report.py) and writes QLTTTA_User_Guide_submission.docx (not committed either).
 Requires: pip install python-docx

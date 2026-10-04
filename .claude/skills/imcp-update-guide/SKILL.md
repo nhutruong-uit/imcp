@@ -64,10 +64,16 @@ appendix B). List them with `grep -n "placeholder(" docs/user-guide/chapters/*.p
 - Fill one in only after **checking it on that platform**: run the command, go through the installer/dialog, note
   the exact button names and paths. Replace the call with real content (`g.p`, `g.steps`, `g.bullets`, `g.code`,
   `g.table`, `g.tip`, `g.warning`). If something cannot be checked now, keep the placeholder and say so.
-- Screenshots of non-app windows (installers, SmartScreen, SQL Server tools, Docker Desktop) are taken by the user
-  (Windows: `Win+Shift+S`, saved as PNG) to `docs/user-guide/images/windows/<file name shown in the box>`; the
-  `g.figure_or_placeholder(...)` call shows them on the next build. Never click system or permission dialogs
-  yourself.
+- Screenshots of non-app windows go to `docs/user-guide/images/windows/<file name shown in the box>`; the
+  `g.figure_or_placeholder(...)` call shows them on the next build. `.\docs\user-guide\tools\capture_window.ps1
+  -List` lists the expected images and which are missing.
+  - The QLTTTA installer (Windows): run `.\docs\user-guide\tools\capture_installer.ps1` yourself after
+    `.\scripts\package.ps1` - it installs for the current user only (no UAC), clicks through the wizard, saves
+    `installer_finish.png` and every page with its texts in `build\installer-pages\` (check the button names quoted
+    in chapter 3 there), then uninstalls. Tell the user beforehand not to click the window.
+  - Other windows (SmartScreen, SQL Server installer, Configuration Manager, SSMS, Docker Desktop): the user opens
+    the window, runs `.\docs\user-guide\tools\capture_window.ps1 -Name <file name without .png>` and clicks the
+    window within 5 s (macOS: `Cmd+Shift+4`, Space). Never click system or permission dialogs yourself.
 - When a Windows command differs from the macOS one, show both (`g.code("PowerShell (Windows)", ...)`).
 
 ## 4. Edit the content
