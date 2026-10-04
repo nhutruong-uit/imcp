@@ -43,7 +43,7 @@ def chapter5(r):
         ["TEACHER (mức cột)", "✔ tất cả", "Không có HourlyRate", "TeacherId, FullName, HourlyRate...", "—"],
         ["View học viên, lớp, công nợ", "✔", "✔", "✔", "—"],
         ["View vw_Teacher_My* (lớp của tôi)", "—", "—", "—", "✔ (lọc theo USER_NAME())"],
-        ["usp_Student_*, usp_Enrollment_*, usp_Class_*", "✔", "✔", "Chỉ tìm kiếm; DENY usp_Enrollment_Create", "—"],
+        ["`usp_Student_*`, `usp_Enrollment_*`, `usp_Class_*`", "✔", "✔", "Chỉ tìm kiếm; DENY usp_Enrollment_Create", "—"],
         ["usp_Receipt_*, usp_Payroll_Finalize", "✔", "DENY usp_Receipt_Create", "✔", "—"],
         ["usp_Attendance_Save, usp_Grade_Save", "✔", "✔", "DENY usp_Grade_Save", "✔ (chỉ lớp mình)"],
         ["usp_Account_Create/_Lock, usp_Backup", "✔", "—", "—", "—"],

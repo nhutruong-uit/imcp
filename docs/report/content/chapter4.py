@@ -98,7 +98,7 @@ def chapter4(r):
         ["Học phí", "usp_Receipt_Create, _Cancel, _Print, _Search", "Kết hợp trigger dẫn xuất, hủy mềm (soft delete)"],
         ["Học vụ", "usp_PlacementTest_Add/_Search, usp_Attendance_Save/_BySession, usp_Grade_Save/_ByClass, usp_Class_EvaluateResults", "Kiểm tra quyền theo người đăng nhập, CURSOR, LEFT JOIN trên khóa ghép"],
         ["Lương", "usp_Payroll_Finalize, _Adjust, _MarkPaid", "CURSOR trên truy vấn gom nhóm, cột tính toán PERSISTED"],
-        ["Danh mục", "usp_Branch_*, usp_Room_*, usp_Program_*, usp_Course_* (Add, Update, SetSyllabus), usp_GradeComponent_Save/_Delete, usp_Employee_*, usp_Teacher_*, usp_Promotion_*", "CTE đệ quy chặn vòng lặp khóa tiên quyết, XML có kiểu (XSD), SEQUENCE + OUTPUT"],
+        ["Danh mục", "`usp_Branch_*`, `usp_Room_*`, `usp_Program_*`, `usp_Course_*` (Add, Update, SetSyllabus), usp_GradeComponent_Save/_Delete, `usp_Employee_*`, `usp_Teacher_*`, `usp_Promotion_*`", "CTE đệ quy chặn vòng lặp khóa tiên quyết, XML có kiểu (XSD), SEQUENCE + OUTPUT"],
         ["Báo cáo", "usp_Dashboard_Stats, usp_Report_Revenue, usp_Report_ClassResults", "Truy vấn con vô hướng, gom nhóm"],
         ["XML", "usp_Course_FindBySkill, usp_Course_Syllabus, usp_Teacher_FindByCertificate, usp_Student_ExportXml/_ImportXml", "XQuery, FOR XML PATH, .nodes()"],
         ["Bảo mật", "usp_Account_Create, _Lock, _ResetPassword, _ChangePassword, _RecordLogin, _List, usp_Backup", "Dynamic SQL an toàn, EXECUTE AS OWNER, BACKUP"],

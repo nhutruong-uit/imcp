@@ -157,8 +157,8 @@ def chapter2(r):
         ["Học vụ", "Xác nhận buổi dạy, điểm danh, nhập điểm, xét kết quả", "usp_Session_Update, usp_Attendance_Save, usp_Grade_Save, usp_Class_EvaluateResults"],
         ["Lương", "Chốt lương tháng, khấu trừ, xác nhận đã chi trả", "usp_Payroll_Finalize (cursor), usp_Payroll_Adjust, usp_Payroll_MarkPaid"],
         ["Danh mục", "Chi nhánh, phòng học, chương trình, khóa học (giáo trình XML, cột điểm), nhân viên, giáo viên, khuyến mãi",
-         "usp_Branch_*, usp_Room_*, usp_Program_*, usp_Course_*, usp_GradeComponent_*, usp_Employee_*, usp_Teacher_*, usp_Promotion_*"],
-        ["Báo cáo", "Tổng quan, doanh thu, kết quả lớp, lịch dạy", "usp_Dashboard_Stats, usp_Report_*, fn_MonthlyRevenue, vw_*"],
+         "`usp_Branch_*`, `usp_Room_*`, `usp_Program_*`, `usp_Course_*`, `usp_GradeComponent_*`, `usp_Employee_*`, `usp_Teacher_*`, `usp_Promotion_*`"],
+        ["Báo cáo", "Tổng quan, doanh thu, kết quả lớp, lịch dạy", "usp_Dashboard_Stats, `usp_Report_*`, fn_MonthlyRevenue, `vw_*`"],
         ["Hệ thống", "Đăng nhập, đổi mật khẩu, tạo/khóa tài khoản, sao lưu", "Contained user, usp_Account_*, usp_Backup"],
     ], widths_cm=[2.6, 6.4, 7.0], caption="Yêu cầu chức năng và đối tượng CSDL tương ứng", size=10)
 
