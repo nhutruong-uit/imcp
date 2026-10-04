@@ -13,7 +13,8 @@ There are three levels of use; pick the one that fits you:
 ## 1. SQL Server and database initialization (required for every level)
 
 ### Windows
-1. Install **SQL Server 2022 Developer** or **Express** (free) and **SSMS**.
+1. Install **SQL Server 2025 Developer** or **Express** (free) and **SSMS**. An instance of SQL Server 2022 or older
+   (2012+) works too; Microsoft no longer offers the 2022 web installer.
 2. Initialize the database in one of two ways:
    - PowerShell in the repo folder: `.\scripts\db_init.ps1` (Windows Authentication), or
      `.\scripts\db_init.ps1 -Server "localhost\SQLEXPRESS"` for the Express edition. SQL Server authentication:
@@ -21,6 +22,19 @@ There are three levels of use; pick the one that fits you:
      PowerShell history); sqlcmd inside a Docker container: `-Docker imcp-mssql`.
    - Or open SSMS and run `database/00_create_database.sql` → `07_seed_data.sql` in order
      (SQLCMD Mode under *Query > SQLCMD Mode* is not required).
+3. The demo accounts sign in with **SQL Server Authentication**, so the instance must run in mixed mode
+   (*SQL Server and Windows Authentication mode*). An instance installed with the defaults (e.g. by `setup_dev.ps1`)
+   accepts Windows Authentication only: switch it in SSMS (*server Properties > Security*) or with the commands
+   below in a PowerShell opened **as administrator**, which restart the service:
+   ```powershell
+   sqlcmd -S localhost -E -C -Q "EXEC xp_instance_regwrite N'HKEY_LOCAL_MACHINE', N'Software\Microsoft\MSSQLServer\MSSQLServer', N'LoginMode', REG_DWORD, 2"
+   Restart-Service MSSQLSERVER     # Express: -S localhost\SQLEXPRESS and Restart-Service 'MSSQL$SQLEXPRESS'
+   sqlcmd -S localhost -E -C -h -1 -Q "SELECT SERVERPROPERTY('IsIntegratedSecurityOnly')"   # 0 = mixed mode is on
+   ```
+4. A new Developer/Express instance has **TCP/IP turned off**: the app then connects with the server name
+   `localhost` (or `localhost\SQLEXPRESS`), not with its default `localhost,1433`. Turn TCP/IP on (*SQL Server
+   Configuration Manager > SQL Server Network Configuration > Protocols for MSSQLSERVER > TCP/IP*, then restart the
+   service) only when other computers must connect.
 
 ### macOS (Apple Silicon) / Linux
 SQL Server runs in Docker:
@@ -94,7 +108,7 @@ language chosen last in the app).
 ### One-command setup (recommended)
 `scripts/setup_dev` checks the machine and installs only what is missing: the toolchain of the manual steps below,
 clang-format of the team version (through `pipx`), SQL Server (macOS: a Docker container; Windows: the installed
-instance, a running container or SQL Server 2022 Developer) and the recommended VS Code extensions. It then
+instance, a running container or SQL Server 2025 Developer) and the recommended VS Code extensions. It then
 initializes the database, signs in as a demo account and runs `test_all`. It is safe to re-run. In Claude Code, type
 `/imcp-setup`: it runs the script, asks before installing anything and explains what is left to do.
 ```bash

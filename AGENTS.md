@@ -60,6 +60,18 @@ cmake --preset macos-debug -DQLTTTA_BUILD_TOOLS=ON && cmake --build --preset mac
 QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/tools/qlttta_screenshots
 ```
 
+Windows (PowerShell, after `scripts\setup_dev.ps1`): the same steps with the `windows-debug` preset. Qt puts every
+`.exe` in the build folder itself (`build\windows-debug\QLTTTA.exe`, not `src\app\`).
+```powershell
+.\scripts\test_all.ps1                                   # SQL Server installed on this PC, Windows Authentication
+cmake --preset windows-debug; cmake --build --preset windows-debug; ctest --preset windows-debug
+$env:QLTTTA_USER = 'ql_quan'; $env:QLTTTA_PASSWORD = 'Demo@2026'; $env:QLTTTA_SERVER = 'localhost'
+.\build\windows-debug\QLTTTA.exe --check-connection | Out-Host   # | Out-Host: wait for the GUI app, show its output
+py docs\report\build_report.py; .\docs\report\tools\export_pdf.ps1          # report docx -> PDF (Word for Windows)
+py docs\user-guide\build_user_guide.py; .\docs\report\tools\export_pdf.ps1 docs\user-guide\QLTTTA_User_Guide.docx
+.\scripts\package.ps1                                    # dist\...-portable.zip (+ setup.exe with Inno Setup 6)
+```
+
 ## Rules, settings and skills (shared by the whole team)
 - `.claude/rules/` (numbered in reading order): `00-general-workflow.md` (workflow, **result report template**,
   Definition of Done - always applies), then one file per area, loaded when such a file is touched: `01-sql.md`

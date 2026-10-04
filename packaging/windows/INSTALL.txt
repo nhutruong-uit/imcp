@@ -21,7 +21,9 @@ QLTTTA - ENGLISH CENTER MANAGEMENT (Windows 10/11, 64-bit)
      the main window. The choice is remembered.
 
 4. Connection driver
-   - The app uses "ODBC Driver 18/17 for SQL Server" when installed (usually installed together with
-     SSMS); otherwise it falls back to the "SQL Server" driver built into Windows.
+   - The app uses "ODBC Driver 18/17 for SQL Server" (installed together with SQL Server 2025).
+     A PC without SQL Server (SQL Server in Docker or on another PC) needs "Microsoft ODBC Driver 18
+     for SQL Server" from Microsoft: the "SQL Server" driver built into Windows, which the app tries
+     last, could not sign in to SQL Server 2025 on Windows 11.
    - On a certificate/TLS error: install "Microsoft ODBC Driver 18 for SQL Server" from Microsoft
      and turn on "Trust server certificate" in the server settings.
