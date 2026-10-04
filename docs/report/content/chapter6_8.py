@@ -32,13 +32,13 @@ def chapter6(r):
         "ODBC Driver 18 → 17 → driver “SQL Server” có sẵn của Windows (bản macOS kèm sẵn driver FreeTDS), nên chạy được "
         "trên máy chưa cài driver mới. Sau khi đăng nhập, menu bên trái được sinh theo vai trò (Chương 4 môn học - Menu).")
     r.figure(SCR / "login.png", "Màn hình đăng nhập (cấu hình máy chủ thu gọn)", width_cm=12)
-    r.figure(SCR / "ql_quan_dashboard.png", "Trang Tổng quan của Quản lý: chỉ số chính và biểu đồ doanh thu theo tháng", width_cm=16)
+    r.figure(SCR / "ql_quan_dashboard.png", "Tổng quan của Quản lý: chỉ số chính và doanh thu theo tháng", width_cm=16)
     r.table(["Vai trò", "Menu hiển thị"], [[role, ", ".join(entries)] for role, entries in menu_by_role()],
             widths_cm=[3.0, 13.0], caption="Menu theo vai trò (đọc từ Permissions::allowedFeatures)", size=10)
     r.p("Trong một màn hình, các nút thay đổi dữ liệu chỉ được tạo khi `Permissions::canEdit` cho phép: kế toán chỉ "
         "xem Học viên, giáo vụ chỉ xem Khóa học và Giáo viên (danh mục do Quản lý cập nhật). Giáo vụ không có menu Thu "
         "học phí vì CSDL cấm role này thu tiền (`DENY EXECUTE` trên `usp_Receipt_Create`, ca kiểm thử P16).")
-    r.figure(SCR / "gv_john_my_teaching_schedule.png", "Giáo viên chỉ thấy lịch dạy của chính mình (dữ liệu từ view vw_Teacher_MySchedule)", width_cm=16)
+    r.figure(SCR / "gv_john_my_teaching_schedule.png", "Giáo viên chỉ thấy lịch dạy của mình (vw_Teacher_MySchedule)", width_cm=16)
     r.p("Ẩn menu chỉ là lớp giao diện; quyền thật sự được kiểm tra trong CSDL. Ví dụ giáo vụ vẫn mở được Tổng quan "
         "(gọi `usp_Dashboard_Stats`) nhưng thủ tục dùng `fn_CurrentRole()` để trả **NULL** cho cột doanh thu, còn "
         "`fn_MonthlyRevenue` không được GRANT cho `rl_AcademicStaff` nên biểu đồ bị SQL Server từ chối. Ứng dụng chỉ hiển thị "
@@ -52,7 +52,7 @@ def chapter6(r):
         "CHECK) được chuyển thành thông báo dễ hiểu theo ngôn ngữ giao diện. Từ màn hình Học viên còn mở được hồ sơ (các "
         "lần ghi danh, kiểm tra xếp lớp), ghi danh, nhập điểm kiểm tra xếp lớp và xuất/nhập XML.")
     r.figure(SCR / "gvu_lan_student_form.png", "Form sửa thông tin học viên (thiết kế bằng Qt Designer)", width_cm=10)
-    r.figure(SCR / "ql_quan_students.png", "Màn hình quản lý học viên: tìm kiếm, lọc, thêm/sửa/xóa, xuất Excel/PDF", width_cm=16)
+    r.figure(SCR / "ql_quan_students.png", "Màn hình Học viên: tìm, lọc, thêm/sửa/xóa, xuất Excel/PDF", width_cm=16)
     r.p("Các màn hình nghiệp vụ còn lại dùng chung hai lớp nền để giống nhau về cách dùng và cách xử lý lỗi. "
         "`DataPage` gồm thanh lọc (bộ lọc riêng, lọc nhanh, Làm mới, Excel, PDF), thanh nút, bảng dữ liệu và dòng tổng; "
         "nút cần chọn dòng chỉ bật khi đã chọn một dòng. `FormDialog` là form nhập dạng nhãn - ô nhập với dòng báo lỗi và "
@@ -77,10 +77,10 @@ def chapter6(r):
         ["Tài khoản, Sao lưu", "Tạo, khóa/mở khóa tài khoản, đặt lại mật khẩu; sao lưu Full/Differential/Log",
          "usp_Account_Create, usp_Account_Lock, usp_Account_ResetPassword, usp_Backup"],
     ], widths_cm=[3.4, 6.2, 6.4], caption="Các màn hình nhập liệu và thủ tục CSDL tương ứng", size=9)
-    r.figure(SCR / "gvu_lan_classes.png", "Màn hình Lớp học của Giáo vụ: mỗi nút gọi một thủ tục quản lý vòng đời lớp", width_cm=16)
-    r.figure(SCR / "kt_minh_tuition.png", "Màn hình Thu học phí của Kế toán: thu tiền, hủy phiếu thu có lý do, in phiếu thu", width_cm=16)
-    r.figure(SCR / "gvu_lan_grade_book.png", "Sổ điểm của một lớp: nhập điểm từng cột, điểm tổng kết tính theo trọng số (cùng công thức với fn_FinalGrade)", width_cm=16)
-    r.figure(SCR / "ql_quan_courses.png", "Danh mục khóa học của Quản lý, kèm các cột điểm và trọng số của khóa đang chọn", width_cm=16)
+    r.figure(SCR / "gvu_lan_classes.png", "Màn hình Lớp học: mỗi nút gọi một thủ tục vòng đời lớp", width_cm=16)
+    r.figure(SCR / "kt_minh_tuition.png", "Màn hình Thu học phí: thu tiền, hủy có lý do, in phiếu thu", width_cm=16)
+    r.figure(SCR / "gvu_lan_grade_book.png", "Sổ điểm của lớp: điểm tổng kết theo trọng số (fn_FinalGrade)", width_cm=16)
+    r.figure(SCR / "ql_quan_courses.png", "Danh mục khóa học kèm cột điểm, trọng số của khóa đang chọn", width_cm=16)
 
     r.h2("6.4. Báo cáo")
     r.p("Bài giảng giới thiệu Crystal Report với các phần Report Header, Page Header, Details, Group, Page/Report Footer. "
@@ -98,8 +98,8 @@ def chapter6(r):
         "đến ngày và chi nhánh, gom theo chi nhánh, chương trình, khóa học - `usp_Report_Revenue`), **kết quả của một lớp** "
         "(điểm tổng kết, xếp loại, số hiệu chứng chỉ - `usp_Report_ClassResults`) và **phiếu thu** in ra PDF theo mẫu "
         "chứng từ (`usp_Receipt_Print`).")
-    r.figure(SCR / "kt_minh_outstanding_tuition.png", "Màn hình công nợ học phí của Kế toán, có dòng tổng và nút xuất báo cáo PDF", width_cm=16)
-    r.figure(SCR / "gvu_lan_learning_results.png", "Báo cáo kết quả học tập (điểm tổng kết, xếp loại, chuyên cần)", width_cm=16)
+    r.figure(SCR / "kt_minh_outstanding_tuition.png", "Màn hình Công nợ học phí: dòng tổng và nút xuất báo cáo PDF", width_cm=16)
+    r.figure(SCR / "gvu_lan_learning_results.png", "Báo cáo kết quả học tập: điểm tổng kết, xếp loại, chuyên cần", width_cm=16)
 
     r.h2("6.5. Đa nền tảng, CI/CD và đóng gói")
     r.p("Nhóm dùng GitHub với hai nhánh chính `develop` (nhánh mặc định) và `main`. Trước khi tạo Pull Request, "
