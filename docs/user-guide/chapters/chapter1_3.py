@@ -1,5 +1,6 @@
 """Chapters 1-3: introduction, SQL Server + database, installing the application."""
 from chapters.common import FEATURES, ROLES, WINDOWS_IMAGES, allowed_features, app_version
+from content.common import macos_min_version  # shared with the report (docs/report/content/common.py)
 
 
 def chapter1(g):
@@ -51,7 +52,8 @@ def chapter1(g):
 
     g.h2("1.4. Yêu cầu hệ thống")
     g.table(["Thành phần", "macOS", "Windows"], [
-        ["Hệ điều hành", "macOS 12 Monterey trở lên, máy chip Apple Silicon", "Windows 10 hoặc 11, 64-bit"],
+        ["Hệ điều hành", f"macOS {macos_min_version()} trở lên, máy chip Apple Silicon",
+         "Windows 10 (bản 1809 trở lên) hoặc 11, 64-bit"],
         ["SQL Server", "SQL Server 2022 chạy trong Docker Desktop",
          "SQL Server 2012+ cài trên máy (Express/Developer) hoặc chạy trong Docker Desktop"],
         ["Trình điều khiển (driver) kết nối", "Có sẵn trong ứng dụng (FreeTDS), không cần cài thêm",
@@ -308,15 +310,23 @@ def chapter3(g):
         "`.\\scripts\\package-windows.ps1` (Windows), kết quả nằm trong thư mục `dist/`.")
 
     g.h2("3.2. Cài đặt trên macOS")
+    g.p(f"Ứng dụng cần macOS {macos_min_version()} trở lên. Trên macOS cũ hơn, macOS báo không dùng được phiên "
+        "bản ứng dụng này và không mở ứng dụng. Các bước dưới đây cũng có trong file **READ ME FIRST.txt** "
+        "nằm cạnh QLTTTA.app trong file `.dmg`.")
     g.steps([
         "Mở file `.dmg`, kéo **QLTTTA.app** vào thư mục **Applications**.",
         "Mở QLTTTA lần đầu. Vì ứng dụng không đăng ký với Apple, macOS báo không mở được: bấm **Done** (hoặc "
         "**OK**).",
         "Vào **System Settings > Privacy & Security**, kéo xuống phần **Security**, bấm **Open Anyway** cạnh "
-        "dòng QLTTTA và xác nhận bằng mật khẩu máy. Từ lần sau ứng dụng mở bình thường.",
+        "dòng QLTTTA và xác nhận bằng mật khẩu máy (nút này chỉ hiện khoảng một giờ sau lần mở bị chặn). "
+        "Từ lần sau ứng dụng mở bình thường.",
     ])
     g.p("Thay cho bước 2-3, có thể chạy lệnh sau trong Terminal:")
     g.code("Terminal (macOS)", "xattr -dr com.apple.quarantine /Applications/QLTTTA.app", lang="text")
+    g.p("Nếu máy đã cài GitHub CLI (`gh`) và đăng nhập tài khoản có quyền vào kho mã nguồn, tải file `.dmg` bằng "
+        "lệnh dưới đây thì macOS không chặn lần mở đầu, không cần bước 2-3 (thay `<tag>` bằng tên phiên bản ở trang "
+        "Releases, ví dụ `v0.1.0-build.1`):")
+    g.code("Terminal (macOS)", "gh release download <tag> --repo nhutruong-uit/imcp --pattern '*.dmg'", lang="text")
     g.p("Bản macOS đã kèm driver kết nối SQL Server (FreeTDS), không cần cài thêm thành phần nào.")
 
     g.h2("3.3. Cài đặt trên Windows")
@@ -338,6 +348,9 @@ def chapter3(g):
         "Cài cho riêng người dùng hiện tại thì ứng dụng nằm ở `%LOCALAPPDATA%\\Programs\\QLTTTA` và không cần "
         "quyền Administrator. Chọn **Install for all users** thì Windows hỏi quyền Administrator (UAC), ứng dụng "
         "nằm ở `C:\\Program Files\\QLTTTA` và mục **QLTTTA** có trong menu Start của mọi tài khoản trên máy.")
+    g.p("Bộ cài kiểm tra phiên bản Windows trước khi cài: trên Windows cũ hơn Windows 10 bản 1809, bộ cài báo "
+        "**QLTTTA needs Windows 10 version 1809 or later, or Windows 11 (64-bit)** rồi dừng, không cài gì. Khi đó "
+        "cập nhật Windows (**Settings > Windows Update**) rồi chạy lại bộ cài.")
     g.tip("Cài không hiện hộp thoại (ví dụ cài sẵn cho nhiều máy phòng thực hành), cho riêng người dùng, không tạo "
           f"biểu tượng ngoài màn hình: `QLTTTA-{version}-windows-x64-setup.exe /VERYSILENT /CURRENTUSER "
           "/MERGETASKS=\"!desktopicon\"` (cho mọi người dùng: thay `/CURRENTUSER` bằng `/ALLUSERS`, cần quyền "

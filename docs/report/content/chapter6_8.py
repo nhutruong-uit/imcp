@@ -1,6 +1,7 @@
 """Chapter 6 - Presenting information (application); Chapter 7 - Advanced databases; Chapter 8 - Conclusion;
 references, appendix."""
-from content.common import IMG, SQL, object_counts, database_tests, e2e_scenarios, menu_by_role, unit_test_suites
+from content.common import (IMG, SQL, object_counts, database_tests, e2e_scenarios, macos_min_version, menu_by_role,
+                            unit_test_suites)
 from report_lib import sql_block
 
 SCR = IMG / "screens"
@@ -108,11 +109,17 @@ def chapter6(r):
         "tự đóng gói:")
     r.figure(IMG / "diagrams" / "cicd.png", "Quy trình CI/CD từ nhánh tính năng tới file cài", width_cm=16)
     r.table(["Hệ điều hành", "File cài", "Cách đóng gói"], [
-        ["Windows 10/11 x64", "QLTTTA-x.y.z-windows-x64-setup.exe, ...-portable.zip", "windeployqt (Qt + runtime MinGW + plugin ODBC), Inno Setup, cài không cần quyền admin"],
-        ["macOS 12+ (Apple Silicon)", "QLTTTA-x.y.z-macos-arm64.dmg", "macdeployqt, kèm FreeTDS + unixODBC + OpenSSL (đổi đường dẫn sang @loader_path), ký ad-hoc"],
+        ["Windows 10 (1809+)/11 x64", "QLTTTA-x.y.z-windows-x64-setup.exe, ...-portable.zip", "windeployqt (Qt + runtime MinGW + plugin ODBC), Inno Setup, cài không cần quyền admin"],
+        [f"macOS {macos_min_version()}+ (Apple Silicon)", "QLTTTA-x.y.z-macos-arm64.dmg", "macdeployqt, kèm FreeTDS + unixODBC + OpenSSL (đổi đường dẫn sang @loader_path), ký ad-hoc"],
     ], widths_cm=[3.4, 5.6, 7.0], caption="File cài đặt", size=9.5)
     r.p("Cùng các script `scripts/package-macos.sh` và `scripts/package-windows.ps1`, thành viên có thể tự tạo file "
         "cài trên máy cá nhân giống hệt CI. Chế độ `--check-connection` giúp kiểm tra kết nối/đăng nhập không cần giao diện.")
+    r.p("File cài tự kiểm tra phiên bản hệ điều hành: bộ cài Windows dừng trên Windows cũ hơn bản 1809 (`MinVersion` "
+        "của Inno Setup - mức tối thiểu của Qt 6.8); trên macOS, script đóng gói lấy phiên bản `minos` cao nhất của "
+        "các file nhị phân đóng kèm (thư viện Homebrew được build cho macOS của máy CI) ghi vào "
+        "`LSMinimumSystemVersion`, nên macOS cũ hơn từ chối mở ứng dụng thay vì lỗi khi chạy. Trang Release ghi rõ "
+        "phiên bản tối thiểu, các bước mở ứng dụng lần đầu và tự liệt kê các Pull Request đã merge từ lần phát hành "
+        "trước.")
 
     r.h2("6.6. Kiểm thử ứng dụng")
     r.bullets([

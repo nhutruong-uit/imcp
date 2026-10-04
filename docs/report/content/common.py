@@ -99,6 +99,13 @@ def e2e_scenarios():
             if name not in hooks and not name.endswith("_data")]
 
 
+def macos_min_version():
+    """Oldest macOS the .dmg runs on: the major version of the macOS runner pinned in release.yml (the bundled
+    Homebrew libraries are built for it, see scripts/package-macos.sh)."""
+    text = (REPO / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    return re.search(r"^\s*runs-on:\s*macos-(\d+)\b", text, re.M).group(1)
+
+
 def _vietnamese(context):
     """English source text -> Vietnamese translation of one context of resources/translations/qlttta_vi.ts."""
     ts = (REPO / "resources" / "translations" / "qlttta_vi.ts").read_text(encoding="utf-8")
