@@ -1,10 +1,16 @@
-# Release: on a merge into main -> build the macOS (.dmg) + Windows (setup.exe, portable .zip) installers
+# Release installers: on a merge into main -> build the macOS (.dmg) + Windows (setup.exe, portable .zip) installers
 # and create a GitHub Release with them attached. A manual run (workflow_dispatch) on another branch only builds
 # the installers. The version comes from project(VERSION ...) in CMakeLists.txt; the tag adds the run number.
 # The release notes = install table and first-launch steps (below) + the PRs since the previous release
 # (--generate-notes). Each installer checks the operating system: the Windows setup has MinVersion
 # (packaging/windows/installer.iss), the .dmg has the LSMinimumSystemVersion written by package-macos.sh.
-name: Release
+name: Release installers (Windows + macOS)
+# Manual runs only build the installers, and their title says so; a merge into main keeps GitHub's default title
+# (the commit message)
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+  && format('Test the installers on {0} (no release)', github.ref_name)
+  || '' }}
 
 on:
   push:
@@ -20,7 +26,7 @@ concurrency:
 
 jobs:
   macos:
-    name: Package macOS
+    name: Build the macOS .dmg (Apple Silicon)
     # Pinned, not macos-latest: the Homebrew libraries in the .dmg are built for the runner's macOS, so the runner
     # sets the oldest macOS the app supports (macos-15: Sequoia and later; macos-latest = macOS 26 only)
     runs-on: macos-15
@@ -48,7 +54,7 @@ jobs:
           if-no-files-found: error
 
   windows:
-    name: Package Windows
+    name: Build the Windows setup.exe + portable .zip
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -80,7 +86,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Create the GitHub Release
+    name: Publish the GitHub Release (main only)
     needs: [macos, windows]
     # A manual run from another branch only builds the installers (artifacts); a Release comes from main only
     if: github.ref == 'refs/heads/main'
