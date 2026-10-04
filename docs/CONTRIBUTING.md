@@ -21,7 +21,8 @@ chore/<short-name>
   `/imcp-review`; the team lead audits the whole code base from time to time with `/imcp-review-codebase`, which only
   reviews the commits after the marker of [reviews/](reviews/README.md) and logs the findings there.
 - PR `develop → main` = release: `release.yml` packages `.exe` / `.zip` / `.dmg` and creates a Release tagged
-  `vX.Y.Z-build.N`. Before releasing, bump `project(VERSION ...)` in `CMakeLists.txt` if there are new features.
+  `vX.Y.Z-build.N`, whose notes list the PRs merged since the previous release (use clear PR titles).
+  Before releasing, bump `project(VERSION ...)` in `CMakeLists.txt` if there are new features.
 - *Rulesets* (`protect-develop`, `protect-main`, Settings > Rules) protect `develop` and `main`. A pull request is
   required, the branch must be up to date with the base, and one approving review from the code owner
   (`nhutruong-uit`, `.github/CODEOWNERS`) is required. Force pushes and branch deletion are blocked. `develop` also

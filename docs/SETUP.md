@@ -78,11 +78,15 @@ summarized in [DATABASE.md](DATABASE.md#4-roles-and-permissions).
 
 Download the files from the repo's **Releases** page (the instructor is invited as a collaborator so they can download):
 
-- **Windows**: `QLTTTA-x.y.z-windows-x64-setup.exe` (no administrator rights needed) or the `portable.zip`.
+- **Windows 10 (version 1809 or later) or 11, 64-bit**: `QLTTTA-x.y.z-windows-x64-setup.exe` (no administrator
+  rights needed; it stops on an older Windows) or the `portable.zip`.
   If SmartScreen warns you: *More info* → *Run anyway* (the app is not commercially code-signed).
-- **macOS 12+ (Apple Silicon)**: open the `.dmg` and drag `QLTTTA.app` into Applications. The first launch is blocked →
+- **macOS 15+ (Apple Silicon)**: open the `.dmg` and drag `QLTTTA.app` into Applications. The first launch is blocked →
   *System Settings > Privacy & Security > Open Anyway* (or `xattr -dr com.apple.quarantine /Applications/QLTTTA.app`).
-  The macOS build bundles the FreeTDS driver, so nothing else needs to be installed.
+  A `.dmg` downloaded with the GitHub CLI is not blocked (`gh` does not mark files as downloaded from the internet):
+  `gh release download <tag> --repo nhutruong-uit/imcp --pattern '*.dmg'`. The exact minimum macOS of each build is
+  in its release notes (the Homebrew libraries need the macOS of the `macos-15` runner); an older macOS refuses to
+  open the app. The macOS build bundles the FreeTDS driver, so nothing else needs to be installed.
 
 On the login screen open **Server settings** ("Cấu hình máy chủ" in Vietnamese) and enter `localhost,1433` (Docker)
 or `localhost` / `PC-NAME\SQLEXPRESS` (Windows), database `QLTTTA`. The *Trust server certificate* option is on by
@@ -240,6 +244,8 @@ One command builds the installer of the operating system it runs on (`scripts/pa
 - Another Qt installation: `--qt-dir <folder>` (`.sh`) or `-QtDir <folder>` (`.ps1`). On macOS, if CMake reports a
   broken compiler, add `EXTRA_CMAKE_ARGS="-DCMAKE_OSX_SYSROOT=<Xcode SDK>"` in front of the command. If PowerShell
   blocks scripts: `powershell -ExecutionPolicy Bypass -File scripts\package.ps1`.
+- A `.dmg` runs on the macOS version of the Mac that built it or later (the Homebrew libraries are built for it):
+  the script writes that minimum into `Info.plist`. The Windows setup refuses Windows older than 10 version 1809.
 
 CI does the same when something is merged into `main` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 

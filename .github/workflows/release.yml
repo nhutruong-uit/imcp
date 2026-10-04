@@ -1,7 +1,16 @@
-# Release: on a merge into main -> build the macOS (.dmg) + Windows (setup.exe, portable .zip) installers
+# Release installers: on a merge into main -> build the macOS (.dmg) + Windows (setup.exe, portable .zip) installers
 # and create a GitHub Release with them attached. A manual run (workflow_dispatch) on another branch only builds
-# the installers. The version comes from project(VERSION ...) in CMakeLists.txt.
-name: Release
+# the installers. The version comes from project(VERSION ...) in CMakeLists.txt; the tag adds the run number.
+# The release notes = install table and first-launch steps (below) + the PRs since the previous release
+# (--generate-notes). Each installer checks the operating system: the Windows setup has MinVersion
+# (packaging/windows/installer.iss), the .dmg has the LSMinimumSystemVersion written by package-macos.sh.
+name: Release installers (Windows + macOS)
+# Manual runs only build the installers, and their title says so; a merge into main keeps GitHub's default title
+# (the commit message)
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+  && format('Test the installers on {0} (no release)', github.ref_name)
+  || '' }}
 
 on:
   push:
@@ -17,8 +26,12 @@ concurrency:
 
 jobs:
   macos:
-    name: Package macOS
-    runs-on: macos-latest
+    name: Build the macOS .dmg (Apple Silicon)
+    # Pinned, not macos-latest: the Homebrew libraries in the .dmg are built for the runner's macOS, so the runner
+    # sets the oldest macOS the app supports (macos-15: Sequoia and later; macos-latest = macOS 26 only)
+    runs-on: macos-15
+    outputs:
+      min-macos: ${{ steps.min-macos.outputs.version }}
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
@@ -28,6 +41,12 @@ jobs:
         run: brew install qt qt-unixodbc unixodbc freetds ninja
       - name: Build the .dmg
         run: ./scripts/package-macos.sh
+      - name: Read the minimum macOS version for the release notes
+        id: min-macos
+        run: |
+          VERSION=$(plutil -extract LSMinimumSystemVersion raw build/macos-release/src/app/QLTTTA.app/Contents/Info.plist)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "The .dmg runs on macOS $VERSION or later" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v6
         with:
           name: qlttta-macos
@@ -35,7 +54,7 @@ jobs:
           if-no-files-found: error
 
   windows:
-    name: Package Windows
+    name: Build the Windows setup.exe + portable .zip
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -67,7 +86,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Create the GitHub Release
+    name: Publish the GitHub Release (main only)
     needs: [macos, windows]
     # A manual run from another branch only builds the installers (artifacts); a Release comes from main only
     if: github.ref == 'refs/heads/main'
@@ -81,19 +100,34 @@ jobs:
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
+          MIN_MACOS: ${{ needs.macos.outputs.min-macos }}
         run: |
+          : "${MIN_MACOS:?the macOS job did not report the minimum macOS version}"
           VERSION=$(sed -n 's/^ *VERSION \([0-9][0-9.]*\).*/\1/p' CMakeLists.txt | head -1)
           TAG="v${VERSION}-build.${GITHUB_RUN_NUMBER}"
+          SETUP_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/${TAG}/docs/SETUP.md"
           cat > notes.md <<EOF
           Installers built automatically from commit ${GITHUB_SHA::7} on main.
 
           | Operating system | File |
           |---|---|
-          | Windows 10/11 (x64) | \`QLTTTA-${VERSION}-windows-x64-setup.exe\` (installer) or \`...-portable.zip\` (unzip and run) |
-          | macOS 12+ (Apple Silicon) | \`QLTTTA-${VERSION}-macos-arm64.dmg\` |
+          | Windows 10 (version 1809 or later) or 11, x64 | \`QLTTTA-${VERSION}-windows-x64-setup.exe\` (installer) or \`...-portable.zip\` (unzip and run) |
+          | macOS ${MIN_MACOS} or later, Apple Silicon | \`QLTTTA-${VERSION}-macos-arm64.dmg\` |
 
-          Requires a SQL Server with the QLTTTA database (initialized with \`scripts/db_init\`). The UI is available
-          in Vietnamese and English. First launch and demo accounts: see \`docs/SETUP.md\`.
+          The Windows setup stops on an older Windows, and an older macOS refuses to open the app.
+          Requires a SQL Server with the QLTTTA database (initialized with \`scripts/db_init\` from the source code
+          below). The UI is available in Vietnamese and English. Database setup and demo accounts: [SETUP.md](${SETUP_URL}).
+
+          ### First launch
+          - **macOS**: the app is signed by the team, not notarized by Apple, so macOS blocks the first launch of a
+            \`.dmg\` downloaded with a browser. Open QLTTTA once and click *Done*, then click *Open Anyway* in
+            *System Settings > Privacy & Security*, or run \`xattr -dr com.apple.quarantine /Applications/QLTTTA.app\`
+            in Terminal. With the GitHub CLI there is nothing to unblock: a file it downloads is not marked as
+            coming from the internet, so the app opens directly:
+            \`gh release download ${TAG} --repo ${GITHUB_REPOSITORY} --pattern '*.dmg'\`
+          - **Windows**: if SmartScreen says *Windows protected your PC*, click *More info > Run anyway*.
+
           EOF
+          # --generate-notes appends the PRs merged since the previous release ("What's Changed") to notes.md
           gh release create "$TAG" dist/* --title "QLTTTA ${VERSION} (build ${GITHUB_RUN_NUMBER})" \
-            --notes-file notes.md --target "$GITHUB_SHA"
+            --notes-file notes.md --generate-notes --target "$GITHUB_SHA"

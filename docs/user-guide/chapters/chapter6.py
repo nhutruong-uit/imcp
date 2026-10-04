@@ -45,6 +45,11 @@ def chapter6(g):
          "Cài lại ứng dụng (hoặc giải nén lại bản portable)."],
         ["macOS báo không mở được QLTTTA", "Ứng dụng không đăng ký với Apple (Gatekeeper)",
          "**System Settings > Privacy & Security > Open Anyway**, hoặc lệnh `xattr` ở mục 3.2."],
+        ["macOS báo không dùng được phiên bản QLTTTA này với phiên bản macOS hiện tại",
+         "macOS cũ hơn mức ứng dụng cần (mục 1.4)", "Nâng cấp macOS (**System Settings > General > Software "
+         "Update**) rồi mở lại ứng dụng."],
+        ["Bộ cài báo **QLTTTA needs Windows 10 version 1809 or later...**", "Windows cũ hơn mức ứng dụng cần "
+         "(mục 1.4)", "Cập nhật Windows (**Settings > Windows Update**) rồi chạy lại bộ cài."],
         ["Windows hiện **Windows protected your PC**", "SmartScreen chặn ứng dụng chưa ký số",
          "Bấm **More info > Run anyway**."],
         ["Trang Tổng quan: buổi học hôm nay, doanh thu tháng này bằng 0; Lịch học - điểm danh của tuần này trống",
