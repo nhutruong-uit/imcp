@@ -159,12 +159,13 @@ VoidResult SqlCatalogRepository::updateProgram(const Program& p) {
 }
 
 Result<TableData> SqlCatalogRepository::promotionList() {
-    // fn_Today: "valid today" is a day of the center, whatever the time zone of the computer
+    // fn_Today: "valid today" is a day of the center, whatever the time zone of the computer; a promotion
+    // that starts later is Upcoming, not Expired
     return queryTable(
         m_db,
         QStringLiteral("SELECT pr.PromotionId, pr.PromotionName, pr.DiscountType, pr.DiscountValue, "
-                       "pr.StartDate, pr.EndDate, CASE WHEN dbo.fn_Today() BETWEEN pr.StartDate "
-                       "AND pr.EndDate THEN N'Active' ELSE N'Expired' END AS Validity, "
+                       "pr.StartDate, pr.EndDate, CASE WHEN dbo.fn_Today() < pr.StartDate THEN N'Upcoming' "
+                       "WHEN dbo.fn_Today() <= pr.EndDate THEN N'Active' ELSE N'Expired' END AS Validity, "
                        "(SELECT COUNT(*) FROM dbo.ENROLLMENT en WHERE en.PromotionId = pr.PromotionId) "
                        "AS EnrollmentCount FROM dbo.PROMOTION pr ORDER BY pr.EndDate DESC"),
         {});

@@ -2025,6 +2025,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <source>Expired</source>
         <translation>Hết hạn</translation>
     </message>
+    <message>
+        <source>Upcoming</source>
+        <translation>Chưa bắt đầu</translation>
+    </message>
 </context>
 <context>
     <name>Employee</name>

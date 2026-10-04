@@ -140,8 +140,10 @@ Result<QList<LookupItem>> queryLookup(const DatabaseManager& db, const QString& 
     if (!execPrepared(q, db, sql, values))
         return Result<QList<LookupItem>>::failure(errorOf(q));
     QList<LookupItem> items;
+    const bool hasDetail = q.record().count() > 2;
     while (q.next())
-        items.append({q.value(0).toString(), q.value(1).toString()});
+        items.append(
+            {q.value(0).toString(), q.value(1).toString(), hasDetail ? q.value(2).toString() : QString()});
     return Result<QList<LookupItem>>::success(items);
 }
 

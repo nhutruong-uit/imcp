@@ -340,8 +340,16 @@ public:
     Result<Course> findById(const QString&) override {
         return Result<Course>::failure(QStringLiteral("unused"));
     }
-    VoidResult add(const Course&) override { return saved(); }
-    VoidResult update(const Course&) override { return saved(); }
+    int addCalls = 0;
+    int updateCalls = 0;
+    VoidResult add(const Course&) override {
+        ++addCalls;
+        return saved();
+    }
+    VoidResult update(const Course&) override {
+        ++updateCalls;
+        return saved();
+    }
     Result<TableData> syllabus(const QString&) override { return Result<TableData>::success({}); }
     Result<QString> syllabusXml(const QString&) override { return Result<QString>::success({}); }
     VoidResult setSyllabus(const QString&, const QString& xml) override {
@@ -371,16 +379,26 @@ public:
         ++addCalls;
         return Result<QString>::success(QStringLiteral("EM0099"));
     }
-    VoidResult updateEmployee(const Employee&) override { return VoidResult::success(); }
+    int updateCalls = 0;
+    QString lastProfileXml;
+    VoidResult updateEmployee(const Employee&) override {
+        ++updateCalls;
+        return VoidResult::success();
+    }
     Result<TableData> teachers() override { return Result<TableData>::success({}); }
     Result<Teacher> teacher(const QString&) override {
         return Result<Teacher>::failure(QStringLiteral("unused"));
     }
-    Result<QString> addTeacher(const Teacher&) override {
+    Result<QString> addTeacher(const Teacher& t) override {
         ++addCalls;
+        lastProfileXml = t.profileXml;
         return Result<QString>::success(QStringLiteral("TE0099"));
     }
-    VoidResult updateTeacher(const Teacher&) override { return VoidResult::success(); }
+    VoidResult updateTeacher(const Teacher& t) override {
+        ++updateCalls;
+        lastProfileXml = t.profileXml;
+        return VoidResult::success();
+    }
     Result<TableData> findTeachersByCertificate(const QString&, double) override {
         return Result<TableData>::success({});
     }
@@ -711,6 +729,38 @@ private slots:
                  QStringList({QStringLiteral("addBranch BR03"), QStringLiteral("addRoom D1-301")}));
     }
 
+    // Editing (isNew = false) calls the _Update procedures: an inverted condition would send every edit to
+    // usp_*_Add, which refuses an existing code (50091)
+    void catalogService_saveExisting_callsUpdate() {
+        FakeCatalog repository;
+        CatalogService service(repository);
+        Branch b;
+        b.id = QStringLiteral("BR01");
+        b.name = QStringLiteral("District 1 Branch");
+        b.address = QStringLiteral("1 Street");
+        QVERIFY(service.saveBranch(b, false).ok());
+        Room r;
+        r.id = QStringLiteral("D1-101");
+        r.branchId = QStringLiteral("BR01");
+        r.name = QStringLiteral("Room 101");
+        QVERIFY(service.saveRoom(r, false).ok());
+        QCOMPARE(repository.calls,
+                 QStringList({QStringLiteral("updateBranch BR01"), QStringLiteral("updateRoom D1-101")}));
+    }
+
+    void courseService_saveExisting_callsUpdate() {
+        FakeCourseRepository repository;
+        CourseService service(repository);
+        Course c;
+        c.id = QStringLiteral("CM-A1");
+        c.programId = QStringLiteral("COMM");
+        c.name = QStringLiteral("Communication A1");
+        c.sessionCount = 20;
+        QVERIFY(service.save(c, false).ok());
+        QCOMPARE(repository.updateCalls, 1);
+        QCOMPARE(repository.addCalls, 0);
+    }
+
     // The XML declaration is removed before the syllabus reaches the typed XML column; a bad course never
     // saves
     void courseService_syllabusAndValidation() {
@@ -755,6 +805,40 @@ private slots:
         QVERIFY2(id.ok(), qPrintable(id.error()));
         QCOMPARE(id.value(), QStringLiteral("EM0099"));
         QCOMPARE(repository.addCalls, 1);
+    }
+
+    // A person with an ID is updated, never added again; the ID comes back unchanged
+    void staffService_saveWithId_callsUpdate() {
+        FakeStaffRepository repository;
+        StaffService service(repository);
+        Employee e;
+        e.id = QStringLiteral("EM0002");
+        e.fullName = QStringLiteral("Nguyễn Thị Lan");
+        e.dateOfBirth = QDate(1995, 3, 3);
+        e.phone = QStringLiteral("0909333444");
+        e.branchId = QStringLiteral("BR01");
+        const auto id = service.saveEmployee(e, QDate(2026, 10, 4));
+        QVERIFY2(id.ok(), qPrintable(id.error()));
+        QCOMPARE(id.value(), QStringLiteral("EM0002"));
+        QCOMPARE(repository.updateCalls, 1);
+        QCOMPARE(repository.addCalls, 0);
+    }
+
+    // A profile pasted with an encoding declaration is sent without it (SQL Server error 9402 otherwise)
+    void staffService_teacherProfileWithDeclaration_isSentWithoutIt() {
+        FakeStaffRepository repository;
+        StaffService service(repository);
+        Teacher t;
+        t.fullName = QStringLiteral("Lê Văn Hòa");
+        t.dateOfBirth = QDate(1990, 5, 5);
+        t.phone = QStringLiteral("0909111222");
+        t.email = QStringLiteral("hoa@example.com");
+        t.hourlyRate = 300000;
+        t.branchId = QStringLiteral("BR01");
+        t.profileXml = QStringLiteral("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<Profile/>");
+        const auto id = service.saveTeacher(t, QDate(2026, 10, 4));
+        QVERIFY2(id.ok(), qPrintable(id.error()));
+        QCOMPARE(repository.lastProfileXml, QStringLiteral("<Profile/>"));
     }
 
     // Only the three backup types of usp_Backup are sent (50070 otherwise)

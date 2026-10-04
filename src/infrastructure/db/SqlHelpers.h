@@ -76,7 +76,8 @@ TableData readTable(QSqlQuery& q);
 
 // Shortcuts for the three shapes of call the repositories make (each one goes through execPrepared):
 // a call without result (most write procedures), a list for a table, and a list of choices for a combo box
-// (column 0 = the key, column 1 = the text shown)
+// (column 0 = the key, column 1 = the text shown, an optional column 2 = a stored value for
+// LookupItem::detail)
 VoidResult execCall(const DatabaseManager& db, const QString& sql, const QVariantList& values);
 Result<TableData> queryTable(const DatabaseManager& db, const QString& sql, const QVariantList& values);
 Result<QList<LookupItem>> queryLookup(const DatabaseManager& db, const QString& sql,

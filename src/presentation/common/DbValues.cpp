@@ -77,6 +77,7 @@ const Entry kEntries[] = {
     // list
     {QT_TRANSLATE_NOOP("DbValues", "PERCENT"), Tone::Neutral},
     {QT_TRANSLATE_NOOP("DbValues", "AMOUNT"), Tone::Neutral},
+    {QT_TRANSLATE_NOOP("DbValues", "Upcoming"), Tone::Neutral},
     {QT_TRANSLATE_NOOP("DbValues", "Expired"), Tone::Negative},
 };
 

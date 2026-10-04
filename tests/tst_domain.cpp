@@ -9,6 +9,7 @@
 #include "domain/entities/GradeBook.h"
 #include "domain/entities/Language.h"
 #include "domain/entities/NewAccount.h"
+#include "domain/entities/PlacementTest.h"
 #include "domain/entities/Receipt.h"
 #include "domain/entities/Role.h"
 #include "domain/entities/Session.h"
@@ -193,6 +194,53 @@ private slots:
         QCOMPARE(*book.finalGrade(0), 7.18);
         QVERIFY(!book.finalGrade(1).has_value()); // scores missing
         QVERIFY(!book.finalGrade(5).has_value()); // no such row
+    }
+
+    // 4.89 x 50 + 5.10 x 50 = 499.5 exactly, but 499.49999999999994 in binary: without the small correction
+    // of finalGrade the grade book would show 4.99 (Failed) while fn_FinalGrade gives 5.00 (Passed)
+    void gradeBook_finalGradeOnHalf_roundsUpLikeTheDatabase() {
+        const QString an = QStringLiteral("An");
+        const GradeBook book = GradeBook::fromCells({
+            {QStringLiteral("EN1"), QStringLiteral("ST1"), an, 1, QStringLiteral("Midterm"), 50, 4.89},
+            {QStringLiteral("EN1"), QStringLiteral("ST1"), an, 2, QStringLiteral("Final"), 50, 5.10},
+        });
+        QCOMPARE(*book.finalGrade(0), 5.0);
+    }
+
+    // OverallScore = CAST(sum / 4 AS DECIMAL(4,2)) rounds the exact average half up (T109 checks the database
+    // side with the same scores); a binary double average rounds these cases down
+    void placementTest_overall_roundsLikeTheDatabase() {
+        PlacementTest t;
+        t.listening = 9.3;
+        t.speaking = 9;
+        t.reading = 9;
+        t.writing = 9;
+        QCOMPARE(t.overall(), 9.08); // 9.075
+        t.listening = 5;
+        t.speaking = 5;
+        t.reading = 5.06;
+        t.writing = 6.92;
+        QCOMPARE(t.overall(), 5.5); // 5.495, the entry score of IE-55
+        t.listening = 7.1;
+        t.speaking = 7;
+        t.reading = 7;
+        t.writing = 7;
+        QCOMPARE(t.overall(), 7.03); // 7.025
+        t.listening = 7.12;
+        QCOMPARE(t.overall(), 7.03); // 7.03 exactly
+    }
+
+    void placementTest_futureDateOrScoreAbove10_isRejected() {
+        const QDate today(2026, 10, 5);
+        PlacementTest t;
+        t.studentId = QStringLiteral("ST00001");
+        t.listening = t.speaking = t.reading = t.writing = 6;
+        QVERIFY(t.validate(today).isEmpty());
+        t.testDate = today.addDays(1);
+        QCOMPARE(t.validate(today).size(), 1);
+        t.testDate = today;
+        t.writing = 10.5;
+        QCOMPARE(t.validate(today).size(), 1);
     }
 
     // The payment form: an amount above what is still owed is refused before the triggers would refuse it

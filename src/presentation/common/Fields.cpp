@@ -97,8 +97,12 @@ void Fields::fillLookup(QComboBox* combo, const QList<LookupItem>& items, const 
     combo->clear();
     if (!emptyText.isEmpty())
         combo->addItem(emptyText, QString());
+    // A stored value next to the name (LookupItem::detail) is shown with its label in the UI language
     for (const LookupItem& item : items)
-        combo->addItem(item.name, item.id);
+        combo->addItem(item.detail.isEmpty()
+                           ? item.name
+                           : QStringLiteral("%1 (%2)").arg(item.name, DbValues::label(item.detail)),
+                       item.id);
 }
 
 void Fields::select(QComboBox* combo, const QString& key, const QString& missingText) {
