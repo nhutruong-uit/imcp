@@ -1,11 +1,15 @@
-// Version information and icon of QLTTTA.exe (Windows)
+// Version information and icon of QLTTTA.exe (Windows), shown in Explorer > Properties > Details.
+// The QLTTTA_VERSION_* numbers are defined by src/app/CMakeLists.txt from project(VERSION ...) in CMakeLists.txt.
 #include <winver.h>
+
+#define QLTTTA_STR_(x) #x
+#define QLTTTA_STR(x) QLTTTA_STR_(x)
 
 IDI_ICON1 ICON "app.ico"
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION 0,1,0,0
-PRODUCTVERSION 0,1,0,0
+FILEVERSION QLTTTA_VERSION_MAJOR,QLTTTA_VERSION_MINOR,QLTTTA_VERSION_PATCH,0
+PRODUCTVERSION QLTTTA_VERSION_MAJOR,QLTTTA_VERSION_MINOR,QLTTTA_VERSION_PATCH,0
 FILEFLAGSMASK 0x3fL
 FILEOS VOS_NT_WINDOWS32
 FILETYPE VFT_APP
@@ -16,8 +20,9 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "UIT - IE103 Group 1"
             VALUE "FileDescription", "QLTTTA - English Center Management"
+            VALUE "FileVersion", QLTTTA_STR(QLTTTA_VERSION_TEXT)
             VALUE "ProductName", "QLTTTA"
-            VALUE "ProductVersion", "0.1.0"
+            VALUE "ProductVersion", QLTTTA_STR(QLTTTA_VERSION_TEXT)
             VALUE "OriginalFilename", "QLTTTA.exe"
         END
     END
