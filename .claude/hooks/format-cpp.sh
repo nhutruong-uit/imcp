@@ -25,6 +25,8 @@ FILE="$(cd "$(dirname "$FILE")" && pwd)/$(basename "$FILE")"
 # the hook of the main checkout, and the main checkout does not track the worktree's files (they would otherwise be
 # taken for new files and formatted as a whole)
 ROOT="$(git -C "$(dirname "$FILE")" rev-parse --show-toplevel 2> /dev/null)" || exit 0
+# Same path style as FILE: Git for Windows prints D:/repo, while pwd in Git Bash gives /d/repo
+ROOT="$(cd "$ROOT" && pwd)"
 case "$FILE" in "$ROOT"/build/* | "$ROOT"/dist/*) exit 0 ;; "$ROOT"/*) ;; *) exit 0 ;; esac
 
 cd "$ROOT"
