@@ -68,8 +68,9 @@ echo ">> Minimum macOS version"
 # The app runs only where all its binaries run: take the highest "minos" of every Mach-O file in the bundle. With it
 # in Info.plist, an older macOS refuses to open the app with its own "requires macOS X or later" message instead of
 # crashing at launch. Must happen before signing (the signature covers Info.plist).
+# (no "case" inside $(...): the bash 3.2 of macOS takes the ")" of a case pattern for the end of the substitution)
 MIN_MACOS="$(find "$APP" -type f | while IFS= read -r f; do
-  case "$(file -b "$f")" in Mach-O*) otool -l "$f" | awk '$1 == "minos" { print $2 }' ;; esac
+  if [[ "$(file -b "$f")" == Mach-O* ]]; then otool -l "$f" | awk '$1 == "minos" { print $2 }'; fi
 done | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)"
 [[ -n "$MIN_MACOS" ]] || { echo "No minos found in the binaries of $APP" >&2; exit 1; }
 plutil -replace LSMinimumSystemVersion -string "$MIN_MACOS" "$APP/Contents/Info.plist"
