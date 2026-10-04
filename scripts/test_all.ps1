@@ -43,7 +43,7 @@ function Step([string]$name) { Write-Host ""; Write-Host "==== $name ====" }
 
 # Save the environment variables and restore them afterwards (never leave the sa password in the session)
 $previousEnv = @{}
-foreach ($name in "SQLCMDPASSWORD", "QLTTTA_E2E_PASSWORD", "QLTTTA_SERVER") {
+foreach ($name in "SQLCMDPASSWORD", "QLTTTA_E2E_PASSWORD", "QLTTTA_SERVER", "DatabaseDir", "CsvPath") {
     $previousEnv[$name] = [Environment]::GetEnvironmentVariable($name)
 }
 try {
@@ -115,7 +115,11 @@ try {
             $csvPath = Join-Path $csvDir "student_import.csv"
             Copy-Item (Join-Path $root "database/samples/student_import.csv") $csvPath -Force
         }
-        Invoke-DbTests "13_server_tests.sql" "server_tests.txt" @("-v", "DatabaseDir=$(Join-Path $root 'database')", "CsvPath=$csvPath")
+        # The two sqlcmd variables travel as environment variables (sqlcmd reads a variable of the same name):
+        # sqlcmd of Windows cannot parse -v "DatabaseDir=<folder with a space>" (e.g. D:\My Projects\imcp)
+        $env:DatabaseDir = Join-Path $root "database"
+        $env:CsvPath = $csvPath
+        Invoke-DbTests "13_server_tests.sql" "server_tests.txt" @()
     }
 
     # 5. Build + unit tests + end-to-end

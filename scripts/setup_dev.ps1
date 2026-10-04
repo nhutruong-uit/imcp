@@ -4,7 +4,7 @@
 #      variables QT_ROOT_DIR and PATH of docs\SETUP.md
 #   3. clang-format of the team version (.clang-format-version, through pipx): check_changes and the Claude Code hook
 #   4. SQL Server: the instance already installed (MSSQLSERVER, SQLEXPRESS) or a running Docker container; otherwise
-#      SQL Server 2022 Developer (winget); sqlcmd (go-sqlcmd) when it is missing
+#      SQL Server 2025 Developer (winget); sqlcmd (go-sqlcmd) when it is missing
 #   5. Editor: the recommended VS Code extensions (.vscode\extensions.json), when VS Code is installed
 #   6. Git: identity, origin/develop, GitHub CLI login (checked only - you do these yourself)
 #   7. Verify: db_init.ps1, sign in as a demo account, then test_all.ps1
@@ -261,8 +261,12 @@ if (Test-ClangFormat) {
     Report "FAILED" "clang-format" $detail
 }
 
-# 4. SQL Server: -Docker, -Server, an installed instance, a running Docker container, else SQL Server 2022 Developer
+# 4. SQL Server: -Docker, -Server, an installed instance, a running Docker container, else SQL Server 2025 Developer.
+#    Not 2022: Microsoft retired its 2022 web installer (the winget package still points to it and it stops with
+#    "This version of the installer is no longer supported"). The database scripts use 2012+ syntax, so 2025 runs
+#    them like the SQL Server 2022 container of CI.
 Step "4/7 SQL Server"
+$sqlPackage = "Microsoft.SQLServer.2025.Developer"
 $sqlReady = $false
 $saPassword = $env:SQL_PASSWORD
 function Find-Instance {
@@ -279,21 +283,21 @@ if (-not $Docker -and -not $Server -and (Test-Command "docker") -and (Invoke-Nat
 
 if (-not $Docker -and -not $Server) {
     if ($Check) {
-        Report "MISSING" "SQL Server" "winget install --id Microsoft.SQLServer.2022.Developer"
+        Report "MISSING" "SQL Server" "winget install --id $sqlPackage"
     } elseif (-not $AcceptLicenses) {
         Report "SKIPPED" "SQL Server" "needs -AcceptLicenses (SQL Server Developer Edition license)"
     } elseif (-not (Test-Command "winget")) {
         Report "SKIPPED" "SQL Server" "needs winget"
     } else {
         # Downloads about 1.5 GB; Windows asks for administrator rights, the installing account becomes sysadmin
-        Write-Host ">> winget install Microsoft.SQLServer.2022.Developer (10-30 minutes)"
-        & winget install --id Microsoft.SQLServer.2022.Developer --exact --silent --accept-package-agreements --accept-source-agreements | Out-Host
+        Write-Host ">> winget install $sqlPackage (10-30 minutes)"
+        & winget install --id $sqlPackage --exact --silent --accept-package-agreements --accept-source-agreements | Out-Host
         $code = $LASTEXITCODE
         Update-SessionPath
         $Server = Find-Instance
         if ($code -eq 3010) { Report "ACTION" "SQL Server" "installed, restart Windows, then re-run this script"; $Server = "" }
-        elseif ($Server) { Report "INSTALLED" "SQL Server" "SQL Server 2022 Developer ($Server)" }
-        else { Report "FAILED" "SQL Server" "winget install --id Microsoft.SQLServer.2022.Developer (exit code $code)" }
+        elseif ($Server) { Report "INSTALLED" "SQL Server" "SQL Server 2025 Developer ($Server)" }
+        else { Report "FAILED" "SQL Server" "winget install --id $sqlPackage (exit code $code)" }
     }
 }
 
@@ -397,7 +401,7 @@ if ($Check -or $SkipTests) {
         if ($login.Code -ne 0) {
             # Contained database users sign in with SQL Server Authentication: an instance installed with Windows
             # Authentication only rejects them
-            Report "ACTION" "Demo sign-in" "ql_quan cannot sign in: SSMS > server Properties > Security > 'SQL Server and Windows Authentication mode', restart the service, re-run"
+            Report "ACTION" "Demo sign-in" "ql_quan cannot sign in: turn on 'SQL Server and Windows Authentication mode' (SSMS > server Properties > Security, or the sqlcmd command of docs\SETUP.md section 1), restart the service, re-run"
         } elseif ($Docker) {
             & (Join-Path $PSScriptRoot "test_all.ps1") -Docker $Docker -NoInit
             Report "OK" "scripts\test_all.ps1" "ALL TESTS PASSED (database, server-level, unit and end-to-end tests)"
@@ -426,6 +430,6 @@ if (-not $tested) { Write-Host "Tools are in place; the test suite was not run."
 $testCommand = if ($Docker) { ".\scripts\test_all.ps1 -Docker $Docker   # sa password in `$env:SQL_PASSWORD" } else { ".\scripts\test_all.ps1 -Server `"$Server`"" }
 Write-Host ""
 Write-Host "Ready. Open a NEW terminal (PATH and QT_ROOT_DIR changed), then:"
-Write-Host "  Run the app:      .\build\$preset\src\app\QLTTTA.exe   (demo accounts: docs\SETUP.md)"
+Write-Host "  Run the app:      .\build\$preset\QLTTTA.exe   (demo accounts: docs\SETUP.md)"
 Write-Host "  Before every PR:  $testCommand"
 Write-Host "  Then read:        AGENTS.md, docs\CONTRIBUTING.md, docs\ARCHITECTURE.md (reference module: Students)"

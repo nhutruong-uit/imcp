@@ -37,7 +37,8 @@ If something is `MISSING`, ask the user (AskUserQuestion, one question per decis
    VS Code extensions of `.vscode/extensions.json`. The test step **re-initializes the local QLTTTA database** (local
    data changes are lost).
 2. **Licenses** - only when SQL Server (or Docker Desktop on macOS) is missing. The script installs them only with
-   `--accept-licenses` / `-AcceptLicenses`: SQL Server 2022 Developer Edition (free, development and test use only)
+   `--accept-licenses` / `-AcceptLicenses`: SQL Server Developer Edition - 2022 in Docker on macOS, 2025 on Windows
+   (Microsoft retired the 2022 web installer) - free, development and test use only,
    and, on macOS, Docker Desktop (Docker Subscription Service Agreement: free for personal use, education and small
    companies). Never pass the flag without a clear "yes" from this user in this session; the repository owner's
    acceptance for CI does not cover a member's machine. If the answer is no, run without it and point to the manual

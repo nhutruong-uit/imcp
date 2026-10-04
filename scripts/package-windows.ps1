@@ -29,7 +29,8 @@ if ($LASTEXITCODE -ne 0) { throw "Build failed" }
 $stage = Join-Path $root "build\windows-release\stage\QLTTTA"
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory -Force $stage | Out-Null
-Copy-Item (Join-Path $root "build\windows-release\src\app\QLTTTA.exe") $stage
+# On Windows qt_standard_project_setup() puts every executable in the build folder itself (next to the DLLs)
+Copy-Item (Join-Path $root "build\windows-release\QLTTTA.exe") $stage
 
 Write-Host ">> windeployqt"
 # --no-translations: Qt's own catalogs are not needed (the app's translations are embedded as resources)
