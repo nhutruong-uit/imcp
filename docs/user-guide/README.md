@@ -16,8 +16,10 @@ python3 docs/user-guide/build_user_guide.py
 ./docs/report/tools/export_pdf.sh docs/user-guide/QLTTTA_User_Guide.docx   # macOS + Word
 swift docs/report/tools/check_pdf.swift check docs/user-guide/QLTTTA_User_Guide.pdf
 ```
-On Windows: run `build_user_guide.py`, open the docx in Word, press `Ctrl+A` then `F9` (update fields) and save it as
-PDF with *File > Save As*. The committed guide shows masked student IDs; `--submission` builds the copy with the real
+On Windows with Word: `py docs\user-guide\build_user_guide.py`, then
+`.\docs\report\tools\export_pdf.ps1 docs\user-guide\QLTTTA_User_Guide.docx` (it also reports Word field errors).
+Without that script: open the docx in Word, press `Ctrl+A` then `F9` (update fields) and save it as PDF with
+*File > Save As*. The committed guide shows masked student IDs; `--submission` builds the copy with the real
 ones (`QLTTTA_User_Guide_submission.docx`, see [the report README](../report/README.md)).
 
 | Component | Location |

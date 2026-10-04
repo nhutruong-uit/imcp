@@ -96,8 +96,10 @@ Fix Python errors in `chapters/`/`guide_lib.py` and run it again.
   never click permission dialogs. If the export times out meanwhile, close the document in Word without saving
   (`osascript -e 'tell application "Microsoft Word" to close document "QLTTTA_User_Guide.docx" saving no'`) and run
   it again.
-- Windows: ask the user to open the docx in Word, answer **Yes** to updating the fields (or `Ctrl+A`, `F9`), save
-  it, then *File > Save As > PDF* to `docs/user-guide/QLTTTA_User_Guide.pdf`.
+- Windows + Word: `.\docs\report\tools\export_pdf.ps1 docs\user-guide\QLTTTA_User_Guide.docx` (same steps through
+  COM, hidden Word; exit code 1 = Word field errors). No Word: ask the user to open the docx in Word, answer **Yes**
+  to updating the fields (or `Ctrl+A`, `F9`), save it, then *File > Save As > PDF* to
+  `docs/user-guide/QLTTTA_User_Guide.pdf`.
 
 ## 7. Check the result
 - macOS: `swift docs/report/tools/check_pdf.swift check docs/user-guide/QLTTTA_User_Guide.pdf "<new text>"` (exit

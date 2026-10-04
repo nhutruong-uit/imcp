@@ -11,6 +11,7 @@ Usage (the sa password is read from SQL_PASSWORD, never passed on the command li
   SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" \\
       python3 docs/report/tools/export_data.py --docker imcp-mssql
   SQL_PASSWORD='<sa password>' python3 docs/report/tools/export_data.py --server localhost,1433
+  py docs/report/tools/export_data.py --server localhost --windows-auth   # Windows, SQL Server installed on the PC
 
 Run scripts/test_all.sh first: it re-creates the database, so the figures match the seed data.
 """
@@ -133,8 +134,8 @@ class SqlRunner:
     """Runs a SQL file with sqlcmd (inside the Docker container or on this machine); password via the environment."""
 
     def __init__(self, docker, server, user, password):
-        self.docker, self.server, self.user = docker, server, user
-        self.env = dict(os.environ, SQLCMDPASSWORD=password)
+        self.docker, self.server, self.user = docker, server, user   # user None = Windows Authentication
+        self.env = dict(os.environ, SQLCMDPASSWORD=password or "")
 
     def run(self, sql_or_file, *options):
         if isinstance(sql_or_file, Path):
@@ -146,7 +147,8 @@ class SqlRunner:
             file = Path(tmp.name)
             file.chmod(0o644)   # sqlcmd runs as the mssql user inside the container and must read the file
         try:
-            common = ["-U", self.user, "-C", "-I", "-f", "65001", "-d", "QLTTTA", *options]
+            login = ["-U", self.user] if self.user else ["-E"]
+            common = [*login, "-C", "-I", "-f", "65001", "-d", "QLTTTA", *options]
             if self.docker:
                 target = f"/tmp/qlttta_{file.name}"
                 subprocess.run(["docker", "cp", str(file), f"{self.docker}:{target}"], check=True, capture_output=True)
@@ -203,12 +205,17 @@ def main():
     ap.add_argument("--docker", help="SQL Server container name (e.g. imcp-mssql)")
     ap.add_argument("--server", default="localhost,1433", help="server when sqlcmd runs on this machine")
     ap.add_argument("--user", default="sa")
+    ap.add_argument("--windows-auth", action="store_true",
+                    help="Windows Authentication instead of --user and SQL_PASSWORD (SQL Server installed on Windows)")
     ap.add_argument("--only", choices=["schema", "queries", "tests"], help="export only one part")
     a = ap.parse_args()
+    if a.windows_auth and a.docker:
+        sys.exit("--windows-auth works with a SQL Server installed on Windows, not with --docker.")
     password = os.environ.get("SQL_PASSWORD")
-    if not password:
-        sys.exit("Set the SQL_PASSWORD environment variable (password of the sa account).")
-    runner = SqlRunner(a.docker, a.server, a.user, password)
+    if not password and not a.windows_auth:
+        sys.exit("Set the SQL_PASSWORD environment variable (password of the sa account), "
+                 "or use --windows-auth on Windows.")
+    runner = SqlRunner(a.docker, a.server, None if a.windows_auth else a.user, password)
     if a.only in (None, "schema"):
         export_schema(runner)
     if a.only in (None, "queries"):
