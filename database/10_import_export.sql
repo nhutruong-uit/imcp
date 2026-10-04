@@ -60,16 +60,21 @@ GO
 -- so the rows can be checked before they reach STUDENT.
 -- Options: FIRSTROW = 2 skips the header row; FIELDTERMINATOR / ROWTERMINATOR = comma and new line;
 -- TABLOCK locks the whole table during the load, which makes bulk loading faster.
+-- The lines of the file end with LF. Written '\n', SQL Server on Windows looks for CR+LF (0 rows imported) and on
+-- Linux for LF, so the LF character itself is given: NCHAR(10). BULK INSERT takes the file name and the options
+-- only as literals, so the statement is built as text and run with sp_executesql (dynamic SQL).
 -- TRY/CATCH: when the file is missing, the script prints a hint instead of stopping.
 IF OBJECT_ID('tempdb..#StudentCsv') IS NOT NULL DROP TABLE #StudentCsv;
 CREATE TABLE #StudentCsv (
     FullName NVARCHAR(100), DateOfBirth DATE, Gender NVARCHAR(10), Phone VARCHAR(15), Email VARCHAR(100),
     BranchId VARCHAR(10));
 
+DECLARE @File NVARCHAR(260) = N'/var/opt/mssql/data/student_import.csv';   -- Windows: N'C:\Data\student_import.csv'
+DECLARE @Sql NVARCHAR(MAX) = N'BULK INSERT #StudentCsv FROM N''' + REPLACE(@File, N'''', N'''''')
+    + N''' WITH (DATAFILETYPE = ''widechar'', FIRSTROW = 2, FIELDTERMINATOR = '','', ROWTERMINATOR = '''
+    + NCHAR(10) + N''', TABLOCK);';
 BEGIN TRY
-    BULK INSERT #StudentCsv
-    FROM '/var/opt/mssql/data/student_import.csv'        -- Windows: 'C:\Data\student_import.csv'
-    WITH (DATAFILETYPE = 'widechar', FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK);
+    EXEC sys.sp_executesql @Sql;
 
     SELECT FullName, DateOfBirth, Gender, Phone, NULLIF(Email, '') AS Email, BranchId FROM #StudentCsv;
     -- NULLIF(Email, '') turns an empty Email field into NULL.
