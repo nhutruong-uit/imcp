@@ -17,8 +17,8 @@ GUIDE_DIR = Path(__file__).resolve().parent
 REPORT_DIR = GUIDE_DIR.parent / "report"
 sys.path.insert(0, str(REPORT_DIR))
 
-from report_lib import (PAGE_WIDTH_TWIPS, Report, _para_format, _set_cell_borders,  # noqa: E402
-                        _set_cell_margins, _set_cell_shading, _set_cell_width)
+from report_lib import (PAGE_WIDTH_TWIPS, Report, _check_figure_caption, _para_format,  # noqa: E402
+                        _set_cell_borders, _set_cell_margins, _set_cell_shading, _set_cell_width)
 
 # Text searched for in Word (Ctrl+F) and in the content (grep) to find what is still missing
 PLACEHOLDER_TAG = "CẦN BỔ SUNG"
@@ -78,6 +78,7 @@ class Guide(Report):
     def figure_or_placeholder(self, path: Path, caption: str, todo: str, platform: str = "Windows",
                               width_cm: float = 15.5):
         """The figure when the image exists; otherwise a placeholder naming the file to add."""
+        _check_figure_caption(caption)  # already while the image is missing, not only once it is added
         if path.exists():
             self.figure(path, caption, width_cm=width_cm)
             return

@@ -163,7 +163,7 @@ def chapter5(g):
         ["Buổi học hôm nay", "Số buổi học có lịch trong ngày"],
     ], widths_cm=[4.6, 11.4], caption="Các thẻ số liệu trên trang Tổng quan", size=10.5)
     g.figure(SCREENS / "gvu_lan_dashboard.png",
-             "Trang Tổng quan của Giáo vụ: không có quyền xem doanh thu nên biểu đồ để trống")
+             "Trang Tổng quan của Giáo vụ: không có quyền xem doanh thu")
 
     g.h2("5.2. Học viên")
     g.p("*Vai trò: Quản lý, Giáo vụ (xem, thêm, sửa, xóa); Kế toán (chỉ xem).* Danh sách học viên với mã, họ "
