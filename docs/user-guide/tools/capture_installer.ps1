@@ -5,14 +5,20 @@
 # then uninstalls silently. Results:
 #   docs\user-guide\images\windows\installer_finish.png   the last page, used by chapter 3 of the guide
 #   build\installer-pages\NN_<page>.png + pages.txt       every page and its texts (button names quoted in the guide)
-# The SmartScreen warning only appears for a DOWNLOADED file and is a Windows security dialog: take that one by hand
-# with capture_window.ps1 -Name installer_smartscreen (this script never clicks a system dialog).
+# -SmartScreen takes installer_smartscreen.png instead: Windows checks only a DOWNLOADED file, so the script puts a
+# copy marked as coming from the internet (Mark of the Web, zone 3) in Downloads and selects it in File Explorer.
+# SmartScreen is a Windows security dialog: within a 20 s countdown YOU double-click the file and click "More info";
+# the window in front is then saved as installer_smartscreen.png and YOU click "Don't run". Nothing is installed: an
+# installer started by mistake is closed, and the copy is deleted. (Or take it with Win+Shift+S: the dialog belongs
+# to no process the script could watch.)
 #
 # Usage (PowerShell, in the repo folder, after .\scripts\package.ps1 with Inno Setup 6):
 #   .\docs\user-guide\tools\capture_installer.ps1
+#   .\docs\user-guide\tools\capture_installer.ps1 -SmartScreen
 #   .\docs\user-guide\tools\capture_installer.ps1 -Setup dist\QLTTTA-0.1.0-windows-x64-setup.exe
 param(
-    [string]$Setup = ""
+    [string]$Setup = "",
+    [switch]$SmartScreen
 )
 $ErrorActionPreference = "Stop"
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
@@ -22,6 +28,35 @@ if (-not $Setup) {
     if (-not $found) { throw "No dist\QLTTTA-*-windows-x64-setup.exe: run .\scripts\package.ps1 (with Inno Setup 6) first." }
     $Setup = $found.FullName
 }
+$capture = Join-Path $PSScriptRoot "capture_window.ps1"
+
+if ($SmartScreen) {
+    # The copy goes to Downloads and YOU open it from File Explorer, like a user who downloaded the installer: a
+    # program started by a script (e.g. from Claude Code) does not reliably get the SmartScreen dialog on screen
+    $downloads = Join-Path ([Environment]::GetFolderPath("UserProfile")) "Downloads"
+    $copy = Join-Path $downloads (Split-Path $Setup -Leaf)
+    Copy-Item $Setup $copy -Force
+    Set-Content -Path $copy -Stream Zone.Identifier -Value "[ZoneTransfer]`r`nZoneId=3"   # downloaded from the internet
+    $started = Get-Date
+    Start-Process explorer.exe -ArgumentList "/select,`"$copy`""
+    Write-Host ">> Within 20 s: double-click $(Split-Path $copy -Leaf) in File Explorer, then click 'More info'."
+    Write-Host "   The window in front after the countdown is saved; then click 'Don't run'."
+    try {
+        # The window in front, copied from the screen (the dialog cannot be found by its process or read by UI
+        # Automation, so it is not searched for)
+        & $capture -Name installer_smartscreen -Delay 20
+    } finally {
+        Start-Sleep -Seconds 5
+        # "Run anyway" clicked by mistake: close the installer before it installs anything
+        Get-Process | Where-Object { $_.ProcessName -like "QLTTTA-*-setup*" -and $_.StartTime -gt $started } |
+            Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 500
+        Remove-Item $copy -Force -ErrorAction SilentlyContinue
+    }
+    Write-Host "Check that images\windows\installer_smartscreen.png shows 'Run anyway' and 'Don't run'."
+    exit 0
+}
+
 $uninstallKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
 function Get-Installed {
     Get-ChildItem $uninstallKey -ErrorAction SilentlyContinue | ForEach-Object { Get-ItemProperty $_.PSPath } |
@@ -30,7 +65,6 @@ function Get-Installed {
 if (Get-Installed) { throw "QLTTTA is already installed for this user: uninstall it first, so the pages are the ones of a first install." }
 
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
-$capture = Join-Path $PSScriptRoot "capture_window.ps1"
 $pagesDir = Join-Path $root "build\installer-pages"
 New-Item -ItemType Directory -Force -Path $pagesDir | Out-Null
 Get-ChildItem $pagesDir -File | Remove-Item -Force

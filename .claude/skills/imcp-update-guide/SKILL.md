@@ -71,9 +71,17 @@ appendix B). List them with `grep -n "placeholder(" docs/user-guide/chapters/*.p
     `.\scripts\package.ps1` - it installs for the current user only (no UAC), clicks through the wizard, saves
     `installer_finish.png` and every page with its texts in `build\installer-pages\` (check the button names quoted
     in chapter 3 there), then uninstalls. Tell the user beforehand not to click the window.
-  - Other windows (SmartScreen, SQL Server installer, Configuration Manager, SSMS, Docker Desktop): the user opens
-    the window, runs `.\docs\user-guide\tools\capture_window.ps1 -Name <file name without .png>` and clicks the
-    window within 5 s (macOS: `Cmd+Shift+4`, Space). Never click system or permission dialogs yourself.
+  - SmartScreen: the dialog only shows for a downloaded file opened by the USER from File Explorer (a program
+    started from Claude Code gets no dialog) and belongs to no process a script can watch.
+    `capture_installer.ps1 -SmartScreen` puts a copy marked as downloaded in Downloads and selects it in Explorer;
+    the user double-clicks it, clicks "More info" within the 20 s countdown (the window in front is saved), then
+    "Don't run". `Win+Shift+S` works as well.
+  - Other windows (SQL Server installer, Configuration Manager, SSMS, Docker Desktop): run
+    `capture_window.ps1 -Name <series> -Watch "<title or process regex>"` in the background while the user clicks
+    through the program (UAC prompts are theirs); every new page lands in `build\captures\<series>\NN.png`. Read the
+    images to write the steps with the real page and button names, and copy the right one to
+    `images\windows\<file name>.png`. For a single window the user runs `capture_window.ps1 -Name <file name>` and
+    clicks it within 5 s (macOS: `Cmd+Shift+4`, Space). Never click system or permission dialogs yourself.
 - When a Windows command differs from the macOS one, show both (`g.code("PowerShell (Windows)", ...)`).
 
 ## 4. Edit the content
