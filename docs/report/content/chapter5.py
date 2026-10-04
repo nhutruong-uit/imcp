@@ -50,7 +50,7 @@ def chapter5(r):
         ["usp_Receipt_*, usp_Payroll_Finalize", "✔", "DENY usp_Receipt_Create", "✔", "—"],
         ["usp_Attendance_Save, usp_Grade_Save", "✔", "✔", "DENY usp_Grade_Save", "✔ (chỉ lớp mình)"],
         ["usp_Account_Create/_Lock, usp_Backup", "✔", "—", "—", "—"],
-        ["INSERT/UPDATE bảng danh mục (thêm DELETE GRADE_COMPONENT)", "✔ (trigger bảo vệ)", "—", "—", "—"],
+        ["INSERT/UPDATE/DELETE trực tiếp trên bảng", "—", "—", "—", "—"],
         ["DELETE RECEIPT; UPDATE/DELETE AUDIT_LOG", "DENY", "—", "—", "—"],
     ], widths_cm=[4.6, 2.4, 2.8, 3.0, 3.2], caption="Ma trận phân quyền theo role", size=9)
     r.code("Trích 06_security.sql - GRANT/DENY cho role giáo viên và phân quyền mức cột",
@@ -59,13 +59,13 @@ def chapter5(r):
            "    TO rl_AcademicStaff;")
     r.p("`DENY` được ưu tiên hơn `GRANT` khi một user thuộc nhiều role; `REVOKE` chỉ thu hồi một GRANT/DENY đã cấp (trở "
         "về trạng thái chưa xác định). Vì vậy dữ liệu nhạy cảm như bảng lương được `DENY` tường minh cho giáo vụ, và "
-        "ngay cả role Quản lý cũng bị `DENY DELETE` trên RECEIPT để bảo vệ chứng từ tài chính. Quyền ghi trực tiếp lên bảng "
-        "duy nhất của role nghiệp vụ là quyền của Quản lý trên các bảng danh mục (chi nhánh, phòng, khóa học, cột điểm...), "
-        "giữ lại để bảo trì trong SSMS. Các màn hình danh mục của ứng dụng không dùng quyền này mà gọi thủ tục nhóm J "
-        "(`usp_Branch_Add` ... `usp_Promotion_Update`), nơi kiểm tra các quy tắc cần đọc bảng khác (chi nhánh còn lớp "
-        "đang hoạt động, khóa tiên quyết không tạo vòng lặp...); những quy tắc mà thao tác trực tiếp trong SSMS có thể phá vỡ "
-        "được trigger bảo vệ: `trg_ROOM_CheckClasses` (phòng vẫn phù hợp với lớp đang dùng) và `trg_GRADE_COMPONENT_Lock` "
-        "(không đổi cột điểm của khóa học đã có lớp được đánh giá).")
+        "ngay cả role Quản lý cũng bị `DENY DELETE` trên RECEIPT để bảo vệ chứng từ tài chính. Không role nghiệp vụ nào có "
+        "quyền ghi trực tiếp lên bảng, kể cả Quản lý: các màn hình danh mục gọi thủ tục nhóm J (`usp_Branch_Add` ... "
+        "`usp_Promotion_Update`), nơi kiểm tra các quy tắc cần đọc bảng khác (chi nhánh còn lớp đang hoạt động, khóa tiên "
+        "quyết không tạo vòng lặp, khuyến mãi đã dùng thì giữ mức giảm...). Trước đây Quản lý còn giữ quyền INSERT/UPDATE "
+        "trên các bảng danh mục để bảo trì trong SSMS; lần rà soát ngày 04/10/2026 cho thấy thao tác trực tiếp đó bỏ qua "
+        "được các quy tắc chỉ nằm trong thủ tục, nên quyền này được thu hồi (ca P26, ma trận T29). Việc bảo trì ngoài ứng "
+        "dụng là của chủ sở hữu CSDL (sa), vẫn chịu các trigger `trg_ROOM_CheckClasses` và `trg_GRADE_COMPONENT_Lock`.")
 
     # ------------------------------------------------------------------ 5.3
     r.h2("5.3. View bảo mật")

@@ -272,7 +272,8 @@ def chapter5(g):
     ])
     g.bullets([
         "**Sửa**: đổi tên lớp, giáo viên chính, phòng, ngày khai giảng, sĩ số tối đa, học phí (khóa học và chi "
-        "nhánh giữ nguyên). Các buổi **Chưa dạy** đi theo giáo viên và phòng mới. Đổi ngày khai giảng thì các buổi "
+        "nhánh giữ nguyên). Các buổi **Chưa dạy** từ hôm nay trở đi theo giáo viên và phòng mới; buổi đã qua giữ "
+        "giáo viên đã dạy buổi đó. Đổi ngày khai giảng thì các buổi "
         "đã sinh bị xóa và ứng dụng sinh lại từ ngày mới. Học phí mới chỉ áp dụng cho các lần ghi danh sau.",
         "**Hủy lớp**: chỉ khi lớp chưa có học viên đóng tiền; các ghi danh đang mở chuyển sang **Đã nghỉ**.",
         "**Học viên** và **Kết quả**: xem danh sách học viên của lớp và bảng kết quả (điểm tổng kết, xếp loại, "
@@ -305,8 +306,9 @@ def chapter5(g):
         "Gõ mã, họ tên hoặc SĐT vào ô **Tìm học viên**, bấm **Tìm**, chọn **Học viên**.",
         "Chọn **Lớp** (chỉ các lớp **Đang tuyển sinh** hoặc **Đang học**); dòng bên dưới cho biết học phí và số "
         "chỗ còn trống.",
-        "Kiểm tra **Ngày ghi danh**, chọn **Khuyến mãi** nếu có (chỉ các khuyến mãi còn hiệu lực vào ngày "
-        "ghi danh) rồi bấm **Ghi danh**.",
+        "Kiểm tra **Ngày ghi danh** (hôm nay hoặc một ngày đã qua khi nhập lại phiếu giấy, không chọn được ngày "
+        "trong tương lai), chọn **Khuyến mãi** nếu có (chỉ các khuyến mãi còn hiệu lực vào ngày ghi danh) rồi bấm "
+        "**Ghi danh**.",
     ])
     g.bullets([
         "**Chuyển lớp**: chọn lượt ghi danh, bấm **Chuyển lớp**, chọn lớp ở ô **Lớp mới** (chỉ các lớp cùng khóa "
@@ -419,11 +421,13 @@ def chapter5(g):
     g.bullets([
         "**Chốt lương tháng**: chọn **Tháng**, **Năm** (mặc định tháng trước) rồi bấm **Chốt lương**. CSDL đếm "
         "các buổi **Đã dạy** của từng giáo viên trong tháng, tính số giờ, thưởng 500.000 đ khi dạy từ 20 buổi. "
-        "Có thể chốt lại một tháng (ví dụ khi vừa cập nhật buổi dạy); các dòng đã chi trả không bị thay đổi. "
-        "Không chốt được tháng chưa tới.",
+        "Có thể chốt lại một tháng (ví dụ khi vừa cập nhật buổi dạy, hoặc chốt tạm tháng đang chạy để xem trước); "
+        "các dòng đã chi trả không bị thay đổi, khoản khấu trừ đã nhập được giữ (lương không được thấp hơn khoản "
+        "khấu trừ). Không chốt được tháng chưa tới.",
         "**Khấu trừ**: nhập số tiền khấu trừ của dòng đang chọn (không lớn hơn lương của tháng); tổng lương do "
         "CSDL tính lại: số giờ × đơn giá + thưởng - khấu trừ.",
-        "**Đã chi trả**: ghi nhận đã trả lương sau khi xác nhận. Dòng đã chi trả không thể thay đổi nữa.",
+        "**Đã chi trả**: ghi nhận đã trả lương sau khi xác nhận, chỉ khi tháng đó đã kết thúc (các buổi dạy cuối "
+        "tháng còn được tính). Dòng đã chi trả không thể thay đổi nữa.",
     ])
 
     g.h2("5.13. Danh mục")
@@ -467,7 +471,9 @@ def chapter5(g):
         "chi nhánh và đủ chỗ cho sĩ số tối đa của lớp.",
         "**Thêm khuyến mãi**, **Sửa**: mã, tên, **Loại giảm giá** (**Phần trăm**, tối đa 50%, hoặc **Số tiền**), "
         "**Mức giảm**, **Hiệu lực từ** - **Hiệu lực đến**. Muốn ngừng sớm thì sửa ngày hết hiệu lực; các lượt "
-        "ghi danh trước đó giữ nguyên số tiền đã giảm.",
+        "ghi danh trước đó giữ nguyên số tiền đã giảm. Khi đã có học viên dùng khuyến mãi thì không đổi được loại "
+        "giảm giá, mức giảm và ngày bắt đầu (chuyển lớp sẽ áp lại khuyến mãi), và ngày hết hiệu lực không được "
+        "trước lần ghi danh cuối cùng đã dùng nó; tên thì vẫn đổi được.",
     ])
     g.figure(SCREENS / "ql_quan_branches.png", "Chi nhánh và phòng học của chi nhánh đang chọn")
 
