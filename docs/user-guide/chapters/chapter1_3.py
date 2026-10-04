@@ -315,10 +315,15 @@ def chapter3(g):
         "Chọn thư mục cài, đánh dấu **Create a desktop shortcut** nếu muốn có biểu tượng ngoài màn hình.",
         "Bấm **Install**, cuối cùng để chọn **Launch QLTTTA** và bấm **Finish**.",
     ])
-    g.p("Bộ cài tạo mục **QLTTTA** và **Installation guide** (hướng dẫn ngắn bằng tiếng Anh) trong menu Start.")
-    g.placeholder("Kiểm tra trên Windows và cập nhật các bước trên: tên chính xác của các nút/hộp thoại "
-                  "trong bộ cài, thư mục cài mặc định khi cài cho riêng người dùng (dự kiến "
-                  "`%LOCALAPPDATA%\\Programs\\QLTTTA`) và khi cài cho mọi người dùng (`C:\\Program Files\\QLTTTA`).")
+    g.p("Bộ cài tạo mục **QLTTTA** và **Installation guide** (hướng dẫn ngắn bằng tiếng Anh) trong menu Start. "
+        "Cài cho riêng người dùng hiện tại thì ứng dụng nằm ở `%LOCALAPPDATA%\\Programs\\QLTTTA` và không cần "
+        "quyền Administrator.")
+    g.tip("Cài không hiện hộp thoại (ví dụ cài sẵn cho nhiều máy phòng thực hành), cho riêng người dùng, không tạo "
+          f"biểu tượng ngoài màn hình: `QLTTTA-{version}-windows-x64-setup.exe /VERYSILENT /CURRENTUSER "
+          "/MERGETASKS=\"!desktopicon\"`. Gỡ im lặng: `unins000.exe /VERYSILENT` trong thư mục cài.")
+    g.placeholder("Kiểm tra trên Windows bằng giao diện: tên chính xác của các nút/hộp thoại trong bộ cài và thư "
+                  "mục cài mặc định khi chọn cài cho mọi người dùng (dự kiến `C:\\Program Files\\QLTTTA`, cần quyền "
+                  "Administrator).")
     g.figure_or_placeholder(WINDOWS_IMAGES / "installer_smartscreen.png",
                             "Cảnh báo SmartScreen khi chạy bộ cài",
                             "hộp thoại Windows protected your PC sau khi bấm More info (thấy nút Run anyway).")
@@ -345,8 +350,10 @@ def chapter3(g):
         ["Windows", "Registry `HKEY_CURRENT_USER\\Software\\UIT-IE103\\QLTTTA`",
          "**Settings > Apps > Installed apps > QLTTTA > Uninstall** (bản portable: xóa thư mục)"],
     ], widths_cm=[2.8, 7.4, 5.8], caption="Cấu hình đã lưu và cách gỡ ứng dụng", size=10.5)
-    g.placeholder("Xác nhận trên Windows đường dẫn gỡ cài đặt trong Settings (Windows 10 và 11 khác nhau) và "
-                  "khóa registry ở trên.")
+    g.p("Gỡ cài đặt xóa thư mục ứng dụng và các mục trong menu Start nhưng **giữ lại cấu hình** đã lưu trong "
+        "registry, nên cài lại vẫn nhớ máy chủ cũ. Muốn xóa hẳn cấu hình (Windows), chạy trong PowerShell:")
+    g.code("PowerShell (Windows)", "Remove-Item -Path 'HKCU:\\Software\\UIT-IE103\\QLTTTA' -Recurse", lang="text")
+    g.placeholder("Xác nhận trên Windows đường dẫn gỡ cài đặt trong Settings (Windows 10 và 11 khác nhau).")
 
     g.h2("3.5. Chạy từ mã nguồn (dành cho nhóm phát triển)")
     g.p("Thành viên nhóm có thể build ứng dụng bằng Qt 6, CMake và Ninja thay vì dùng bộ cài. Script "
