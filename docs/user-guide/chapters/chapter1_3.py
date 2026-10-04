@@ -311,9 +311,15 @@ def chapter3(g):
     g.steps([
         f"Chạy `QLTTTA-{version}-windows-x64-setup.exe`. Nếu Windows hiện **Windows protected your PC** "
         "(SmartScreen), bấm **More info > Run anyway** (ứng dụng sinh viên không có chữ ký số thương mại).",
-        "Chọn cài cho riêng người dùng hiện tại (không cần quyền Administrator) hoặc cho mọi người dùng.",
-        "Chọn thư mục cài, đánh dấu **Create a desktop shortcut** nếu muốn có biểu tượng ngoài màn hình.",
-        "Bấm **Install**, cuối cùng để chọn **Launch QLTTTA** và bấm **Finish**.",
+        "Hộp thoại **Select install mode**: chọn **Install for me only (recommended)** (cài cho riêng người dùng "
+        "hiện tại, không cần quyền Administrator) hoặc **Install for all users** (cho mọi người dùng, Windows hỏi "
+        "quyền Administrator).",
+        "Trang **Select Destination Location**: giữ thư mục đề xuất hoặc bấm **Browse...** để chọn thư mục khác, "
+        "rồi bấm **Next**.",
+        "Trang **Select Additional Tasks**: giữ hoặc bỏ dấu ở **Create a desktop shortcut** (biểu tượng ngoài màn "
+        "hình), bấm **Next**.",
+        "Trang **Ready to Install**: bấm **Install**. Ở trang cuối (**Completing the QLTTTA - English Center "
+        "Management Setup Wizard**), để dấu ở **Launch QLTTTA** nếu muốn mở ứng dụng ngay, rồi bấm **Finish**.",
     ])
     g.p("Bộ cài tạo mục **QLTTTA** và **Installation guide** (hướng dẫn ngắn bằng tiếng Anh) trong menu Start. "
         "Cài cho riêng người dùng hiện tại thì ứng dụng nằm ở `%LOCALAPPDATA%\\Programs\\QLTTTA` và không cần "
@@ -321,9 +327,8 @@ def chapter3(g):
     g.tip("Cài không hiện hộp thoại (ví dụ cài sẵn cho nhiều máy phòng thực hành), cho riêng người dùng, không tạo "
           f"biểu tượng ngoài màn hình: `QLTTTA-{version}-windows-x64-setup.exe /VERYSILENT /CURRENTUSER "
           "/MERGETASKS=\"!desktopicon\"`. Gỡ im lặng: `unins000.exe /VERYSILENT` trong thư mục cài.")
-    g.placeholder("Kiểm tra trên Windows bằng giao diện: tên chính xác của các nút/hộp thoại trong bộ cài và thư "
-                  "mục cài mặc định khi chọn cài cho mọi người dùng (dự kiến `C:\\Program Files\\QLTTTA`, cần quyền "
-                  "Administrator).")
+    g.placeholder("Kiểm tra trên Windows thư mục cài mặc định khi chọn **Install for all users** (dự kiến "
+                  "`C:\\Program Files\\QLTTTA`, cần quyền Administrator).")
     g.figure_or_placeholder(WINDOWS_IMAGES / "installer_smartscreen.png",
                             "Cảnh báo SmartScreen khi chạy bộ cài",
                             "hộp thoại Windows protected your PC sau khi bấm More info (thấy nút Run anyway).")

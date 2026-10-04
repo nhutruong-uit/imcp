@@ -68,8 +68,9 @@ def chapter6(g):
         ["Windows: **Không kết nối được máy chủ SQL Server** khi ô Máy chủ là `localhost,1433`",
          "TCP/IP của SQL Server đang tắt (mặc định của bản Developer/Express)",
          "Đổi ô Máy chủ thành `localhost` (hoặc `localhost\\SQLEXPRESS`), hoặc bật TCP/IP (mục 2.3.3)."],
-        ["Windows, máy không cài SQL Server (Docker hoặc máy chủ khác): **Không kết nối được máy chủ SQL Server** "
-         "dù máy chủ đang chạy", "Máy chưa có ODBC Driver 18/17; driver \"SQL Server\" có sẵn của Windows không "
+        ["Windows, máy không cài SQL Server (Docker hoặc máy chủ khác): **Không kết nối được máy chủ SQL Server**, "
+         "kèm dòng **Driver \"SQL Server\" có sẵn của Windows không kết nối được**",
+         "Máy chưa có ODBC Driver 18/17; driver \"SQL Server\" có sẵn của Windows không "
          "đăng nhập được", "Cài **Microsoft ODBC Driver 18 for SQL Server** (mục 2.3.2) rồi mở lại ứng dụng."],
         ["Trình cài SQL Server báo *This version of the installer is no longer supported*",
          "Trình cài SQL Server 2022 đã bị Microsoft ngừng", "Tải bản SQL Server 2025 (mục 2.3.1)."],
