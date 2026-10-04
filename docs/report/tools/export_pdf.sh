@@ -23,7 +23,7 @@ PDF="${DOCX%.docx}.pdf"
 NAME="$(basename "$DOCX")"           # working copy in .build, also the name of the document inside Word
 WORK_PDF="$BUILD/${NAME%.docx}.pdf"
 
-[[ "$(uname)" == "Darwin" ]] || { echo "This script only runs on macOS (Windows: export the PDF by hand, see the top of this file)." >&2; exit 2; }
+[[ "$(uname)" == "Darwin" ]] || { echo "This script only runs on macOS (Windows: run docs\report\tools\export_pdf.ps1)." >&2; exit 2; }
 [[ -d "/Applications/Microsoft Word.app" ]] || { echo "Microsoft Word is not installed." >&2; exit 2; }
 mkdir -p "$BUILD"   # NEVER delete this folder: Word would lose the access it was granted
 

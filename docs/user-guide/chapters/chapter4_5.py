@@ -264,7 +264,7 @@ def chapter5(g):
         "lưu lại một thứ đã có thì đổi giờ của thứ đó. Chọn một dòng rồi bấm **Xóa khung giờ** để bỏ.",
         "**Sinh buổi học**: tạo đủ số buổi của khóa học theo lịch tuần, bắt đầu từ ngày khai giảng; ứng dụng "
         "báo số buổi đã tạo và ngày của buổi cuối (cũng là ngày kết thúc lớp). Chạy lại thì các buổi cũ được "
-        "thay thế.",
+        "thay thế, nên chỉ chạy lại được khi chưa có buổi nào **Đã dạy** hoặc **Đã hủy**.",
         "Ghi danh học viên (mục 5.5), rồi **Bắt đầu học** khi lớp khai giảng: lớp chuyển sang **Đang học**.",
         "Hết khóa, khi không còn buổi **Chưa dạy**, bấm **Đánh giá kết quả**: mỗi học viên nhận điểm tổng kết và "
         "**Đạt**/**Không đạt**, học viên đạt được cấp chứng chỉ, lớp chuyển sang **Đã kết thúc** và bảng kết "
@@ -282,9 +282,11 @@ def chapter5(g):
         ["Mở lớp, sửa lớp",
          "Khóa học **Đang mở**, giáo viên **Đang dạy**; phòng thuộc chi nhánh của lớp và đủ chỗ cho sĩ số tối "
          "đa; sĩ số tối đa không nhỏ hơn số học viên đang học; chỉ đổi ngày khai giảng khi lớp **Đang tuyển "
-         "sinh** và chưa có buổi nào đã dạy hoặc đã hủy."],
+         "sinh** và chưa có buổi nào đã dạy hoặc đã hủy; ngày khai giảng mới không làm học viên của lớp bị trùng "
+         "lịch với lớp khác của họ."],
         ["Lịch tuần", "Chỉ với lớp **Đang tuyển sinh** hoặc **Đang học**; giờ học trong khoảng 07:00-22:00; "
-                      "không trùng phòng, không trùng giáo viên với lớp khác cùng thứ và cùng giờ."],
+                      "không trùng phòng, không trùng giáo viên với lớp khác cùng thứ và cùng giờ; không làm "
+                      "học viên của lớp bị trùng lịch với lớp khác của họ."],
         ["Bắt đầu / hủy lớp",
          "Lớp đi theo thứ tự **Đang tuyển sinh** → **Đang học** → **Đã kết thúc**, hoặc **Đã hủy**. Lớp đã kết "
          "thúc hoặc đã hủy không mở lại được: hãy mở lớp mới."],
@@ -349,13 +351,17 @@ def chapter5(g):
     g.figure(SCREENS / "gvu_lan_grade_book.png", "Sổ điểm của một lớp")
     g.steps([
         "Chọn lớp ở ô **Lớp**.",
-        "Nhấp đúp vào ô điểm, nhập điểm từ 0 đến 10 rồi Enter; làm tiếp với các ô khác. Dòng cuối cho biết số "
-        "điểm chưa lưu.",
+        "Nhấp đúp vào ô điểm, nhập điểm từ 0 đến 10 (tối đa 2 chữ số thập phân) rồi Enter; làm tiếp với các ô "
+        "khác. Dòng cuối cho biết số điểm chưa lưu; điểm ngoài khoảng 0-10 không được nhận và dòng cuối báo lý "
+        "do.",
         "Bấm **Lưu điểm**: mọi điểm vừa nhập được lưu cùng lúc (lỗi một điểm thì không điểm nào được lưu). Đổi "
-        "sang lớp khác khi còn điểm chưa lưu thì ứng dụng hỏi có lưu không.",
+        "sang lớp khác khi còn điểm chưa lưu thì ứng dụng hỏi có lưu không; nếu lưu không được, sổ điểm ở lại "
+        "lớp cũ và giữ nguyên các điểm vừa nhập. Bấm **Làm mới** để đọc lại cả danh sách lớp (lớp vừa mở "
+        "hoặc vừa kết thúc ở màn hình khác).",
     ])
     g.bullets([
-        "Lớp **Đã kết thúc** thì điểm đã chốt: bảng chỉ để xem.",
+        "Lớp **Đã kết thúc** thì điểm đã chốt: bảng chỉ để xem. Điểm tổng kết dưới 5 hiện màu đỏ; từ 5 trở "
+        "lên chưa chắc **Đạt** vì còn cần chuyên cần từ 80%."
         "Khi tổng trọng số các cột điểm khác 100%, màn hình hiện cảnh báo: lớp chưa thể đánh giá kết quả cho "
         "đến khi quản lý sửa cột điểm của khóa học (mục 5.13).",
         "Mọi lần sửa điểm được CSDL ghi vào nhật ký (điểm cũ, điểm mới, người sửa, thời điểm).",
@@ -513,11 +519,15 @@ def chapter5(g):
 
     g.h2("5.17. Việc vẫn làm trong SSMS")
     g.p("Mọi nghiệp vụ hằng ngày đã có trên ứng dụng. Một số việc quản trị ít dùng vẫn làm trong SSMS hoặc VS "
-        "Code (đăng nhập bằng tài khoản quản lý, chọn CSDL `QLTTTA`):")
+        "Code, chọn CSDL `QLTTTA`:")
     g.bullets([
-        "Khôi phục CSDL từ các bản sao lưu (mục 5.15).",
-        "Xem nhật ký thay đổi điểm và phiếu thu: bảng `AUDIT_LOG` (chỉ đọc, không ai sửa hay xóa được).",
+        "Xem nhật ký thay đổi điểm và phiếu thu: bảng `AUDIT_LOG` (chỉ đọc, không ai sửa hay xóa được). Tài "
+        "khoản quản lý đọc được bảng này.",
+        "Khôi phục CSDL từ các bản sao lưu (mục 5.15): cần quản trị viên SQL Server (tài khoản `sa` hoặc đăng "
+        "nhập Windows như mục 2.3.4), vì lệnh `RESTORE` tạo lại cả CSDL; tài khoản quản lý của ứng dụng không "
+        "có quyền này.",
         "Xóa hẳn chi nhánh, khóa học, giáo viên, nhân viên: ứng dụng chỉ chuyển sang trạng thái ngừng để giữ "
-        "lịch sử.",
+        "lịch sử. Việc xóa hẳn cũng cần quản trị viên SQL Server (tài khoản quản lý không có quyền DELETE trên "
+        "các bảng này), và CSDL vẫn từ chối xóa dòng đã có lịch sử (lớp, ghi danh, phiếu thu...).",
     ])
     g.p("Tham số và ví dụ của từng thủ tục nằm trong `database/04_procedures.sql` và Chương 4 của báo cáo đồ án.")

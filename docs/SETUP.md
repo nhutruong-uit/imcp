@@ -98,6 +98,11 @@ Connection check without the GUI (for diagnosing errors; `QLTTTA_SERVER` is opti
 ```bash
 QLTTTA_USER=ql_quan QLTTTA_PASSWORD='Demo@2026' /Applications/QLTTTA.app/Contents/MacOS/QLTTTA --check-connection
 ```
+```powershell
+$env:QLTTTA_USER = 'ql_quan'; $env:QLTTTA_PASSWORD = 'Demo@2026'
+# installed for all users; for the current user only: $env:LOCALAPPDATA\Programs\QLTTTA\QLTTTA.exe
+& "C:\Program Files\QLTTTA\QLTTTA.exe" --check-connection | Out-Host   # | Out-Host waits for the GUI app
+```
 It prints `OK: <full name> (<role>)` and exits with code 0, or `ERROR: <message>` and exits with code 1 (in the
 language chosen last in the app).
 
@@ -121,8 +126,9 @@ powershell -ExecutionPolicy Bypass -File scripts\setup_dev.ps1 -AcceptLicenses
 ```
 `--accept-licenses` (`-AcceptLicenses`) means you accept the SQL Server Developer Edition license and, on macOS, the
 Docker Desktop terms; without it those steps are skipped. Other options: `--container <name>` (`-Docker <name>`),
-`-Server <instance>` (Windows), `--with-msodbc` (`-WithMsOdbc`: Microsoft ODBC Driver 18, optional) and `--skip-tests`
-(`-SkipTests`). On macOS a missing SQL Server becomes the `imcp-mssql` container of `docker-compose.yml`, with a random
+`-Server <instance>` (Windows), `--with-msodbc` (`-WithMsOdbc`: Microsoft ODBC Driver 18 - not needed on macOS or on a
+Windows PC with SQL Server installed, needed on Windows with `-Docker` or a SQL Server on another PC, see
+`docs/ARCHITECTURE.md` section 6) and `--skip-tests` (`-SkipTests`). On macOS a missing SQL Server becomes the `imcp-mssql` container of `docker-compose.yml`, with a random
 sa password written to `.env`. On Windows, Qt 6.8 + MinGW, CMake and Ninja are installed into `C:\Qt` with aqtinstall
 (the tool CI uses, no Qt account needed) and `QT_ROOT_DIR` and `PATH` are set for your user. What only you can do -
 install Homebrew, sign in with `gh auth login`, set your git name, restart Windows - is listed at the end with the
@@ -256,6 +262,11 @@ the same way as the report:
 python3 docs/user-guide/build_user_guide.py
 ./docs/report/tools/export_pdf.sh docs/user-guide/QLTTTA_User_Guide.docx
 swift docs/report/tools/check_pdf.swift check docs/user-guide/QLTTTA_User_Guide.pdf
+```
+On Windows (Word for Windows; the exit code of `export_pdf.ps1` is the field check, there is no swift):
+```powershell
+py docs\user-guide\build_user_guide.py
+.\docs\report\tools\export_pdf.ps1 docs\user-guide\QLTTTA_User_Guide.docx
 ```
 
 ### Translations (multi-language UI)

@@ -33,13 +33,16 @@ def chapter5(r):
     # ------------------------------------------------------------------ 5.2
     r.h2("5.2. Phân quyền")
     r.p("Quyền được cấp cho **role** (rl_Manager, rl_AcademicStaff, rl_Accountant, rl_Teacher), không cấp trực tiếp cho user. "
-        "Nguyên tắc **đặc quyền tối thiểu**: role nghiệp vụ không có quyền trên bảng gốc, chỉ được `EXECUTE` thủ tục và "
-        "`SELECT` view cần thiết. Cơ chế **ownership chaining** của SQL Server làm cho điều này khả thi: khi view/thủ tục "
+        "Nguyên tắc **đặc quyền tối thiểu**: role nghiệp vụ chỉ được `SELECT` vài bảng danh mục (chi nhánh, chương trình, "
+        "khóa học, phòng...) và những bảng đúng việc của mình, còn lại chỉ được `EXECUTE` thủ tục và `SELECT` view cần thiết. Cơ chế **ownership chaining** của SQL Server làm cho điều này khả thi: khi view/thủ tục "
         "và bảng cùng chủ sở hữu (dbo), SQL Server chỉ kiểm tra quyền trên view/thủ tục mà bỏ qua kiểm tra quyền trên bảng "
         "bên dưới - kể cả khi bảng bị `DENY`.")
     r.figure_landscape(IMG / "diagrams" / "permissions.png", "Mô hình phân quyền: user → role → view/thủ tục → bảng")
     r.table(["Đối tượng", "Quản lý", "Giáo vụ", "Kế toán", "Giáo viên"], [
-        ["Bảng gốc (SELECT)", "✔ (db_datareader)", "—", "RECEIPT, PAYROLL", "DENY STUDENT, RECEIPT, PAYROLL"],
+        ["Bảng gốc (SELECT)", "✔ (db_datareader)",
+         "BRANCH, PROGRAM, COURSE, ROOM, PROMOTION, GRADE_COMPONENT, PLACEMENT_TEST; DENY PAYROLL",
+         "BRANCH, PROGRAM, COURSE, PROMOTION, RECEIPT, PAYROLL",
+         "BRANCH, PROGRAM, COURSE, ROOM; DENY STUDENT, RECEIPT, PAYROLL"],
         ["TEACHER (mức cột)", "✔ tất cả", "Không có HourlyRate", "TeacherId, FullName, HourlyRate...", "—"],
         ["View học viên, lớp, công nợ", "✔", "✔", "✔", "—"],
         ["View vw_Teacher_My* (lớp của tôi)", "—", "—", "—", "✔ (lọc theo USER_NAME())"],

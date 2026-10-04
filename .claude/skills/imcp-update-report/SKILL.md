@@ -40,6 +40,8 @@ step fails** and tell the user - the report must never show wrong test results. 
 ```bash
 SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" python3 docs/report/tools/export_data.py --docker imcp-mssql
 ```
+Windows with SQL Server installed on the PC: `py docs\report\tools\export_data.py --server localhost --windows-auth`
+(see `docs/report/README.md`).
 Writes `data/schema.json`, `data/query_results.json` (including the `object_counts` entry read by `object_counts()`:
 number of tables, procedures, triggers, constraints...) and `data/database_tests.txt` (only written when every case passes). Look at
 `git diff --stat docs/report/data` and explain the changes (numbers that move with the date are normal; a changed
@@ -85,6 +87,8 @@ swift docs/report/tools/check_pdf.swift check docs/report/IE103_Group1_Report.pd
 swift docs/report/tools/check_pdf.swift pages docs/report/IE103_Group1_Report.pdf <temp folder> <changed pages>
 ```
 - Exit code 1 = Word field errors remain (table of contents/cross references) → export the PDF again.
+- Windows (no swift): the exit code of `export_pdf.ps1` is the field check; open the PDF to look at the changed
+  pages.
 - Look at (Read) `overview.png` of the changed pages: tables inside the margins, images not broken, no extra blank page.
 - Compare the page count with the previous version (`git show HEAD:docs/report/IE103_Group1_Report.pdf` → check
   again) and explain any change.

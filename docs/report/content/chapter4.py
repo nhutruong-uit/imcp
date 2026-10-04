@@ -238,7 +238,12 @@ def chapter4(r):
         "trùng lịch, buổi học sắp tới theo giáo viên và phòng mới), xóa khung giờ, các thủ tục tìm kiếm (ghi danh, phiếu "
         "thu khớp với báo cáo doanh thu, kiểm tra xếp lớp, sổ điểm), khấu trừ và chi trả lương, và các thủ tục danh mục "
         "(mã trùng hoặc sai ký tự, ngừng chi nhánh/khóa học còn lớp, vòng lặp khóa tiên quyết, giáo trình sai XML Schema, "
-        "xóa cột điểm đã có điểm, giáo viên còn lớp nghỉ việc).")
+        "xóa cột điểm đã có điểm, giáo viên còn lớp nghỉ việc). T102-T114 đi kèm lần rà soát ngày 04/10/2026: dời ngày "
+        "khai giảng qua ngày kết thúc cũ, chốt lương lại khi đơn giá giảm dưới khoản khấu trừ (CK_PAYROLL_Deduction), "
+        "cột điểm không chuyển sang khóa khác, khung giờ hoặc ngày khai giảng mới làm học viên trùng lịch, xóa nội dung "
+        "buổi học, biên lai in lại theo số liệu ngay sau lần thu đó, danh sách học viên của lớp, điểm tổng xếp lớp làm "
+        "tròn đúng, và các nhánh từ chối còn thiếu ca (nhân viên nghỉ khi còn tài khoản, khung giờ không tồn tại, dòng "
+        "lương không tồn tại, giáo viên không còn dạy).")
     r.p("Cách chấm được thiết kế để dùng làm **kiểm thử hồi quy**: bảng `#Expected` liệt kê mọi ca phải chạy và mẫu "
         "thông báo của ca “Rejected” (từ chối) - ca chỉ đạt khi bị từ chối **đúng lý do** (một thủ tục hỏng vì lỗi khác không thể "
         "“đạt” nhầm); có ca không đạt hoặc không chạy thì file kết thúc bằng `THROW 50099`, lệnh `scripts/test_all.sh` "

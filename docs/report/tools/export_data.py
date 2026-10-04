@@ -191,7 +191,9 @@ def export_queries(runner):
 
 def export_tests(runner):
     code, out = runner.run(ROOT / "database" / "12_tests.sql", "-b", "-W", "-s", "|")
-    cases = sorted(line for line in out.splitlines() if re.match(r"^[TP]\d{2,3}\|", line))
+    # Sorted by letter, then by number: as text T100 would come between T09 and T10
+    cases = sorted((line for line in out.splitlines() if re.match(r"^[TP]\d{2,3}\|", line)),
+                   key=lambda line: (line[0], int(re.match(r"^[TP](\d+)", line).group(1))))
     passed = [line for line in cases if "|PASSED|" in line]
     if code != 0 or not cases or len(passed) != len(cases):
         print("\n".join(line for line in cases if "|PASSED|" not in line) or out[-2000:])

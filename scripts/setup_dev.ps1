@@ -17,8 +17,9 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\setup_dev.ps1 -AcceptLicenses   # set up everything
 #   powershell -ExecutionPolicy Bypass -File scripts\setup_dev.ps1                   # open-source tools only
 #   options: -Server <instance> (e.g. "localhost\SQLEXPRESS"), -Docker <container> (sa password: $env:SQL_PASSWORD
-#            or read from the container), -WithMsOdbc (Microsoft ODBC Driver 18, optional: the app falls back to the
-#            "SQL Server" driver of Windows), -SkipTests (stop before step 7), -QtDir (default C:\Qt)
+#            or read from the container), -WithMsOdbc (Microsoft ODBC Driver 18: SQL Server 2025 on this PC brings
+#            it; needed with -Docker or a SQL Server on another PC, see docs\ARCHITECTURE.md section 6), -SkipTests
+#            (stop before step 7), -QtDir (default C:\Qt)
 # Demo account password for the tests: $env:QLTTTA_E2E_PASSWORD (default as in docs\SETUP.md).
 # Exit code 0 when the machine is ready, 1 when a line of the summary needs attention.
 param(

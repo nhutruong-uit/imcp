@@ -128,10 +128,14 @@ def chapter6(r):
         "Anh của CSDL được hiển thị bằng tiếng Việt); vừa đăng nhập phải mở sẵn trang đầu tiên, thẻ doanh thu của giáo vụ "
         "ghi \"Không có quyền\"; **mỗi vai trò mở lần lượt mọi chức năng được phép** và trang phải có dữ liệu (thiếu một "
         "lệnh GRANT là bị phát hiện); sửa học viên, đổi tên lớp qua form rồi đọc lại từ CSDL; bảo lưu rồi cho học lại "
-        "một ghi danh (có hộp xác nhận); giáo viên đổi điểm danh của một học viên ở buổi mình dạy; lọc nhanh thì dòng "
+        "một ghi danh (có hộp xác nhận); nhấn Enter ở ô tìm học viên của form ghi danh chỉ tìm chứ không ghi danh; "
+        "giáo viên đổi điểm danh của một học viên ở buổi mình dạy (Enter ở ô ghi chú không đổi điểm danh); sổ điểm "
+        "không nhận điểm 11 và báo lý do; lọc nhanh thì dòng "
         "tổng tính lại đúng; chuyển giao diện sang tiếng Anh rồi về tiếng Việt. Kết quả: "
         f"{len(e2e_scenarios())}/{len(e2e_scenarios())} kịch bản đạt, dữ liệu trở về nguyên trạng. "
-        "Trên CI (không có SQL Server) bài kiểm thử được ghi nhận là bỏ qua (Skipped).",
+        "Bài kiểm thử chạy trong `scripts/test_all` và trong job Full tests của CI (Linux, SQL Server trong Docker); "
+        "`test_all` dừng nếu có kịch bản bị bỏ qua. Hai job macOS và Windows của CI không có CSDL nên ghi nhận bài này "
+        "là bỏ qua (Skipped).",
         "**Kiểm thử hiển thị**: công cụ `tools/qlttta_screenshots` tự đăng nhập bằng 4 tài khoản demo, mở "
         "từng chức năng và chụp màn hình (hình trong chương này được tạo bằng công cụ đó).",
         f"**Kiểm thử CSDL**: {len(database_tests())} ca trong `12_tests.sql` (Chương 4 và 5), tất cả đạt.",
