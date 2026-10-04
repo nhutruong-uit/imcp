@@ -1,13 +1,18 @@
 QLTTTA - ENGLISH CENTER MANAGEMENT (macOS, Apple Silicon)
 =========================================================
 
+Needs macOS @MIN_MACOS@ or later on a Mac with an Apple chip (M1 or newer). On an older macOS, macOS itself
+says that this version of QLTTTA cannot be used.
+
 1. Drag QLTTTA.app into the Applications folder.
 
 2. First launch (the app is self-signed by students, not registered with Apple Developer):
    - Open QLTTTA once; macOS says it cannot be opened -> click "Done"/"OK".
    - Open System Settings > Privacy & Security, scroll down to Security,
-     click "Open Anyway" next to QLTTTA and confirm with your password.
+     click "Open Anyway" next to QLTTTA and confirm with your password
+     (the button is there for about an hour after the blocked attempt).
    - Or open Terminal and run:  xattr -dr com.apple.quarantine /Applications/QLTTTA.app
+   Later launches open normally.
 
 3. Login screen > "Server settings":
    - Server: address of the SQL Server that hosts the QLTTTA database

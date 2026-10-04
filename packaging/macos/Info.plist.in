@@ -27,6 +27,8 @@
     <string>${MACOSX_BUNDLE_SHORT_VERSION_STRING}</string>
     <key>CFBundleVersion</key>
     <string>${MACOSX_BUNDLE_BUNDLE_VERSION}</string>
+    <!-- Placeholder for development builds: scripts/package-macos.sh replaces it with the real minimum of the
+         binaries in the .dmg (the Homebrew libraries need the macOS they were built on) -->
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>NSHighResolutionCapable</key>
