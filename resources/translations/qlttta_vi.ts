@@ -1455,6 +1455,10 @@ Please install &quot;Microsoft ODBC Driver 18 for SQL Server&quot; and try again
         <translation>Không tìm thấy ODBC Driver cho SQL Server trên máy.
 Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.</translation>
     </message>
+    <message>
+        <source>The &quot;SQL Server&quot; driver built into Windows could not connect. Install &quot;Microsoft ODBC Driver 18 for SQL Server&quot; and try again.</source>
+        <translation>Driver &quot;SQL Server&quot; có sẵn của Windows không kết nối được. Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.</translation>
+    </message>
 </context>
 <context>
     <name>DbMessages</name>

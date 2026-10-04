@@ -5,6 +5,7 @@
 
 #include <QCoreApplication>
 #include <QSqlDatabase>
+#include <QSqlError>
 #include <QStringList>
 
 // Manages the ODBC connection to SQL Server.
@@ -36,6 +37,9 @@ public:
                                     const QString& username, const QString& password);
     static QStringList candidateDrivers();
     static bool isFreeTds(const QString& driver);
+    // Message of a failed connection through driver: SqlErrorMapper's text, plus "install ODBC Driver 18"
+    // when the legacy Windows driver could not connect (it cannot sign in to SQL Server 2025 on Windows 11)
+    static QString connectionFailure(const QSqlError& error, const QString& driver);
 
 private:
     QString m_driver;

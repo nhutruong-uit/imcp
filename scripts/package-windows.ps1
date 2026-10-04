@@ -29,7 +29,8 @@ if ($LASTEXITCODE -ne 0) { throw "Build failed" }
 $stage = Join-Path $root "build\windows-release\stage\QLTTTA"
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory -Force $stage | Out-Null
-Copy-Item (Join-Path $root "build\windows-release\src\app\QLTTTA.exe") $stage
+# On Windows qt_standard_project_setup() puts every executable in the build folder itself (next to the DLLs)
+Copy-Item (Join-Path $root "build\windows-release\QLTTTA.exe") $stage
 
 Write-Host ">> windeployqt"
 # --no-translations: Qt's own catalogs are not needed (the app's translations are embedded as resources)
@@ -45,9 +46,15 @@ if (Test-Path $zip) { Remove-Item $zip }
 Write-Host ">> Create the portable ZIP"
 Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip
 
+# ISCC.exe on PATH, or in an Inno Setup 6 installed for all users (Program Files) or for the current user only
+# (%LOCALAPPDATA%\Programs: what "winget install JRSoftware.InnoSetup" does without administrator rights)
 $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
-if (-not $iscc) { $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe" }
-if (Test-Path $iscc) {
+if (-not $iscc) {
+    $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6", "$env:ProgramFiles\Inno Setup 6",
+              "$env:LOCALAPPDATA\Programs\Inno Setup 6") |
+        ForEach-Object { Join-Path $_ "ISCC.exe" } | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+if ($iscc) {
     Write-Host ">> Create the Inno Setup installer"
     & $iscc "/DAppVersion=$version" "/DSourceDir=$stage" "/DOutputDir=$dist" (Join-Path $root "packaging\windows\installer.iss")
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }

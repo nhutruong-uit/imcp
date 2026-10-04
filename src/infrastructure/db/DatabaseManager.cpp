@@ -10,6 +10,8 @@
 namespace {
 // Qt keeps connections in a global list by name; the application uses a single named connection
 const char* const kConnectionName = "qlttta";
+// The ODBC driver built into Windows (SQLSRV32.DLL), tried last
+const char* const kLegacyWindowsDriver = "SQL Server";
 
 // Value inside an ODBC connection string: wrapped in {} when it has special characters, '}' written as '}}'
 QString odbcValue(const QString& v) {
@@ -72,7 +74,7 @@ QStringList DatabaseManager::candidateDrivers() {
 #endif
     drivers << QStringLiteral("ODBC Driver 18 for SQL Server") << QStringLiteral("ODBC Driver 17 for SQL Server");
 #if defined(Q_OS_WIN)
-    drivers << QStringLiteral("SQL Server"); // legacy driver, always present on Windows
+    drivers << QLatin1String(kLegacyWindowsDriver); // always present on Windows
 #elif defined(Q_OS_MACOS)
     for (const QString& path : {QStringLiteral("/opt/homebrew/opt/freetds/lib/libtdsodbc.so"),
                                 QStringLiteral("/usr/local/opt/freetds/lib/libtdsodbc.so")}) {
@@ -116,12 +118,24 @@ QString DatabaseManager::connectionString(const QString& driver, const ServerCon
     QString s = QStringLiteral("DRIVER={%1};SERVER=%2;DATABASE=%3;UID=%4;PWD=%5;")
                     .arg(driver, odbcValue(config.host.trimmed()), odbcValue(config.database.trimmed()),
                          odbcValue(username), odbcValue(password));
-    if (driver != QLatin1String("SQL Server")) {
+    if (driver != QLatin1String(kLegacyWindowsDriver)) {
         s += QStringLiteral("Encrypt=yes;TrustServerCertificate=%1;")
                  .arg(config.trustServerCertificate ? QStringLiteral("yes") : QStringLiteral("no"));
     }
     s += QStringLiteral("APP=QLTTTA;");
     return s;
+}
+
+// The legacy driver could not sign in to SQL Server 2025 on Windows 11 (no answer, or "does not exist or
+// access denied"), so when it is the driver that failed the fix is a recent driver, not the server settings.
+// A rejected password is the user's mistake whatever the driver: no hint then.
+QString DatabaseManager::connectionFailure(const QSqlError& error, const QString& driver) {
+    const QString message = SqlErrorMapper::message(error);
+    if (driver != QLatin1String(kLegacyWindowsDriver) || isAuthenticationError(error))
+        return message;
+    return message + QStringLiteral("\n\n") +
+           tr("The \"SQL Server\" driver built into Windows could not connect. "
+              "Install \"Microsoft ODBC Driver 18 for SQL Server\" and try again.");
 }
 
 VoidResult DatabaseManager::open(const ServerConfig& config, const QString& username,
@@ -133,6 +147,7 @@ VoidResult DatabaseManager::open(const ServerConfig& config, const QString& user
 
     QSqlError lastError;       // error of the last driver tried
     QSqlError meaningfulError; // first error that is not "driver missing" (the driver/server was reached)
+    QString meaningfulDriver;  // the driver that gave meaningfulError
     for (const QString& driver : candidateDrivers()) {
         // Inner block: the QSqlDatabase handle must be destroyed before removeDatabase() below (Qt rule)
         {
@@ -152,13 +167,15 @@ VoidResult DatabaseManager::open(const ServerConfig& config, const QString& user
         QSqlDatabase::removeDatabase(QLatin1String(kConnectionName));
         // Wrong password, rejected certificate or no answer => stop, another driver would not do better
         if (isAuthenticationError(lastError) || isCertificateError(lastError) || isTimeoutError(lastError))
-            return VoidResult::failure(SqlErrorMapper::message(lastError));
-        if (!isMissingDriverError(lastError) && !meaningfulError.isValid())
+            return VoidResult::failure(connectionFailure(lastError, driver));
+        if (!isMissingDriverError(lastError) && !meaningfulError.isValid()) {
             meaningfulError = lastError; // other errors (network, TLS...) => still try the next driver
+            meaningfulDriver = driver;
+        }
     }
 
     if (meaningfulError.isValid())
-        return VoidResult::failure(SqlErrorMapper::message(meaningfulError));
+        return VoidResult::failure(connectionFailure(meaningfulError, meaningfulDriver));
     return VoidResult::failure(
         tr("No ODBC driver for SQL Server was found on this computer.\n"
            "Please install \"Microsoft ODBC Driver 18 for SQL Server\" and try again."));

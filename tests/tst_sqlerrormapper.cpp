@@ -67,6 +67,41 @@ private slots:
         QVERIFY(SqlErrorMapper::message(e).startsWith(QStringLiteral("Wrong username or password")));
     }
 
+    // Legacy Windows driver "SQL Server" with no server listening at the address (also: TCP/IP disabled) -
+    // the raw text of that driver, as seen on Windows 11
+    void message_legacyWindowsDriverCannotConnect_asksToCheckTheServer() {
+        const QSqlError e(
+            QStringLiteral("QODBC: Unable to connect"),
+            QStringLiteral("[Microsoft][ODBC SQL Server Driver][DBNETLIB]SQL Server does not exist "
+                           "or access denied. [Microsoft][ODBC SQL Server Driver][DBNETLIB]"
+                           "ConnectionOpen (Connect())."),
+            QSqlError::ConnectionError, QStringLiteral("17;53"));
+        QVERIFY(SqlErrorMapper::message(e).startsWith(QStringLiteral("Cannot connect to SQL Server.")));
+    }
+
+    // The legacy Windows driver got no answer (it cannot sign in to SQL Server 2025 on Windows 11): the
+    // message adds the fix, installing ODBC Driver 18; the same error through ODBC Driver 18 does not
+    void connectionFailure_legacyWindowsDriverTimesOut_suggestsOdbcDriver18() {
+        const QSqlError e(QStringLiteral("QODBC: Unable to connect"),
+                          QStringLiteral("[Microsoft][ODBC SQL Server Driver]Login timeout expired"),
+                          QSqlError::ConnectionError, QStringLiteral("0"));
+        const QString legacy = DatabaseManager::connectionFailure(e, QStringLiteral("SQL Server"));
+        QVERIFY(legacy.startsWith(QStringLiteral("Cannot connect to SQL Server.")));
+        QVERIFY(legacy.contains(QStringLiteral("Install \"Microsoft ODBC Driver 18 for SQL Server\"")));
+        QCOMPARE(DatabaseManager::connectionFailure(e, QStringLiteral("ODBC Driver 18 for SQL Server")),
+                 SqlErrorMapper::message(e));
+    }
+
+    // A rejected password is the user's mistake, whatever the driver: no driver hint
+    void connectionFailure_legacyWindowsDriverLoginFailed_hasNoDriverHint() {
+        const QSqlError e(
+            QStringLiteral("QODBC: Unable to connect"),
+            QStringLiteral("[Microsoft][ODBC SQL Server Driver][SQL Server]Login failed for user 'x'."),
+            QSqlError::ConnectionError, QStringLiteral("18456"));
+        QCOMPARE(DatabaseManager::connectionFailure(e, QStringLiteral("SQL Server")),
+                 SqlErrorMapper::message(e));
+    }
+
     // Error 547 (CHECK constraint): the constraint name is read from the message and mapped to its own text
     void checkConstraintViolation() {
         const QSqlError e(

@@ -64,10 +64,24 @@ appendix B). List them with `grep -n "placeholder(" docs/user-guide/chapters/*.p
 - Fill one in only after **checking it on that platform**: run the command, go through the installer/dialog, note
   the exact button names and paths. Replace the call with real content (`g.p`, `g.steps`, `g.bullets`, `g.code`,
   `g.table`, `g.tip`, `g.warning`). If something cannot be checked now, keep the placeholder and say so.
-- Screenshots of non-app windows (installers, SmartScreen, SQL Server tools, Docker Desktop) are taken by the user
-  (Windows: `Win+Shift+S`, saved as PNG) to `docs/user-guide/images/windows/<file name shown in the box>`; the
-  `g.figure_or_placeholder(...)` call shows them on the next build. Never click system or permission dialogs
-  yourself.
+- Screenshots of non-app windows go to `docs/user-guide/images/windows/<file name shown in the box>`; the
+  `g.figure_or_placeholder(...)` call shows them on the next build. `.\docs\user-guide\tools\capture_window.ps1
+  -List` lists the expected images and which are missing.
+  - The QLTTTA installer (Windows): run `.\docs\user-guide\tools\capture_installer.ps1` yourself after
+    `.\scripts\package.ps1` - it installs for the current user only (no UAC), clicks through the wizard, saves
+    `installer_finish.png` and every page with its texts in `build\installer-pages\` (check the button names quoted
+    in chapter 3 there), then uninstalls. Tell the user beforehand not to click the window.
+  - SmartScreen: the dialog only shows for a downloaded file opened by the USER from File Explorer (a program
+    started from Claude Code gets no dialog) and belongs to no process a script can watch.
+    `capture_installer.ps1 -SmartScreen` puts a copy marked as downloaded in Downloads and selects it in Explorer;
+    the user double-clicks it, clicks "More info" within the 20 s countdown (the window in front is saved), then
+    "Don't run". `Win+Shift+S` works as well.
+  - Other windows (SQL Server installer, Configuration Manager, SSMS, Docker Desktop): run
+    `capture_window.ps1 -Name <series> -Watch "<title or process regex>"` in the background while the user clicks
+    through the program (UAC prompts are theirs); every new page lands in `build\captures\<series>\NN.png`. Read the
+    images to write the steps with the real page and button names, and copy the right one to
+    `images\windows\<file name>.png`. For a single window the user runs `capture_window.ps1 -Name <file name>` and
+    clicks it within 5 s (macOS: `Cmd+Shift+4`, Space). Never click system or permission dialogs yourself.
 - When a Windows command differs from the macOS one, show both (`g.code("PowerShell (Windows)", ...)`).
 
 ## 4. Edit the content
@@ -96,8 +110,10 @@ Fix Python errors in `chapters/`/`guide_lib.py` and run it again.
   never click permission dialogs. If the export times out meanwhile, close the document in Word without saving
   (`osascript -e 'tell application "Microsoft Word" to close document "QLTTTA_User_Guide.docx" saving no'`) and run
   it again.
-- Windows: ask the user to open the docx in Word, answer **Yes** to updating the fields (or `Ctrl+A`, `F9`), save
-  it, then *File > Save As > PDF* to `docs/user-guide/QLTTTA_User_Guide.pdf`.
+- Windows + Word: `.\docs\report\tools\export_pdf.ps1 docs\user-guide\QLTTTA_User_Guide.docx` (same steps through
+  COM, hidden Word; exit code 1 = Word field errors). No Word: ask the user to open the docx in Word, answer **Yes**
+  to updating the fields (or `Ctrl+A`, `F9`), save it, then *File > Save As > PDF* to
+  `docs/user-guide/QLTTTA_User_Guide.pdf`.
 
 ## 7. Check the result
 - macOS: `swift docs/report/tools/check_pdf.swift check docs/user-guide/QLTTTA_User_Guide.pdf "<new text>"` (exit

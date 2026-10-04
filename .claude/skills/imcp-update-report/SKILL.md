@@ -75,7 +75,9 @@ validate as well.
   the lists of figures/tables, saves the PDF to `docs/report/IE103_Group1_Report.pdf` and replaces the docx with the
   version Word saved, so opening it does not ask to update fields again). If Word shows
   **"Grant File Access"**, stop and ask the user to click *Select...* themselves - never click permission dialogs.
-- Windows or no Word: ask the user to open the docx in Word → Ctrl+A, F9 → *Save As* PDF.
+- Windows + Word: `.\docs\report\tools\export_pdf.ps1` (same steps through COM, hidden Word; exit code 1 = Word
+  field errors such as "Error! Bookmark not defined"). No Word: ask the user to open the docx in Word → Ctrl+A, F9 →
+  *Save As* PDF.
 
 ## 7. Check the result
 ```bash

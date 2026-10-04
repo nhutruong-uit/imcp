@@ -36,5 +36,6 @@ paths:
   demo accounts from `07_seed_data.sql`, version from `CMakeLists.txt`) - never typed by hand.
 - A part not written yet is a `g.placeholder("...", platform)` call (yellow box, listed in appendix B, counted on the
   document information page); replace it with the real content once it is checked on that platform. Screenshots
-  that the tool cannot take (installers, Windows dialogs) are taken by hand into `docs/user-guide/images/windows/`
-  with the file name of `g.figure_or_placeholder(...)`.
+  that the tool cannot take go to `docs/user-guide/images/windows/` with the file name of
+  `g.figure_or_placeholder(...)`: the QLTTTA installer through `docs/user-guide/tools/capture_installer.ps1`, other
+  windows (installers of Microsoft, Windows dialogs) opened by the user and saved with `tools/capture_window.ps1`.

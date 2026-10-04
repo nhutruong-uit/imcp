@@ -19,10 +19,18 @@ set_target_properties(QLTTTA PROPERTIES
 )
 
 if(WIN32)
-    set(QLTTTA_RC ${PROJECT_SOURCE_DIR}/packaging/windows/app.rc)
-    target_sources(QLTTTA PRIVATE ${QLTTTA_RC})
-    # windres/rc finds app.ico through the include directories
-    set_property(SOURCE ${QLTTTA_RC} APPEND PROPERTY INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/packaging/windows)
+    # Icon and version information of QLTTTA.exe. windres (MinGW) hands include directories to its preprocessor
+    # through cmd.exe without quoting them, so a folder with a space ("D:\My Projects\imcp") breaks the build.
+    # The resource script is therefore compiled in its own object library, which has no include directories;
+    # windres finds app.ico next to app.rc by itself. The version numbers come from project(VERSION ...).
+    add_library(qlttta_app_resources OBJECT ${PROJECT_SOURCE_DIR}/packaging/windows/app.rc)
+    set_target_properties(qlttta_app_resources PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+    target_compile_definitions(qlttta_app_resources PRIVATE
+        QLTTTA_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+        QLTTTA_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+        QLTTTA_VERSION_PATCH=${PROJECT_VERSION_PATCH}
+        QLTTTA_VERSION_TEXT=${PROJECT_VERSION})
+    target_link_libraries(QLTTTA PRIVATE qlttta_app_resources)
 endif()
 if(APPLE)
     set(QLTTTA_ICNS ${PROJECT_SOURCE_DIR}/packaging/macos/AppIcon.icns)

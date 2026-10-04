@@ -380,6 +380,8 @@ GO
 --      Concepts: BULK INSERT with DATAFILETYPE widechar reads the UTF-16 file, so the Vietnamese letters survive;
 --      EXCEPT against the expected rows finds any difference. The SQL Server SERVICE reads the file, so CsvPath is
 --      a path on the server machine. Dynamic SQL because BULK INSERT takes the file name only as a literal.
+--      ROWTERMINATOR = the LF character itself (NCHAR(10)): '\n' means CR+LF on Windows (the LF file gave 0 rows)
+--      but LF on Linux.
 IF OBJECT_ID('tempdb..#StudentCsv') IS NOT NULL DROP TABLE #StudentCsv;
 CREATE TABLE #StudentCsv (
     FullName NVARCHAR(100), DateOfBirth DATE, Gender NVARCHAR(10), Phone VARCHAR(15), Email VARCHAR(100),
@@ -393,7 +395,8 @@ INSERT @Expected VALUES
     (N'Ngô Thị Hạnh', '19981103', N'Female', '0909666002', 'hanh.nt@example.com', 'BR01'),
     (N'Phan Đức Huy', '20040127', N'Male',   '0909666003', NULL,                  'BR02');
 DECLARE @Sql NVARCHAR(MAX) = N'BULK INSERT #StudentCsv FROM N''' + REPLACE(N'$(CsvPath)', N'''', N'''''')
-    + N''' WITH (DATAFILETYPE = ''widechar'', FIRSTROW = 2, FIELDTERMINATOR = '','', ROWTERMINATOR = ''\n'', TABLOCK);',
+    + N''' WITH (DATAFILETYPE = ''widechar'', FIRSTROW = 2, FIELDTERMINATOR = '','', ROWTERMINATOR = '''
+    + NCHAR(10) + N''', TABLOCK);',
         @Rows INT, @Different INT;
 BEGIN TRY
     EXEC sys.sp_executesql @Sql;

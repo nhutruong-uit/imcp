@@ -35,6 +35,13 @@ python3 docs/report/build_report.py
 ./docs/report/tools/export_pdf.sh
 swift docs/report/tools/check_pdf.swift check docs/report/IE103_Group1_Report.pdf
 ```
+On Windows (PowerShell, SQL Server installed on the PC, Word for Windows):
+```powershell
+py -m pip install python-docx
+py docs\report\tools\export_data.py --server localhost --windows-auth   # or --docker / SQL_PASSWORD as above
+py docs\report\build_report.py
+.\docs\report\tools\export_pdf.ps1      # PDF with Word; also reports Word field errors (no swift on Windows)
+```
 With Claude Code, `/imcp-update-report` runs the whole pipeline (screenshots and diagrams included).
 
 | Component | Location |

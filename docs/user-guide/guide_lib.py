@@ -2,7 +2,8 @@
 
 Adds what a how-to document needs and the report does not: placeholders for the parts still to be written
 (yellow boxes, counted so the cover shows how many are left), figures that fall back to a placeholder while the
-image file does not exist yet (Windows screenshots taken by hand), and step lists.
+image file does not exist yet (Windows screenshots taken with tools/capture_window.ps1 or
+tools/capture_installer.ps1), and step lists.
 """
 from __future__ import annotations
 
@@ -81,8 +82,10 @@ class Guide(Report):
             self.figure(path, caption, width_cm=width_cm)
             return
         rel = path.relative_to(GUIDE_DIR.parent.parent).as_posix()
-        self.placeholder(f"Ảnh: {todo}\nLưu ảnh vào `{rel}` rồi chạy lại `build_user_guide.py` "
-                         f"(chú thích: \"{caption}\").", platform)
+        how = (f"Mở cửa sổ đó, chạy `.\\docs\\user-guide\\tools\\capture_window.ps1 -Name {path.stem}` và bấm vào "
+               f"cửa sổ trong 5 giây (ảnh lưu vào `{rel}`)" if platform == "Windows" else f"Lưu ảnh vào `{rel}`")
+        self.placeholder(f"Ảnh: {todo}\n{how}, rồi chạy lại `build_user_guide.py` (chú thích: \"{caption}\").",
+                         platform)
 
     def set_header_text(self, text: str):
         for section in self.doc.sections:

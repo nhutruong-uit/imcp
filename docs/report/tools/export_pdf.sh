@@ -10,7 +10,7 @@
 # Word on macOS runs in a sandbox: the file is opened with "open -a" (like a double click in Finder), so macOS
 # grants Word read access itself. If Word still shows "Grant File Access", the USER clicks "Select..." and picks
 # the file (never click permission dialogs automatically). Do not delete .build, so the granted access stays valid.
-# Windows: open IE103_Group1_Report.docx in Word -> Ctrl+A, F9 (update fields) -> File > Save As > PDF.
+# Windows: docs\report\tools\export_pdf.ps1 does the same with Word for Windows.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"

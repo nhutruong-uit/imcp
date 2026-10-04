@@ -116,7 +116,7 @@ itself enforces what each role may do.
 
 | | macOS (Apple Silicon) | Windows 10/11 |
 |---|---|---|
-| SQL Server | Docker Desktop with Rosetta emulation enabled | SQL Server 2022 Developer or Express + SSMS |
+| SQL Server | Docker Desktop with Rosetta emulation enabled | SQL Server 2025 (or 2022) Developer or Express + SSMS |
 | Toolchain | `brew install qt qt-unixodbc unixodbc freetds cmake ninja` | Qt Online Installer: Qt 6.8 MinGW 64-bit, CMake, Ninja, Qt Creator |
 
 Minimum versions: Qt 6.7, CMake 3.25 and a C++17 compiler.

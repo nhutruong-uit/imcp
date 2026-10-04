@@ -55,7 +55,8 @@ def chapter1(g):
         ["SQL Server", "SQL Server 2022 chạy trong Docker Desktop",
          "SQL Server 2012+ cài trên máy (Express/Developer) hoặc chạy trong Docker Desktop"],
         ["Trình điều khiển (driver) kết nối", "Có sẵn trong ứng dụng (FreeTDS), không cần cài thêm",
-         "ODBC Driver 18/17 for SQL Server nếu có; nếu không, dùng driver \"SQL Server\" có sẵn của Windows"],
+         "ODBC Driver 18 (hoặc 17) for SQL Server: có sẵn khi máy đã cài SQL Server 2025, máy khác cần cài "
+         "thêm (mục 2.3.2)"],
         ["Màn hình", "Tối thiểu 1024 × 640", "Tối thiểu 1024 × 640"],
         ["Quyền quản trị máy", "Cần khi cài Docker Desktop", "Cần khi cài SQL Server; bản cài ứng dụng "
                                                              "không cần quyền Administrator"],
@@ -160,9 +161,10 @@ def chapter2(g):
                                    ".\\scripts\\db_init.ps1 -Docker imcp-mssql", lang="text")
     g.p("Khi thành công, dòng cuối cùng là `Done. The QLTTTA database is ready`. Nếu một file báo lỗi, script "
         "dừng ngay và in tên file đó (xem Chương 6).")
-    g.placeholder("Kiểm tra trên Windows: PowerShell có chặn chạy script `.ps1` không (lỗi \"running scripts "
-                  "is disabled on this system\"). Nếu có, ghi cách xử lý, ví dụ "
-                  "`powershell -ExecutionPolicy Bypass -File .\\scripts\\db_init.ps1 -Docker imcp-mssql`.")
+    g.tip("Nếu PowerShell báo `running scripts is disabled on this system` (Windows chưa cho chạy script), gọi "
+          "script qua `powershell -ExecutionPolicy Bypass -File`, ví dụ "
+          "`powershell -ExecutionPolicy Bypass -File .\\scripts\\db_init.ps1 -Docker imcp-mssql`. Tham số này chỉ "
+          "có tác dụng cho lần chạy đó, không đổi cài đặt của máy.")
 
     g.h3("2.2.4. Bật, tắt SQL Server hằng ngày")
     g.table(["Việc cần làm", "Lệnh (chạy tại thư mục mã nguồn)"], [
@@ -177,39 +179,79 @@ def chapter2(g):
 
     g.h2("2.3. Phương án B - SQL Server cài trực tiếp trên Windows")
     g.h3("2.3.1. Cài SQL Server")
-    g.p("Tải **SQL Server 2022 Express** hoặc **Developer** (đều miễn phí) từ trang của Microsoft "
-        "`https://www.microsoft.com/sql-server/sql-server-downloads`. Bản Express tạo instance tên `SQLEXPRESS` "
-        "(địa chỉ `localhost\\SQLEXPRESS`); bản Developer mặc định tạo instance mặc định (địa chỉ `localhost`).")
-    g.p("Khi cài, nên chọn chế độ xác thực **Mixed Mode** (SQL Server and Windows Authentication) và đặt mật "
-        "khẩu cho `sa`: ứng dụng đăng nhập bằng tài khoản SQL Server (không phải tài khoản Windows).")
-    g.placeholder("Các bước chi tiết của trình cài SQL Server 2022 Express/Developer trên Windows: chọn kiểu "
-                  "cài Basic hay Custom, màn hình Instance Configuration (tên instance), Database Engine "
-                  "Configuration (Mixed Mode, mật khẩu sa, Add Current User). Kiểm tra: tài khoản demo có "
-                  "đăng nhập được khi máy chủ chỉ bật Windows Authentication hay bắt buộc Mixed Mode.")
-    g.figure_or_placeholder(WINDOWS_IMAGES / "sql_server_authentication_mode.png",
-                            "Chọn chế độ xác thực Mixed Mode khi cài SQL Server",
-                            "màn hình Database Engine Configuration > Server Configuration của trình cài SQL "
-                            "Server, đang chọn Mixed Mode.")
+    g.p("Tải **SQL Server 2025 Express** hoặc **Developer** (đều miễn phí) từ trang của Microsoft "
+        "`https://www.microsoft.com/sql-server/sql-server-downloads`. Trình cài SQL Server 2022 đã bị Microsoft "
+        "ngừng (chạy sẽ báo *This version of the installer is no longer supported*); máy đã có sẵn SQL Server "
+        "2012-2022 thì dùng luôn. Bản Express tạo instance tên `SQLEXPRESS` (địa chỉ `localhost\\SQLEXPRESS`); bản "
+        "Developer tạo instance mặc định (địa chỉ `localhost`).")
+    g.p("Chạy file vừa tải, bấm **Yes** khi Windows hỏi quyền quản trị. Màn hình **Select an installation type** có "
+        "ba lựa chọn:")
+    g.bullets([
+        "**Basic** (khuyên dùng): chỉ qua hai trang - **Microsoft SQL Server License Terms** (bấm **Accept**) và "
+        "**Specify SQL Server install location** (giữ thư mục, bấm **Install**). Kiểu này không hỏi chế độ xác thực "
+        "nên chỉ bật Windows Authentication: bật Mixed Mode sau khi cài bằng hai lệnh ở dưới.",
+        "**Custom**: trang **Specify SQL Server media download target location** tải bộ cài (khoảng 1,3 GB), rồi "
+        "mở **SQL Server Installation Center**; chọn **Installation > New SQL Server standalone installation or add "
+        "features to an existing installation** và bấm **Next** qua từng trang (cảnh báo **Windows Firewall** ở "
+        "trang **Install Rules** là bình thường; trang **Edition** giữ bản miễn phí **Standard Developer**). Ở trang "
+        "**Azure Extension for SQL Server**, **bỏ dấu tick** ở ô *Azure Extension for SQL Server*: ô này được tick "
+        "sẵn và bắt nhập thông tin Azure, để nguyên thì **Next** báo *There are validation errors on this page*. Ở "
+        "trang **Feature Selection** chỉ cần tick **Database Engine Services** (không cần các mục con); trình hướng "
+        "dẫn thêm các trang **Instance Configuration**, **Server Configuration** và **Database Engine "
+        "Configuration** - chọn Mixed Mode ở trang cuối này.",
+        "**Download Media**: chỉ tải bộ cài để cài trên máy khác.",
+    ])
+    g.p("Ứng dụng đăng nhập bằng **tài khoản SQL Server** (không phải tài khoản Windows), nên máy chủ **bắt buộc** "
+        "bật chế độ **Mixed Mode** (*SQL Server and Windows Authentication mode*). Cài theo mặc định (kiểu "
+        "**Basic**, hoặc bằng `setup_dev.ps1`) thì SQL Server **chỉ bật Windows Authentication**: CSDL vẫn khởi "
+        "tạo được, nhưng ứng dụng báo **Sai tên đăng nhập hoặc mật khẩu** dù gõ đúng. Chọn Mixed Mode ngay khi "
+        "cài (kiểu cài **Custom**), hoặc bật sau khi cài bằng hai lệnh dưới đây trong PowerShell mở bằng quyền "
+        "quản trị (`Win + X` > **Terminal (Admin)**). Lệnh thứ hai khởi động lại dịch vụ SQL Server để áp dụng.")
+    g.code("PowerShell (Windows, quyền quản trị)",
+           "sqlcmd -S localhost -E -C -Q \"EXEC xp_instance_regwrite N'HKEY_LOCAL_MACHINE', "
+           "N'Software\\Microsoft\\MSSQLServer\\MSSQLServer', N'LoginMode', REG_DWORD, 2\"\n"
+           "Restart-Service MSSQLSERVER", lang="text")
+    g.p("Lệnh thứ nhất in `(0 rows affected)`; lệnh thứ hai có thể in *WARNING: Waiting for service ... to stop* "
+        "trong vài giây. Kiểm tra bằng lệnh dưới đây: kết quả `0` là Mixed Mode đã bật (`1` là chưa, khởi động lại "
+        "dịch vụ thêm lần nữa).")
+    g.code("PowerShell (Windows)",
+           "sqlcmd -S localhost -E -C -h -1 -Q \"SELECT SERVERPROPERTY('IsIntegratedSecurityOnly')\"", lang="text")
+    g.p("Bản Express: thay `localhost` bằng `localhost\\SQLEXPRESS` và `MSSQLSERVER` bằng `'MSSQL$SQLEXPRESS'`. "
+        "Tài khoản `sa` vẫn bị khóa; các tài khoản demo nằm trong CSDL `QLTTTA` nên không cần `sa`.")
 
     g.h3("2.3.2. Cài công cụ quản trị và driver")
     g.bullets([
         "**SQL Server Management Studio (SSMS)** - công cụ xem dữ liệu và chạy script (không bắt buộc để dùng "
         "ứng dụng, nhưng cần cho cách khởi tạo CSDL thứ hai ở mục 2.3.4).",
-        "**Microsoft ODBC Driver 18 for SQL Server** - driver kết nối mà ứng dụng ưu tiên dùng. Nếu máy "
-        "không có, ứng dụng tự chuyển sang driver \"SQL Server\" có sẵn của Windows; tuy vậy nên cài driver 18 "
-        "để tránh lỗi chứng chỉ/TLS.",
+        "**Microsoft ODBC Driver 18 for SQL Server** - driver kết nối của ứng dụng. Khi máy không có driver "
+        "18/17, ứng dụng còn thử driver \"SQL Server\" có sẵn của Windows, nhưng trên Windows 11 với SQL Server "
+        "2025 driver này không đăng nhập được (đã kiểm tra), nên hãy coi driver 18 là bắt buộc.",
     ])
-    g.placeholder("Kiểm tra trên Windows: cài SSMS có kèm sẵn ODBC Driver 18 hay phải tải riêng; ghi đường dẫn "
-                  "tải và cách kiểm tra driver đã cài (ODBC Data Sources (64-bit) > tab Drivers).")
+    g.p("Trình cài SQL Server 2025 đã cài kèm **ODBC Driver 17 và 18 for SQL Server** cùng lệnh `sqlcmd`, nên máy "
+        "cài SQL Server không cần tải driver riêng. Máy **chỉ chạy ứng dụng** - SQL Server nằm trên máy khác hoặc "
+        "chạy trong Docker (phương án A) - thì phải cài driver 18: tải tại "
+        "`https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server` (bản x64), hoặc "
+        "`winget install --id Microsoft.msodbcsql.18`. Xem các driver đã cài bằng PowerShell:")
+    g.code("PowerShell (Windows)",
+           "Get-OdbcDriver -Platform 64-bit | Where-Object Name -match 'SQL Server' | Select-Object Name",
+           lang="text")
 
     g.h3("2.3.3. Bật kết nối TCP/IP")
-    g.p("Ứng dụng kết nối qua mạng (TCP/IP, cổng mặc định 1433). Bản Express thường tắt TCP/IP sau khi cài. "
-        "Mở **SQL Server Configuration Manager > SQL Server Network Configuration > Protocols for "
-        "SQLEXPRESS** (hoặc **MSSQLSERVER**), bật **TCP/IP**, rồi khởi động lại dịch vụ **SQL Server** trong "
-        "mục **SQL Server Services**.")
-    g.placeholder("Xác nhận trên Windows các bước bật TCP/IP và khởi động lại dịch vụ; có cần bật dịch vụ SQL "
-                  "Server Browser để dùng địa chỉ `localhost\\SQLEXPRESS` không; có cần đặt cổng cố định 1433 "
-                  "(tab IP Addresses > IPAll) khi máy khác kết nối tới không.")
+    g.p("Bản Developer và Express **tắt TCP/IP** sau khi cài (dịch vụ **SQL Server Browser** cũng tắt). Ứng dụng "
+        "chạy **trên cùng máy** với SQL Server vẫn kết nối được khi ô Máy chủ là `localhost` (hoặc "
+        "`localhost\\SQLEXPRESS`), không cần bật TCP/IP. Địa chỉ có cổng như `localhost,1433` (giá trị mặc định "
+        "của ứng dụng) thì cần TCP/IP: khi TCP/IP còn tắt, ứng dụng chờ khoảng 10 giây rồi báo **Không kết nối "
+        "được máy chủ SQL Server**.")
+    g.p("Bật TCP/IP khi máy khác cần kết nối tới, hoặc khi muốn dùng địa chỉ có cổng: mở **SQL Server "
+        "Configuration Manager** (với SQL Server 2025 có thể gõ `SQLServerManager17.msc` trong hộp **Run**, "
+        "`Win + R`) > **SQL Server Network Configuration > Protocols for MSSQLSERVER** (hoặc **SQLEXPRESS**), bật "
+        "**TCP/IP**, rồi khởi động lại dịch vụ **SQL Server** trong mục **SQL Server Services**.")
+    g.p("Instance mặc định của bản Developer đã đặt sẵn **cổng cố định 1433** (tab **IP Addresses > IPAll**: "
+        "**TCP Port** = `1433`, **TCP Dynamic Ports** để trống), nên sau khi bật TCP/IP máy khác kết nối bằng "
+        "`<IP>,1433` mà không cần đổi cổng hay bật SQL Server Browser.")
+    g.placeholder("Xác nhận trên Windows các bước bật TCP/IP trong SQL Server Configuration Manager (giao diện); "
+                  "với bản Express (instance có tên, mặc định dùng cổng động): có cần bật SQL Server Browser hoặc đặt "
+                  "cổng cố định 1433 khi máy khác kết nối tới không.")
     g.figure_or_placeholder(WINDOWS_IMAGES / "sql_configuration_manager_tcpip.png",
                             "Bật giao thức TCP/IP trong SQL Server Configuration Manager",
                             "SQL Server Configuration Manager, mục Protocols for SQLEXPRESS, TCP/IP = Enabled.")
@@ -224,9 +266,11 @@ def chapter2(g):
            "# Đăng nhập bằng sa (SQL Server Authentication)\n"
            "$env:SQL_PASSWORD = '<mật khẩu sa>'\n"
            ".\\scripts\\db_init.ps1 -Server \"localhost\\SQLEXPRESS\" -User sa", lang="text")
-    g.placeholder("Kiểm tra trên Windows: máy đã có lệnh `sqlcmd` sau khi cài SQL Server/SSMS chưa "
-                  "(`sqlcmd -?`); nếu chưa, ghi cách cài (ví dụ `winget install sqlcmd` hoặc gói Microsoft "
-                  "Command Line Utilities). Ghi lại kết quả chạy `db_init.ps1` thực tế.")
+    g.p("Trình cài SQL Server 2025 đã kèm lệnh `sqlcmd`: mở **cửa sổ PowerShell mới** sau khi cài để lệnh có trong "
+        "PATH (kiểm tra bằng `sqlcmd -?`). Máy chưa có `sqlcmd` (ví dụ SQL Server cài từ lâu) thì cài bằng "
+        "`winget install Microsoft.Sqlcmd`. Cách 1 dùng tài khoản Windows đang đăng nhập (người cài SQL Server là "
+        "quản trị của máy chủ) nên chạy được cả trước khi bật Mixed Mode. Script in tên từng file `>> 00_...` → "
+        "`>> 07_seed_data.sql`, dòng cuối là `Done. The QLTTTA database is ready`.")
     g.p("**Cách 2 - SSMS**: kết nối tới máy chủ bằng tài khoản quản trị (Windows Authentication hoặc `sa`), "
         "mở lần lượt từng file `database/00_create_database.sql` → `database/07_seed_data.sql` (**File > Open "
         "> File**), bấm **Execute** (F5) và chờ chạy xong mới mở file tiếp theo. Không cần bật *SQLCMD Mode*.")
@@ -280,20 +324,31 @@ def chapter3(g):
     g.steps([
         f"Chạy `QLTTTA-{version}-windows-x64-setup.exe`. Nếu Windows hiện **Windows protected your PC** "
         "(SmartScreen), bấm **More info > Run anyway** (ứng dụng sinh viên không có chữ ký số thương mại).",
-        "Chọn cài cho riêng người dùng hiện tại (không cần quyền Administrator) hoặc cho mọi người dùng.",
-        "Chọn thư mục cài, đánh dấu **Create a desktop shortcut** nếu muốn có biểu tượng ngoài màn hình.",
-        "Bấm **Install**, cuối cùng để chọn **Launch QLTTTA** và bấm **Finish**.",
+        "Hộp thoại **Select install mode**: chọn **Install for me only (recommended)** (cài cho riêng người dùng "
+        "hiện tại, không cần quyền Administrator) hoặc **Install for all users** (cho mọi người dùng, Windows hỏi "
+        "quyền Administrator).",
+        "Trang **Select Destination Location**: giữ thư mục đề xuất hoặc bấm **Browse...** để chọn thư mục khác, "
+        "rồi bấm **Next**.",
+        "Trang **Select Additional Tasks**: giữ hoặc bỏ dấu ở **Create a desktop shortcut** (biểu tượng ngoài màn "
+        "hình), bấm **Next**.",
+        "Trang **Ready to Install**: bấm **Install**. Ở trang cuối (**Completing the QLTTTA - English Center "
+        "Management Setup Wizard**), để dấu ở **Launch QLTTTA** nếu muốn mở ứng dụng ngay, rồi bấm **Finish**.",
     ])
-    g.p("Bộ cài tạo mục **QLTTTA** và **Installation guide** (hướng dẫn ngắn bằng tiếng Anh) trong menu Start.")
-    g.placeholder("Kiểm tra trên Windows và cập nhật các bước trên: tên chính xác của các nút/hộp thoại "
-                  "trong bộ cài, thư mục cài mặc định khi cài cho riêng người dùng (dự kiến "
-                  "`%LOCALAPPDATA%\\Programs\\QLTTTA`) và khi cài cho mọi người dùng (`C:\\Program Files\\QLTTTA`).")
+    g.p("Bộ cài tạo mục **QLTTTA** và **Installation guide** (hướng dẫn ngắn bằng tiếng Anh) trong menu Start. "
+        "Cài cho riêng người dùng hiện tại thì ứng dụng nằm ở `%LOCALAPPDATA%\\Programs\\QLTTTA` và không cần "
+        "quyền Administrator. Chọn **Install for all users** thì Windows hỏi quyền Administrator (UAC), ứng dụng "
+        "nằm ở `C:\\Program Files\\QLTTTA` và mục **QLTTTA** có trong menu Start của mọi tài khoản trên máy.")
+    g.tip("Cài không hiện hộp thoại (ví dụ cài sẵn cho nhiều máy phòng thực hành), cho riêng người dùng, không tạo "
+          f"biểu tượng ngoài màn hình: `QLTTTA-{version}-windows-x64-setup.exe /VERYSILENT /CURRENTUSER "
+          "/MERGETASKS=\"!desktopicon\"` (cho mọi người dùng: thay `/CURRENTUSER` bằng `/ALLUSERS`, cần quyền "
+          "Administrator). Gỡ im lặng: `unins000.exe /VERYSILENT` trong thư mục cài.")
     g.figure_or_placeholder(WINDOWS_IMAGES / "installer_smartscreen.png",
                             "Cảnh báo SmartScreen khi chạy bộ cài",
-                            "hộp thoại Windows protected your PC sau khi bấm More info (thấy nút Run anyway).")
+                            "hộp thoại Windows protected your PC sau khi bấm More info (thấy nút Run anyway).",
+                            width_cm=9.5)
     g.figure_or_placeholder(WINDOWS_IMAGES / "installer_finish.png",
                             "Bước cuối của bộ cài QLTTTA trên Windows",
-                            "màn hình cuối của bộ cài QLTTTA (Launch QLTTTA, nút Finish).")
+                            "màn hình cuối của bộ cài QLTTTA (Launch QLTTTA, nút Finish).", width_cm=12.5)
 
     g.h3("3.3.2. Dùng bản portable")
     g.p(f"Giải nén `QLTTTA-{version}-windows-x64-portable.zip` vào một thư mục bất kỳ (ví dụ `D:\\QLTTTA`) "
@@ -301,8 +356,9 @@ def chapter3(g):
 
     g.h3("3.3.3. Driver kết nối")
     g.p("Ứng dụng tự tìm driver theo thứ tự: **ODBC Driver 18 for SQL Server**, **ODBC Driver 17 for SQL "
-        "Server**, rồi driver **SQL Server** có sẵn của Windows. Nếu gặp lỗi chứng chỉ/TLS khi đăng nhập, cài "
-        "ODBC Driver 18 (mục 2.3.2) và bật **Tin cậy chứng chỉ máy chủ** trong phần cấu hình máy chủ.")
+        "Server**, rồi driver **SQL Server** có sẵn của Windows. Driver cuối này không đăng nhập được vào SQL "
+        "Server 2025 trên Windows 11, nên máy chưa có driver 18/17 cần cài ODBC Driver 18 (mục 2.3.2). Nếu gặp lỗi "
+        "chứng chỉ/TLS khi đăng nhập, bật **Tin cậy chứng chỉ máy chủ** trong phần cấu hình máy chủ.")
 
     g.h2("3.4. Nơi lưu cấu hình và gỡ cài đặt")
     g.p("Ứng dụng ghi nhớ địa chỉ máy chủ, tên CSDL, tên đăng nhập gần nhất và ngôn ngữ giao diện (không lưu "
@@ -313,13 +369,17 @@ def chapter3(g):
         ["Windows", "Registry `HKEY_CURRENT_USER\\Software\\UIT-IE103\\QLTTTA`",
          "**Settings > Apps > Installed apps > QLTTTA > Uninstall** (bản portable: xóa thư mục)"],
     ], widths_cm=[2.8, 7.4, 5.8], caption="Cấu hình đã lưu và cách gỡ ứng dụng", size=10.5)
-    g.placeholder("Xác nhận trên Windows đường dẫn gỡ cài đặt trong Settings (Windows 10 và 11 khác nhau) và "
-                  "khóa registry ở trên.")
+    g.p("Gỡ cài đặt xóa thư mục ứng dụng và các mục trong menu Start nhưng **giữ lại cấu hình** đã lưu trong "
+        "registry, nên cài lại vẫn nhớ máy chủ cũ. Muốn xóa hẳn cấu hình (Windows), chạy trong PowerShell:")
+    g.code("PowerShell (Windows)", "Remove-Item -Path 'HKCU:\\Software\\UIT-IE103\\QLTTTA' -Recurse", lang="text")
+    g.p("Trên Windows 11, trang gỡ ứng dụng là **Settings > Apps > Installed apps** (mở nhanh bằng lệnh "
+        "`start ms-settings:appsfeatures`): tìm **QLTTTA**, bấm nút **...** bên phải rồi chọn **Uninstall**.")
+    g.placeholder("Xác nhận đường dẫn gỡ cài đặt trên Windows 10 (dự kiến **Settings > Apps > Apps & features**).")
 
     g.h2("3.5. Chạy từ mã nguồn (dành cho nhóm phát triển)")
     g.p("Thành viên nhóm có thể build ứng dụng bằng Qt 6, CMake và Ninja thay vì dùng bộ cài. Script "
         "`scripts/setup_dev` kiểm tra máy và chỉ cài những gì còn thiếu: bộ công cụ build, SQL Server (macOS: "
-        "container Docker; Windows: instance đã cài, container đang chạy hoặc SQL Server 2022 Developer), khởi tạo "
+        "container Docker; Windows: instance đã cài, container đang chạy hoặc SQL Server 2025 Developer), khởi tạo "
         "CSDL rồi chạy toàn bộ kiểm thử. Trong Claude Code, gõ `/imcp-setup` để chạy script này. Chi tiết và các "
         "tùy chọn nằm trong `docs/SETUP.md` (mục 3).")
     g.code("Terminal (macOS)", "./scripts/setup_dev.sh --check             # chỉ báo còn thiếu gì\n"
@@ -328,6 +388,9 @@ def chapter3(g):
            "powershell -ExecutionPolicy Bypass -File scripts\\setup_dev.ps1 -Check\n"
            "powershell -ExecutionPolicy Bypass -File scripts\\setup_dev.ps1 -AcceptLicenses", lang="text")
     g.p("Tham số `--accept-licenses` (`-AcceptLicenses`) nghĩa là bạn đồng ý giấy phép SQL Server Developer Edition "
-        "(và điều khoản Docker Desktop trên macOS). Sau đó build và chạy ứng dụng, ví dụ trên macOS:")
+        "(và điều khoản Docker Desktop trên macOS). Sau đó build và chạy ứng dụng:")
     g.code("Terminal (macOS)", "cmake --preset macos-debug\ncmake --build --preset macos-debug\n"
                                "open build/macos-debug/src/app/QLTTTA.app", lang="text")
+    g.code("PowerShell (Windows, cửa sổ mới sau setup_dev)",
+           "cmake --preset windows-debug\ncmake --build --preset windows-debug\n"
+           ".\\build\\windows-debug\\QLTTTA.exe", lang="text")

@@ -195,7 +195,7 @@ which helps when diagnosing.
 
 | OS | Driver order |
 |---|---|
-| Windows | ODBC Driver 18 → ODBC Driver 17 → "SQL Server" (the legacy driver built into Windows) |
+| Windows | ODBC Driver 18 → ODBC Driver 17 → "SQL Server" (the legacy driver built into Windows; it could not sign in to SQL Server 2025 on Windows 11, so a PC without SQL Server needs ODBC Driver 18) |
 | macOS (.dmg build) | bundled FreeTDS → ODBC Driver 18/17 (if installed) |
 | macOS (development) | ODBC Driver 18/17 → Homebrew FreeTDS |
 
