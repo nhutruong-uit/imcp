@@ -1,17 +1,23 @@
 #pragma once
 
-#include "application/services/AuthService.h"
-#include "application/services/LanguageService.h"
-#include "application/services/ListService.h"
-#include "application/services/StatisticsService.h"
-#include "application/services/StudentService.h"
 #include "infrastructure/config/QSettingsStore.h"
 #include "infrastructure/db/DatabaseManager.h"
+#include "infrastructure/repositories/SqlAccountRepository.h"
 #include "infrastructure/repositories/SqlAuthGateway.h"
+#include "infrastructure/repositories/SqlBackupRepository.h"
 #include "infrastructure/repositories/SqlCatalogRepository.h"
+#include "infrastructure/repositories/SqlClassRepository.h"
+#include "infrastructure/repositories/SqlCourseRepository.h"
+#include "infrastructure/repositories/SqlEnrollmentRepository.h"
+#include "infrastructure/repositories/SqlGradeRepository.h"
 #include "infrastructure/repositories/SqlListRepository.h"
+#include "infrastructure/repositories/SqlPayrollRepository.h"
+#include "infrastructure/repositories/SqlPlacementRepository.h"
+#include "infrastructure/repositories/SqlSessionRepository.h"
+#include "infrastructure/repositories/SqlStaffRepository.h"
 #include "infrastructure/repositories/SqlStatisticsRepository.h"
 #include "infrastructure/repositories/SqlStudentRepository.h"
+#include "infrastructure/repositories/SqlTuitionRepository.h"
 #include "presentation/main/AppServices.h"
 
 // Creates every object in dependency order (manual dependency injection).
@@ -28,7 +34,7 @@ public:
     AuthService& auth() { return m_auth; }
     LanguageService& language() { return m_language; }
     // The use cases handed to the UI (the UI never sees the repositories or the database)
-    AppServices services() { return AppServices{m_auth, m_students, m_statistics, m_lists, m_language}; }
+    AppServices services();
 
 private:
     // Infrastructure
@@ -39,10 +45,33 @@ private:
     SqlCatalogRepository m_catalogRepository;
     SqlStatisticsRepository m_statisticsRepository;
     SqlListRepository m_listRepository;
+    SqlClassRepository m_classRepository;
+    SqlEnrollmentRepository m_enrollmentRepository;
+    SqlTuitionRepository m_tuitionRepository;
+    SqlPlacementRepository m_placementRepository;
+    SqlSessionRepository m_sessionRepository;
+    SqlGradeRepository m_gradeRepository;
+    SqlPayrollRepository m_payrollRepository;
+    SqlAccountRepository m_accountRepository;
+    SqlCourseRepository m_courseRepository;
+    SqlStaffRepository m_staffRepository;
+    SqlBackupRepository m_backupRepository;
     // Application
     AuthService m_auth;
     StudentService m_students;
     StatisticsService m_statistics;
     ListService m_lists;
     LanguageService m_language;
+    ClassService m_classes;
+    EnrollmentService m_enrollments;
+    TuitionService m_tuition;
+    PlacementService m_placement;
+    SessionService m_sessions;
+    GradeService m_grades;
+    PayrollService m_payroll;
+    AccountService m_accounts;
+    CatalogService m_catalog;
+    CourseService m_courses;
+    StaffService m_staff;
+    BackupService m_backup;
 };

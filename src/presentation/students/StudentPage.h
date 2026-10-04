@@ -1,6 +1,6 @@
 #pragma once
 
-#include "domain/entities/Branch.h"
+#include "domain/entities/Catalog.h"
 #include "domain/entities/Student.h"
 #include "presentation/main/AppServices.h"
 
@@ -19,6 +19,8 @@ class QTimer;
 //   Page (UI) -> Service (use case) -> repository interface -> Sql...Repository -> SQL procedure
 // The Add/Edit/Delete buttons are only shown to roles that may edit students (Permissions::canEditStudents);
 // hiding them is a convenience - SQL Server refuses usp_Student_Add/Update/Delete to the other roles anyway.
+// Second row: the profile of the selected student (enrollments, placement tests), enroll them, record a
+// placement test, and the XML export / import of usp_Student_ExportXml / _ImportXml.
 class StudentPage : public QWidget {
     Q_OBJECT
 public:
@@ -29,6 +31,12 @@ private slots:
     void add();
     void edit();
     void remove();
+    void showProfile();
+    void enroll();
+    void placementTest();
+    void exportXml();
+    void importXml();
+    void updateButtons();
 
 private:
     const Student* selectedStudent() const;
@@ -42,6 +50,9 @@ private:
     QComboBox* m_statusFilter = nullptr;
     QPushButton* m_editButton = nullptr;
     QPushButton* m_deleteButton = nullptr;
+    QPushButton* m_profileButton = nullptr;
+    QPushButton* m_enrollButton = nullptr; // only for the roles that may enroll
+    QPushButton* m_testButton = nullptr;
     QTableView* m_table = nullptr;
     StudentTableModel* m_model = nullptr;
     QSortFilterProxyModel* m_proxy = nullptr;

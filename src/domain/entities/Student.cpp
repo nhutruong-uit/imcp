@@ -1,6 +1,6 @@
 #include "domain/entities/Student.h"
 
-#include <QRegularExpression>
+#include "domain/common/Validation.h"
 
 namespace StudentValues {
 QStringList genders() {
@@ -15,32 +15,9 @@ QString activeStatus() {
 }
 } // namespace StudentValues
 
-// "namespace {" (an anonymous namespace) = helpers private to this file
-namespace {
-// 9-11 digits, like the CHECK constraint CK_STUDENT_Phone (NOT LIKE '%[^0-9]%' AND LEN BETWEEN 9 AND 11)
-bool isValidPhone(const QString& phone) {
-    static const QRegularExpression pattern(QStringLiteral("^[0-9]{9,11}$"));
-    return pattern.match(phone).hasMatch();
-}
-
-// something@something.something, close to CK_STUDENT_Email (LIKE '%_@_%._%'); ASCII only, because the column
-// is VARCHAR (a letter such as "ê" would be stored as "?")
-bool isValidEmail(const QString& email) {
-    static const QRegularExpression pattern(
-        QStringLiteral("^[\\x21-\\x7E]+@[\\x21-\\x7E]+\\.[\\x21-\\x7E]+$"));
-    return pattern.match(email).hasMatch() && email.count(QLatin1Char('@')) == 1;
-}
-} // namespace
-
 // Years between the two dates, minus one when the birthday has not come yet that year
 int Student::age(const QDate& asOf) const {
-    if (!dateOfBirth.isValid() || !asOf.isValid())
-        return 0;
-    int years = asOf.year() - dateOfBirth.year();
-    if (asOf.month() < dateOfBirth.month() ||
-        (asOf.month() == dateOfBirth.month() && asOf.day() < dateOfBirth.day()))
-        --years;
-    return years;
+    return Validation::age(dateOfBirth, asOf);
 }
 
 bool Student::needsGuardian(const QDate& asOf) const {
@@ -73,11 +50,11 @@ QStringList Student::validate(const QDate& today) const {
     if (!StudentValues::genders().contains(gender))
         errors << tr("Invalid gender.");
 
-    if (!phone.isEmpty() && !isValidPhone(phone))
+    if (!phone.isEmpty() && !Validation::isPhone(phone))
         errors << tr("Phone numbers contain 9-11 digits only.");
-    if (!guardianPhone.isEmpty() && !isValidPhone(guardianPhone))
+    if (!guardianPhone.isEmpty() && !Validation::isPhone(guardianPhone))
         errors << tr("Guardian phone numbers contain 9-11 digits only.");
-    if (!email.isEmpty() && (email.size() > StudentLimits::email || !isValidEmail(email)))
+    if (!email.isEmpty() && (email.size() > StudentLimits::email || !Validation::isEmail(email)))
         errors << tr("Invalid email address.");
     if (address.size() > StudentLimits::address)
         errors << tr("Address must be at most %1 characters.").arg(StudentLimits::address);
@@ -100,6 +77,9 @@ QStringList Student::validate(const QDate& today) const {
 
     if (!StudentValues::statuses().contains(status))
         errors << tr("Invalid status.");
+
+    if (registeredOn.isValid() && registeredOn > today)
+        errors << tr("The registration date cannot be in the future.");
 
     return errors;
 }

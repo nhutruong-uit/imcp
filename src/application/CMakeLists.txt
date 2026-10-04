@@ -7,6 +7,17 @@ add_library(qlttta_application STATIC
     ports/ICatalogRepository.h
     ports/IStatisticsRepository.h
     ports/IListRepository.h
+    ports/IClassRepository.h
+    ports/IEnrollmentRepository.h
+    ports/ITuitionRepository.h
+    ports/IPlacementRepository.h
+    ports/ISessionRepository.h
+    ports/IGradeRepository.h
+    ports/IPayrollRepository.h
+    ports/IAccountRepository.h
+    ports/ICourseRepository.h
+    ports/IStaffRepository.h
+    ports/IBackupRepository.h
     services/Permissions.h
     services/Permissions.cpp
     services/AuthService.h
@@ -19,5 +30,29 @@ add_library(qlttta_application STATIC
     services/ListService.cpp
     services/LanguageService.h
     services/LanguageService.cpp
+    services/ClassService.h
+    services/ClassService.cpp
+    services/EnrollmentService.h
+    services/EnrollmentService.cpp
+    services/TuitionService.h
+    services/TuitionService.cpp
+    services/PlacementService.h
+    services/PlacementService.cpp
+    services/SessionService.h
+    services/SessionService.cpp
+    services/GradeService.h
+    services/GradeService.cpp
+    services/PayrollService.h
+    services/PayrollService.cpp
+    services/AccountService.h
+    services/AccountService.cpp
+    services/CatalogService.h
+    services/CatalogService.cpp
+    services/CourseService.h
+    services/CourseService.cpp
+    services/StaffService.h
+    services/StaffService.cpp
+    services/BackupService.h
+    services/BackupService.cpp
 )
 target_link_libraries(qlttta_application PUBLIC qlttta_domain)

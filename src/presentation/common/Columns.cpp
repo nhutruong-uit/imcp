@@ -13,6 +13,8 @@ enum ColumnKind : unsigned {
     Debt = 1u << 3,       // money still owed, highlighted when > 0
     RoleCode = 1u << 4,   // role code of an account (MANAGER...), displayed through Labels::role
     Schedule = 1u << 5,   // weekly schedule "Mon 18:00-20:00, ...", day names localized by Format::schedule
+    Weekday = 1u << 6,    // ISO weekday number 1-7, shown as a day name (Format::weekday)
+    YesNo = 1u << 7,      // 1 / 0 flag, shown as "Yes" / empty
 };
 
 struct Column {
@@ -90,6 +92,80 @@ const Column kCatalog[] = {
     {"Role", QT_TRANSLATE_NOOP("Columns", "Role"), RoleCode, nullptr},
     {"CreatedAtUtc", QT_TRANSLATE_NOOP("Columns", "Created"), Text, nullptr}, // shown in local time (Format)
     {"LastLoginAtUtc", QT_TRANSLATE_NOOP("Columns", "Last login"), Text, nullptr},
+    // Classes: seats, weekly schedule, results
+    {"SeatsLeft", QT_TRANSLATE_NOOP("Columns", "Seats left"), Text, nullptr},
+    {"Weekday", QT_TRANSLATE_NOOP("Columns", "Weekday"), Weekday, nullptr},
+    {"CertificateNumber", QT_TRANSLATE_NOOP("Columns", "Certificate No."), Text, nullptr},
+    {"SessionId", QT_TRANSLATE_NOOP("Columns", "Session ID"), Text, nullptr},
+    {"Description", QT_TRANSLATE_NOOP("Columns", "Description"), Text, nullptr},
+    {"Score", QT_TRANSLATE_NOOP("Columns", "Score"), Text, nullptr},
+    // Receipts
+    {"ReceiptId", QT_TRANSLATE_NOOP("Columns", "Receipt No."), Text, nullptr},
+    {"PaidAtUtc", QT_TRANSLATE_NOOP("Columns", "Paid at"), Text, nullptr}, // shown in local time (Format)
+    {"Amount", QT_TRANSLATE_NOOP("Columns", "Amount"), Money | Summable,
+     QT_TRANSLATE_NOOP("Columns", "Total amount")},
+    {"PaymentMethod", QT_TRANSLATE_NOOP("Columns", "Payment method"), Enumerated, nullptr},
+    {"CollectedBy", QT_TRANSLATE_NOOP("Columns", "Collected by"), Text, nullptr},
+    {"CancelReason", QT_TRANSLATE_NOOP("Columns", "Cancel reason"), Text, nullptr},
+    // Placement tests
+    {"TestId", QT_TRANSLATE_NOOP("Columns", "Test ID"), Text, nullptr},
+    {"TestDate", QT_TRANSLATE_NOOP("Columns", "Test date"), Text, nullptr},
+    {"ListeningScore", QT_TRANSLATE_NOOP("Columns", "Listening"), Text, nullptr},
+    {"SpeakingScore", QT_TRANSLATE_NOOP("Columns", "Speaking"), Text, nullptr},
+    {"ReadingScore", QT_TRANSLATE_NOOP("Columns", "Reading"), Text, nullptr},
+    {"WritingScore", QT_TRANSLATE_NOOP("Columns", "Writing"), Text, nullptr},
+    {"OverallScore", QT_TRANSLATE_NOOP("Columns", "Overall"), Text, nullptr},
+    {"RecommendedCourse", QT_TRANSLATE_NOOP("Columns", "Recommended course"), Text, nullptr},
+    {"GradedBy", QT_TRANSLATE_NOOP("Columns", "Graded by"), Text, nullptr},
+    {"Notes", QT_TRANSLATE_NOOP("Columns", "Notes"), Text, nullptr},
+    // Payroll and the revenue report
+    {"PayrollId", QT_TRANSLATE_NOOP("Columns", "Payroll ID"), Text, nullptr},
+    {"ProgramName", QT_TRANSLATE_NOOP("Columns", "Program"), Text, nullptr},
+    // Catalogs: branches, rooms, programs, courses, grade components, syllabus
+    {"BranchId", QT_TRANSLATE_NOOP("Columns", "Branch code"), Text, nullptr},
+    {"Address", QT_TRANSLATE_NOOP("Columns", "Address"), Text, nullptr},
+    {"Email", QT_TRANSLATE_NOOP("Columns", "Email"), Text, nullptr},
+    {"FoundedOn", QT_TRANSLATE_NOOP("Columns", "Founded on"), Text, nullptr},
+    {"RoomCount", QT_TRANSLATE_NOOP("Columns", "Rooms"), Text, nullptr},
+    {"RoomId", QT_TRANSLATE_NOOP("Columns", "Room code"), Text, nullptr},
+    {"Capacity", QT_TRANSLATE_NOOP("Columns", "Seats"), Text, nullptr},
+    {"RoomType", QT_TRANSLATE_NOOP("Columns", "Room type"), Enumerated, nullptr},
+    {"ProgramId", QT_TRANSLATE_NOOP("Columns", "Program code"), Text, nullptr},
+    {"TargetLearners", QT_TRANSLATE_NOOP("Columns", "Target learners"), Text, nullptr},
+    {"CourseCount", QT_TRANSLATE_NOOP("Columns", "Courses"), Text, nullptr},
+    {"CourseId", QT_TRANSLATE_NOOP("Columns", "Course code"), Text, nullptr},
+    {"Level", QT_TRANSLATE_NOOP("Columns", "Level"), Text, nullptr},
+    {"SessionMinutes", QT_TRANSLATE_NOOP("Columns", "Minutes per session"), Text, nullptr},
+    {"MinPlacementScore", QT_TRANSLATE_NOOP("Columns", "Minimum placement score"), Text, nullptr},
+    {"PrerequisiteCourseId", QT_TRANSLATE_NOOP("Columns", "Prerequisite"), Text, nullptr},
+    {"TotalWeight", QT_TRANSLATE_NOOP("Columns", "Total weight (%)"), Text, nullptr},
+    {"HasSyllabus", QT_TRANSLATE_NOOP("Columns", "Syllabus"), YesNo, nullptr},
+    {"ComponentId", QT_TRANSLATE_NOOP("Columns", "Component ID"), Text, nullptr},
+    {"ComponentName", QT_TRANSLATE_NOOP("Columns", "Grade component"), Text, nullptr},
+    {"Weight", QT_TRANSLATE_NOOP("Columns", "Weight (%)"), Text, nullptr},
+    {"Unit", QT_TRANSLATE_NOOP("Columns", "Unit"), Text, nullptr},
+    {"Title", QT_TRANSLATE_NOOP("Columns", "Title"), Text, nullptr},
+    {"Sessions", QT_TRANSLATE_NOOP("Columns", "Sessions"), Text, nullptr},
+    {"Skills", QT_TRANSLATE_NOOP("Columns", "Skills"), Text, nullptr},
+    {"Textbook", QT_TRANSLATE_NOOP("Columns", "Textbook"), Text, nullptr},
+    {"UnitCount", QT_TRANSLATE_NOOP("Columns", "Units"), Text, nullptr},
+    // Staff
+    {"EmployeeId", QT_TRANSLATE_NOOP("Columns", "Employee ID"), Text, nullptr},
+    {"Position", QT_TRANSLATE_NOOP("Columns", "Position"), Enumerated, nullptr},
+    {"HireDate", QT_TRANSLATE_NOOP("Columns", "Hire date"), Text, nullptr},
+    {"BaseSalary", QT_TRANSLATE_NOOP("Columns", "Base salary"), Money, nullptr},
+    {"TeacherType", QT_TRANSLATE_NOOP("Columns", "Teacher type"), Enumerated, nullptr},
+    {"Nationality", QT_TRANSLATE_NOOP("Columns", "Nationality"), Text, nullptr},
+    {"Degree", QT_TRANSLATE_NOOP("Columns", "Degree"), Enumerated, nullptr},
+    {"YearsOfExperience", QT_TRANSLATE_NOOP("Columns", "Years of experience"), Text, nullptr},
+    {"Specialties", QT_TRANSLATE_NOOP("Columns", "Specialties"), Text, nullptr},
+    // Promotions
+    {"PromotionId", QT_TRANSLATE_NOOP("Columns", "Promotion code"), Text, nullptr},
+    {"PromotionName", QT_TRANSLATE_NOOP("Columns", "Promotion"), Text, nullptr},
+    {"DiscountType", QT_TRANSLATE_NOOP("Columns", "Discount type"), Enumerated, nullptr},
+    {"DiscountValue", QT_TRANSLATE_NOOP("Columns", "Discount value"), Text, nullptr},
+    {"Validity", QT_TRANSLATE_NOOP("Columns", "Validity"), Enumerated, nullptr},
+    {"EnrollmentCount", QT_TRANSLATE_NOOP("Columns", "Enrollments"), Text, nullptr},
 };
 
 const Column* find(const QString& key) {
@@ -149,6 +225,16 @@ bool Columns::isRoleCode(const QString& key) {
 bool Columns::isSchedule(const QString& key) {
     const Column* c = find(key);
     return c && (c->kind & Schedule);
+}
+
+bool Columns::isWeekday(const QString& key) {
+    const Column* c = find(key);
+    return c && (c->kind & Weekday);
+}
+
+bool Columns::isYesNo(const QString& key) {
+    const Column* c = find(key);
+    return c && (c->kind & YesNo);
 }
 
 QStringList Columns::keys() {

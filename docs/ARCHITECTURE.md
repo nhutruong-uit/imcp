@@ -14,11 +14,11 @@ start with `I` (`IStudentRepository`) and infrastructure classes that talk to SQ
 ```mermaid
 flowchart LR
     subgraph Outer["Outer layers (technical details)"]
-        P["presentation<br/>Qt Widgets: LoginDialog, MainWindow,<br/>StudentPage, ListPage, .ui forms,<br/>I18n, Labels, Columns"]
-        I["infrastructure<br/>DatabaseManager (ODBC), Sql*Repository,<br/>SqlErrorMapper, QSettingsStore"]
+        P["presentation<br/>Qt Widgets: LoginDialog, MainWindow,<br/>DataPage + FormDialog screens, StudentPage,<br/>ListPage, .ui forms, I18n, Labels, Columns"]
+        I["infrastructure<br/>DatabaseManager (ODBC), Sql*Repository,<br/>SqlHelpers, SqlErrorMapper, QSettingsStore"]
     end
-    A["application<br/>Use cases: AuthService, StudentService,<br/>StatisticsService, ListService, LanguageService,<br/>Permissions<br/>Ports: IStudentRepository, IAuthGateway..."]
-    D["domain<br/>Student, Account, Role, Language,<br/>validation rules, Result&lt;T&gt;"]
+    A["application<br/>Use cases: AuthService, StudentService,<br/>ClassService, EnrollmentService, TuitionService...,<br/>Permissions<br/>Ports: IStudentRepository, IClassRepository..."]
+    D["domain<br/>Student, ClassInfo, EnrollmentRequest,<br/>Account, Role, validation rules, Result&lt;T&gt;"]
     APP["app (composition root)<br/>main.cpp, AppContainer"]
     DB[("SQL Server<br/>QLTTTA")]
 
@@ -100,12 +100,12 @@ names such as `CK_STUDENT_Guardian`.
 
 ## 4. Adding a new module (cookbook)
 
-Example: an **Enrollment** module (not implemented yet; database table `ENROLLMENT`). The reference implementation is
-the Students module (`Student*`).
+Example: the **Enrollments** module (database table `ENROLLMENT`), built with these steps. The reference
+implementation is the Students module (`Student*`); every other module follows the same layout.
 
-1. **Database**: the procedures already exist (`usp_Enrollment_Create`, `usp_Enrollment_ByClass`, ...). For new ones,
-   write them in `04_procedures.sql`, add `GRANT EXECUTE` in `06_security.sql` and register their business messages in
-   `DbMessages.cpp`.
+1. **Database**: the procedures (`usp_Enrollment_Create`, `usp_Enrollment_Search`, ...). For new ones, write them in
+   `04_procedures.sql`, add `GRANT EXECUTE` in `06_security.sql`, add a case to `12_tests.sql` and register their
+   business messages in `DbMessages.cpp`.
 2. **domain**: `src/domain/entities/Enrollment.h` - a struct plus a `validate()` function if there are rules.
 3. **application**: port `src/application/ports/IEnrollmentRepository.h`, use case
    `src/application/services/EnrollmentService.{h,cpp}`; register both in `src/application/CMakeLists.txt`.
@@ -113,11 +113,13 @@ the Students module (`Student*`).
    run every statement with values through `SqlHelpers::execPrepared(q, m_db, sql, {values})`; for OUTPUT parameters
    use the batch `SET NOCOUNT ON; DECLARE ...; EXEC ... OUTPUT; SELECT ...`, and pass NULLs with
    `SqlHelpers::stringOrNull`). Add the files to `src/infrastructure/CMakeLists.txt`.
-5. **presentation**: an `EnrollmentPage` and a `.ui` form (open it in Qt Designer) in `src/presentation/enrollments/`;
-   template: `students/`. Every user-visible string goes through `tr()` (section 5).
+5. **presentation**: an `EnrollmentPage` (a `DataPage`, see below) and its form (`EnrollDialog`, a `FormDialog`) in
+   `src/presentation/enrollments/`; a large form can also be a `.ui` file opened in Qt Designer (template:
+   `students/StudentFormDialog.ui`). Every user-visible string goes through `tr()` (section 5).
 6. **app**: create the repository and the service in `AppContainer`, and expose the service through `AppServices`.
-7. **Authorization**: add `Feature::Enrollments` to the matrix in `Permissions.cpp` for the right roles, add its menu
-   text/icon in `Labels::feature`, and return the page from `MainWindow::pageFor`.
+7. **Authorization**: add `Feature::Enrollments` to the matrix in `Permissions.cpp` for the right roles (menu:
+   `allowedFeatures`; buttons that change data: `canEdit`), add its menu text/icon in `Labels::feature`, return the
+   page from `MainWindow::pageFor` and add its row to `SCREENS` in `docs/data-map.html` (`tst_conventions`).
 8. **Tests**: add a use-case test with a fake repository in `tests/`. The end-to-end test
    `everyRole_opensEveryFeature_withData` automatically opens every feature listed in `Permissions`, so a new screen
    is covered as soon as it is in the matrix. New business rules or permissions also need a case in
@@ -125,8 +127,25 @@ the Students module (`Student*`).
 9. **Translations**: `cmake --build --preset macos-debug --target update_translations`, then translate the new entries
    of `resources/translations/qlttta_vi.ts`; `tst_i18n` fails while any entry is untranslated.
 
-**Read-only list screens need no new page.** Features such as classes, timetable, outstanding tuition, revenue or
-payroll are all rendered by the generic `ListPage`. To add one: add a `Feature` value and a `ListKind` value
+**Screens with forms: `DataPage` + `FormDialog`.** Most screens are one list with filters and buttons, so they share
+two base classes of `src/presentation/common/`:
+- `DataPage` (base of `ClassPage`, `EnrollmentPage`, `TuitionPage`, the catalog pages...): a filter bar (the page's
+  filters, a quick filter, Refresh, Excel, PDF), an action bar, the list (`DataTable`, column titles and formats from
+  `Columns`) and a footer with the row count and totals. A subclass adds its filters and buttons in its constructor
+  (`addFilter`, `addAction(text, icon, objectName, needsSelection, handler)`), implements `fetch()` (one service
+  call that returns a `TableData`) and calls `reload()`. Buttons that change data are created only when
+  `Permissions::canEdit(role, feature)` allows it; a button that needs a row is enabled only while one is selected.
+  `addBodyWidget` adds a second list under the first one (the rooms of a branch, the grade components of a course).
+- `FormDialog`: title, a `QFormLayout`, an error line and Save / Cancel. The page builds the fields with the
+  `Fields` helpers (`Fields::text`, `date`, `money`, `values` for stored database values, `lookup` for a code +
+  name list) and passes the save action (`setSaveAction`, which returns a `VoidResult`). A failed save shows the
+  translated database message in the form and keeps the dialog open, so nothing typed is lost. A larger form
+  subclasses it (`ClassFormDialog`, `EnrollDialog`, `CollectPaymentDialog`, `PlacementTestDialog`).
+- `TableDialog` shows a read-only list in a window of its own (the students or results of a class, a syllabus,
+  a search result) with Excel / PDF export.
+
+**Read-only list screens need no new page.** Outstanding tuition, Learning results and My pay are rendered by the
+generic `ListPage` (Revenue and My classes reuse the same lists inside their own page). To add one: add a `Feature` value and a `ListKind` value
 (`IListRepository.h`), map them in `ListService.cpp`, and add the `SELECT` / `EXEC` for that list in
 `SqlListRepository.cpp` (a view or procedure granted to the role). The result columns are identified by their
 **column keys** (column names or `AS` aliases); every new key needs a row in the column catalog

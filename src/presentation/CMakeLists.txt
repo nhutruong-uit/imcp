@@ -21,6 +21,16 @@ add_library(qlttta_presentation STATIC
     common/TableExporter.cpp
     common/UiHelpers.h
     common/UiHelpers.cpp
+    common/DataTable.h
+    common/DataTable.cpp
+    common/DataPage.h
+    common/DataPage.cpp
+    common/FormDialog.h
+    common/FormDialog.cpp
+    common/Fields.h
+    common/Fields.cpp
+    common/TableDialog.h
+    common/TableDialog.cpp
     login/LoginDialog.h
     login/LoginDialog.cpp
     main/AppServices.h
@@ -39,8 +49,58 @@ add_library(qlttta_presentation STATIC
     students/StudentFormDialog.h
     students/StudentFormDialog.cpp
     students/StudentFormDialog.ui
+    students/StudentProfileDialog.h
+    students/StudentProfileDialog.cpp
     lists/ListPage.h
     lists/ListPage.cpp
+    classes/ClassPage.h
+    classes/ClassPage.cpp
+    classes/ClassFormDialog.h
+    classes/ClassFormDialog.cpp
+    classes/ScheduleDialog.h
+    classes/ScheduleDialog.cpp
+    enrollments/EnrollmentPage.h
+    enrollments/EnrollmentPage.cpp
+    enrollments/EnrollDialog.h
+    enrollments/EnrollDialog.cpp
+    placement/PlacementPage.h
+    placement/PlacementPage.cpp
+    placement/PlacementTestDialog.h
+    placement/PlacementTestDialog.cpp
+    sessions/TimetablePage.h
+    sessions/TimetablePage.cpp
+    sessions/AttendanceDialog.h
+    sessions/AttendanceDialog.cpp
+    grades/GradeBookModel.h
+    grades/GradeBookModel.cpp
+    grades/GradeBookPage.h
+    grades/GradeBookPage.cpp
+    tuition/TuitionPage.h
+    tuition/TuitionPage.cpp
+    tuition/CollectPaymentDialog.h
+    tuition/CollectPaymentDialog.cpp
+    tuition/ReceiptPrinter.h
+    tuition/ReceiptPrinter.cpp
+    payroll/PayrollPage.h
+    payroll/PayrollPage.cpp
+    reports/RevenuePage.h
+    reports/RevenuePage.cpp
+    accounts/AccountPage.h
+    accounts/AccountPage.cpp
+    backup/BackupPage.h
+    backup/BackupPage.cpp
+    catalog/BranchPage.h
+    catalog/BranchPage.cpp
+    catalog/CoursePage.h
+    catalog/CoursePage.cpp
+    catalog/TeacherPage.h
+    catalog/TeacherPage.cpp
+    catalog/EmployeePage.h
+    catalog/EmployeePage.cpp
+    catalog/PromotionPage.h
+    catalog/PromotionPage.cpp
+    teaching/MyClassesPage.h
+    teaching/MyClassesPage.cpp
 )
 target_link_libraries(qlttta_presentation PUBLIC qlttta_application Qt6::Widgets Qt6::Svg)
 

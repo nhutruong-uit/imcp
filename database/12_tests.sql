@@ -96,6 +96,22 @@ INSERT #Expected VALUES
     ('T66', NULL), ('T67', NULL),
     ('T68', N'%evaluated classes cannot be changed%'), ('T69', NULL),
     ('T70', N'%same course and branch%'),       ('T71', NULL),
+    ('T72', N'%lower than the number of students enrolled%'),
+    ('T73', N'%Schedule conflict%same teacher%'), ('T74', NULL),
+    ('T75', N'%enrolling or in-progress class can be changed%'),
+    ('T76', NULL), ('T77', NULL), ('T78', NULL), ('T79', NULL), ('T80', NULL),
+    ('T81', N'%paid payroll row can no longer be changed%'),
+    ('T82', N'%larger than the pay of the month%'),
+    ('T83', N'%start date can only change%'),
+    ('T84', N'%code is already used%'),         ('T85', N'%active classes cannot be suspended%'),
+    ('T86', NULL), ('T87', NULL), ('T88', NULL),
+    ('T89', N'%active classes cannot be discontinued%'),
+    ('T90', N'%would make a loop%'),            ('T91', N'%XML schema of the center%'),
+    ('T92', NULL),                              ('T93', N'%already has scores cannot be deleted%'),
+    ('T94', NULL),                              ('T95', N'%letters, digits, dashes and underscores%'),
+    ('T96', NULL), ('T97', NULL),
+    ('T98', N'%cannot be set to Left%'),        ('T99', NULL),
+    ('T100', N'%record to update does not exist%'), ('T101', NULL),
     ('P01', N'%STUDENT%'),                      ('P02', NULL),
     ('P03', N'%only enter grades%'),            ('P04', N'%usp_Enrollment_Create%'),
     ('P05', NULL),                              ('P06', N'%HourlyRate%'),
@@ -106,7 +122,9 @@ INSERT #Expected VALUES
     ('P16', N'%usp_Receipt_Create%'),           ('P17', N'%usp_Grade_Save%'),
     ('P18', N'%RECEIPT%'),                      ('P19', N'%PAYROLL%'),
     ('P20', N'%only update sessions you teach%'),
-    ('P21', N'%only take attendance for sessions you teach%');
+    ('P21', N'%only take attendance for sessions you teach%'),
+    ('P22', N'%usp_Branch_Add%'),               ('P23', N'%usp_Class_Update%'),
+    ('P24', NULL),                              ('P25', N'%usp_Grade_ByClass%');
 GO
 
 /* ---------------- A. INTEGRITY CONSTRAINTS & BUSINESS RULES ---------------- */
@@ -858,6 +876,277 @@ END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('T70', N'Transfer to a class of another branch', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T72: lowering the size of a class below its enrolled students
+--      Proves usp_Class_Update (THROW 50082): CL0003 has 12 Studying/Completed students, a size of 10 is refused.
+--      trg_ENROLLMENT_CheckCapacity only checks new enrollments, so the procedure guards the other side of the rule.
+BEGIN TRY
+    DECLARE @Name72 NVARCHAR(100), @Teacher72 VARCHAR(10), @Room72 VARCHAR(10), @Start72 DATE, @Tuition72 DECIMAL(12,0);
+    SELECT @Name72 = ClassName, @Teacher72 = TeacherId, @Room72 = RoomId, @Start72 = StartDate, @Tuition72 = Tuition
+    FROM dbo.CLASS WHERE ClassId = 'CL0003';
+    BEGIN TRAN;
+    EXEC dbo.usp_Class_Update @ClassId = 'CL0003', @ClassName = @Name72, @TeacherId = @Teacher72, @RoomId = @Room72,
+         @StartDate = @Start72, @MaxStudents = 10, @Tuition = @Tuition72;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T72', N'Class size below the enrolled students', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T72', N'Class size below the enrolled students', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T73: giving a class a teacher who teaches another class at that time
+--      Proves usp_Class_Update re-checks the weekly slots: CL0010 (Sat/Sun 09:00-10:30) gets TE0006, who teaches
+--      CL0005 on Sat/Sun 08:00-09:30 while both periods overlap. Writing the slots again fires
+--      trg_CLASS_SCHEDULE_CheckConflict, which now compares them with the NEW teacher. Concept: re-using a trigger.
+BEGIN TRY
+    DECLARE @Name73 NVARCHAR(100), @Room73 VARCHAR(10), @Start73 DATE, @Max73 INT, @Tuition73 DECIMAL(12,0);
+    SELECT @Name73 = ClassName, @Room73 = RoomId, @Start73 = StartDate, @Max73 = MaxStudents, @Tuition73 = Tuition
+    FROM dbo.CLASS WHERE ClassId = 'CL0010';
+    BEGIN TRAN;
+    EXEC dbo.usp_Class_Update @ClassId = 'CL0010', @ClassName = @Name73, @TeacherId = 'TE0006', @RoomId = @Room73,
+         @StartDate = @Start73, @MaxStudents = @Max73, @Tuition = @Tuition73;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T73', N'Class gets a teacher who is busy at that time', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T73', N'Class gets a teacher who is busy at that time', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T75: a weekly slot for a finished class
+--      Proves usp_ClassSchedule_Add refuses a class that is no longer Enrolling or In progress (THROW 50080): the
+--      timetable of CL0001 (Finished) is history.
+BEGIN TRY
+    BEGIN TRAN;
+    EXEC dbo.usp_ClassSchedule_Add @ClassId = 'CL0001', @Weekday = 2, @StartTime = '08:00', @EndTime = '09:30';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T75', N'Weekly slot for a finished class', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T75', N'Weekly slot for a finished class', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T81: changing a payroll row after it was paid
+--      Proves usp_Payroll_MarkPaid and usp_Payroll_Adjust together: a Finalized row is marked Paid, then a deduction
+--      is refused (THROW 50052). If marking failed, its own message would not match the pattern and the case FAILS.
+BEGIN TRY
+    DECLARE @Payroll81 INT = (SELECT TOP (1) PayrollId FROM dbo.PAYROLL WHERE Status = N'Finalized' ORDER BY PayrollId);
+    BEGIN TRAN;
+    EXEC dbo.usp_Payroll_MarkPaid @PayrollId = @Payroll81;
+    EXEC dbo.usp_Payroll_Adjust @PayrollId = @Payroll81, @Deduction = 100000;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T81', N'Deduction on a paid payroll row', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T81', N'Deduction on a paid payroll row', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T82: a deduction larger than the pay of the month
+--      Proves usp_Payroll_Adjust keeps TotalPay from becoming negative (THROW 50053): the deduction is the gross pay
+--      (hours x rate + bonus) plus 1 VND.
+BEGIN TRY
+    DECLARE @Payroll82 INT, @Gross82 DECIMAL(14,0);
+    SELECT TOP (1) @Payroll82 = PayrollId, @Gross82 = CAST(Hours * HourlyRate AS DECIMAL(14,0)) + Bonus
+    FROM dbo.PAYROLL WHERE Status = N'Finalized' ORDER BY PayrollId;
+    DECLARE @Deduction82 DECIMAL(12,0) = @Gross82 + 1;   -- EXEC takes variables or constants, not expressions
+    BEGIN TRAN;
+    EXEC dbo.usp_Payroll_Adjust @PayrollId = @Payroll82, @Deduction = @Deduction82;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T82', N'Deduction larger than the pay', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T82', N'Deduction larger than the pay', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T83: moving the start date of a class in progress
+--      Proves usp_Class_Update (THROW 50081): taught sessions, attendance and payroll hang on the dates of CL0003,
+--      so its start date only moves while the class is still Enrolling with no taught or cancelled session.
+BEGIN TRY
+    DECLARE @Name83 NVARCHAR(100), @Teacher83 VARCHAR(10), @Room83 VARCHAR(10), @Start83 DATE, @Max83 INT,
+            @Tuition83 DECIMAL(12,0);
+    SELECT @Name83 = ClassName, @Teacher83 = TeacherId, @Room83 = RoomId, @Start83 = DATEADD(DAY, 7, StartDate),
+           @Max83 = MaxStudents, @Tuition83 = Tuition
+    FROM dbo.CLASS WHERE ClassId = 'CL0003';
+    BEGIN TRAN;
+    EXEC dbo.usp_Class_Update @ClassId = 'CL0003', @ClassName = @Name83, @TeacherId = @Teacher83, @RoomId = @Room83,
+         @StartDate = @Start83, @MaxStudents = @Max83, @Tuition = @Tuition83;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T83', N'New start date for a class in progress', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T83', N'New start date for a class in progress', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T84: a new branch with the code of an existing branch
+--      Proves usp_Branch_Add checks the code first (THROW 50091) instead of failing on PK_BRANCH with a technical
+--      message. Concept: a user-chosen primary key.
+BEGIN TRY
+    BEGIN TRAN;
+    EXEC dbo.usp_Branch_Add @BranchId = 'BR01', @BranchName = N'Test branch T84', @Address = N'1 Test Street';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T84', N'New branch with a code in use', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T84', N'New branch with a code in use', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T85: suspending a branch that still runs classes
+--      Proves usp_Branch_Update (THROW 50093): BR01 has Enrolling and In progress classes. Concept: a rule across
+--      BRANCH and CLASS checked in a procedure.
+BEGIN TRY
+    DECLARE @Name85 NVARCHAR(100), @Address85 NVARCHAR(200);
+    SELECT @Name85 = BranchName, @Address85 = Address FROM dbo.BRANCH WHERE BranchId = 'BR01';
+    BEGIN TRAN;
+    EXEC dbo.usp_Branch_Update @BranchId = 'BR01', @BranchName = @Name85, @Address = @Address85, @Status = N'Suspended';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T85', N'Suspend a branch with active classes', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T85', N'Suspend a branch with active classes', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T89: discontinuing a course that an active class runs
+--      Proves usp_Course_Update (THROW 50094): IE-55 is the course of CL0003 (In progress).
+BEGIN TRY
+    BEGIN TRAN;
+    EXEC dbo.usp_Course_Update @CourseId = 'IE-55', @ProgramId = 'IELTS', @CourseName = N'IELTS 5.5', @Level = 'B1',
+         @SessionCount = 30, @SessionMinutes = 120, @Tuition = 8500000, @MinPlacementScore = 5.5,
+         @PrerequisiteCourseId = 'IE-FND', @Status = N'Discontinued';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T89', N'Discontinue a course with an active class', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T89', N'Discontinue a course with an active class', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T90: a prerequisite that closes a loop (IE-FND -> IE-65 while IE-65 needs IE-55 and IE-55 needs IE-FND)
+--      Proves the recursive CTE of usp_Course_Update (THROW 50095): walking the chain upwards from IE-65 reaches
+--      IE-FND again. CK_COURSE_Prerequisite alone only stops a course from requiring itself directly.
+--      Concept: recursive common table expression.
+BEGIN TRY
+    DECLARE @Program90 VARCHAR(10), @Name90 NVARCHAR(100), @Level90 VARCHAR(2), @Count90 INT, @Minutes90 INT,
+            @Tuition90 DECIMAL(12,0), @Min90 DECIMAL(4,2);
+    SELECT @Program90 = ProgramId, @Name90 = CourseName, @Level90 = Level, @Count90 = SessionCount,
+           @Minutes90 = SessionMinutes, @Tuition90 = Tuition, @Min90 = MinPlacementScore
+    FROM dbo.COURSE WHERE CourseId = 'IE-FND';
+    BEGIN TRAN;
+    EXEC dbo.usp_Course_Update @CourseId = 'IE-FND', @ProgramId = @Program90, @CourseName = @Name90, @Level = @Level90,
+         @SessionCount = @Count90, @SessionMinutes = @Minutes90, @Tuition = @Tuition90, @MinPlacementScore = @Min90,
+         @PrerequisiteCourseId = 'IE-65', @Status = N'Open';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T90', N'Prerequisite loop between courses', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T90', N'Prerequisite loop between courses', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T91: a syllabus that breaks the XML schema (a Unit without its required attributes and Title)
+--      Proves usp_Course_SetSyllabus: the typed column validates the document against xsc_CourseSyllabus, and the
+--      validation error (69xx) becomes the business message 50096. Concept: typed XML, XML schema collection.
+BEGIN TRY
+    BEGIN TRAN;
+    EXEC dbo.usp_Course_SetSyllabus @CourseId = 'CM-A1', @SyllabusXml = N'<Syllabus><Unit><Skill>Speaking</Skill></Unit></Syllabus>';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T91', N'Syllabus that breaks the XML schema', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T91', N'Syllabus that breaks the XML schema', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T93: deleting a grade component that already has scores
+--      Proves usp_GradeComponent_Delete (THROW 50097) answers before FK_GRADE_GRADE_COMPONENT would: a component of
+--      IE-55 that CL0003 has scores for.
+BEGIN TRY
+    DECLARE @Component93 INT = (SELECT TOP (1) gc.ComponentId FROM dbo.GRADE_COMPONENT gc
+                                WHERE gc.CourseId = 'IE-55'
+                                  AND EXISTS (SELECT 1 FROM dbo.GRADE g WHERE g.ComponentId = gc.ComponentId)
+                                ORDER BY gc.ComponentId);
+    BEGIN TRAN;
+    EXEC dbo.usp_GradeComponent_Delete @ComponentId = @Component93;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T93', N'Delete a grade component with scores', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T93', N'Delete a grade component with scores', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T95: a room code with a space
+--      Proves the code check of the catalog procedures (THROW 50092): codes are written into other tables and typed
+--      in searches, so only letters, digits, dash and underscore are allowed (binary collation, as I1).
+BEGIN TRY
+    BEGIN TRAN;
+    EXEC dbo.usp_Room_Add @RoomId = 'D1 999', @BranchId = 'BR01', @RoomName = N'Room T95', @Capacity = 20;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T95', N'Room code with a space', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T95', N'Room code with a space', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T98: a teacher who still teaches active classes leaves
+--      Proves usp_Teacher_Update (THROW 50098): TE0001 is the main teacher of CL0003 and CL0008 and has an Active
+--      account; the classes must be handed over and the account locked first.
+BEGIN TRY
+    DECLARE @Name98 NVARCHAR(100), @Birth98 DATE, @Gender98 NVARCHAR(10), @Nation98 NVARCHAR(50), @Phone98 VARCHAR(15),
+            @Email98 VARCHAR(100), @Degree98 NVARCHAR(20), @Type98 NVARCHAR(20), @Rate98 DECIMAL(12,0),
+            @Branch98 VARCHAR(10), @Hire98 DATE;
+    SELECT @Name98 = FullName, @Birth98 = DateOfBirth, @Gender98 = Gender, @Nation98 = Nationality, @Phone98 = Phone,
+           @Email98 = Email, @Degree98 = Degree, @Type98 = TeacherType, @Rate98 = HourlyRate, @Branch98 = BranchId,
+           @Hire98 = HireDate
+    FROM dbo.TEACHER WHERE TeacherId = 'TE0001';
+    BEGIN TRAN;
+    EXEC dbo.usp_Teacher_Update @TeacherId = 'TE0001', @FullName = @Name98, @DateOfBirth = @Birth98, @Gender = @Gender98,
+         @Nationality = @Nation98, @Phone = @Phone98, @Email = @Email98, @Degree = @Degree98, @TeacherType = @Type98,
+         @HourlyRate = @Rate98, @BranchId = @Branch98, @HireDate = @Hire98, @Status = N'Left';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T98', N'Teacher with active classes leaves', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T98', N'Teacher with active classes leaves', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T100: updating a promotion that does not exist
+--       Proves the shared "not found" check of the catalog _Update procedures (THROW 50090): without it the UPDATE
+--       would change 0 rows and the screen would report success.
+BEGIN TRY
+    BEGIN TRAN;
+    EXEC dbo.usp_Promotion_Update @PromotionId = 'PR-NONE', @PromotionName = N'No such promotion',
+         @DiscountType = 'AMOUNT', @DiscountValue = 100000, @StartDate = '20260101', @EndDate = '20261231';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T100', N'Update a promotion that does not exist', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T100', N'Update a promotion that does not exist', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 
@@ -1800,6 +2089,397 @@ BEGIN CATCH
 END CATCH;
 GO
 
+-- T74: a class in progress gets another teacher and room: the coming sessions follow, the past ones keep theirs
+--      Proves usp_Class_Update on CL0004 (TE0005, D1-102 -> TE0002, D1-101, both free at that time): CLASS changes,
+--      every Scheduled session takes the new teacher and room, every taught or cancelled session keeps the old ones
+--      (trg_CLASS_SESSION_LockTaught would refuse a change of a taught session). Rolled back.
+BEGIN TRY
+    DECLARE @Name74 NVARCHAR(100), @Start74 DATE, @Max74 INT, @Tuition74 DECIMAL(12,0), @OldTeacher74 VARCHAR(10),
+            @OldRoom74 VARCHAR(10), @Scheduled74 INT, @Past74 INT, @Moved74 INT, @Kept74 INT, @ClassOk74 INT;
+    SELECT @Name74 = ClassName, @Start74 = StartDate, @Max74 = MaxStudents, @Tuition74 = Tuition,
+           @OldTeacher74 = TeacherId, @OldRoom74 = RoomId
+    FROM dbo.CLASS WHERE ClassId = 'CL0004';
+    SELECT @Scheduled74 = SUM(CASE WHEN Status = N'Scheduled' THEN 1 ELSE 0 END),
+           @Past74 = SUM(CASE WHEN Status <> N'Scheduled' THEN 1 ELSE 0 END)
+    FROM dbo.CLASS_SESSION WHERE ClassId = 'CL0004';
+    BEGIN TRAN;
+    EXEC dbo.usp_Class_Update @ClassId = 'CL0004', @ClassName = @Name74, @TeacherId = 'TE0002', @RoomId = 'D1-101',
+         @StartDate = @Start74, @MaxStudents = @Max74, @Tuition = @Tuition74;
+    SELECT @Moved74 = SUM(CASE WHEN Status = N'Scheduled' AND TeacherId = 'TE0002' AND RoomId = 'D1-101' THEN 1 ELSE 0 END),
+           @Kept74 = SUM(CASE WHEN Status <> N'Scheduled' AND TeacherId = @OldTeacher74 AND RoomId = @OldRoom74
+                              THEN 1 ELSE 0 END)
+    FROM dbo.CLASS_SESSION WHERE ClassId = 'CL0004';
+    SELECT @ClassOk74 = COUNT(*) FROM dbo.CLASS WHERE ClassId = 'CL0004' AND TeacherId = 'TE0002' AND RoomId = 'D1-101';
+    ROLLBACK;
+    INSERT #Results VALUES ('T74', N'usp_Class_Update: coming sessions follow the new teacher and room', N'Succeeded',
+        CASE WHEN @ClassOk74 = 1 AND @Scheduled74 > 0 AND @Past74 > 0 AND @Moved74 = @Scheduled74 AND @Kept74 = @Past74
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(@Moved74, N'/', @Scheduled74, N' scheduled sessions moved, ', @Kept74, N'/', @Past74, N' past sessions kept'));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T74', N'usp_Class_Update: coming sessions follow the new teacher and room', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T101: a new start date for a class that is still enrolling: its sessions are generated again from that date
+--       Proves usp_Class_Update + usp_Class_GenerateSessions on CL0010 (Sat/Sun): the update removes the old
+--       sessions and the end date; generating them again gives SessionCount sessions, the first on the new start
+--       date (a Saturday, one of its weekdays). Rolled back.
+BEGIN TRY
+    DECLARE @Name101 NVARCHAR(100), @Teacher101 VARCHAR(10), @Room101 VARCHAR(10), @Start101 DATE, @Max101 INT,
+            @Tuition101 DECIMAL(12,0), @Expected101 INT, @Left101 INT, @End101 DATE, @Count101 INT, @First101 DATE;
+    SELECT @Name101 = cl.ClassName, @Teacher101 = cl.TeacherId, @Room101 = cl.RoomId, @Start101 = DATEADD(DAY, 7, cl.StartDate),
+           @Max101 = cl.MaxStudents, @Tuition101 = cl.Tuition, @Expected101 = co.SessionCount
+    FROM dbo.CLASS cl JOIN dbo.COURSE co ON co.CourseId = cl.CourseId WHERE cl.ClassId = 'CL0010';
+    DECLARE @Generated101 TABLE (SessionsCreated INT, EndDate DATE);
+    BEGIN TRAN;
+    EXEC dbo.usp_Class_Update @ClassId = 'CL0010', @ClassName = @Name101, @TeacherId = @Teacher101, @RoomId = @Room101,
+         @StartDate = @Start101, @MaxStudents = @Max101, @Tuition = @Tuition101;
+    SELECT @Left101 = COUNT(*) FROM dbo.CLASS_SESSION WHERE ClassId = 'CL0010';
+    SELECT @End101 = EndDate FROM dbo.CLASS WHERE ClassId = 'CL0010';
+    INSERT @Generated101 EXEC dbo.usp_Class_GenerateSessions @ClassId = 'CL0010';
+    SELECT @Count101 = COUNT(*), @First101 = MIN(SessionDate) FROM dbo.CLASS_SESSION WHERE ClassId = 'CL0010';
+    ROLLBACK;
+    INSERT #Results VALUES ('T101', N'usp_Class_Update: new start date, sessions generated again', N'Succeeded',
+        CASE WHEN @Left101 = 0 AND @End101 IS NULL AND @Count101 = @Expected101 AND @First101 = @Start101
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(@Left101, N' sessions after the update, then ', @Count101, N'/', @Expected101, N' from ',
+               CONVERT(VARCHAR(10), @First101, 23)));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T101', N'usp_Class_Update: new start date, sessions generated again', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T94: removing a weekly slot, then reading the timetable of the class
+--      Proves usp_ClassSchedule_Remove and usp_ClassSchedule_ByClass: CL0010 meets on Saturday and Sunday; after
+--      Sunday is removed the procedure returns Saturday only. Rolled back.
+BEGIN TRY
+    DECLARE @Before94 INT = (SELECT COUNT(*) FROM dbo.CLASS_SCHEDULE WHERE ClassId = 'CL0010');
+    DECLARE @Slots94 TABLE (Weekday TINYINT, StartTime VARCHAR(5), EndTime VARCHAR(5));
+    BEGIN TRAN;
+    EXEC dbo.usp_ClassSchedule_Remove @ClassId = 'CL0010', @Weekday = 7;
+    INSERT @Slots94 EXEC dbo.usp_ClassSchedule_ByClass @ClassId = 'CL0010';
+    ROLLBACK;
+    INSERT #Results VALUES ('T94', N'usp_ClassSchedule_Remove + ByClass', N'Succeeded',
+        CASE WHEN (SELECT COUNT(*) FROM @Slots94) = @Before94 - 1 AND NOT EXISTS (SELECT 1 FROM @Slots94 WHERE Weekday = 7)
+                  AND EXISTS (SELECT 1 FROM @Slots94 WHERE Weekday = 6 AND StartTime = '09:00' AND EndTime = '10:30')
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(@Before94, N' slots before, ', (SELECT COUNT(*) FROM @Slots94), N' after'));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T94', N'usp_ClassSchedule_Remove + ByClass', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T76: searching enrollments by student, and by keyword and status
+--      Proves usp_Enrollment_Search against ENROLLMENT itself: the rows and the total balance of ST00001, then the
+--      Studying enrollments found with the keyword CL0003 (the class ID). Read only.
+BEGIN TRY
+    DECLARE @R76 TABLE (EnrollmentId VARCHAR(10), StudentId VARCHAR(10), StudentName NVARCHAR(100), ClassId VARCHAR(10),
+                        ClassName NVARCHAR(100), CourseName NVARCHAR(100), BranchName NVARCHAR(100), EnrolledOn DATE,
+                        TuitionDue DECIMAL(13,0), AmountPaid DECIMAL(12,0), Balance DECIMAL(13,0), Status NVARCHAR(20),
+                        FinalGrade DECIMAL(4,2), Result NVARCHAR(20));
+    INSERT @R76 EXEC dbo.usp_Enrollment_Search @StudentId = 'ST00001';
+    DECLARE @Rows76 INT = (SELECT COUNT(*) FROM @R76), @Balance76 DECIMAL(14,0) = (SELECT ISNULL(SUM(Balance), 0) FROM @R76);
+    DECLARE @ExpectedRows76 INT, @ExpectedBalance76 DECIMAL(14,0);
+    SELECT @ExpectedRows76 = COUNT(*), @ExpectedBalance76 = ISNULL(SUM(TuitionDue - AmountPaid), 0)
+    FROM dbo.ENROLLMENT WHERE StudentId = 'ST00001';
+    DELETE FROM @R76;
+    INSERT @R76 EXEC dbo.usp_Enrollment_Search @Keyword = N'CL0003', @Status = N'Studying';
+    DECLARE @Keyword76 INT = (SELECT COUNT(*) FROM @R76),
+            @ExpectedKeyword76 INT = (SELECT COUNT(*) FROM dbo.ENROLLMENT WHERE ClassId = 'CL0003' AND Status = N'Studying');
+    INSERT #Results VALUES ('T76', N'usp_Enrollment_Search by student and by keyword', N'Succeeded',
+        CASE WHEN @Rows76 = @ExpectedRows76 AND @Rows76 > 0 AND @Balance76 = @ExpectedBalance76
+                  AND @Keyword76 = @ExpectedKeyword76 AND @Keyword76 > 0
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(N'ST00001: ', @Rows76, N'/', @ExpectedRows76, N' rows; CL0003 Studying: ', @Keyword76, N'/',
+               @ExpectedKeyword76));
+END TRY
+BEGIN CATCH
+    INSERT #Results VALUES ('T76', N'usp_Enrollment_Search by student and by keyword', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T77: the receipts of the last 60 days agree with the revenue report of the same period
+--      Proves usp_Receipt_Search (period as a UTC range of local days) against a count computed here on RECEIPT, and
+--      that the total of its valid receipts equals the total of usp_Report_Revenue for the same days. Read only.
+BEGIN TRY
+    DECLARE @To77 DATE = dbo.fn_Today();
+    DECLARE @From77 DATE = DATEADD(DAY, -60, @To77);
+    DECLARE @R77 TABLE (ReceiptId VARCHAR(10), PaidAtUtc DATETIME, EnrollmentId VARCHAR(10), StudentId VARCHAR(10),
+                        StudentName NVARCHAR(100), ClassId VARCHAR(10), ClassName NVARCHAR(100), Amount DECIMAL(12,0),
+                        PaymentMethod NVARCHAR(20), Status NVARCHAR(20), CollectedBy NVARCHAR(100),
+                        Description NVARCHAR(200), CancelReason NVARCHAR(200));
+    INSERT @R77 EXEC dbo.usp_Receipt_Search @FromDate = @From77, @ToDate = @To77, @Status = N'Valid';
+    DECLARE @Report77 TABLE (BranchName NVARCHAR(100), ProgramName NVARCHAR(100), CourseName NVARCHAR(100),
+                             ReceiptCount INT, Revenue DECIMAL(14,0));
+    INSERT @Report77 EXEC dbo.usp_Report_Revenue @FromDate = @From77, @ToDate = @To77;
+    DECLARE @Count77 INT = (SELECT COUNT(*) FROM @R77), @Total77 DECIMAL(14,0) = (SELECT ISNULL(SUM(Amount), 0) FROM @R77),
+            @ReportTotal77 DECIMAL(14,0) = (SELECT ISNULL(SUM(Revenue), 0) FROM @Report77),
+            @Expected77 INT = (SELECT COUNT(*) FROM dbo.RECEIPT
+                               WHERE Status = N'Valid' AND PaidAtUtc >= dbo.fn_CenterTimeToUtc(@From77)
+                                 AND PaidAtUtc < dbo.fn_CenterTimeToUtc(DATEADD(DAY, 1, @To77)));
+    INSERT #Results VALUES ('T77', N'usp_Receipt_Search = usp_Report_Revenue for a period', N'Succeeded',
+        CASE WHEN @Count77 = @Expected77 AND @Count77 > 0 AND @Total77 = @ReportTotal77
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(@Count77, N'/', @Expected77, N' receipts, ', FORMAT(@Total77, 'N0'), N' VND (report ',
+               FORMAT(@ReportTotal77, 'N0'), N')'));
+END TRY
+BEGIN CATCH
+    INSERT #Results VALUES ('T77', N'usp_Receipt_Search = usp_Report_Revenue for a period', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T78: the placement test list keeps every test and its recommendation
+--      Proves usp_PlacementTest_Search: as many rows as PLACEMENT_TEST and as many recommended courses as filled
+--      RecommendedCourseId values (the LEFT JOINs lose no test). Read only.
+BEGIN TRY
+    DECLARE @R78 TABLE (TestId VARCHAR(10), TestDate DATE, StudentId VARCHAR(10), StudentName NVARCHAR(100),
+                        ListeningScore DECIMAL(4,2), SpeakingScore DECIMAL(4,2), ReadingScore DECIMAL(4,2),
+                        WritingScore DECIMAL(4,2), OverallScore DECIMAL(4,2), RecommendedCourse NVARCHAR(100),
+                        GradedBy NVARCHAR(100), Notes NVARCHAR(200));
+    INSERT @R78 EXEC dbo.usp_PlacementTest_Search;
+    DECLARE @Rows78 INT = (SELECT COUNT(*) FROM @R78), @Recommended78 INT = (SELECT COUNT(RecommendedCourse) FROM @R78),
+            @ExpectedRows78 INT = (SELECT COUNT(*) FROM dbo.PLACEMENT_TEST),
+            @ExpectedRecommended78 INT = (SELECT COUNT(RecommendedCourseId) FROM dbo.PLACEMENT_TEST);
+    INSERT #Results VALUES ('T78', N'usp_PlacementTest_Search keeps every test', N'Succeeded',
+        CASE WHEN @Rows78 = @ExpectedRows78 AND @Rows78 > 0 AND @Recommended78 = @ExpectedRecommended78
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(@Rows78, N'/', @ExpectedRows78, N' tests, ', @Recommended78, N'/', @ExpectedRecommended78, N' recommendations'));
+END TRY
+BEGIN CATCH
+    INSERT #Results VALUES ('T78', N'usp_PlacementTest_Search keeps every test', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T79: the grade book of a class has one cell per student and grade component
+--      Proves usp_Grade_ByClass on CL0003: rows = enrollments x components of its course, and the filled cells are
+--      exactly the GRADE rows of those enrollments (LEFT JOIN on both key columns). Read only.
+BEGIN TRY
+    DECLARE @R79 TABLE (EnrollmentId VARCHAR(10), ClassId VARCHAR(10), StudentId VARCHAR(10), StudentName NVARCHAR(100),
+                        ComponentId INT, ComponentName NVARCHAR(50), Weight DECIMAL(5,2), Score DECIMAL(4,2));
+    INSERT @R79 EXEC dbo.usp_Grade_ByClass @ClassId = 'CL0003';
+    DECLARE @Cells79 INT = (SELECT COUNT(*) FROM @R79), @Filled79 INT = (SELECT COUNT(Score) FROM @R79),
+            @ExpectedCells79 INT = (SELECT COUNT(*) FROM dbo.ENROLLMENT WHERE ClassId = 'CL0003')
+                                 * (SELECT COUNT(*) FROM dbo.GRADE_COMPONENT gc JOIN dbo.CLASS cl ON cl.CourseId = gc.CourseId
+                                    WHERE cl.ClassId = 'CL0003'),
+            @ExpectedFilled79 INT = (SELECT COUNT(*) FROM dbo.GRADE g JOIN dbo.ENROLLMENT en ON en.EnrollmentId = g.EnrollmentId
+                                     WHERE en.ClassId = 'CL0003');
+    INSERT #Results VALUES ('T79', N'usp_Grade_ByClass: one cell per student and component', N'Succeeded',
+        CASE WHEN @Cells79 = @ExpectedCells79 AND @Cells79 > 0 AND @Filled79 = @ExpectedFilled79
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(@Cells79, N'/', @ExpectedCells79, N' cells, ', @Filled79, N'/', @ExpectedFilled79, N' scores'));
+END TRY
+BEGIN CATCH
+    INSERT #Results VALUES ('T79', N'usp_Grade_ByClass: one cell per student and component', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T80: a deduction lowers the total pay by the same amount
+--      Proves usp_Payroll_Adjust: TotalPay (computed column) = hours x rate + bonus - deduction, recomputed by SQL
+--      Server after the UPDATE; the expected value is computed here from the row before the change. Rolled back.
+BEGIN TRY
+    DECLARE @Payroll80 INT, @Gross80 DECIMAL(14,0), @Total80 DECIMAL(14,0);
+    SELECT TOP (1) @Payroll80 = PayrollId, @Gross80 = CAST(Hours * HourlyRate AS DECIMAL(14,0)) + Bonus
+    FROM dbo.PAYROLL WHERE Status = N'Finalized' ORDER BY PayrollId;
+    BEGIN TRAN;
+    EXEC dbo.usp_Payroll_Adjust @PayrollId = @Payroll80, @Deduction = 300000;
+    SELECT @Total80 = TotalPay FROM dbo.PAYROLL WHERE PayrollId = @Payroll80;
+    ROLLBACK;
+    INSERT #Results VALUES ('T80', N'usp_Payroll_Adjust: TotalPay follows the deduction', N'Succeeded',
+        CASE WHEN @Total80 = @Gross80 - 300000 THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(N'Total pay ', FORMAT(@Total80, 'N0'), N' (expected ', FORMAT(@Gross80 - 300000, 'N0'), N')'));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T80', N'usp_Payroll_Adjust: TotalPay follows the deduction', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T86: a new room, then changed and sent to maintenance
+--      Proves usp_Room_Add (default Available) and usp_Room_Update: the stored row has the values passed. Rolled back.
+BEGIN TRY
+    DECLARE @Added86 NVARCHAR(30), @Ok86 INT;
+    BEGIN TRAN;
+    EXEC dbo.usp_Room_Add @RoomId = 'T86-ROOM', @BranchId = 'BR02', @RoomName = N'Room T86', @Capacity = 24, @RoomType = N'Lab';
+    SELECT @Added86 = Status FROM dbo.ROOM WHERE RoomId = 'T86-ROOM';
+    EXEC dbo.usp_Room_Update @RoomId = 'T86-ROOM', @BranchId = 'BR02', @RoomName = N'Room T86 bis', @Capacity = 30,
+         @RoomType = N'Multi-purpose', @Status = N'Maintenance';
+    SELECT @Ok86 = COUNT(*) FROM dbo.ROOM
+    WHERE RoomId = 'T86-ROOM' AND RoomName = N'Room T86 bis' AND Capacity = 30 AND RoomType = N'Multi-purpose'
+      AND Status = N'Maintenance';
+    ROLLBACK;
+    INSERT #Results VALUES ('T86', N'usp_Room_Add + usp_Room_Update', N'Succeeded',
+        CASE WHEN @Added86 = N'Available' AND @Ok86 = 1 THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(N'new room ', @Added86, N', changed row found: ', @Ok86));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T86', N'usp_Room_Add + usp_Room_Update', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T87: a new program, then renamed
+--      Proves usp_Program_Add and usp_Program_Update (empty text is stored as NULL). Rolled back.
+BEGIN TRY
+    DECLARE @Ok87 INT;
+    BEGIN TRAN;
+    EXEC dbo.usp_Program_Add @ProgramId = 'T87', @ProgramName = N'Program T87', @TargetLearners = N'Adults',
+         @Description = N'Test program';
+    EXEC dbo.usp_Program_Update @ProgramId = 'T87', @ProgramName = N'Program T87 bis', @TargetLearners = N'',
+         @Description = N'Changed';
+    SELECT @Ok87 = COUNT(*) FROM dbo.PROGRAM
+    WHERE ProgramId = 'T87' AND ProgramName = N'Program T87 bis' AND TargetLearners IS NULL AND Description = N'Changed';
+    ROLLBACK;
+    INSERT #Results VALUES ('T87', N'usp_Program_Add + usp_Program_Update', N'Succeeded',
+        CASE WHEN @Ok87 = 1 THEN N'Succeeded' ELSE N'Wrong result' END, CONCAT(N'changed row found: ', @Ok87));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T87', N'usp_Program_Add + usp_Program_Update', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T88: a new course, then changed (a prerequisite without loop) and discontinued (no class runs it)
+--      Proves usp_Course_Add (default Open) and usp_Course_Update: CM-B1 as prerequisite is accepted because its
+--      chain (CM-B1 -> CM-A1) does not reach the new course. Rolled back.
+BEGIN TRY
+    DECLARE @Added88 NVARCHAR(20), @Ok88 INT;
+    BEGIN TRAN;
+    EXEC dbo.usp_Course_Add @CourseId = 'T88-C', @ProgramId = 'COMM', @CourseName = N'Course T88', @Level = 'B2',
+         @SessionCount = 16, @SessionMinutes = 90, @Tuition = 5000000, @PrerequisiteCourseId = 'CM-A1';
+    SELECT @Added88 = Status FROM dbo.COURSE WHERE CourseId = 'T88-C';
+    EXEC dbo.usp_Course_Update @CourseId = 'T88-C', @ProgramId = 'COMM', @CourseName = N'Course T88 bis', @Level = 'B2',
+         @SessionCount = 18, @SessionMinutes = 120, @Tuition = 5500000, @MinPlacementScore = 5,
+         @PrerequisiteCourseId = 'CM-B1', @Status = N'Discontinued';
+    SELECT @Ok88 = COUNT(*) FROM dbo.COURSE
+    WHERE CourseId = 'T88-C' AND CourseName = N'Course T88 bis' AND SessionCount = 18 AND SessionMinutes = 120
+      AND Tuition = 5500000 AND MinPlacementScore = 5 AND PrerequisiteCourseId = 'CM-B1' AND Status = N'Discontinued';
+    ROLLBACK;
+    INSERT #Results VALUES ('T88', N'usp_Course_Add + usp_Course_Update', N'Succeeded',
+        CASE WHEN @Added88 = N'Open' AND @Ok88 = 1 THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(N'new course ', @Added88, N', changed row found: ', @Ok88));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T88', N'usp_Course_Add + usp_Course_Update', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T92: grade components of a new course: saved, changed, deleted, with the weight check of the view
+--      Proves usp_GradeComponent_Save (NULL = new) and usp_GradeComponent_Delete together with vw_CourseInvalidWeights:
+--      60 + 40 = 100 leaves the course out of the view; after one component is deleted the course is listed again
+--      (the weights no longer add up to 100). Rolled back.
+BEGIN TRY
+    DECLARE @First92 INT, @ListedAt100 INT, @ListedAfter INT, @Remaining92 INT;
+    BEGIN TRAN;
+    EXEC dbo.usp_Course_Add @CourseId = 'T92-C', @ProgramId = 'COMM', @CourseName = N'Course T92', @Level = 'A2',
+         @SessionCount = 10, @Tuition = 2000000;
+    EXEC dbo.usp_GradeComponent_Save @CourseId = 'T92-C', @ComponentName = N'Homework', @Weight = 50;
+    EXEC dbo.usp_GradeComponent_Save @CourseId = 'T92-C', @ComponentName = N'Final exam', @Weight = 40;
+    SELECT @First92 = ComponentId FROM dbo.GRADE_COMPONENT WHERE CourseId = 'T92-C' AND ComponentName = N'Homework';
+    EXEC dbo.usp_GradeComponent_Save @ComponentId = @First92, @CourseId = 'T92-C', @ComponentName = N'Coursework', @Weight = 60;
+    SELECT @ListedAt100 = COUNT(*) FROM dbo.vw_CourseInvalidWeights WHERE CourseId = 'T92-C';
+    EXEC dbo.usp_GradeComponent_Delete @ComponentId = @First92;
+    SELECT @ListedAfter = COUNT(*) FROM dbo.vw_CourseInvalidWeights WHERE CourseId = 'T92-C';
+    SELECT @Remaining92 = COUNT(*) FROM dbo.GRADE_COMPONENT WHERE CourseId = 'T92-C';
+    ROLLBACK;
+    INSERT #Results VALUES ('T92', N'usp_GradeComponent_Save / _Delete and the 100% check', N'Succeeded',
+        CASE WHEN @ListedAt100 = 0 AND @ListedAfter = 1 AND @Remaining92 = 1 THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(N'listed at 100%: ', @ListedAt100, N', after the delete: ', @ListedAfter, N', components left: ', @Remaining92));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T92', N'usp_GradeComponent_Save / _Delete and the 100% check', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T96: a new employee (ID from the sequence), then recorded as having left
+--      Proves usp_Employee_Add (OUTPUT EmployeeId, hire date = today) and usp_Employee_Update: an employee without an
+--      account may leave. Rolled back.
+BEGIN TRY
+    DECLARE @Employee96 VARCHAR(10), @Hire96 DATE, @Ok96 INT;
+    BEGIN TRAN;
+    EXEC dbo.usp_Employee_Add @FullName = N'Nhân Viên T96', @DateOfBirth = '19950101', @Gender = N'Female',
+         @Phone = '0909096096', @Position = N'Consultant', @BranchId = 'BR02', @BaseSalary = 9000000,
+         @EmployeeId = @Employee96 OUTPUT;
+    SELECT @Hire96 = HireDate FROM dbo.EMPLOYEE WHERE EmployeeId = @Employee96;
+    EXEC dbo.usp_Employee_Update @EmployeeId = @Employee96, @FullName = N'Nhân Viên T96', @DateOfBirth = '19950101',
+         @Gender = N'Female', @Phone = '0909096096', @Email = 't96@example.com', @Position = N'Consultant',
+         @BranchId = 'BR02', @HireDate = @Hire96, @BaseSalary = 9500000, @Status = N'Left';
+    SELECT @Ok96 = COUNT(*) FROM dbo.EMPLOYEE
+    WHERE EmployeeId = @Employee96 AND Email = 't96@example.com' AND BaseSalary = 9500000 AND Status = N'Left';
+    ROLLBACK;
+    INSERT #Results VALUES ('T96', N'usp_Employee_Add + usp_Employee_Update', N'Succeeded',
+        CASE WHEN @Employee96 LIKE 'EM[0-9][0-9][0-9][0-9]' AND @Hire96 = dbo.fn_Today() AND @Ok96 = 1
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(N'new ID ', ISNULL(@Employee96, N'?'), N', changed row found: ', @Ok96));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T96', N'usp_Employee_Add + usp_Employee_Update', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T97: a new teacher with an XML profile, then a new hourly rate
+--      Proves usp_Teacher_Add (OUTPUT TeacherId, untyped XML profile readable with .value()) and usp_Teacher_Update.
+--      Rolled back.
+BEGIN TRY
+    DECLARE @Teacher97 VARCHAR(10), @Score97 DECIMAL(4,1), @Rate97 DECIMAL(12,0);
+    BEGIN TRAN;
+    EXEC dbo.usp_Teacher_Add @FullName = N'Teacher T97', @DateOfBirth = '19900505', @Gender = N'Male',
+         @Nationality = N'Canada', @Phone = '0909097097', @Email = 't97@example.com', @Degree = N'Master',
+         @TeacherType = N'Native', @HourlyRate = 400000, @BranchId = 'BR01',
+         @ProfileXml = N'<Profile><Certificate Type="IELTS" Score="8.5"/><Experience Years="6"/></Profile>',
+         @TeacherId = @Teacher97 OUTPUT;
+    SELECT @Score97 = ProfileXml.value('(/Profile/Certificate/@Score)[1]', 'DECIMAL(4,1)')
+    FROM dbo.TEACHER WHERE TeacherId = @Teacher97;
+    EXEC dbo.usp_Teacher_Update @TeacherId = @Teacher97, @FullName = N'Teacher T97', @DateOfBirth = '19900505',
+         @Gender = N'Male', @Nationality = N'Canada', @Phone = '0909097097', @Email = 't97@example.com',
+         @Degree = N'Master', @TeacherType = N'Native', @HourlyRate = 450000, @BranchId = 'BR01',
+         @HireDate = '20260901', @ProfileXml = N'<Profile><Certificate Type="IELTS" Score="8.5"/></Profile>',
+         @Status = N'On leave';
+    SELECT @Rate97 = HourlyRate FROM dbo.TEACHER WHERE TeacherId = @Teacher97 AND Status = N'On leave';
+    ROLLBACK;
+    INSERT #Results VALUES ('T97', N'usp_Teacher_Add + usp_Teacher_Update', N'Succeeded',
+        CASE WHEN @Teacher97 LIKE 'TE[0-9][0-9][0-9][0-9]' AND @Score97 = 8.5 AND @Rate97 = 450000
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(N'new ID ', ISNULL(@Teacher97, N'?'), N', IELTS ', @Score97, N', rate ', FORMAT(@Rate97, 'N0')));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T97', N'usp_Teacher_Add + usp_Teacher_Update', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T99: a new promotion, then ended early; the discount it gives follows the stored rule
+--      Proves usp_Promotion_Add and usp_Promotion_Update, and that fn_DiscountAmount reads the changed row: 20% of
+--      5,000,000 = 1,000,000 while valid, 0 after the new end date. Rolled back.
+BEGIN TRY
+    DECLARE @Today99 DATE = dbo.fn_Today();
+    DECLARE @Before99 DECIMAL(12,0), @After99 DECIMAL(12,0);
+    BEGIN TRAN;
+    EXEC dbo.usp_Promotion_Add @PromotionId = 'PR-T99', @PromotionName = N'Promotion T99', @DiscountType = 'PERCENT',
+         @DiscountValue = 20, @StartDate = @Today99, @EndDate = '20991231';
+    SET @Before99 = dbo.fn_DiscountAmount('PR-T99', 5000000, @Today99);
+    EXEC dbo.usp_Promotion_Update @PromotionId = 'PR-T99', @PromotionName = N'Promotion T99', @DiscountType = 'PERCENT',
+         @DiscountValue = 20, @StartDate = @Today99, @EndDate = @Today99;
+    SET @After99 = dbo.fn_DiscountAmount('PR-T99', 5000000, DATEADD(DAY, 1, @Today99));
+    ROLLBACK;
+    INSERT #Results VALUES ('T99', N'usp_Promotion_Add + usp_Promotion_Update', N'Succeeded',
+        CASE WHEN @Before99 = 1000000 AND @After99 = 0 THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(N'discount while valid ', FORMAT(@Before99, 'N0'), N', after the end ', FORMAT(@After99, 'N0')));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T99', N'usp_Promotion_Add + usp_Promotion_Update', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
 /* ---------------- D. SCHEMA CONVENTIONS (catalog views, nothing to roll back) ---------------- */
 
 -- T28: naming conventions of 01-sql.md: tables UPPER_SNAKE_CASE, columns PascalCase, prefixes usp_/fn_/vw_/seq_,
@@ -2422,6 +3102,95 @@ BEGIN CATCH
     REVERT;
     IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P21', N'Teacher takes attendance for a session of another teacher', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P22: academic staff open a branch (catalogs belong to the manager)
+--      Proves that the procedures of group J are not GRANTed to rl_AcademicStaff: only EXECUTE ON SCHEMA::dbo
+--      (rl_Manager) covers them. The permission error names the procedure.
+BEGIN TRY
+    BEGIN TRAN;
+    EXECUTE AS USER = N'gvu_lan';
+    EXEC dbo.usp_Branch_Add @BranchId = 'BR99', @BranchName = N'Branch P22', @Address = N'1 Test Street';
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P22', N'Academic staff open a branch', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P22', N'Academic staff open a branch', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P23: an accountant changes a class
+--      Proves usp_Class_Update is GRANTed to academic staff only (and the manager): the accountant handles money, not
+--      classes.
+BEGIN TRY
+    DECLARE @Name23 NVARCHAR(100), @Teacher23 VARCHAR(10), @Room23 VARCHAR(10), @Start23 DATE, @Max23 INT,
+            @Tuition23 DECIMAL(12,0);
+    SELECT @Name23 = ClassName, @Teacher23 = TeacherId, @Room23 = RoomId, @Start23 = StartDate, @Max23 = MaxStudents,
+           @Tuition23 = Tuition
+    FROM dbo.CLASS WHERE ClassId = 'CL0010';
+    BEGIN TRAN;
+    EXECUTE AS USER = N'kt_minh';
+    EXEC dbo.usp_Class_Update @ClassId = 'CL0010', @ClassName = @Name23, @TeacherId = @Teacher23, @RoomId = @Room23,
+         @StartDate = @Start23, @MaxStudents = @Max23, @Tuition = 1;
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P23', N'Accountant changes a class', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('P23', N'Accountant changes a class', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P24: an accountant searches receipts and enrollments
+--      Proves the GRANTs behind the Tuition collection screen: rl_Accountant may run usp_Receipt_Search and
+--      usp_Enrollment_Search (ownership chaining reads STUDENT, CLASS and EMPLOYEE for them) and gets rows.
+BEGIN TRY
+    DECLARE @Receipts24 TABLE (ReceiptId VARCHAR(10), PaidAtUtc DATETIME, EnrollmentId VARCHAR(10), StudentId VARCHAR(10),
+                               StudentName NVARCHAR(100), ClassId VARCHAR(10), ClassName NVARCHAR(100),
+                               Amount DECIMAL(12,0), PaymentMethod NVARCHAR(20), Status NVARCHAR(20),
+                               CollectedBy NVARCHAR(100), Description NVARCHAR(200), CancelReason NVARCHAR(200));
+    DECLARE @Enrollments24 TABLE (EnrollmentId VARCHAR(10), StudentId VARCHAR(10), StudentName NVARCHAR(100),
+                                  ClassId VARCHAR(10), ClassName NVARCHAR(100), CourseName NVARCHAR(100),
+                                  BranchName NVARCHAR(100), EnrolledOn DATE, TuitionDue DECIMAL(13,0),
+                                  AmountPaid DECIMAL(12,0), Balance DECIMAL(13,0), Status NVARCHAR(20),
+                                  FinalGrade DECIMAL(4,2), Result NVARCHAR(20));
+    EXECUTE AS USER = N'kt_minh';
+    INSERT @Receipts24 EXEC dbo.usp_Receipt_Search;
+    INSERT @Enrollments24 EXEC dbo.usp_Enrollment_Search;
+    REVERT;
+    DECLARE @R24 INT = (SELECT COUNT(*) FROM @Receipts24), @E24 INT = (SELECT COUNT(*) FROM @Enrollments24);
+    INSERT #Results VALUES ('P24', N'Accountant searches receipts and enrollments', N'Succeeded',
+        CASE WHEN @R24 = (SELECT COUNT(*) FROM dbo.RECEIPT) AND @E24 = (SELECT COUNT(*) FROM dbo.ENROLLMENT)
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(@R24, N' receipts, ', @E24, N' enrollments'));
+END TRY
+BEGIN CATCH
+    REVERT;
+    INSERT #Results VALUES ('P24', N'Accountant searches receipts and enrollments', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P25: a teacher reads the grade book of any class through the staff procedure
+--      Proves usp_Grade_ByClass is not GRANTed to rl_Teacher: a teacher reads grades only through
+--      vw_Teacher_MyGrades, which keeps the rows of their own classes (row-level security by view).
+BEGIN TRY
+    DECLARE @Grades25 TABLE (EnrollmentId VARCHAR(10), ClassId VARCHAR(10), StudentId VARCHAR(10),
+                             StudentName NVARCHAR(100), ComponentId INT, ComponentName NVARCHAR(50),
+                             Weight DECIMAL(5,2), Score DECIMAL(4,2));
+    EXECUTE AS USER = N'gv_john';
+    INSERT @Grades25 EXEC dbo.usp_Grade_ByClass @ClassId = 'CL0004';
+    REVERT;
+    INSERT #Results VALUES ('P25', N'Teacher reads the grade book of another class', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    REVERT;
+    INSERT #Results VALUES ('P25', N'Teacher reads the grade book of another class', N'Rejected', N'Rejected', ERROR_MESSAGE());
 END CATCH;
 GO
 

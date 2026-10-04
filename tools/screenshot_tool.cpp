@@ -31,6 +31,7 @@
 #include "presentation/students/StudentFormDialog.h"
 
 #include <QApplication>
+#include <QComboBox>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QLineEdit>
@@ -49,6 +50,18 @@ void wait(int ms) {
     }
 }
 
+// The grade books open on the first class of their list, which may have no score yet: show a class in
+// progress that has scores (CL0003 in the seed data, taught by gv_john) when the list contains it
+void showClassWithScores(QWidget& window) {
+    for (QComboBox* combo : window.findChildren<QComboBox*>(QStringLiteral("classCombo"))) {
+        const int index = combo->findData(QStringLiteral("CL0003"));
+        if (combo->isVisible() && index >= 0) {
+            combo->setCurrentIndex(index);
+            wait(400);
+        }
+    }
+}
+
 // Stable file-name part of a feature. Never derived from the menu label: that text is translated and may
 // change. A switch without default makes the compiler warn (-Wswitch) when a new Feature has no file name.
 QString fileName(Feature feature) {
@@ -57,24 +70,46 @@ QString fileName(Feature feature) {
         return QStringLiteral("dashboard");
     case Feature::Students:
         return QStringLiteral("students");
+    case Feature::PlacementTests:
+        return QStringLiteral("placement_tests");
     case Feature::Classes:
         return QStringLiteral("classes");
+    case Feature::Enrollments:
+        return QStringLiteral("enrollments");
     case Feature::WeeklySchedule:
         return QStringLiteral("weekly_schedule");
+    case Feature::Grades:
+        return QStringLiteral("grade_book");
     case Feature::LearningResults:
         return QStringLiteral("learning_results");
+    case Feature::Tuition:
+        return QStringLiteral("tuition");
     case Feature::OutstandingTuition:
         return QStringLiteral("outstanding_tuition");
     case Feature::Revenue:
         return QStringLiteral("revenue");
     case Feature::Payroll:
         return QStringLiteral("payroll");
+    case Feature::Courses:
+        return QStringLiteral("courses");
+    case Feature::Teachers:
+        return QStringLiteral("teachers");
+    case Feature::Employees:
+        return QStringLiteral("employees");
+    case Feature::Branches:
+        return QStringLiteral("branches");
+    case Feature::Promotions:
+        return QStringLiteral("promotions");
     case Feature::Accounts:
         return QStringLiteral("accounts");
+    case Feature::Backup:
+        return QStringLiteral("backup");
     case Feature::MyClasses:
         return QStringLiteral("my_classes");
     case Feature::MyTeachingSchedule:
         return QStringLiteral("my_teaching_schedule");
+    case Feature::MyGrades:
+        return QStringLiteral("my_grade_book");
     case Feature::MyPay:
         return QStringLiteral("my_pay");
     }
@@ -160,6 +195,8 @@ int main(int argc, char* argv[]) {
             for (Feature f : w.features()) {
                 w.openFeature(f);
                 wait(400);
+                if (f == Feature::Grades || f == Feature::MyGrades)
+                    showClassWithScores(w);
                 // e.g. gvu_lan_students.png (names used by the report)
                 const QString name = QStringLiteral("%1_%2.png").arg(account, fileName(f));
                 w.grab().save(QDir(folder).filePath(name));

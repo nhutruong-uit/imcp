@@ -1,5 +1,7 @@
 #include "application/services/StudentService.h"
 
+#include "domain/common/Validation.h"
+
 namespace {
 // Normalizes user input: trims extra whitespace, lower-cases the email.
 // simplified() also turns inner runs of spaces into one ("Nguyen   An" -> "Nguyen An"), so the same name
@@ -60,4 +62,17 @@ VoidResult StudentService::remove(const QString& id) {
 
 Result<QList<Branch>> StudentService::branches() {
     return m_catalog.branches();
+}
+
+Result<QString> StudentService::exportXml(const QString& branchId) {
+    return m_repository.exportXml(branchId);
+}
+
+Result<ImportResult> StudentService::importXml(const QString& xml, const QString& branchId) {
+    if (branchId.isEmpty())
+        return Result<ImportResult>::failure(tr("Please choose the branch of the imported students."));
+    if (!xml.contains(QLatin1String("<Students")))
+        return Result<ImportResult>::failure(
+            tr("The file is not a student export: it has no <Students> element."));
+    return m_repository.importXml(Validation::withoutXmlDeclaration(xml), branchId);
 }

@@ -21,5 +21,27 @@ add_library(qlttta_infrastructure STATIC
     repositories/SqlStatisticsRepository.cpp
     repositories/SqlListRepository.h
     repositories/SqlListRepository.cpp
+    repositories/SqlClassRepository.h
+    repositories/SqlClassRepository.cpp
+    repositories/SqlEnrollmentRepository.h
+    repositories/SqlEnrollmentRepository.cpp
+    repositories/SqlTuitionRepository.h
+    repositories/SqlTuitionRepository.cpp
+    repositories/SqlPlacementRepository.h
+    repositories/SqlPlacementRepository.cpp
+    repositories/SqlSessionRepository.h
+    repositories/SqlSessionRepository.cpp
+    repositories/SqlGradeRepository.h
+    repositories/SqlGradeRepository.cpp
+    repositories/SqlPayrollRepository.h
+    repositories/SqlPayrollRepository.cpp
+    repositories/SqlAccountRepository.h
+    repositories/SqlAccountRepository.cpp
+    repositories/SqlCourseRepository.h
+    repositories/SqlCourseRepository.cpp
+    repositories/SqlStaffRepository.h
+    repositories/SqlStaffRepository.cpp
+    repositories/SqlBackupRepository.h
+    repositories/SqlBackupRepository.cpp
 )
 target_link_libraries(qlttta_infrastructure PUBLIC qlttta_application Qt6::Sql)

@@ -72,7 +72,12 @@ const Entry kEntries[] = {
     {QT_TRANSLATE_NOOP("DbValues", "Card"), Tone::Neutral},
     {QT_TRANSLATE_NOOP("DbValues", "Valid"), Tone::Neutral},
     {QT_TRANSLATE_NOOP("DbValues", "Finalized"), Tone::Neutral},
-    {QT_TRANSLATE_NOOP("DbValues", "Paid"), Tone::Neutral},
+    {QT_TRANSLATE_NOOP("DbValues", "Paid"), Tone::Positive},
+    // Promotions: discount type codes (PROMOTION.DiscountType) and the validity computed by the Promotions
+    // list
+    {QT_TRANSLATE_NOOP("DbValues", "PERCENT"), Tone::Neutral},
+    {QT_TRANSLATE_NOOP("DbValues", "AMOUNT"), Tone::Neutral},
+    {QT_TRANSLATE_NOOP("DbValues", "Expired"), Tone::Negative},
 };
 
 const Entry* find(const QString& storedValue) {

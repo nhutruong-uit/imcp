@@ -1,6 +1,6 @@
 #pragma once
 
-#include "domain/entities/Branch.h"
+#include "domain/entities/Catalog.h"
 #include "domain/entities/Student.h"
 
 #include <QDialog>

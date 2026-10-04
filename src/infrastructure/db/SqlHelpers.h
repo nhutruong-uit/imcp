@@ -1,5 +1,8 @@
 #pragma once
 
+#include "domain/common/Lookup.h"
+#include "domain/common/Result.h"
+#include "domain/common/TableData.h"
 #include "infrastructure/db/DatabaseManager.h"
 #include "infrastructure/db/SqlErrorMapper.h"
 
@@ -23,6 +26,14 @@ inline QVariant stringOrNull(const QString& s) {
 // Invalid (empty) date => NULL of type DATE
 inline QVariant dateOrNull(const QDate& d) {
     return d.isValid() ? QVariant(d) : QVariant(QMetaType::fromType<QDate>());
+}
+
+// Optional numbers: no value => NULL of the parameter type
+inline QVariant intOrNull(int value, bool present) {
+    return present ? QVariant(value) : QVariant(QMetaType::fromType<int>());
+}
+inline QVariant doubleOrNull(double value, bool present) {
+    return present ? QVariant(value) : QVariant(QMetaType::fromType<double>());
 }
 
 // Pre-configured query: decimals returned as double, forward-only reading
@@ -58,5 +69,17 @@ BoundStatement withUnicodeText(const QString& sql, const QVariantList& values);
 
 // Prepares sql, binds values and executes it (through withUnicodeText when the connection uses FreeTDS)
 bool execPrepared(QSqlQuery& q, const DatabaseManager& db, const QString& sql, const QVariantList& values);
+
+// The rows of the current result of q as TableData: the column names (or AS aliases) become the column keys,
+// so the SQL holds no display text (the presentation layer finds the titles in its column catalog, Columns)
+TableData readTable(QSqlQuery& q);
+
+// Shortcuts for the three shapes of call the repositories make (each one goes through execPrepared):
+// a call without result (most write procedures), a list for a table, and a list of choices for a combo box
+// (column 0 = the key, column 1 = the text shown)
+VoidResult execCall(const DatabaseManager& db, const QString& sql, const QVariantList& values);
+Result<TableData> queryTable(const DatabaseManager& db, const QString& sql, const QVariantList& values);
+Result<QList<LookupItem>> queryLookup(const DatabaseManager& db, const QString& sql,
+                                      const QVariantList& values);
 
 } // namespace SqlHelpers

@@ -21,5 +21,7 @@ bool isEnumerated(const QString& key);  // CHECK ... IN (...) values => shown th
 bool isDebt(const QString& key);        // money still owed: highlighted when > 0
 bool isRoleCode(const QString& key);    // account role code (MANAGER...) => shown through Labels::role
 bool isSchedule(const QString& key);    // weekly schedule => day names localized by Format::schedule
+bool isWeekday(const QString& key);     // ISO weekday number 1-7 => day name (Format::weekday)
+bool isYesNo(const QString& key);       // 1 / 0 flag => "Yes" / empty
 QStringList keys();                     // used by the tests
 } // namespace Columns

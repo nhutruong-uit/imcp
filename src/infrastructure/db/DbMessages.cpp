@@ -31,6 +31,12 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages",
                       "A class can only move from Enrolling to In progress, or from Enrolling or "
                       "In progress to Cancelled."),
+    QT_TRANSLATE_NOOP("DbMessages", "Only an enrolling or in-progress class can be changed."),
+    QT_TRANSLATE_NOOP("DbMessages", "The start date can only change while the class is enrolling and none of "
+                                    "its sessions has been taught or cancelled."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "The maximum size cannot be lower than the number of students enrolled in the class."),
+    QT_TRANSLATE_NOOP("DbMessages", "Schedule slot not found."),
     // C. Enrollment
     QT_TRANSLATE_NOOP("DbMessages", "The student does not exist or has dropped out."),
     QT_TRANSLATE_NOOP("DbMessages", "The class no longer accepts enrollments."),
@@ -74,6 +80,9 @@ const char* const kTemplates[] = {
                       "The class still has scheduled sessions; mark them as taught or cancelled first."),
     // F. Payroll
     QT_TRANSLATE_NOOP("DbMessages", "Payroll cannot be finalized for a future month."),
+    QT_TRANSLATE_NOOP("DbMessages", "Payroll row not found."),
+    QT_TRANSLATE_NOOP("DbMessages", "A paid payroll row can no longer be changed."),
+    QT_TRANSLATE_NOOP("DbMessages", "The deduction cannot be larger than the pay of the month."),
     // I. Accounts, backup
     QT_TRANSLATE_NOOP("DbMessages",
                       "A username may only contain letters without diacritics, digits, dots and "
@@ -89,6 +98,19 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages", "The new password is not strong enough: it needs uppercase and lowercase "
                                     "letters, digits or special characters."),
     QT_TRANSLATE_NOOP("DbMessages", "The backup type must be FULL, DIFF or LOG."),
+    // J. Catalogs
+    QT_TRANSLATE_NOOP("DbMessages", "The record to update does not exist."),
+    QT_TRANSLATE_NOOP("DbMessages", "This code is already used."),
+    QT_TRANSLATE_NOOP("DbMessages", "A code may only contain letters, digits, dashes and underscores."),
+    QT_TRANSLATE_NOOP("DbMessages", "A branch with active classes cannot be suspended."),
+    QT_TRANSLATE_NOOP("DbMessages", "A course with active classes cannot be discontinued."),
+    QT_TRANSLATE_NOOP("DbMessages", "The prerequisite would make a loop: a course cannot require itself, not "
+                                    "even through other courses."),
+    QT_TRANSLATE_NOOP("DbMessages", "The syllabus does not follow the XML schema of the center: %1"),
+    QT_TRANSLATE_NOOP("DbMessages", "A grade component that already has scores cannot be deleted."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "An employee or teacher with an active account or an active class cannot be set to "
+                      "Left: lock the account and hand the classes over first."),
     // Triggers
     QT_TRANSLATE_NOOP("DbMessages", "The room must belong to the same branch as the class."),
     QT_TRANSLATE_NOOP("DbMessages", "The maximum class size exceeds the capacity of the room."),

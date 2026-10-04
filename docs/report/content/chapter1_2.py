@@ -150,12 +150,15 @@ def chapter2(r):
         ["Học viên", "Thêm, sửa, xóa (khi chưa ghi danh), tìm kiếm theo mã/tên/SĐT, xuất/nhập XML",
          "usp_Student_Add/Update/Delete/Search, usp_Student_ExportXml/ImportXml"],
         ["Kiểm tra đầu vào", "Nhập điểm 4 kỹ năng, đề xuất khóa học", "usp_PlacementTest_Add, trg_PLACEMENT_TEST_Recommend, fn_RecommendCourse"],
-        ["Lớp học", "Mở lớp, thêm lịch tuần, sinh buổi học, đổi trạng thái", "usp_Class_Create, usp_ClassSchedule_Add, usp_Class_GenerateSessions"],
+        ["Lớp học", "Mở lớp, sửa lớp, thêm/xóa khung giờ trong tuần, sinh buổi học, đổi trạng thái",
+         "usp_Class_Create, usp_Class_Update, usp_ClassSchedule_Add/_Remove, usp_Class_GenerateSessions, usp_Class_UpdateStatus"],
         ["Ghi danh", "Ghi danh, chuyển lớp, bảo lưu, nghỉ học", "usp_Enrollment_Create, usp_Enrollment_TransferClass, usp_Enrollment_UpdateStatus"],
         ["Học phí", "Lập/hủy phiếu thu, in biên lai, công nợ", "usp_Receipt_Create/Cancel/Print, vw_OutstandingTuition, trg_RECEIPT_*"],
         ["Học vụ", "Xác nhận buổi dạy, điểm danh, nhập điểm, xét kết quả", "usp_Session_Update, usp_Attendance_Save, usp_Grade_Save, usp_Class_EvaluateResults"],
-        ["Lương", "Chốt lương tháng", "usp_Payroll_Finalize (cursor)"],
-        ["Báo cáo", "Tổng quan, doanh thu, kết quả lớp, lịch dạy", "usp_Dashboard_Stats, usp_Report_*, fn_MonthlyRevenue, vw_*"],
+        ["Lương", "Chốt lương tháng, khấu trừ, xác nhận đã chi trả", "usp_Payroll_Finalize (cursor), usp_Payroll_Adjust, usp_Payroll_MarkPaid"],
+        ["Danh mục", "Chi nhánh, phòng học, chương trình, khóa học (giáo trình XML, cột điểm), nhân viên, giáo viên, khuyến mãi",
+         "`usp_Branch_*`, `usp_Room_*`, `usp_Program_*`, `usp_Course_*`, `usp_GradeComponent_*`, `usp_Employee_*`, `usp_Teacher_*`, `usp_Promotion_*`"],
+        ["Báo cáo", "Tổng quan, doanh thu, kết quả lớp, lịch dạy", "usp_Dashboard_Stats, `usp_Report_*`, fn_MonthlyRevenue, `vw_*`"],
         ["Hệ thống", "Đăng nhập, đổi mật khẩu, tạo/khóa tài khoản, sao lưu", "Contained user, usp_Account_*, usp_Backup"],
     ], widths_cm=[2.6, 6.4, 7.0], caption="Yêu cầu chức năng và đối tượng CSDL tương ứng", size=10)
 

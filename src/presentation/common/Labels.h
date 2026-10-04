@@ -8,7 +8,7 @@
 #include <QString>
 
 // Groups of the menu; the sidebar compares these codes, never the translated group names
-enum class FeatureGroup { General, Training, Finance, System, Teaching };
+enum class FeatureGroup { General, Training, Finance, Catalog, System, Teaching };
 
 // How a feature appears in the menu (built by Labels::feature, read by MainWindow::buildSidebar)
 struct FeatureInfo {
@@ -28,6 +28,9 @@ QString group(FeatureGroup group);
 
 // Name of the signed-in user for the header and the reports; a database owner gets "(database administrator)"
 QString accountName(const Account& account);
+
+// Discount type codes of PROMOTION (PERCENT, AMOUNT) as words for the promotion form
+QString discountType(const QString& code);
 
 // Language name written in that language ("Tiếng Việt", "English"), never translated, so users always find it
 QString language(Language language);

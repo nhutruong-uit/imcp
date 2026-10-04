@@ -22,5 +22,27 @@
         <file>icons/download.svg</file>
         <file>icons/file.svg</file>
         <file>icons/globe.svg</file>
+        <file>icons/clipboard.svg</file>
+        <file>icons/user-plus.svg</file>
+        <file>icons/book-open.svg</file>
+        <file>icons/receipt.svg</file>
+        <file>icons/layers.svg</file>
+        <file>icons/briefcase.svg</file>
+        <file>icons/building.svg</file>
+        <file>icons/tag.svg</file>
+        <file>icons/database.svg</file>
+        <file>icons/printer.svg</file>
+        <file>icons/lock.svg</file>
+        <file>icons/unlock.svg</file>
+        <file>icons/play.svg</file>
+        <file>icons/x-circle.svg</file>
+        <file>icons/chevron-left.svg</file>
+        <file>icons/chevron-right.svg</file>
+        <file>icons/check.svg</file>
+        <file>icons/upload.svg</file>
+        <file>icons/list.svg</file>
+        <file>icons/transfer.svg</file>
+        <file>icons/pause.svg</file>
+        <file>icons/clock.svg</file>
     </qresource>
 </RCC>

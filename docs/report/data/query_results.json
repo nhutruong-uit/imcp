@@ -613,7 +613,7 @@
   ],
   "rows": [
    [
-    "2026-10-03 17:14",
+    "2026-10-03 19:40",
     "sa",
     "RECEIPT",
     "INSERT",
@@ -621,7 +621,7 @@
     "<Receipt><EnrollmentId>EN000003</EnrollmentId><Amount>3250000</Amount><PaymentMethod>Bank transfer</PaymentMethod><Status>Valid</Status></Receipt>"
    ],
    [
-    "2026-10-03 17:14",
+    "2026-10-03 19:40",
     "sa",
     "RECEIPT",
     "INSERT",
@@ -629,7 +629,7 @@
     "<Receipt><EnrollmentId>EN000006</EnrollmentId><Amount>3250000</Amount><PaymentMethod>Bank transfer</PaymentMethod><Status>Valid</Status></Receipt>"
    ],
    [
-    "2026-10-03 17:14",
+    "2026-10-03 19:40",
     "sa",
     "RECEIPT",
     "INSERT",
@@ -753,7 +753,7 @@
     "1",
     "19",
     "13",
-    "38",
+    "64",
     "15",
     "4",
     "74",

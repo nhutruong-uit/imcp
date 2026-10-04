@@ -82,7 +82,7 @@ try {
         $exitCode = $LASTEXITCODE
         $lines | Out-File -FilePath $log -Encoding utf8
         # Verdict column of the summary table: PASSED / FAILED (case codes Txx, Pxx, Sxx)
-        $cases = @($lines | Where-Object { $_ -match '^[TPS]\d{2}\|' })
+        $cases = @($lines | Where-Object { $_ -match '^[TPS]\d{2,3}\|' })
         $passed = @($cases | Where-Object { $_ -match '\|PASSED\|' })
         Write-Host "Result: $($passed.Count)/$($cases.Count) cases passed (details: build/test-results/$logName)"
         if ($exitCode -ne 0) {

@@ -1,14 +1,30 @@
 #include "presentation/main/MainWindow.h"
 
+#include "presentation/accounts/AccountPage.h"
+#include "presentation/backup/BackupPage.h"
+#include "presentation/catalog/BranchPage.h"
+#include "presentation/catalog/CoursePage.h"
+#include "presentation/catalog/EmployeePage.h"
+#include "presentation/catalog/PromotionPage.h"
+#include "presentation/catalog/TeacherPage.h"
+#include "presentation/classes/ClassPage.h"
 #include "presentation/common/I18n.h"
 #include "presentation/common/Icons.h"
 #include "presentation/common/Labels.h"
 #include "presentation/common/Theme.h"
 #include "presentation/common/UiHelpers.h"
 #include "presentation/dashboard/DashboardPage.h"
+#include "presentation/enrollments/EnrollmentPage.h"
+#include "presentation/grades/GradeBookPage.h"
 #include "presentation/lists/ListPage.h"
 #include "presentation/main/ChangePasswordDialog.h"
+#include "presentation/payroll/PayrollPage.h"
+#include "presentation/placement/PlacementPage.h"
+#include "presentation/reports/RevenuePage.h"
+#include "presentation/sessions/TimetablePage.h"
 #include "presentation/students/StudentPage.h"
+#include "presentation/teaching/MyClassesPage.h"
+#include "presentation/tuition/TuitionPage.h"
 
 #include <QApplication>
 #include <QComboBox>
@@ -82,7 +98,7 @@ QWidget* MainWindow::buildSidebar() {
             auto* groupHeader = new QListWidgetItem(Labels::group(info.group).toUpper(), m_menu);
             groupHeader->setFlags(Qt::NoItemFlags);
             groupHeader->setData(Qt::UserRole, -1);
-            groupHeader->setSizeHint(QSize(0, 30));
+            groupHeader->setSizeHint(QSize(0, 26));
             QFont font = groupHeader->font();
             font.setPointSizeF(font.pointSizeF() * 0.8);
             font.setBold(true);
@@ -92,7 +108,7 @@ QWidget* MainWindow::buildSidebar() {
         auto* item = new QListWidgetItem(Icons::get(info.icon, QLatin1String(Theme::kIconSidebar), 18),
                                          info.name, m_menu);
         item->setData(Qt::UserRole, static_cast<int>(f));
-        item->setSizeHint(QSize(0, 40));
+        item->setSizeHint(QSize(0, 34)); // 34 px: the 19 entries of the manager fit on a laptop screen
     }
     v->addWidget(m_menu, 1);
 
@@ -137,7 +153,7 @@ QWidget* MainWindow::buildHeader() {
 }
 
 // The page of a feature: created on first use, then reused (switching back keeps its filters and data).
-// Dashboard and Students have their own page; every other feature is a read-only list shown by ListPage.
+// Most pages are built on DataPage (a list + filters + actions); the read-only lists share ListPage.
 QWidget* MainWindow::pageFor(Feature feature) {
     const int key = static_cast<int>(feature);
     if (QWidget* existing = m_pages.value(key, nullptr))
@@ -151,8 +167,60 @@ QWidget* MainWindow::pageFor(Feature feature) {
     case Feature::Students:
         page = new StudentPage(m_services, m_content);
         break;
-    default:
-        page = new ListPage(m_services, feature, m_content); // every read-only lookup list
+    case Feature::PlacementTests:
+        page = new PlacementPage(m_services, m_content);
+        break;
+    case Feature::Classes:
+        page = new ClassPage(m_services, m_content);
+        break;
+    case Feature::Enrollments:
+        page = new EnrollmentPage(m_services, m_content);
+        break;
+    case Feature::WeeklySchedule:
+    case Feature::MyTeachingSchedule:
+        page = new TimetablePage(m_services, feature, m_content);
+        break;
+    case Feature::Grades:
+    case Feature::MyGrades:
+        page = new GradeBookPage(m_services, feature, m_content);
+        break;
+    case Feature::Tuition:
+        page = new TuitionPage(m_services, m_content);
+        break;
+    case Feature::Revenue:
+        page = new RevenuePage(m_services, m_content);
+        break;
+    case Feature::Payroll:
+        page = new PayrollPage(m_services, m_content);
+        break;
+    case Feature::Courses:
+        page = new CoursePage(m_services, m_content);
+        break;
+    case Feature::Teachers:
+        page = new TeacherPage(m_services, m_content);
+        break;
+    case Feature::Employees:
+        page = new EmployeePage(m_services, m_content);
+        break;
+    case Feature::Branches:
+        page = new BranchPage(m_services, m_content);
+        break;
+    case Feature::Promotions:
+        page = new PromotionPage(m_services, m_content);
+        break;
+    case Feature::Accounts:
+        page = new AccountPage(m_services, m_content);
+        break;
+    case Feature::Backup:
+        page = new BackupPage(m_services, m_content);
+        break;
+    case Feature::MyClasses:
+        page = new MyClassesPage(m_services, m_content);
+        break;
+    case Feature::LearningResults:
+    case Feature::OutstandingTuition:
+    case Feature::MyPay:
+        page = new ListPage(m_services, feature, m_content); // read-only lookup lists
         break;
     }
     m_content->addWidget(page);

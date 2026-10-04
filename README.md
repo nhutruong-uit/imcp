@@ -55,10 +55,14 @@ itself enforces what each role may do.
 
 ### Application (Qt 6)
 - **Role-based menu** for the manager, academic staff, accountant and teacher, matching the database permissions
-- **Training**: dashboard, students, classes, weekly timetable, learning results.
-  **Finance**: outstanding tuition, revenue, teacher payroll. **System**: account administration
-- **Teachers** see only their own classes, teaching schedule and pay
-- **Lists** with a quick filter, a totals row, PDF reports and CSV export
+- **Training**: dashboard, students (with XML import/export), placement tests, classes (open, weekly schedule,
+  generate sessions, start, cancel, evaluate results), enrollments (enroll, transfer, put on hold), timetable and
+  attendance, grade book, learning results
+- **Finance**: tuition collection with a printable receipt, outstanding tuition, revenue by month or period, teacher
+  payroll (finalize, deduction, paid). **Catalogs**: courses and grade components, teachers, employees, branches and
+  rooms, promotions. **System**: accounts, backup
+- **Teachers** see only their own classes, take attendance, enter grades and see their schedule and pay
+- **Lists** with a quick filter, a totals row, PDF reports and CSV export (opens in Excel)
 - **Vietnamese and English UI**, switchable at runtime; values and business messages from the database are translated
   too
 - **Installers** for Windows (setup or portable ZIP) and macOS (`.dmg` with the FreeTDS driver bundled)

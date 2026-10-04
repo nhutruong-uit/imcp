@@ -1,4 +1,5 @@
 """Shared data of the user guide, read from the source code so the guide follows the application."""
+import html
 import re
 
 from guide_lib import GUIDE_DIR
@@ -7,21 +8,29 @@ REPO = GUIDE_DIR.parent.parent
 SCREENS = REPO / "docs" / "report" / "images" / "screens"   # tools/qlttta_screenshots (Vietnamese UI)
 WINDOWS_IMAGES = GUIDE_DIR / "images" / "windows"            # taken by hand on Windows (installers, dialogs)
 
-# Menu entries (enum Feature) -> Vietnamese label and menu group, as in resources/translations/qlttta_vi.ts
-FEATURES = {
-    "Dashboard": ("Tổng quan", "Chung"),
-    "Students": ("Học viên", "Đào tạo"),
-    "Classes": ("Lớp học", "Đào tạo"),
-    "WeeklySchedule": ("Lịch học tuần này", "Đào tạo"),
-    "LearningResults": ("Kết quả học tập", "Đào tạo"),
-    "OutstandingTuition": ("Công nợ học phí", "Tài chính"),
-    "Revenue": ("Doanh thu", "Tài chính"),
-    "Payroll": ("Lương giáo viên", "Tài chính"),
-    "Accounts": ("Tài khoản", "Hệ thống"),
-    "MyClasses": ("Lớp của tôi", "Giảng dạy"),
-    "MyTeachingSchedule": ("Lịch dạy", "Giảng dạy"),
-    "MyPay": ("Lương của tôi", "Giảng dạy"),
-}
+
+def translations(context: str) -> dict[str, str]:
+    """English source text -> Vietnamese translation of one context of resources/translations/qlttta_vi.ts."""
+    ts = (REPO / "resources" / "translations" / "qlttta_vi.ts").read_text(encoding="utf-8")
+    block = re.search(rf"<context>\s*<name>{context}</name>(.*?)</context>", ts, re.S).group(1)
+    return {html.unescape(source): html.unescape(target) for source, target in
+            re.findall(r"<source>(.*?)</source>\s*<translation>(.*?)</translation>", block, re.S)}
+
+
+def _features() -> dict[str, tuple[str, str]]:
+    """Menu entries (enum Feature) -> (Vietnamese label, Vietnamese menu group), in the order of Labels::feature:
+    the English names of Labels.cpp translated with the context Labels of the translation file."""
+    labels = (REPO / "src" / "presentation" / "common" / "Labels.cpp").read_text(encoding="utf-8")
+    group_names = dict(re.findall(r'case FeatureGroup::(\w+):\s*return LabelsText::tr\("([^"]+)"\)', labels))
+    group_of_variable = dict(re.findall(r"const FeatureGroup (\w+) = FeatureGroup::(\w+);", labels))
+    vi = translations("Labels")
+    return {feature: (vi[name], vi[group_names[group_of_variable[variable]]]) for feature, name, variable in
+            re.findall(r'case Feature::(\w+):\s*return \{f, LabelsText::tr\("([^"]+)"\),\s*QStringLiteral\("[^"]*"\),'
+                       r"\s*(\w+)\}", labels)}
+
+
+# Menu entries (enum Feature) -> Vietnamese label and menu group, exactly as the application shows them
+FEATURES = _features()
 ROLES = {"Manager": "Quản lý", "AcademicStaff": "Giáo vụ", "Accountant": "Kế toán", "Teacher": "Giáo viên"}
 ROLE_CODES = {"MANAGER": "Manager", "ACADEMIC_STAFF": "AcademicStaff", "ACCOUNTANT": "Accountant",
               "TEACHER": "Teacher"}
