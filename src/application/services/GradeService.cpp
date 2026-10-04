@@ -19,7 +19,7 @@ VoidResult GradeService::save(const QList<GradeEntry>& entries) {
     for (const GradeEntry& e : entries) {
         if (e.enrollmentId.isEmpty() || e.componentId <= 0)
             return VoidResult::failure(tr("A score has no student or grade component."));
-        if (e.score < 0 || e.score > 10)
+        if (e.score < GradeLimits::minScore || e.score > GradeLimits::maxScore)
             return VoidResult::failure(tr("Grades must be between 0 and 10."));
     }
     if (entries.isEmpty())

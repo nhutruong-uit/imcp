@@ -71,6 +71,9 @@ void BranchPage::loadRooms() {
     m_roomsTitle->setText(tr("Rooms of %1").arg(selected(QStringLiteral("BranchName")).toString()));
     const auto rooms = m_services.catalog.roomList(branchId);
     m_rooms->setData(rooms.ok() ? rooms.value() : TableData());
+    // An empty list without a reason would look like a branch without rooms
+    if (!rooms.ok())
+        m_roomsTitle->setText(rooms.error());
     if (m_editRoom)
         m_editRoom->setEnabled(false);
 }
@@ -93,7 +96,13 @@ void BranchPage::editBranch(bool isNew) {
     auto* address = Fields::text(&dialog, 200, b.address);
     auto* phone = Fields::digits(&dialog, 11, b.phone);
     auto* email = Fields::text(&dialog, 100, b.email);
-    auto* founded = Fields::date(&dialog, b.foundedOn.isValid() ? b.foundedOn : QDate::currentDate());
+    // BRANCH.FoundedOn is optional: an existing branch without it shows "Not recorded" (the first date of the
+    // field) and keeps NULL unless a date is chosen; before, saving the form wrote today's date silently
+    auto* founded = Fields::date(&dialog, b.foundedOn);
+    founded->setMinimumDate(QDate(1900, 1, 1));
+    founded->setSpecialValueText(tr("Not recorded"));
+    if (!isNew && !b.foundedOn.isValid())
+        founded->setDate(founded->minimumDate());
     auto* status = Fields::values(&dialog, CatalogValues::branchStatuses(), b.status);
     status->setEnabled(!isNew);
     dialog.form()->addRow(tr("Branch code"), code);
@@ -110,7 +119,7 @@ void BranchPage::editBranch(bool isNew) {
         c.address = address->text();
         c.phone = phone->text();
         c.email = email->text();
-        c.foundedOn = founded->date();
+        c.foundedOn = founded->date() == founded->minimumDate() ? QDate() : founded->date();
         c.status = Fields::value(status);
         b.id = c.id.trimmed().toUpper();
         return m_services.catalog.saveBranch(c, isNew);
@@ -131,11 +140,9 @@ void BranchPage::editRoom(bool isNew) {
         }
         r = current.value();
     }
-    const auto branches = m_services.catalog.activeBranches();
-    QList<LookupItem> branchItems;
-    if (branches.ok())
-        for (const Branch& b : branches.value())
-            branchItems.append({b.id, b.name});
+    QString branchError;
+    const QList<LookupItem> branchItems =
+        Fields::branchItems(m_services.catalog.activeBranches(), &branchError);
     FormDialog dialog(isNew ? tr("New room") : tr("Edit room %1").arg(r.id), this);
     auto* code = Fields::code(&dialog, r.id);
     code->setEnabled(isNew);
@@ -161,6 +168,7 @@ void BranchPage::editRoom(bool isNew) {
         c.status = Fields::value(status);
         return m_services.catalog.saveRoom(c, isNew);
     });
+    dialog.showError(branchError); // empty: no error line
     if (dialog.exec() == QDialog::Accepted)
         reloadAndSelect(QStringLiteral("BranchId"), r.branchId);
 }

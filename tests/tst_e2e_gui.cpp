@@ -166,6 +166,14 @@ QPushButton* visibleButton(MainWindow& w, const QString& name) {
             return b;
     return nullptr;
 }
+
+// Any widget of the page shown with that object name (the same rule as visibleButton)
+template <typename T> T* visibleChild(MainWindow& w, const QString& name) {
+    for (T* child : w.findChildren<T*>(name))
+        if (child->isVisible())
+            return child;
+    return nullptr;
+}
 } // namespace
 
 class TestE2EGui : public QObject {
@@ -745,6 +753,50 @@ private slots:
         QCOMPARE(firstStatus(), before);
         QVERIFY2(keptOnReturn, "Return in the Notes cell changed the mark");
         QVERIFY2(boxes.texts().isEmpty(), qPrintable(boxes.texts().join(QStringLiteral(" | "))));
+    }
+
+    // My grade book: the score editor takes 0-10 only. 11 is not taken as a change and the footer says why
+    // (before, a cell with a score opened an unbounded spin box and the value was dropped without a word).
+    // Nothing is saved, so no data needs restoring.
+    void teacher_gradeBookScoreAbove10_isRefusedWithMessage() {
+        QVERIFY(login(QStringLiteral("gv_john"), m_password));
+        MainWindow w(m_app->services());
+        w.show();
+        w.openFeature(Feature::MyGrades);
+        QString classId;
+        const auto classes = m_app->services().grades.classes(true);
+        QVERIFY2(classes.ok(), qPrintable(classes.error()));
+        for (const ClassOption& c : classes.value())
+            if (classId.isEmpty() && c.status == ClassValues::inProgress())
+                classId = c.id;
+        QVERIFY2(!classId.isEmpty(), "gv_john teaches no class in progress");
+
+        QComboBox* combo = nullptr;
+        QTableView* view = nullptr;
+        QLabel* footer = nullptr;
+        QTRY_VERIFY((combo = visibleChild<QComboBox>(w, QStringLiteral("classCombo"))) != nullptr);
+        combo->setCurrentIndex(combo->findData(classId));
+        QTRY_VERIFY((view = visibleChild<QTableView>(w, QStringLiteral("listTable"))) != nullptr);
+        QTRY_VERIFY(view->model()->rowCount() > 0);
+        for (QLabel* l : w.findChildren<QLabel*>())
+            if (l->isVisible() && l->property("testId").toString() == QStringLiteral("totalsLine"))
+                footer = l;
+        QVERIFY(footer != nullptr);
+
+        const QModelIndex cell = view->model()->index(0, 2); // the first grade component
+        QVERIFY(view->model()->flags(cell) & Qt::ItemIsEditable);
+        const QString before = cell.data().toString();
+        view->setCurrentIndex(cell);
+        view->edit(cell);
+        QLineEdit* editor = nullptr;
+        QTRY_VERIFY((editor = view->viewport()->findChild<QLineEdit*>()) != nullptr);
+        editor->setText(QStringLiteral("11"));
+        QTest::keyClick(editor, Qt::Key_Return);
+        QTRY_COMPARE(footer->text(),
+                     QCoreApplication::translate("GradeBookPage",
+                                                 "Scores are between 0 and 10, with at most 2 decimals."));
+        QCOMPARE(cell.data().toString(), before);
+        QTest::keyClick(editor, Qt::Key_Escape); // close the editor without saving anything
     }
 
     // Quick filter on outstanding tuition: only matching rows remain,

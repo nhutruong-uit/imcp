@@ -28,13 +28,17 @@ public slots:
 
 private:
     bool mineOnly() const { return m_feature == Feature::MyGrades; }
-    void save();
+    void loadClasses();
+    bool save();
     void updateFooter();
     QString classTitle() const;
 
     AppServices m_services;
     const Feature m_feature;
     QList<ClassOption> m_classes;
+    QString m_classError;   // why the class list could not be read (shown above the table)
+    QString m_shownClassId; // the class whose book the model holds (the combo may already show another)
+    bool m_editable = false;
     QComboBox* m_class = nullptr;
     QLabel* m_info = nullptr;
     QTableView* m_table = nullptr;

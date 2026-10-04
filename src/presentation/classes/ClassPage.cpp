@@ -20,6 +20,8 @@ ClassPage::ClassPage(AppServices services, QWidget* parent) : DataPage(services,
         m_branches = branches.value();
         for (const Branch& b : m_branches)
             m_branchFilter->addItem(b.name, b.id);
+    } else {
+        UiHelpers::showError(this, branches.error()); // else New class has no branch (as StudentPage)
     }
     m_statusFilter = new QComboBox(this);
     m_statusFilter->addItem(tr("All statuses"), QString());
@@ -50,7 +52,7 @@ ClassPage::ClassPage(AppServices services, QWidget* parent) : DataPage(services,
     addAction(tr("Students"), QStringLiteral("users"), QStringLiteral("studentsButton"), true,
               [this] { showStudents(); });
     addAction(tr("Results"), QStringLiteral("list"), QStringLiteral("resultsButton"), true,
-              [this] { showResults(); });
+              [this] { showResults(selectedClassId(), selectedClassName()); });
 
     connect(m_branchFilter, &QComboBox::currentIndexChanged, this, &ClassPage::reload);
     connect(m_statusFilter, &QComboBox::currentIndexChanged, this, &ClassPage::reload);
@@ -167,6 +169,7 @@ void ClassPage::showStudents() {
 
 void ClassPage::evaluateResults() {
     const QString id = selectedClassId();
+    const QString name = selectedClassName(); // read before the list reloads: a Finished class may leave it
     if (!UiHelpers::confirm(this,
                             tr("Close class %1 with its results? Every student gets the final grade and "
                                "Passed or Failed, the students who passed get a certificate and the class "
@@ -182,17 +185,16 @@ void ClassPage::evaluateResults() {
         this, tr("Results evaluated"),
         tr("%1 students passed, %2 failed.").arg(result.value().passed).arg(result.value().failed));
     reloadAndSelect(QStringLiteral("ClassId"), id);
-    showResults();
+    showResults(id, name);
 }
 
-void ClassPage::showResults() {
-    const QString id = selectedClassId();
+void ClassPage::showResults(const QString& id, const QString& name) {
     const auto results = m_services.classes.results(id);
     if (!results.ok()) {
         UiHelpers::showError(this, results.error());
         return;
     }
-    TableDialog dialog(tr("Results of class %1 - %2").arg(id, selectedClassName()),
+    TableDialog dialog(tr("Results of class %1 - %2").arg(id, name),
                        Labels::accountName(m_services.auth.account()), this);
     dialog.setSubtitle(
         tr("Final grade, classification, attendance and certificate number of every student (the "

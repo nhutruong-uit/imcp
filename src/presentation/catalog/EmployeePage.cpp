@@ -38,11 +38,9 @@ void EmployeePage::editEmployee(bool isNew) {
         }
         e = current.value();
     }
-    const auto branches = m_services.catalog.activeBranches();
-    QList<LookupItem> branchItems;
-    if (branches.ok())
-        for (const Branch& b : branches.value())
-            branchItems.append({b.id, b.name});
+    QString branchError;
+    const QList<LookupItem> branchItems =
+        Fields::branchItems(m_services.catalog.activeBranches(), &branchError);
 
     FormDialog dialog(isNew ? tr("New employee") : tr("Edit employee %1").arg(e.id), this);
     auto* name = Fields::text(&dialog, StaffLimits::fullName, e.fullName);
@@ -89,6 +87,7 @@ void EmployeePage::editEmployee(bool isNew) {
         savedId = result.value();
         return VoidResult::success();
     });
+    dialog.showError(branchError); // empty: no error line
     if (dialog.exec() == QDialog::Accepted)
         reloadAndSelect(QStringLiteral("EmployeeId"), savedId);
 }

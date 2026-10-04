@@ -324,6 +324,10 @@
         <source>Room type</source>
         <translation>Loại phòng</translation>
     </message>
+    <message>
+        <source>Not recorded</source>
+        <translation>Không ghi nhận</translation>
+    </message>
 </context>
 <context>
     <name>CatalogService</name>
@@ -2364,6 +2368,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <source>%1 scores not saved yet</source>
         <translation>%1 điểm chưa lưu</translation>
     </message>
+    <message>
+        <source>Scores are between 0 and 10, with at most 2 decimals.</source>
+        <translation>Điểm từ 0 đến 10, tối đa 2 chữ số thập phân.</translation>
+    </message>
 </context>
 <context>
     <name>GradeComponent</name>
@@ -2491,14 +2499,6 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>Teaching</source>
         <translation>Giảng dạy</translation>
-    </message>
-    <message>
-        <source>Percentage (%)</source>
-        <translation>Phần trăm (%)</translation>
-    </message>
-    <message>
-        <source>Fixed amount (VND)</source>
-        <translation>Số tiền cố định (VNĐ)</translation>
     </message>
     <message>
         <source>Overview</source>

@@ -105,6 +105,15 @@ void Fields::fillLookup(QComboBox* combo, const QList<LookupItem>& items, const 
                        item.id);
 }
 
+QList<LookupItem> Fields::branchItems(const Result<QList<Branch>>& branches, QString* error) {
+    QList<LookupItem> items;
+    *error = branches.ok() ? QString() : branches.error();
+    if (branches.ok())
+        for (const Branch& b : branches.value())
+            items.append({b.id, b.name});
+    return items;
+}
+
 void Fields::select(QComboBox* combo, const QString& key, const QString& missingText) {
     int index = combo->findData(key);
     if (index < 0 && !key.isEmpty()) {

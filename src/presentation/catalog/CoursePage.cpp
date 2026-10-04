@@ -96,6 +96,8 @@ void CoursePage::loadComponents() {
                                    .arg(selected(QStringLiteral("CourseName")).toString()));
     const auto components = m_services.courses.components(selectedCourseId());
     m_components->setData(components.ok() ? components.value() : TableData());
+    if (!components.ok())
+        m_componentsTitle->setText(components.error());
     if (m_editComponent) {
         m_editComponent->setEnabled(false);
         m_removeComponent->setEnabled(false);
@@ -170,6 +172,8 @@ void CoursePage::editCourse(bool isNew) {
         savedId = course.id.trimmed().toUpper();
         return m_services.courses.save(course, isNew);
     });
+    // A failed load of the programs or courses leaves a combo empty: say why
+    dialog.showError(!programs.ok() ? programs.error() : (!courses.ok() ? courses.error() : QString()));
     if (dialog.exec() == QDialog::Accepted)
         reloadAndSelect(QStringLiteral("CourseId"), savedId);
 }
@@ -192,10 +196,15 @@ void CoursePage::showSyllabus() {
         auto* editButton = UiHelpers::secondaryButton(tr("Edit XML"), QStringLiteral("edit"), &dialog);
         dialog.layout()->addWidget(editButton);
         connect(editButton, &QPushButton::clicked, &dialog, [&] {
+            // An editor opened empty after a failed load would delete the syllabus on Save (NULL removes it)
             const auto xml = m_services.courses.syllabusXml(courseId);
+            if (!xml.ok()) {
+                UiHelpers::showError(&dialog, xml.error());
+                return;
+            }
             FormDialog editor(tr("Syllabus XML of %1").arg(courseId), &dialog);
             editor.resize(760, 560);
-            auto* text = new QPlainTextEdit(xml.ok() ? xml.value() : QString(), &editor);
+            auto* text = new QPlainTextEdit(xml.value(), &editor);
             text->setObjectName(QStringLiteral("syllabusXmlEdit"));
             editor.body()->addWidget(
                 new QLabel(tr("<Syllabus> with <Textbook>, <Objective> and <Unit No=\"1\" "
@@ -243,6 +252,7 @@ void CoursePage::showPrograms() {
     auto load = [&] {
         const auto programs = m_services.catalog.programList();
         dialog.setData(programs.ok() ? programs.value() : TableData());
+        dialog.setSubtitle(programs.ok() ? QString() : programs.error());
     };
     load();
     if (canEdit()) {

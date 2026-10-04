@@ -1,8 +1,11 @@
-// Unit tests of TableExporter (presentation layer): the CSV and PDF files written from a table model.
-// A QStandardItemModel stands in for the lists of the application; no database is needed.
+// Unit tests of TableExporter (presentation layer): the CSV and PDF files written from a table model, and the
+// model DataTable gives the exports. A QStandardItemModel stands in for the lists of the application; no
+// database is needed.
 // Run only this suite:
 //   ctest --preset macos-debug -R tst_exporter --output-on-failure
+#include "presentation/common/DataTable.h"
 #include "presentation/common/TableExporter.h"
+#include "presentation/common/UiHelpers.h"
 
 #include <QFile>
 #include <QStandardItemModel>
@@ -22,6 +25,31 @@ private:
     }
 
 private slots:
+    // A hidden technical column (PayrollId) is not exported, and the quick filter does not search it: typing
+    // 12 must not keep a row only because its hidden ID is 12
+    void dataTable_hiddenColumns_notExportedNorFiltered() {
+        DataTable table(QStringLiteral("listTable"));
+        TableData data;
+        data.columns = {QStringLiteral("PayrollId"), QStringLiteral("TeacherName")};
+        data.rows = {{12, QStringLiteral("Lan")}, {7, QStringLiteral("Room 12")}};
+        table.setData(data);
+        table.setHiddenColumns({QStringLiteral("PayrollId")});
+        QCOMPARE(table.visibleModel().columnCount(), 1);
+        table.setFilterText(QStringLiteral("12"));
+        QCOMPARE(table.rowCount(), 1);
+        QCOMPARE(table.valueAt(0, QStringLiteral("TeacherName")).toString(), QStringLiteral("Room 12"));
+        QCOMPARE(table.visibleModel().rowCount(), 1);
+    }
+
+    // The suggested export name comes from a title: a "/" would point into a folder that does not exist
+    void fileName_titleWithSlash_becomesOneName() {
+        QCOMPARE(UiHelpers::fileName(QStringLiteral("Payroll of 9/2026")),
+                 QStringLiteral("Payroll of 9-2026"));
+        QCOMPARE(UiHelpers::fileName(QStringLiteral("Class CL0003: A\\B? \"x\" <y>|*")),
+                 QStringLiteral("Class CL0003- A-B- -x- -y---"));
+        QCOMPARE(UiHelpers::fileName(QStringLiteral("Lớp Kiểm Thử")), QStringLiteral("Lớp Kiểm Thử"));
+    }
+
     // A cell that starts with = + @ would run as a formula in Excel: it is kept as text with a leading
     // apostrophe; a negative number stays a number and a comma is quoted
     void exportCsv_formulaCells_areWrittenAsText() {

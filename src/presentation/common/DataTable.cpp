@@ -6,24 +6,73 @@
 
 #include <QHeaderView>
 #include <QItemSelectionModel>
+#include <QRegularExpression>
 #include <QSortFilterProxyModel>
 #include <QTableView>
 #include <QVBoxLayout>
+#include <functional>
+
+namespace {
+// The quick filter searches the visible columns only: a row must not match on a hidden technical ID
+class QuickFilterProxy : public QSortFilterProxyModel {
+public:
+    QuickFilterProxy(std::function<bool(int)> isHidden, QObject* parent)
+        : QSortFilterProxyModel(parent), m_isHidden(std::move(isHidden)) {}
+
+protected:
+    bool filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const override {
+        const QRegularExpression& pattern = filterRegularExpression();
+        if (pattern.pattern().isEmpty())
+            return true;
+        for (int c = 0; c < sourceModel()->columnCount(sourceParent); ++c) {
+            if (m_isHidden(c))
+                continue;
+            const QModelIndex cell = sourceModel()->index(sourceRow, c, sourceParent);
+            if (cell.data(filterRole()).toString().contains(pattern))
+                return true;
+        }
+        return false;
+    }
+
+private:
+    std::function<bool(int)> m_isHidden;
+};
+
+// What the exports read: the rows as the user sees them, without the hidden columns
+class ExportProxy : public QSortFilterProxyModel {
+public:
+    ExportProxy(std::function<bool(int)> isHidden, QObject* parent)
+        : QSortFilterProxyModel(parent), m_isHidden(std::move(isHidden)) {}
+
+protected:
+    bool filterAcceptsColumn(int sourceColumn, const QModelIndex&) const override {
+        return !m_isHidden(sourceColumn);
+    }
+
+private:
+    std::function<bool(int)> m_isHidden;
+};
+} // namespace
 
 DataTable::DataTable(const QString& tableObjectName, QWidget* parent) : QWidget(parent) {
     auto* v = new QVBoxLayout(this);
     v->setContentsMargins(0, 0, 0, 0);
 
     // The proxy model sits between the data and the table: it filters and sorts the rows without changing the
-    // data (filter key column -1 = search in every column; sort by the raw value of Qt::UserRole, so money
-    // and dates sort as numbers/dates, not as text)
+    // data (the quick filter searches every visible column; sort by the raw value of Qt::UserRole, so money
+    // and dates sort as numbers/dates, not as text). A second proxy drops the hidden columns for the exports.
     m_model = new TableDataModel(this);
-    m_proxy = new QSortFilterProxyModel(this);
+    const auto isHidden = [this](int column) {
+        const QStringList& keys = m_model->tableData().columns;
+        return column >= 0 && column < keys.size() && m_hidden.contains(keys.at(column));
+    };
+    m_proxy = new QuickFilterProxy(isHidden, this);
     m_proxy->setSourceModel(m_model);
     m_proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
-    m_proxy->setFilterKeyColumn(-1);
     m_proxy->setSortRole(Qt::UserRole);
     m_proxy->setSortLocaleAware(true);
+    m_exportProxy = new ExportProxy(isHidden, this);
+    m_exportProxy->setSourceModel(m_proxy);
 
     m_view = new QTableView(this);
     m_view->setObjectName(tableObjectName);
@@ -55,7 +104,7 @@ const TableData& DataTable::data() const {
 }
 
 const QAbstractItemModel& DataTable::visibleModel() const {
-    return *m_proxy;
+    return *m_exportProxy;
 }
 
 void DataTable::setFilterText(const QString& text) {
@@ -65,6 +114,8 @@ void DataTable::setFilterText(const QString& text) {
 void DataTable::setHiddenColumns(const QStringList& keys) {
     m_hidden = keys;
     applyHiddenColumns();
+    m_proxy->invalidate(); // the quick filter and the exports read m_hidden
+    m_exportProxy->invalidate();
 }
 
 void DataTable::applyHiddenColumns() {

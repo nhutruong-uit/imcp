@@ -37,6 +37,8 @@ DashboardPage::DashboardPage(AppServices services, QWidget* parent) : QWidget(pa
     if (branches.ok())
         for (const Branch& b : branches.value())
             m_branch->addItem(b.name, b.id);
+    else
+        m_branchError = branches.error(); // only "Whole center" is left: shown under the figures
     auto* greetingColumn = new QVBoxLayout;
     greetingColumn->addWidget(greeting);
     greetingColumn->addWidget(today);
@@ -109,7 +111,8 @@ void DashboardPage::reload() {
         m_revenue->setText(s.revenueThisMonth ? Format::money(*s.revenueThisMonth) : tr("No permission"));
         m_outstanding->setText(Format::money(s.outstandingTuition));
         m_sessionsToday->setText(QString::number(s.sessionsToday));
-        m_error->hide();
+        m_error->setText(m_branchError);
+        m_error->setVisible(!m_branchError.isEmpty());
     } else {
         m_error->setText(stats.error());
         m_error->show();

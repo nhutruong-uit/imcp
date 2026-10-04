@@ -5,6 +5,16 @@
 #include <QString>
 #include <optional>
 
+/// GRADE.Score is 0-10 with 2 decimals (CK_GRADE_Score, DECIMAL(4,2)). Below passMark a student fails
+// whatever the attendance; at passMark or above the result also needs 80% attendance
+// (usp_Class_EvaluateResults).
+namespace GradeLimits {
+inline constexpr double minScore = 0;
+inline constexpr double maxScore = 10;
+inline constexpr int decimals = 2;
+inline constexpr double passMark = 5;
+} // namespace GradeLimits
+
 // One grade component of a course (GRADE_COMPONENT): its weight in percent
 struct GradeComponentInfo {
     int id = 0;

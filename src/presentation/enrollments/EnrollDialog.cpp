@@ -90,6 +90,8 @@ void EnrollDialog::loadPromotions() {
     const auto promotions = m_enrollments.promotionOptions(m_enrolledOn->date());
     Fields::fillLookup(m_promotion, promotions.ok() ? promotions.value() : QList<LookupItem>(),
                        tr("No promotion"));
+    if (!promotions.ok())
+        showError(promotions.error()); // "No promotion" alone would hide a valid code
     if (m_promotion->findData(current) >= 0)
         Fields::select(m_promotion, current);
 }
