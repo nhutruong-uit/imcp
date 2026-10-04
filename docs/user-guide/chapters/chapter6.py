@@ -13,10 +13,13 @@ def chapter6(g):
     g.code("Terminal (macOS)",
            f"QLTTTA_USER={user} QLTTTA_PASSWORD='<mật khẩu>' \\\n"
            "  /Applications/QLTTTA.app/Contents/MacOS/QLTTTA --check-connection", lang="text")
-    g.placeholder("Lệnh tương đương trên Windows (PowerShell), ví dụ `$env:QLTTTA_USER = '...'; "
-                  "$env:QLTTTA_PASSWORD = '...'; & \"<thư mục cài>\\QLTTTA.exe\" --check-connection`. Kiểm tra "
-                  "kết quả có in ra cửa sổ PowerShell không (ứng dụng giao diện trên Windows có thể không hiện "
-                  "chữ trên console; khi đó xem mã thoát bằng `$LASTEXITCODE`).")
+    g.p("Trên Windows, QLTTTA là ứng dụng giao diện nên PowerShell không chờ nó chạy xong và không hiện chữ nó in "
+        "ra. Thêm `| Out-Host` ở cuối lệnh: PowerShell chờ kết quả, in dòng `OK`/`ERROR`, và `$LASTEXITCODE` cho "
+        "mã thoát (0 hoặc 1). Biến `QLTTTA_SERVER` là tùy chọn (ví dụ `localhost` cho SQL Server cài trên máy).")
+    g.code("PowerShell (Windows)",
+           f"$env:QLTTTA_USER = '{user}'; $env:QLTTTA_PASSWORD = '<mật khẩu>'; $env:QLTTTA_SERVER = 'localhost'\n"
+           "& \"<thư mục chứa QLTTTA.exe>\\QLTTTA.exe\" --check-connection | Out-Host\n"
+           "$LASTEXITCODE", lang="text")
 
     g.h2("6.2. Lỗi thường gặp")
     g.table(["Hiện tượng / thông báo", "Nguyên nhân thường gặp", "Cách xử lý"], [
@@ -59,9 +62,22 @@ def chapter6(g):
          "mục gốc mã nguồn."],
         ["Chữ tiếng Việt bị lỗi khi tự chạy script bằng `sqlcmd`", "Thiếu tham số mã UTF-8",
          "Thêm `-f 65001` và `-I` như script `db_init`, hoặc dùng `db_init`."],
+        ["Windows: **Sai tên đăng nhập hoặc mật khẩu** với tài khoản demo dù gõ đúng (SQL Server vừa cài)",
+         "SQL Server chỉ bật Windows Authentication (mặc định khi cài)",
+         "Bật Mixed Mode bằng hai lệnh ở mục 2.3.1 (PowerShell quyền quản trị)."],
+        ["Windows: **Không kết nối được máy chủ SQL Server** khi ô Máy chủ là `localhost,1433`",
+         "TCP/IP của SQL Server đang tắt (mặc định của bản Developer/Express)",
+         "Đổi ô Máy chủ thành `localhost` (hoặc `localhost\\SQLEXPRESS`), hoặc bật TCP/IP (mục 2.3.3)."],
+        ["Windows, máy không cài SQL Server (Docker hoặc máy chủ khác): **Không kết nối được máy chủ SQL Server** "
+         "dù máy chủ đang chạy", "Máy chưa có ODBC Driver 18/17; driver \"SQL Server\" có sẵn của Windows không "
+         "đăng nhập được", "Cài **Microsoft ODBC Driver 18 for SQL Server** (mục 2.3.2) rồi mở lại ứng dụng."],
+        ["Trình cài SQL Server báo *This version of the installer is no longer supported*",
+         "Trình cài SQL Server 2022 đã bị Microsoft ngừng", "Tải bản SQL Server 2025 (mục 2.3.1)."],
+        ["PowerShell báo `running scripts is disabled on this system`", "Windows chưa cho chạy script `.ps1`",
+         "`powershell -ExecutionPolicy Bypass -File .\\scripts\\<tên script>.ps1 ...`"],
+        ["PowerShell báo `sqlcmd` *is not recognized*", "Cửa sổ PowerShell mở từ trước khi cài SQL Server",
+         "Mở cửa sổ PowerShell mới; vẫn lỗi thì `winget install Microsoft.Sqlcmd`."],
     ], widths_cm=[4.6, 4.2, 7.2], caption="Lỗi thường gặp và cách xử lý", size=9.5)
-    g.placeholder("Bổ sung các lỗi gặp thực tế khi cài trên Windows (SQL Server Express, PowerShell, bộ cài, "
-                  "driver ODBC...) cùng cách xử lý đã kiểm chứng.")
 
     g.h2("6.3. Khi cần hỗ trợ thêm")
     g.p("Tài liệu kỹ thuật chi tiết nằm trong mã nguồn: `docs/SETUP.md` (cài đặt môi trường, kiểm thử), "
@@ -78,7 +94,7 @@ def appendix_commands(g):
         ["Khởi tạo CSDL (Docker)", "`SQL_PASSWORD='<mật khẩu sa>' ./scripts/db_init.sh --docker imcp-mssql`",
          "`$env:SQL_PASSWORD = '<mật khẩu sa>'`\n`.\\scripts\\db_init.ps1 -Docker imcp-mssql`"],
         ["Khởi tạo CSDL (SQL Server cài trên máy)", "-",
-         "`.\\scripts\\db_init.ps1 -Server \"localhost\\SQLEXPRESS\"`"],
+         "Developer: `.\\scripts\\db_init.ps1`\nExpress: `.\\scripts\\db_init.ps1 -Server \"localhost\\SQLEXPRESS\"`"],
         ["Tắt / bật SQL Server (Docker)", "`docker compose stop` / `docker compose start`", "Như macOS"],
         ["Mở ứng dụng lần đầu", "`xattr -dr com.apple.quarantine /Applications/QLTTTA.app`",
          "SmartScreen: **More info > Run anyway**"],
