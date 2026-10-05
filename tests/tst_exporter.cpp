@@ -4,6 +4,7 @@
 // Run only this suite:
 //   ctest --preset macos-debug -R tst_exporter --output-on-failure
 #include "presentation/common/DataTable.h"
+#include "presentation/common/Format.h"
 #include "presentation/common/TableExporter.h"
 #include "presentation/common/UiHelpers.h"
 
@@ -67,6 +68,26 @@ private slots:
         QVERIFY(text.contains(QStringLiteral("\r\n'@SUM(A1)\r\n")));
         QVERIFY(text.contains(QStringLiteral("\r\n-500\r\n")));
         QVERIFY(text.contains(QStringLiteral("\"Nguyễn, An\"")));
+    }
+
+    // A money amount is written as the plain number, not "1.500.000 ₫", so a spreadsheet can sum it; a
+    // weekday stays the day name the user sees and a text stays a text
+    void exportCsv_numberColumns_writePlainNumbers() {
+        DataTable table(QStringLiteral("listTable"));
+        TableData data;
+        data.columns = {QStringLiteral("TotalBalance"), QStringLiteral("Weekday"), QStringLiteral("Hours"),
+                        QStringLiteral("TeacherName")};
+        data.rows = {{1500000.0, 2, 7.5, QStringLiteral("Lan")}};
+        table.setData(data);
+        QCOMPARE(table.totalsText().left(5), QStringLiteral("1 row"));
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("list.csv"));
+        QString error;
+        QVERIFY2(TableExporter::exportCsv(table.visibleModel(), path, &error), qPrintable(error));
+        QFile f(path);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        const QStringList lines = QString::fromUtf8(f.readAll()).split(QStringLiteral("\r\n"));
+        QCOMPARE(lines.value(1), QStringLiteral("1500000,%1,7.5,Lan").arg(Format::weekday(2)));
     }
 
     // A file that cannot be written is reported as an error (the old version answered "done" without a file)

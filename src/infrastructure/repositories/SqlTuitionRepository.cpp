@@ -55,23 +55,23 @@ Result<ReceiptPrint> SqlTuitionRepository::print(const QString& receiptId) {
     //          ClassName, CourseName, TuitionDue, AmountPaid, Balance, CollectedBy, BranchName,
     //          BranchAddress, BranchPhone
     ReceiptPrint r;
-    r.receiptId = q.value(0).toString();
-    r.paidAtUtc = q.value(1).toDateTime();
-    r.amount = q.value(2).toLongLong();
-    r.paymentMethod = q.value(3).toString();
-    r.description = q.value(4).toString();
-    r.status = q.value(5).toString();
-    r.studentId = q.value(6).toString();
-    r.studentName = q.value(7).toString();
-    r.classId = q.value(8).toString();
-    r.className = q.value(9).toString();
-    r.courseName = q.value(10).toString();
-    r.tuitionDue = q.value(11).toLongLong();
-    r.amountPaid = q.value(12).toLongLong();
-    r.balance = q.value(13).toLongLong();
-    r.collectedBy = q.value(14).toString();
-    r.branchName = q.value(15).toString();
-    r.branchAddress = q.value(16).toString();
-    r.branchPhone = q.value(17).toString();
+    r.receiptId = field(q, "ReceiptId").toString();
+    r.paidAtUtc = field(q, "PaidAtUtc").toDateTime();
+    r.amount = field(q, "Amount").toLongLong();
+    r.paymentMethod = field(q, "PaymentMethod").toString();
+    r.description = field(q, "Description").toString();
+    r.status = field(q, "Status").toString();
+    r.studentId = field(q, "StudentId").toString();
+    r.studentName = field(q, "StudentName").toString();
+    r.classId = field(q, "ClassId").toString();
+    r.className = field(q, "ClassName").toString();
+    r.courseName = field(q, "CourseName").toString();
+    r.tuitionDue = field(q, "TuitionDue").toLongLong();
+    r.amountPaid = field(q, "AmountPaid").toLongLong();
+    r.balance = field(q, "Balance").toLongLong();
+    r.collectedBy = field(q, "CollectedBy").toString();
+    r.branchName = field(q, "BranchName").toString();
+    r.branchAddress = field(q, "BranchAddress").toString();
+    r.branchPhone = field(q, "BranchPhone").toString();
     return Result<ReceiptPrint>::success(r);
 }

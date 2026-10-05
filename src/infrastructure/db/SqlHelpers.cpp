@@ -104,6 +104,16 @@ bool execPrepared(QSqlQuery& q, const DatabaseManager& db, const QString& sql, c
     return q.exec();
 }
 
+QVariant field(const QSqlQuery& q, const char* column) {
+    const int index = q.record().indexOf(QLatin1String(column));
+    Q_ASSERT_X(index >= 0, "SqlHelpers::field", column);
+    if (index < 0) {
+        qWarning("SqlHelpers::field: the result has no column %s", column);
+        return {};
+    }
+    return q.value(index);
+}
+
 TableData readTable(QSqlQuery& q) {
     TableData table;
     const QSqlRecord record = q.record(); // describes the columns of the result

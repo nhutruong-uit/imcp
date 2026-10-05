@@ -15,8 +15,8 @@ Result<QList<Branch>> SqlCatalogRepository::branches() {
     QList<Branch> branches;
     while (q.next()) {
         Branch b;
-        b.id = q.value(0).toString();
-        b.name = q.value(1).toString();
+        b.id = field(q, "BranchId").toString();
+        b.name = field(q, "BranchName").toString();
         branches.append(b);
     }
     return Result<QList<Branch>>::success(branches);
@@ -43,13 +43,13 @@ Result<Branch> SqlCatalogRepository::branch(const QString& id) {
     if (!q.next())
         return Result<Branch>::failure(tr("Branch %1 was not found.").arg(id));
     Branch b;
-    b.id = q.value(0).toString();
-    b.name = q.value(1).toString();
-    b.address = q.value(2).toString();
-    b.phone = q.value(3).toString();
-    b.email = q.value(4).toString();
-    b.foundedOn = q.value(5).toDate();
-    b.status = q.value(6).toString();
+    b.id = field(q, "BranchId").toString();
+    b.name = field(q, "BranchName").toString();
+    b.address = field(q, "Address").toString();
+    b.phone = field(q, "Phone").toString();
+    b.email = field(q, "Email").toString();
+    b.foundedOn = field(q, "FoundedOn").toDate();
+    b.status = field(q, "Status").toString();
     return Result<Branch>::success(b);
 }
 
@@ -87,12 +87,12 @@ Result<Room> SqlCatalogRepository::room(const QString& id) {
     if (!q.next())
         return Result<Room>::failure(tr("Room %1 was not found.").arg(id));
     Room r;
-    r.id = q.value(0).toString();
-    r.branchId = q.value(1).toString();
-    r.name = q.value(2).toString();
-    r.capacity = q.value(3).toInt();
-    r.type = q.value(4).toString();
-    r.status = q.value(5).toString();
+    r.id = field(q, "RoomId").toString();
+    r.branchId = field(q, "BranchId").toString();
+    r.name = field(q, "RoomName").toString();
+    r.capacity = field(q, "Capacity").toInt();
+    r.type = field(q, "RoomType").toString();
+    r.status = field(q, "Status").toString();
     return Result<Room>::success(r);
 }
 
@@ -138,8 +138,9 @@ Result<Program> SqlCatalogRepository::program(const QString& id) {
         return Result<Program>::failure(errorOf(q));
     if (!q.next())
         return Result<Program>::failure(tr("Program %1 was not found.").arg(id));
-    return Result<Program>::success(
-        {q.value(0).toString(), q.value(1).toString(), q.value(2).toString(), q.value(3).toString()});
+    return Result<Program>::success({field(q, "ProgramId").toString(), field(q, "ProgramName").toString(),
+                                     field(q, "TargetLearners").toString(),
+                                     field(q, "Description").toString()});
 }
 
 VoidResult SqlCatalogRepository::addProgram(const Program& p) {
@@ -182,12 +183,12 @@ Result<Promotion> SqlCatalogRepository::promotion(const QString& id) {
     if (!q.next())
         return Result<Promotion>::failure(tr("Promotion %1 was not found.").arg(id));
     Promotion p;
-    p.id = q.value(0).toString();
-    p.name = q.value(1).toString();
-    p.discountType = q.value(2).toString();
-    p.discountValue = q.value(3).toDouble();
-    p.startDate = q.value(4).toDate();
-    p.endDate = q.value(5).toDate();
+    p.id = field(q, "PromotionId").toString();
+    p.name = field(q, "PromotionName").toString();
+    p.discountType = field(q, "DiscountType").toString();
+    p.discountValue = field(q, "DiscountValue").toDouble();
+    p.startDate = field(q, "StartDate").toDate();
+    p.endDate = field(q, "EndDate").toDate();
     return Result<Promotion>::success(p);
 }
 

@@ -11,7 +11,6 @@
 namespace StudentValues {
 QStringList genders();  // Male, Female, Other
 QStringList statuses(); // Prospective, Studying, On hold, Dropped out, Completed
-QString activeStatus(); // "Studying"
 } // namespace StudentValues
 
 // Longest text each column of table STUDENT holds (NVARCHAR(100) ...). A longer value would be cut silently

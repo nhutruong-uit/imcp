@@ -38,8 +38,9 @@ Result<QList<AttendanceMark>> SqlSessionRepository::attendance(int sessionId) {
     // Columns: EnrollmentId, StudentId, StudentName, Status, Notes, IsSaved
     QList<AttendanceMark> marks;
     while (q.next())
-        marks.append({q.value(0).toString(), q.value(1).toString(), q.value(2).toString(),
-                      q.value(3).toString(), q.value(4).toString(), q.value(5).toInt() == 1});
+        marks.append({field(q, "EnrollmentId").toString(), field(q, "StudentId").toString(),
+                      field(q, "StudentName").toString(), field(q, "Status").toString(),
+                      field(q, "Notes").toString(), field(q, "IsSaved").toInt() == 1});
     return Result<QList<AttendanceMark>>::success(marks);
 }
 

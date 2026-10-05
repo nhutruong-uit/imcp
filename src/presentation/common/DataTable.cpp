@@ -171,7 +171,8 @@ void DataTable::selectFirstRow() {
 }
 
 QString DataTable::totalsText() const {
-    QStringList parts{tr("%1 rows").arg(m_proxy->rowCount())};
+    const int rows = m_proxy->rowCount();
+    QStringList parts{rows == 1 ? tr("1 row") : tr("%1 rows").arg(rows)};
     const QStringList& keys = m_model->tableData().columns;
     for (int c = 0; c < keys.size(); ++c) {
         if (!Columns::isSummable(keys.at(c)))

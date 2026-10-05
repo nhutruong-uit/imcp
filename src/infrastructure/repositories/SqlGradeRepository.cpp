@@ -22,13 +22,13 @@ Result<QList<ClassOption>> SqlGradeRepository::classes(bool mineOnly) {
     QList<ClassOption> classes;
     while (q.next()) {
         ClassOption c;
-        c.id = q.value(0).toString();
-        c.name = q.value(1).toString();
-        c.courseId = q.value(2).toString();
-        c.courseName = q.value(3).toString();
-        c.branchId = q.value(4).toString();
-        c.branchName = q.value(5).toString();
-        c.status = q.value(6).toString();
+        c.id = field(q, "ClassId").toString();
+        c.name = field(q, "ClassName").toString();
+        c.courseId = field(q, "CourseId").toString();
+        c.courseName = field(q, "CourseName").toString();
+        c.branchId = field(q, "BranchId").toString();
+        c.branchName = field(q, "BranchName").toString();
+        c.status = field(q, "Status").toString();
         classes.append(c);
     }
     return Result<QList<ClassOption>>::success(classes);
@@ -48,14 +48,14 @@ Result<QList<GradeCell>> SqlGradeRepository::cells(const QString& classId, bool 
     QList<GradeCell> cells;
     while (q.next()) {
         GradeCell c;
-        c.enrollmentId = q.value(0).toString();
-        c.studentId = q.value(2).toString();
-        c.studentName = q.value(3).toString();
-        c.componentId = q.value(4).toInt();
-        c.componentName = q.value(5).toString();
-        c.weight = q.value(6).toDouble();
-        if (!q.value(7).isNull())
-            c.score = q.value(7).toDouble();
+        c.enrollmentId = field(q, "EnrollmentId").toString();
+        c.studentId = field(q, "StudentId").toString();
+        c.studentName = field(q, "StudentName").toString();
+        c.componentId = field(q, "ComponentId").toInt();
+        c.componentName = field(q, "ComponentName").toString();
+        c.weight = field(q, "Weight").toDouble();
+        if (!field(q, "Score").isNull())
+            c.score = field(q, "Score").toDouble();
         cells.append(c);
     }
     return Result<QList<GradeCell>>::success(cells);

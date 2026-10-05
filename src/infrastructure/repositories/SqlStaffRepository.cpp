@@ -29,18 +29,18 @@ Result<Employee> SqlStaffRepository::employee(const QString& id) {
     if (!q.next())
         return Result<Employee>::failure(tr("Employee %1 was not found.").arg(id));
     Employee e;
-    e.id = q.value(0).toString();
-    e.fullName = q.value(1).toString();
-    e.dateOfBirth = q.value(2).toDate();
-    e.gender = q.value(3).toString();
-    e.phone = q.value(4).toString();
-    e.email = q.value(5).toString();
-    e.address = q.value(6).toString();
-    e.position = q.value(7).toString();
-    e.branchId = q.value(8).toString();
-    e.hireDate = q.value(9).toDate();
-    e.baseSalary = q.value(10).toLongLong();
-    e.status = q.value(11).toString();
+    e.id = field(q, "EmployeeId").toString();
+    e.fullName = field(q, "FullName").toString();
+    e.dateOfBirth = field(q, "DateOfBirth").toDate();
+    e.gender = field(q, "Gender").toString();
+    e.phone = field(q, "Phone").toString();
+    e.email = field(q, "Email").toString();
+    e.address = field(q, "Address").toString();
+    e.position = field(q, "Position").toString();
+    e.branchId = field(q, "BranchId").toString();
+    e.hireDate = field(q, "HireDate").toDate();
+    e.baseSalary = field(q, "BaseSalary").toLongLong();
+    e.status = field(q, "Status").toString();
     return Result<Employee>::success(e);
 }
 
@@ -91,26 +91,27 @@ Result<Teacher> SqlStaffRepository::teacher(const QString& id) {
             q, m_db,
             QStringLiteral("SELECT TeacherId, FullName, DateOfBirth, Gender, Nationality, Phone, Email, "
                            "Degree, TeacherType, HourlyRate, BranchId, HireDate, "
-                           "CAST(ProfileXml AS NVARCHAR(MAX)), Status FROM dbo.TEACHER WHERE TeacherId = ?"),
+                           "CAST(ProfileXml AS NVARCHAR(MAX)) AS ProfileXml, Status FROM dbo.TEACHER WHERE "
+                           "TeacherId = ?"),
             {id}))
         return Result<Teacher>::failure(errorOf(q));
     if (!q.next())
         return Result<Teacher>::failure(tr("Teacher %1 was not found.").arg(id));
     Teacher t;
-    t.id = q.value(0).toString();
-    t.fullName = q.value(1).toString();
-    t.dateOfBirth = q.value(2).toDate();
-    t.gender = q.value(3).toString();
-    t.nationality = q.value(4).toString();
-    t.phone = q.value(5).toString();
-    t.email = q.value(6).toString();
-    t.degree = q.value(7).toString();
-    t.teacherType = q.value(8).toString();
-    t.hourlyRate = q.value(9).toLongLong();
-    t.branchId = q.value(10).toString();
-    t.hireDate = q.value(11).toDate();
-    t.profileXml = q.value(12).toString();
-    t.status = q.value(13).toString();
+    t.id = field(q, "TeacherId").toString();
+    t.fullName = field(q, "FullName").toString();
+    t.dateOfBirth = field(q, "DateOfBirth").toDate();
+    t.gender = field(q, "Gender").toString();
+    t.nationality = field(q, "Nationality").toString();
+    t.phone = field(q, "Phone").toString();
+    t.email = field(q, "Email").toString();
+    t.degree = field(q, "Degree").toString();
+    t.teacherType = field(q, "TeacherType").toString();
+    t.hourlyRate = field(q, "HourlyRate").toLongLong();
+    t.branchId = field(q, "BranchId").toString();
+    t.hireDate = field(q, "HireDate").toDate();
+    t.profileXml = field(q, "NULL").toString();
+    t.status = field(q, "Status").toString();
     return Result<Teacher>::success(t);
 }
 

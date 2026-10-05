@@ -15,13 +15,13 @@ Result<DashboardStats> SqlStatisticsRepository::dashboard(const QString& branchI
     //          SessionsToday (one row)
     DashboardStats stats;
     if (q.next()) {
-        stats.activeStudents = q.value(0).toInt();
-        stats.activeClasses = q.value(1).toInt();
-        stats.enrollingClasses = q.value(2).toInt();
-        if (!q.value(3).isNull()) // NULL: the current role may not see revenue
-            stats.revenueThisMonth = q.value(3).toLongLong();
-        stats.outstandingTuition = q.value(4).toLongLong();
-        stats.sessionsToday = q.value(5).toInt();
+        stats.activeStudents = field(q, "ActiveStudents").toInt();
+        stats.activeClasses = field(q, "ActiveClasses").toInt();
+        stats.enrollingClasses = field(q, "EnrollingClasses").toInt();
+        if (!field(q, "RevenueThisMonth").isNull()) // NULL: the current role may not see revenue
+            stats.revenueThisMonth = field(q, "RevenueThisMonth").toLongLong();
+        stats.outstandingTuition = field(q, "TotalOutstanding").toLongLong();
+        stats.sessionsToday = field(q, "SessionsToday").toInt();
     }
     return Result<DashboardStats>::success(stats);
 }
@@ -34,7 +34,7 @@ Result<QList<MonthlyRevenue>> SqlStatisticsRepository::monthlyRevenue(int year, 
         return Result<QList<MonthlyRevenue>>::failure(errorOf(q));
     QList<MonthlyRevenue> months;
     while (q.next())
-        months.append({q.value(0).toInt(), q.value(1).toLongLong()});
+        months.append({field(q, "Month").toInt(), field(q, "Revenue").toLongLong()});
     return Result<QList<MonthlyRevenue>>::success(months);
 }
 

@@ -50,6 +50,8 @@ in `docs/ARCHITECTURE.md`.
   `VARCHAR`, and `execPrepared` keeps them Unicode (`withUnicodeText`). NULL via `SqlHelpers::stringOrNull`.
   Never concatenate values into SQL.
 - Procedures with OUTPUT: batch `SET NOCOUNT ON; DECLARE @x ...; EXEC ... @Out = @x OUTPUT; SELECT @x;`.
+- ✔ A result with several columns is read by column name: `SqlHelpers::field(q, "Balance")` (the name or `AS` alias
+  of the SQL; an unknown name stops a Debug build). `q.value(0)` only for a one-column result (a new ID, a count).
 - Money/dates: `Format::money`, `Format::date` (they follow the UI language through the default `QLocale`); an instant
   from the database (`DATETIME`, column `...Utc`) is UTC: show it with `Format::dateTime` (computer's time zone).
 - Dialogs: `UiHelpers::showError`, `UiHelpers::confirm`; buttons: `UiHelpers::primaryButton/secondaryButton`.
@@ -66,8 +68,10 @@ in `docs/ARCHITECTURE.md`.
   (key = column name of the view), stored database values → `DbValues::label`/`tone` (combo boxes show the label
   and keep the stored value as item data). Database business messages are translated by `DbMessages`
   (infrastructure, called by `SqlErrorMapper`).
-- **No logic on displayed text**: never compare, parse or build identifiers (column detection, colors, file names)
-  from translated text; use codes, column keys and stored values.
+- **No logic on displayed text**: never compare, parse or build identifiers (column detection, colors, file names
+  the code reads back) from translated text; use codes, column keys and stored values. A file name only suggested to
+  the user in a save dialog may follow the UI language (the user sees and edits it): it goes through
+  `UiHelpers::fileName`, which removes the characters a file name cannot hold.
 - After adding/changing strings: `cmake --build --preset macos-debug --target update_translations`, translate the new
   entries in `resources/translations/qlttta_vi.ts` (Qt Linguist or a text editor), and run `tst_i18n`.
 - Switching language rebuilds the window (`I18n::switchTo` + `languageChangeRequested`); do not add per-widget

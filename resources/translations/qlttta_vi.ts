@@ -1446,6 +1446,10 @@
         <source>%1 rows</source>
         <translation>%1 dòng</translation>
     </message>
+    <message>
+        <source>1 row</source>
+        <translation>1 dòng</translation>
+    </message>
 </context>
 <context>
     <name>DatabaseManager</name>

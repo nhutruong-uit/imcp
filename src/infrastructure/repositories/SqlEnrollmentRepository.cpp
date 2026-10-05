@@ -54,9 +54,11 @@ Result<QList<ClassOption>> SqlEnrollmentRepository::openClasses() {
         return Result<QList<ClassOption>>::failure(errorOf(q));
     QList<ClassOption> classes;
     while (q.next())
-        classes.append({q.value(0).toString(), q.value(1).toString(), q.value(2).toString(),
-                        q.value(3).toString(), q.value(4).toString(), q.value(5).toString(),
-                        q.value(6).toString(), q.value(7).toLongLong(), q.value(8).toInt()});
+        classes.append({field(q, "ClassId").toString(), field(q, "ClassName").toString(),
+                        field(q, "CourseId").toString(), field(q, "CourseName").toString(),
+                        field(q, "BranchId").toString(), field(q, "BranchName").toString(),
+                        field(q, "Status").toString(), field(q, "Tuition").toLongLong(),
+                        field(q, "SeatsLeft").toInt()});
     return Result<QList<ClassOption>>::success(classes);
 }
 

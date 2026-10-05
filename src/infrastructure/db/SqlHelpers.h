@@ -70,6 +70,13 @@ BoundStatement withUnicodeText(const QString& sql, const QVariantList& values);
 // Prepares sql, binds values and executes it (through withUnicodeText when the connection uses FreeTDS)
 bool execPrepared(QSqlQuery& q, const DatabaseManager& db, const QString& sql, const QVariantList& values);
 
+/// The value of a column of the current row, found by its NAME (the column name or AS alias of the SQL),
+/// never by
+// its position: a procedure that gets a new column or another column order cannot shift the values. An
+// unknown name is a programming error - it stops a Debug build (the tests) and gives an empty value in a
+// Release build.
+QVariant field(const QSqlQuery& q, const char* column);
+
 // The rows of the current result of q as TableData: the column names (or AS aliases) become the column keys,
 // so the SQL holds no display text (the presentation layer finds the titles in its column catalog, Columns)
 TableData readTable(QSqlQuery& q);

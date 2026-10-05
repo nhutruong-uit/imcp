@@ -27,24 +27,25 @@ Result<Account> SqlAuthGateway::login(const ServerConfig& config, const QString&
     }
 
     // Columns: Username, Role, EmployeeId, TeacherId, Status, FullName, BranchId
-    // (q.next() moves to the first row; q.value(i) reads column i of that row, 0 = the first column)
+    // (q.next() moves to the first row; field(q, "Role") reads the column Role of that row)
     Account account;
     if (q.next()) {
-        account.username = q.value(0).toString();
-        account.role = roleFromCode(q.value(1).toString());
-        account.employeeId = q.value(2).toString();
-        account.teacherId = q.value(3).toString();
-        account.fullName = q.value(5).toString();
-        account.branchId = q.value(6).toString();
-        account.active = q.value(4).toString() == kActiveStatus;
+        account.username = field(q, "Username").toString();
+        account.role = roleFromCode(field(q, "Role").toString());
+        account.employeeId = field(q, "EmployeeId").toString();
+        account.teacherId = field(q, "TeacherId").toString();
+        account.fullName = field(q, "FullName").toString();
+        account.branchId = field(q, "BranchId").toString();
+        account.active = field(q, "Status").toString() == kActiveStatus;
         return Result<Account>::success(account);
     }
 
     // Not in ACCOUNT: let the database owner (sa / db_owner) in with the Manager role
     QSqlQuery owner = makeQuery(m_db.db());
-    if (owner.exec(QStringLiteral("SELECT IS_MEMBER('db_owner'), ORIGINAL_LOGIN()")) && owner.next() &&
-        owner.value(0).toInt() == 1) {
-        account.username = owner.value(1).toString();
+    if (owner.exec(
+            QStringLiteral("SELECT IS_MEMBER('db_owner') AS IsOwner, ORIGINAL_LOGIN() AS LoginName")) &&
+        owner.next() && field(owner, "IsOwner").toInt() == 1) {
+        account.username = field(owner, "LoginName").toString();
         account.fullName = account.username;
         account.databaseOwner = true;
         account.role = Role::Manager;

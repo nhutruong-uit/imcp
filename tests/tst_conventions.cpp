@@ -303,6 +303,19 @@ private slots:
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 
+    // A result with several columns is read by column name (SqlHelpers::field), so a procedure that gets a
+    // new column or another order cannot shift the values; value(0) stays for one-column results (a new ID, a
+    // count)
+    void repositories_resultColumns_readByName() {
+        const QRegularExpression positional(QStringLiteral("\\.value\\(\\s*[1-9]\\d*\\s*\\)"));
+        QStringList problems;
+        for (const QString& file :
+             filesIn(QStringLiteral("src/infrastructure/repositories"), {QStringLiteral("*.cpp")}))
+            problems << findAll(file, withoutComments(readText(file), false), positional,
+                                QStringLiteral("read the column by name: SqlHelpers::field(q, \"Column\")"));
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
+
     // 04-scripts-ci.md: .sh = bash + set -euo pipefail; .ps1 = UTF-8 with BOM, CRLF, stop on errors
     void scripts_shellAndPowerShell_followFormat() {
         QStringList problems;
