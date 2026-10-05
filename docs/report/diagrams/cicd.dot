@@ -1,0 +1,24 @@
+// Quy trình CI/CD
+digraph CICD {
+  graph [rankdir=TB, fontname="Arial", dpi=220, pad=0.2, nodesep=0.5, ranksep=0.45];
+  node  [fontname="Arial", fontsize=11, shape=box, style="rounded,filled", fillcolor="#F1F5F9"];
+  edge  [color="#334155", fontname="Arial", fontsize=9];
+  dev [label="Nhánh feature/*\n(Claude Code + leader)"];
+  local [label="scripts/test_all\nCSDL + unit + e2e\n(trên máy)", fillcolor="#FEF3C7"];
+  pr [label="Pull Request\n→ develop"];
+  develop [label="merge vào develop"];
+  ci [label="CI (ci.yml)\nbuild + unit test\nmacOS & Windows", fillcolor="#DBEAFE"];
+  prm [label="PR develop → main"];
+  cim [label="CI bắt buộc xanh\n(branch protection)", fillcolor="#DBEAFE"];
+  rel [label="Release (release.yml)\nkhi merge vào main", fillcolor="#C7D2FE"];
+  mac [label="macOS: macdeployqt\n+ FreeTDS, ký ad-hoc\n→ .dmg", fillcolor="#DBEAFE"];
+  win [label="Windows: windeployqt\n+ Inno Setup\n→ setup.exe, .zip", fillcolor="#DBEAFE"];
+  gh [label="GitHub Release\nvX.Y.Z-build.N\n(giảng viên tải về)", fillcolor="#DCFCE7"];
+  {rank=same; dev; local; pr;}
+  {rank=same; develop; ci;}
+  {rank=same; prm; cim; rel;}
+  {rank=same; mac; win;}
+  dev -> local -> pr; pr -> develop; develop -> ci [label=" tự chạy"];
+  develop -> prm -> cim -> rel;
+  rel -> mac; rel -> win; mac -> gh; win -> gh;
+}

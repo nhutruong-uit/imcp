@@ -1,0 +1,767 @@
+{
+ "dashboard": {
+  "columns": [
+   "ActiveStudents",
+   "ActiveClasses",
+   "EnrollingClasses",
+   "RevenueThisMonth",
+   "TotalOutstanding",
+   "SessionsToday"
+  ],
+  "rows": [
+   [
+    "62",
+    "5",
+    "3",
+    "5000000",
+    "69536000",
+    "3"
+   ]
+  ]
+ },
+ "revenue_by_program": {
+  "columns": [
+   "ProgramName",
+   "StudentCount",
+   "Revenue"
+  ],
+  "rows": [
+   [
+    "IELTS Preparation",
+    "25",
+    "214964000"
+   ],
+   [
+    "English for Communication",
+    "14",
+    "68070000"
+   ],
+   [
+    "English for Kids",
+    "12",
+    "61900000"
+   ],
+   [
+    "TOEIC Preparation",
+    "14",
+    "51000000"
+   ]
+  ]
+ },
+ "top3_per_class": {
+  "columns": [
+   "ClassId",
+   "Rank",
+   "FullName",
+   "FinalGrade"
+  ],
+  "rows": [
+   [
+    "CL0001",
+    "1",
+    "Vũ Thảo Nguyên",
+    "8.73"
+   ],
+   [
+    "CL0001",
+    "2",
+    "Trần Thị Bích Ngọc",
+    "8.07"
+   ],
+   [
+    "CL0001",
+    "3",
+    "Phạm Minh Châu",
+    "7.81"
+   ],
+   [
+    "CL0002",
+    "1",
+    "Phan Văn Lợi",
+    "9.43"
+   ],
+   [
+    "CL0002",
+    "2",
+    "Mai Đức Thắng",
+    "9.09"
+   ],
+   [
+    "CL0002",
+    "3",
+    "Trịnh Thu Trang",
+    "8.69"
+   ]
+  ]
+ },
+ "prerequisite_path": {
+  "columns": [
+   "Depth",
+   "CourseId",
+   "CourseName"
+  ],
+  "rows": [
+   [
+    "2",
+    "IE-FND",
+    "IELTS Foundation"
+   ],
+   [
+    "1",
+    "IE-55",
+    "IELTS 5.5 Intensive"
+   ],
+   [
+    "0",
+    "IE-65",
+    "IELTS 6.5 Advanced"
+   ]
+  ]
+ },
+ "enrollments_pivot": {
+  "columns": [
+   "ProgramName",
+   "District1",
+   "ThuDuc"
+  ],
+  "rows": [
+   [
+    "English for Communication",
+    "4",
+    "19"
+   ],
+   [
+    "English for Kids",
+    "12",
+    "0"
+   ],
+   [
+    "IELTS Preparation",
+    "26",
+    "8"
+   ],
+   [
+    "TOEIC Preparation",
+    "12",
+    "3"
+   ]
+  ]
+ },
+ "ielts_teachers": {
+  "columns": [
+   "TeacherId",
+   "FullName",
+   "IELTS"
+  ],
+  "rows": [
+   [
+    "TE0002",
+    "Nguyễn Hoàng Anh",
+    "8.5"
+   ],
+   [
+    "TE0003",
+    "Trần Thị Hoa",
+    "8.0"
+   ],
+   [
+    "TE0008",
+    "Huỳnh Minh Thư",
+    "8.0"
+   ]
+  ]
+ },
+ "teacher_certificates": {
+  "columns": [
+   "TeacherId",
+   "FullName",
+   "Certificate",
+   "Score",
+   "Year"
+  ],
+  "rows": [
+   [
+    "TE0001",
+    "John Smith",
+    "CELTA",
+    "NULL",
+    "2014"
+   ],
+   [
+    "TE0001",
+    "John Smith",
+    "IELTS Examiner",
+    "NULL",
+    "2019"
+   ],
+   [
+    "TE0002",
+    "Nguyễn Hoàng Anh",
+    "TESOL",
+    "NULL",
+    "2019"
+   ],
+   [
+    "TE0002",
+    "Nguyễn Hoàng Anh",
+    "IELTS",
+    "8.5",
+    "2023"
+   ],
+   [
+    "TE0003",
+    "Trần Thị Hoa",
+    "TESOL",
+    "NULL",
+    "2021"
+   ],
+   [
+    "TE0003",
+    "Trần Thị Hoa",
+    "IELTS",
+    "8.0",
+    "2022"
+   ],
+   [
+    "TE0004",
+    "Emily Johnson",
+    "TESOL",
+    "NULL",
+    "2017"
+   ],
+   [
+    "TE0005",
+    "Lê Quốc Bảo",
+    "IELTS",
+    "7.5",
+    "2020"
+   ]
+  ]
+ },
+ "syllabus_consistency": {
+  "columns": [
+   "CourseId",
+   "SessionCount",
+   "SyllabusSessions"
+  ],
+  "rows": [
+   [
+    "CM-A1",
+    "20",
+    "20"
+   ],
+   [
+    "IE-55",
+    "30",
+    "30"
+   ],
+   [
+    "IE-FND",
+    "24",
+    "24"
+   ],
+   [
+    "KD-STA",
+    "32",
+    "32"
+   ],
+   [
+    "TO-450",
+    "20",
+    "20"
+   ]
+  ]
+ },
+ "course_syllabus": {
+  "columns": [
+   "Unit",
+   "Title",
+   "Sessions",
+   "Skills"
+  ],
+  "rows": [
+   [
+    "1",
+    "Listening Section 1-4",
+    "6",
+    "Listening"
+   ],
+   [
+    "2",
+    "Reading: True/False/Not Given, Matching",
+    "6",
+    "Reading"
+   ],
+   [
+    "3",
+    "Writing Task 1: Charts",
+    "6",
+    "Writing"
+   ],
+   [
+    "4",
+    "Writing Task 2: Argumentative essays",
+    "6",
+    "Writing , Grammar"
+   ],
+   [
+    "5",
+    "Speaking Part 1-3",
+    "6",
+    "Speaking"
+   ]
+  ]
+ },
+ "courses_by_skill": {
+  "columns": [
+   "CourseId",
+   "CourseName",
+   "Level",
+   "Textbook",
+   "UnitCount"
+  ],
+  "rows": [
+   [
+    "CM-A1",
+    "Communication Elementary",
+    "A1",
+    "English File Beginner",
+    "4"
+   ],
+   [
+    "IE-55",
+    "IELTS 5.5 Intensive",
+    "B1",
+    "Cambridge IELTS 18",
+    "1"
+   ],
+   [
+    "IE-FND",
+    "IELTS Foundation",
+    "A2",
+    "Complete IELTS Foundation",
+    "2"
+   ],
+   [
+    "KD-STA",
+    "Kids Starters",
+    "A1",
+    "Fun for Starters",
+    "2"
+   ]
+  ]
+ },
+ "class1_results": {
+  "columns": [
+   "StudentId",
+   "StudentName",
+   "FinalGrade",
+   "Classification",
+   "AttendanceRate",
+   "Result"
+  ],
+  "rows": [
+   [
+    "ST00006",
+    "Vũ Thảo Nguyên",
+    "8.73",
+    "Very good",
+    "91.67",
+    "Passed"
+   ],
+   [
+    "ST00002",
+    "Trần Thị Bích Ngọc",
+    "8.07",
+    "Very good",
+    "100.00",
+    "Passed"
+   ],
+   [
+    "ST00004",
+    "Phạm Minh Châu",
+    "7.81",
+    "Good",
+    "95.83",
+    "Passed"
+   ],
+   [
+    "ST00001",
+    "Nguyễn Văn An",
+    "7.71",
+    "Good",
+    "95.83",
+    "Passed"
+   ],
+   [
+    "ST00005",
+    "Hoàng Gia Huy",
+    "7.49",
+    "Good",
+    "58.33",
+    "Failed"
+   ],
+   [
+    "ST00003",
+    "Lê Hoàng Phúc",
+    "7.43",
+    "Good",
+    "95.83",
+    "Passed"
+   ],
+   [
+    "ST00009",
+    "Đỗ Thành Đạt",
+    "7.27",
+    "Good",
+    "95.83",
+    "Passed"
+   ],
+   [
+    "ST00008",
+    "Bùi Ngọc Ánh",
+    "6.91",
+    "Good",
+    "100.00",
+    "Passed"
+   ],
+   [
+    "ST00007",
+    "Đặng Quốc Khánh",
+    "6.59",
+    "Good",
+    "95.83",
+    "Passed"
+   ],
+   [
+    "ST00010",
+    "Ngô Khánh Linh",
+    "6.23",
+    "Average",
+    "91.67",
+    "Passed"
+   ],
+   [
+    "ST00012",
+    "Lý Mỹ Duyên",
+    "6.07",
+    "Average",
+    "91.67",
+    "Passed"
+   ],
+   [
+    "ST00011",
+    "Dương Tuấn Kiệt",
+    "4.51",
+    "Failed",
+    "100.00",
+    "Failed"
+   ]
+  ]
+ },
+ "payroll": {
+  "columns": [
+   "Year",
+   "Month",
+   "FullName",
+   "SessionCount",
+   "Hours",
+   "HourlyRate",
+   "Bonus",
+   "TotalPay"
+  ],
+  "rows": [
+   [
+    "2026",
+    "9",
+    "John Smith",
+    "13",
+    "26.00",
+    "450000",
+    "0",
+    "11700000"
+   ],
+   [
+    "2026",
+    "9",
+    "Emily Johnson",
+    "6",
+    "9.00",
+    "420000",
+    "0",
+    "3780000"
+   ],
+   [
+    "2026",
+    "9",
+    "Lê Quốc Bảo",
+    "9",
+    "13.50",
+    "260000",
+    "0",
+    "3510000"
+   ],
+   [
+    "2026",
+    "9",
+    "Huỳnh Minh Thư",
+    "5",
+    "10.00",
+    "280000",
+    "0",
+    "2800000"
+   ],
+   [
+    "2026",
+    "9",
+    "Phạm Ngọc Diệp",
+    "8",
+    "12.00",
+    "220000",
+    "0",
+    "2640000"
+   ],
+   [
+    "2026",
+    "8",
+    "John Smith",
+    "10",
+    "20.00",
+    "450000",
+    "0",
+    "9000000"
+   ]
+  ]
+ },
+ "student_balance": {
+  "columns": [
+   "EnrollmentId",
+   "ClassId",
+   "ClassName",
+   "TuitionDue",
+   "AmountPaid",
+   "Balance"
+  ],
+  "rows": [
+   [
+    "EN000024",
+    "CL0004",
+    "TOEIC 450+ #1",
+    "4500000",
+    "2250000",
+    "2250000"
+   ]
+  ]
+ },
+ "monthly_revenue": {
+  "columns": [
+   "Month",
+   "ReceiptCount",
+   "Revenue"
+  ],
+  "rows": [
+   [
+    "03/2026",
+    "0",
+    "0"
+   ],
+   [
+    "04/2026",
+    "0",
+    "0"
+   ],
+   [
+    "05/2026",
+    "17",
+    "80475000"
+   ],
+   [
+    "06/2026",
+    "9",
+    "27685000"
+   ],
+   [
+    "07/2026",
+    "14",
+    "57710000"
+   ],
+   [
+    "08/2026",
+    "28",
+    "139650000"
+   ],
+   [
+    "09/2026",
+    "22",
+    "85414000"
+   ],
+   [
+    "10/2026",
+    "5",
+    "5000000"
+   ]
+  ]
+ },
+ "audit_log": {
+  "columns": [
+   "LoggedAtUtc",
+   "PerformedBy",
+   "TableName",
+   "Action",
+   "RecordKey",
+   "NewData"
+  ],
+  "rows": [
+   [
+    "2026-10-05 05:27",
+    "AZBIL-W003\\MSI 13",
+    "RECEIPT",
+    "INSERT",
+    "RC000081",
+    "<Receipt><EnrollmentId>EN000003</EnrollmentId><Amount>3250000</Amount><PaymentMethod>Bank transfer</PaymentMethod><Status>Valid</Status></Receipt>"
+   ],
+   [
+    "2026-10-05 05:27",
+    "AZBIL-W003\\MSI 13",
+    "RECEIPT",
+    "INSERT",
+    "RC000082",
+    "<Receipt><EnrollmentId>EN000006</EnrollmentId><Amount>3250000</Amount><PaymentMethod>Bank transfer</PaymentMethod><Status>Valid</Status></Receipt>"
+   ],
+   [
+    "2026-10-05 05:27",
+    "AZBIL-W003\\MSI 13",
+    "RECEIPT",
+    "INSERT",
+    "RC000083",
+    "<Receipt><EnrollmentId>EN000009</EnrollmentId><Amount>3250000</Amount><PaymentMethod>Bank transfer</PaymentMethod><Status>Valid</Status></Receipt>"
+   ]
+  ]
+ },
+ "row_counts": {
+  "columns": [
+   "TableName",
+   "RecordCount"
+  ],
+  "rows": [
+   [
+    "ACCOUNT",
+    "9"
+   ],
+   [
+    "ATTENDANCE",
+    "1310"
+   ],
+   [
+    "AUDIT_LOG",
+    "246"
+   ],
+   [
+    "BRANCH",
+    "2"
+   ],
+   [
+    "CERTIFICATE",
+    "19"
+   ],
+   [
+    "CLASS",
+    "10"
+   ],
+   [
+    "CLASS_SCHEDULE",
+    "24"
+   ],
+   [
+    "CLASS_SESSION",
+    "248"
+   ],
+   [
+    "COURSE",
+    "9"
+   ],
+   [
+    "EMPLOYEE",
+    "6"
+   ],
+   [
+    "ENROLLMENT",
+    "84"
+   ],
+   [
+    "GRADE",
+    "138"
+   ],
+   [
+    "GRADE_COMPONENT",
+    "27"
+   ],
+   [
+    "PAYROLL",
+    "9"
+   ],
+   [
+    "PLACEMENT_TEST",
+    "44"
+   ],
+   [
+    "PROGRAM",
+    "4"
+   ],
+   [
+    "PROMOTION",
+    "3"
+   ],
+   [
+    "RECEIPT",
+    "95"
+   ],
+   [
+    "ROOM",
+    "8"
+   ],
+   [
+    "STUDENT",
+    "72"
+   ],
+   [
+    "TEACHER",
+    "8"
+   ]
+  ]
+ },
+ "object_counts": {
+  "columns": [
+   "TableCount",
+   "SequenceCount",
+   "XmlSchemaCount",
+   "FunctionCount",
+   "ViewCount",
+   "ProcedureCount",
+   "TriggerCount",
+   "RoleCount",
+   "CheckCount",
+   "DefaultCount",
+   "ForeignKeyCount",
+   "PrimaryKeyCount",
+   "UniqueCount"
+  ],
+  "rows": [
+   [
+    "21",
+    "8",
+    "1",
+    "19",
+    "13",
+    "64",
+    "16",
+    "4",
+    "76",
+    "45",
+    "32",
+    "21",
+    "13"
+   ]
+  ]
+ }
+}

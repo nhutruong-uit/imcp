@@ -1,0 +1,1216 @@
+<!doctype html>
+<!--
+  docs/index.html - the project site: one page that introduces QLTTTA as a whole (the problem, the app by role,
+  the database, the architecture, the tech stack, the team workflow, the report and user guide, the installers
+  and the team). Published as the home page of https://nhutruong-uit.github.io/imcp/ by
+  .github/workflows/pages.yml, next to the interactive data map (data-map.html).
+  Who uses it: the instructor and visitors (first look at the project), team members (overview before the oral
+  defense). Open it from the file too: the links and images are relative to docs/.
+  Course concepts shown: the database as the core of an information system (constraints, procedures, triggers,
+  cursors, views, authorization, backup, XML, distributed database), presenting information by role.
+  Public content only: the site is public while the repository is private. The page shows only the screenshots of
+  report/images/screens/ (demo data) and links to the repository for everything else - never copy the report, the
+  user guide or a document of docs/ here. tst_conventions (docs_projectSite_matchesRepository) checks that every
+  local link is the data map or one of those screenshots and that the tables listed here are the tables of
+  01_tables.sql; docs_databaseNumbers_matchScripts checks the numbers marked data-stat; database object names
+  (usp_, vw_, fn_, trg_...) must exist in the database scripts (docs_sitePages_namesExistInScripts).
+  Libraries: Google Fonts only; the page works without them.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QLTTTA - English Center Management</title>
+<meta name="description" content="QLTTTA, an English-center management system built around a SQL Server database: stored procedures, triggers, role-based security and a Qt desktop app. IE103 Information Management, UIT VNU-HCM, Group 1.">
+<meta property="og:title" content="QLTTTA - English Center Management">
+<meta property="og:description" content="A SQL Server database that enforces every business rule and permission, with a Qt desktop app for each role. IE103, UIT VNU-HCM, Group 1.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://nhutruong-uit.github.io/imcp/report/images/screens/ql_quan_dashboard.png">
+<meta name="theme-color" content="#0F1D35">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231F3864'/%3E%3Cstop offset='1' stop-color='%232E75B6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='2' y='2' width='60' height='60' rx='14' fill='url(%23g)'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 26 32 15l22 11-22 11z'/%3E%3Cpath d='M19 31v12c0 4 6 7 13 7s13-3 13-7V31M54 26v13'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Same visual language as data-map.html (fonts, navy accent, business-group colors), so the two pages read as one
+   site. Light and dark follow the system setting. The hero, the navigation bar and the footer are always navy, like
+   the sidebar of the app. Identifiers (tables, procedures, files) are always mono. */
+:root {
+  --bg: #F4F6FA; --surface: #FFFFFF; --surface-2: #EDF1F7; --ink: #0E1A2E; --ink-2: #43506A; --ink-3: #6B778E;
+  --line: #D8DFE9; --line-2: #E5EAF1; --accent: #1F3864; --accent-2: #2E75B6; --accent-soft: #DFE9F7;
+  --ok: #13723A; --ok-soft: #DDF2E4; --deny: #B42318; --deny-soft: #FCE8E6;
+  --g-org: #0F766E; --g-people: #7E22CE; --g-training: #1D4ED8; --g-classes: #A16207;
+  --g-students: #C2410C; --g-finance: #15803D; --g-results: #BE123C; --g-system: #64748B;
+  --tint: 12%;
+  --navy: #0F1D35; --navy-2: #16294A; --on-navy: #E8EEF8; --on-navy-2: #A9B7CE; --on-navy-line: rgba(232, 238, 248, .12);
+  --shadow: 0 1px 2px rgba(14, 26, 46, .05), 0 6px 20px -8px rgba(14, 26, 46, .14);
+  --shadow-lg: 0 2px 6px rgba(14, 26, 46, .08), 0 30px 70px -20px rgba(6, 14, 30, .55);
+  --font-body: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r: 10px; --r-lg: 16px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B1220; --surface: #121B2B; --surface-2: #182336; --ink: #E5EBF4; --ink-2: #A8B4C8; --ink-3: #7F8BA1;
+    --line: #26344B; --line-2: #1E2A3E; --accent: #8DB5F2; --accent-2: #6AA8EC; --accent-soft: #1B2C47;
+    --ok: #5BD08A; --ok-soft: #12301E; --deny: #F59B8F; --deny-soft: #3A1A18;
+    --g-org: #2DD4BF; --g-people: #C084FC; --g-training: #7AA7FF; --g-classes: #E3B341;
+    --g-students: #FB923C; --g-finance: #4ADE80; --g-results: #FB7185; --g-system: #94A3B8;
+    --tint: 18%;
+    --navy: #0A1528; --navy-2: #102142;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px -8px rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B1220; --surface: #121B2B; --surface-2: #182336; --ink: #E5EBF4; --ink-2: #A8B4C8; --ink-3: #7F8BA1;
+  --line: #26344B; --line-2: #1E2A3E; --accent: #8DB5F2; --accent-2: #6AA8EC; --accent-soft: #1B2C47;
+  --ok: #5BD08A; --ok-soft: #12301E; --deny: #F59B8F; --deny-soft: #3A1A18;
+  --g-org: #2DD4BF; --g-people: #C084FC; --g-training: #7AA7FF; --g-classes: #E3B341;
+  --g-students: #FB923C; --g-finance: #4ADE80; --g-results: #FB7185; --g-system: #94A3B8;
+  --tint: 18%;
+  --navy: #0A1528; --navy-2: #102142;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px -8px rgba(0, 0, 0, .5);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition: none !important; animation: none !important; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.65 var(--font-body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--accent-2); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+code, .mono, pre { font-family: var(--font-mono); font-size: .86em; font-variant-ligatures: none; }
+p code, li code, td code, dd code, small code { padding: .08em .38em; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--ink); white-space: nowrap; }
+h1, h2, h3, h4 { margin: 0; text-wrap: balance; letter-spacing: -.015em; }
+p { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; border-radius: 4px; }
+.wrap { width: 100%; max-width: 1200px; margin-inline: auto; padding-inline: 16px; }
+@media (min-width: 720px) { .wrap { padding-inline: 28px; } }
+.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.skip { position: absolute; left: -9999px; top: 8px; z-index: 100; background: var(--surface); color: var(--ink); padding: 8px 14px; border-radius: 8px; }
+.skip:focus { left: 8px; }
+
+/* ---------- buttons ---------- */
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 10px; font-weight: 600; font-size: 15px; border: 1px solid transparent; cursor: pointer; white-space: nowrap; transition: background .15s, border-color .15s, color .15s, transform .15s; }
+.btn:hover { text-decoration: none; }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: #FFFFFF; color: #13264A; }
+.btn-primary:hover { background: #E3ECFA; }
+.btn-ghost { color: var(--on-navy); border-color: rgba(232, 238, 248, .3); }
+.btn-ghost:hover { border-color: rgba(232, 238, 248, .7); background: rgba(232, 238, 248, .06); }
+.btn-solid { background: var(--accent); color: #FFFFFF; }
+:root[data-theme="dark"] .btn-solid { color: #0B1220; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn-solid { color: #0B1220; } }
+.btn-solid:hover { filter: brightness(1.1); }
+.btn-line { border-color: var(--line); background: var(--surface); color: var(--ink); }
+.btn-line:hover { border-color: var(--ink-3); }
+.btn .i { width: 17px; height: 17px; }
+.lock { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-3); }
+.lock .i { width: 14px; height: 14px; }
+
+/* ---------- navigation ---------- */
+.nav { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--navy) 92%, transparent); backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px); border-bottom: 1px solid var(--on-navy-line); color: var(--on-navy); }
+.nav-in { display: flex; align-items: center; gap: 20px; height: 64px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--on-navy); flex: none; }
+.brand:hover { text-decoration: none; }
+.brand svg { width: 34px; height: 34px; }
+.brand b { display: block; font-size: 16px; letter-spacing: .01em; line-height: 1.1; }
+.brand small { display: block; font: 500 11px/1.3 var(--font-mono); color: var(--on-navy-2); letter-spacing: .06em; }
+.links { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.links a { padding: 8px 11px; border-radius: 8px; color: var(--on-navy-2); font-size: 14px; font-weight: 500; }
+.links a:hover { color: #FFFFFF; text-decoration: none; background: rgba(232, 238, 248, .06); }
+.links a[aria-current="true"] { color: #FFFFFF; background: rgba(232, 238, 248, .1); }
+.nav-cta { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: 9px; background: #FFFFFF; color: #13264A; font-weight: 600; font-size: 14px; flex: none; }
+.nav-cta:hover { text-decoration: none; background: #E3ECFA; }
+.nav-cta .i { width: 16px; height: 16px; }
+.menu { display: none; margin-left: auto; width: 40px; height: 40px; border: 1px solid var(--on-navy-line); border-radius: 9px; background: none; color: var(--on-navy); cursor: pointer; align-items: center; justify-content: center; }
+@media (max-width: 1100px) {
+  .menu { display: inline-flex; }
+  .nav-cta { margin-left: 0; }
+  .links { position: fixed; inset: 64px 0 auto 0; flex-direction: column; align-items: stretch; gap: 0; margin: 0; padding: 8px 16px 18px; background: var(--navy); border-bottom: 1px solid var(--on-navy-line); box-shadow: 0 20px 40px -20px rgba(0, 0, 0, .6); transform: translateY(-8px); opacity: 0; visibility: hidden; transition: opacity .18s, transform .18s, visibility .18s; }
+  .links a { padding: 12px 10px; font-size: 15.5px; border-bottom: 1px solid var(--on-navy-line); border-radius: 0; }
+  .menu-open .links { opacity: 1; transform: none; visibility: visible; }
+}
+@media (max-width: 480px) { .nav-cta span { display: none; } .nav-cta { padding: 0 10px; } .brand small { display: none; } }
+
+/* ---------- hero ---------- */
+.hero { position: relative; overflow: hidden; color: var(--on-navy); background: radial-gradient(900px 520px at 88% 0%, rgba(46, 117, 182, .45), transparent 65%), radial-gradient(700px 500px at 0% 100%, rgba(31, 56, 100, .7), transparent 70%), linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%); }
+.hero::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(232, 238, 248, .09) 1px, transparent 1.3px); background-size: 22px 22px; -webkit-mask-image: linear-gradient(180deg, #000 10%, transparent 95%); mask-image: linear-gradient(180deg, #000 10%, transparent 95%); pointer-events: none; }
+.hero-in { position: relative; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 56px; align-items: center; padding-block: 72px 56px; }
+.eyebrow { display: inline-flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-bottom: 22px; font: 500 12px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--on-navy-2); }
+.eyebrow b { padding: 3px 8px; border-radius: 6px; background: rgba(232, 238, 248, .1); color: #FFFFFF; font-weight: 600; }
+.hero h1 { font-size: clamp(34px, 4.4vw, 52px); line-height: 1.08; font-weight: 700; letter-spacing: -.028em; color: #FFFFFF; }
+.hero h1 span { color: #9CC3F5; }
+.hero .lede { margin-top: 20px; font-size: 17px; line-height: 1.7; color: var(--on-navy-2); max-width: 58ch; }
+.hero .lede i { color: var(--on-navy); }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+.tags li { padding: 5px 11px; border-radius: 999px; border: 1px solid var(--on-navy-line); font-size: 13px; color: var(--on-navy-2); background: rgba(232, 238, 248, .03); }
+.hero-visual { position: relative; padding-bottom: 54px; }
+.window { margin: 0; border-radius: 12px; overflow: hidden; background: #FFFFFF; box-shadow: var(--shadow-lg); border: 1px solid rgba(255, 255, 255, .14); }
+.window-bar { display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; background: #E9EDF3; border-bottom: 1px solid #D5DCE6; }
+.window-bar i { width: 10px; height: 10px; border-radius: 50%; background: #C9D1DD; }
+.window-bar span { margin-left: 8px; font: 500 11.5px var(--font-mono); color: #5D6A80; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero .window { transform: perspective(1800px) rotateY(-5deg) rotateX(2deg); transform-origin: left center; }
+.sql-card { position: absolute; left: -36px; bottom: 0; width: min(420px, 88%); border-radius: 12px; background: #0A1222; border: 1px solid rgba(156, 195, 245, .22); box-shadow: 0 24px 50px -16px rgba(0, 0, 0, .7); overflow: hidden; }
+.sql-head { display: flex; align-items: center; gap: 8px; padding: 9px 14px; font: 500 11px var(--font-mono); letter-spacing: .04em; color: #8FA3C2; border-bottom: 1px solid rgba(156, 195, 245, .12); }
+.sql-head .dot { width: 7px; height: 7px; border-radius: 50%; background: #5BD08A; box-shadow: 0 0 0 3px rgba(91, 208, 138, .15); }
+.sql-card pre { margin: 0; padding: 12px 14px 8px; font: 400 12.5px/1.6 var(--font-mono); font-variant-ligatures: none; color: #D7E2F3; white-space: pre; overflow-x: auto; }
+.sql-card .k { color: #7FB3FF; } .sql-card .s { color: #F2C77C; } .sql-card .p { color: #8FA3C2; }
+.sql-err { display: flex; gap: 9px; margin: 0 14px 13px; padding: 9px 11px; border-radius: 8px; background: rgba(244, 114, 114, .1); border: 1px solid rgba(244, 114, 114, .25); color: #FFC9C9; font-size: 12.5px; line-height: 1.5; }
+.sql-err b { font: 600 11.5px/1.6 var(--font-mono); color: #FF9D9D; white-space: nowrap; }
+.stats { position: relative; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin: 0; padding: 26px 0 34px; border-top: 1px solid var(--on-navy-line); }
+.stats div { display: flex; flex-direction: column; gap: 4px; padding-inline: 14px; border-left: 1px solid var(--on-navy-line); }
+.stats div:first-child { border-left: 0; padding-left: 0; }
+.stats dt { order: 2; font-size: 13px; color: var(--on-navy-2); line-height: 1.35; }
+.stats dd { order: 1; margin: 0; font: 600 30px/1 var(--font-mono); color: #FFFFFF; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+@media (max-width: 980px) {
+  .hero-in { grid-template-columns: minmax(0, 1fr); gap: 40px; padding-top: 52px; }
+  .hero .window { transform: none; }
+  .sql-card { left: auto; right: 12px; }
+  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 22px; }
+  .stats div:nth-child(4) { border-left: 0; padding-left: 0; }
+}
+@media (max-width: 560px) {
+  .hero-visual { padding-bottom: 0; }
+  .sql-card { position: relative; right: auto; width: 100%; margin-top: -24px; margin-left: 0; }
+  .stats div { padding-inline: 10px; }
+  .stats dd { font-size: 24px; }
+  .stats dt { font-size: 12px; }
+}
+
+/* ---------- sections ---------- */
+.sec { padding-block: 96px; }
+.sec.alt { background: var(--surface); border-block: 1px solid var(--line-2); }
+@media (max-width: 720px) { .sec { padding-block: 64px; } }
+.sec-head { max-width: 760px; margin-bottom: 44px; }
+.kicker { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font: 600 12px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent-2); }
+.kicker span { display: inline-grid; place-items: center; min-width: 30px; height: 22px; padding: 0 6px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); letter-spacing: .04em; }
+.sec h2 { font-size: clamp(27px, 3.3vw, 40px); line-height: 1.15; font-weight: 700; letter-spacing: -.025em; }
+.sec-head p { margin-top: 14px; font-size: 17px; color: var(--ink-2); max-width: 66ch; }
+.sub-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 64px 0 20px; }
+.sub-h h3 { font-size: 21px; font-weight: 700; }
+.sub-h p { color: var(--ink-3); font-size: 14.5px; max-width: 60ch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.alt .card { background: var(--bg); }
+.note { margin-top: 18px; font-size: 13.5px; color: var(--ink-3); }
+
+/* ---------- 01 overview: roles ---------- */
+.roles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1040px) { .roles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .roles { grid-template-columns: minmax(0, 1fr); } }
+.role { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 22px; overflow: hidden; }
+.role::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--c); }
+.role-top { display: flex; align-items: center; gap: 12px; }
+.role-ic { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 11px; background: color-mix(in srgb, var(--c) var(--tint), var(--surface)); color: var(--c); flex: none; }
+.role-ic .i { width: 21px; height: 21px; }
+.role h3 { font-size: 17px; }
+.role .ids { display: flex; flex-wrap: wrap; gap: 6px; }
+.role .ids code { font-size: 11.5px; padding: 2px 7px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--ink-2); }
+.role p { font-size: 14.5px; color: var(--ink-2); }
+.deny { display: flex; gap: 8px; margin-top: auto; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 13.5px; color: var(--ink-2); }
+.deny .i { width: 16px; height: 16px; margin-top: 3px; color: var(--deny); }
+.deny b { color: var(--deny); font-weight: 600; }
+.feats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 16px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+@media (max-width: 900px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .feats { grid-template-columns: minmax(0, 1fr); } }
+.feat { display: flex; gap: 14px; padding: 22px; background: var(--surface); }
+.alt .feat { background: var(--bg); }
+.feat .i { width: 22px; height: 22px; color: var(--accent-2); margin-top: 2px; }
+.feat h4 { font-size: 15.5px; margin-bottom: 4px; }
+.feat p { font-size: 14px; color: var(--ink-2); }
+
+/* ---------- 02 product tour ---------- */
+.seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line-2); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.seg button { flex: none; display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border: 0; border-radius: 9px; background: none; color: var(--ink-2); font-weight: 600; font-size: 14px; cursor: pointer; }
+.seg button .i { width: 16px; height: 16px; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(14, 26, 46, .1), 0 0 0 1px var(--line); }
+.tour { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 28px; margin-top: 22px; align-items: start; }
+@media (max-width: 900px) { .tour { grid-template-columns: minmax(0, 1fr); } .shots { order: 2; } }
+.shots { display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 900px) { .shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.shots button { display: block; width: 100%; text-align: left; padding: 13px 15px; border: 1px solid transparent; border-radius: 12px; background: none; cursor: pointer; }
+.shots button:hover { background: var(--surface-2); }
+.shots button[aria-pressed="true"] { background: var(--surface); border-color: var(--line); box-shadow: var(--shadow); }
+.alt .shots button[aria-pressed="true"] { background: var(--bg); }
+.shots b { display: block; font-size: 14.5px; }
+.shots span { display: block; margin-top: 2px; font-size: 13px; line-height: 1.5; color: var(--ink-3); }
+@media (max-width: 560px) { .shots span { display: none; } .shots button { padding: 10px 12px; } }
+.shot-frame { position: relative; }
+.shot-frame .window { box-shadow: 0 2px 6px rgba(14, 26, 46, .06), 0 28px 50px -30px rgba(14, 26, 46, .45); border-color: var(--line); }
+.zoom-btn { display: block; width: 100%; padding: 0; border: 0; background: #F4F6FA; cursor: zoom-in; }
+.zoom-btn img { aspect-ratio: 1440 / 860; width: 100%; object-fit: cover; transition: opacity .2s; }
+.zoom-btn img.loading { opacity: .35; }
+.shot-cap { margin-top: 14px; font-size: 14px; color: var(--ink-2); }
+.shot-cap b { color: var(--ink); }
+
+/* ---------- 03 database ---------- */
+.concepts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 980px) { .concepts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .concepts { grid-template-columns: minmax(0, 1fr); } }
+.concept { display: flex; flex-direction: column; gap: 8px; padding: 20px; transition: border-color .15s, transform .15s; }
+.concept:hover { border-color: color-mix(in srgb, var(--accent-2) 45%, var(--line)); }
+.concept .file { align-self: flex-start; font: 500 11.5px var(--font-mono); color: var(--ink-3); }
+.concept h4 { font-size: 16px; }
+.concept p { font-size: 14px; color: var(--ink-2); }
+.concept .eg { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; padding-top: 6px; }
+.concept .eg code { font-size: 11px; padding: 2px 7px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); border: 0; }
+.concept.tests { background: linear-gradient(135deg, color-mix(in srgb, var(--ok) 8%, var(--surface)), var(--surface)); border-color: color-mix(in srgb, var(--ok) 30%, var(--line)); }
+.concept.tests b { font-family: var(--font-mono); color: var(--ok); }
+.tables { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; }
+@media (max-width: 980px) { .tables { grid-template-columns: minmax(0, 1fr); } }
+.groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 600px) { .groups { grid-template-columns: minmax(0, 1fr); } }
+.group { padding: 16px 18px; border-left: 3px solid var(--g); border-radius: 10px; }
+.group h4 { display: flex; align-items: center; gap: 8px; font-size: 14.5px; margin-bottom: 4px; }
+.group p { font-size: 13px; color: var(--ink-3); margin-bottom: 10px; }
+.group ul { display: flex; flex-wrap: wrap; gap: 6px; }
+.group li { font: 600 11.5px/1 var(--font-mono); padding: 6px 8px; border-radius: 6px; color: color-mix(in srgb, var(--g) 60%, var(--ink)); background: color-mix(in srgb, var(--g) var(--tint), var(--surface)); }
+.map-cta { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 26px; overflow: hidden; color: var(--on-navy); background: radial-gradient(400px 260px at 100% 0%, rgba(46, 117, 182, .5), transparent 70%), var(--navy); border-color: color-mix(in srgb, var(--accent-2) 30%, transparent); }
+.map-cta::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(232, 238, 248, .1) 1px, transparent 1.3px); background-size: 18px 18px; -webkit-mask-image: linear-gradient(200deg, #000, transparent 70%); mask-image: linear-gradient(200deg, #000, transparent 70%); }
+.map-cta > * { position: relative; }
+.map-cta .i-big { width: 40px; height: 40px; padding: 9px; border-radius: 11px; background: rgba(232, 238, 248, .1); stroke: #9CC3F5; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.map-cta h4 { font-size: 20px; color: #FFFFFF; }
+.map-cta p { font-size: 14.5px; color: var(--on-navy-2); }
+.map-cta ul { display: flex; flex-direction: column; gap: 2px; margin-top: auto; }
+.map-cta li a { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 0; color: #FFFFFF; font-weight: 600; font-size: 14.5px; border-top: 1px solid var(--on-navy-line); }
+.map-cta li a:hover { text-decoration: none; color: #9CC3F5; }
+.map-cta li small { display: block; font-weight: 400; font-size: 12.5px; color: var(--on-navy-2); }
+.rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; counter-reset: rule; }
+@media (max-width: 860px) { .rules { grid-template-columns: minmax(0, 1fr); } }
+.rules li { counter-increment: rule; display: grid; align-content: start; grid-template-columns: 36px minmax(0, 1fr); gap: 4px 14px; padding: 18px 0; border-top: 1px solid var(--line); }
+.rules li::before { content: counter(rule, decimal-leading-zero); grid-row: span 2; font: 600 13px/1.9 var(--font-mono); color: var(--accent-2); }
+.rules p { font-size: 15px; color: var(--ink); }
+.rules .by { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; font-size: 12.5px; color: var(--ink-3); }
+.rules .by code { font-size: 11px; padding: 1px 6px; }
+.scripts { display: grid; grid-template-columns: 8fr 4fr 2fr; gap: 14px; }
+@media (max-width: 860px) { .scripts { grid-template-columns: minmax(0, 1fr); } }
+.sgroup { padding: 18px; }
+.sgroup h4 { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 14.5px; margin-bottom: 12px; }
+.sgroup h4 small { font: 500 11.5px var(--font-mono); color: var(--ink-3); }
+.sgroup ol { display: flex; flex-wrap: wrap; gap: 6px; }
+.sgroup li { display: inline-flex; align-items: center; gap: 7px; padding: 6px 9px 6px 6px; border-radius: 8px; background: var(--surface-2); font-size: 12.5px; color: var(--ink-2); }
+.sgroup li b { display: inline-grid; place-items: center; width: 24px; height: 20px; border-radius: 5px; background: var(--accent); color: var(--surface); font: 600 11px var(--font-mono); }
+.sgroup.demo li b { background: var(--ink-3); }
+.sgroup.test li b { background: var(--ok); }
+
+/* ---------- 04 architecture ---------- */
+.arch-wrap { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+@media (max-width: 980px) { .arch-wrap { grid-template-columns: minmax(0, 1fr); } }
+.arch { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 64px minmax(0, .9fr); grid-template-areas: "app app . ." "a1 a2 . ." "pres infra h db" "a3 a4 . ." "appl appl . ." "a5 a5 . ." "dom dom . ."; column-gap: 12px; }
+.layer { position: relative; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+.alt .layer { background: var(--bg); }
+.layer .ln { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; font: 600 13.5px var(--font-mono); color: var(--ink); }
+.layer .ln small { font: 500 11px var(--font-mono); color: var(--ink-3); }
+.layer p { margin-top: 6px; font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
+.layer .not { margin-top: 8px; font-size: 11.5px; color: var(--deny); }
+.l-app { grid-area: app; border-style: dashed; }
+.l-pres { grid-area: pres; }
+.l-infra { grid-area: infra; }
+.l-appl { grid-area: appl; background: color-mix(in srgb, var(--accent-2) 9%, var(--surface)) !important; border-color: color-mix(in srgb, var(--accent-2) 30%, var(--line)); }
+.l-dom { grid-area: dom; background: color-mix(in srgb, var(--accent-2) 18%, var(--surface)) !important; border-color: color-mix(in srgb, var(--accent-2) 45%, var(--line)); }
+.l-db { grid-area: db; align-self: center; border-radius: 14px 14px 22px 22px / 14px 14px 16px 16px; background: color-mix(in srgb, var(--g-classes) 12%, var(--surface)) !important; border-color: color-mix(in srgb, var(--g-classes) 40%, var(--line)); }
+.l-db .ln .i { width: 16px; height: 16px; color: var(--g-classes); }
+.ar { position: relative; display: flex; justify-content: center; height: 44px; }
+.ar::before { content: ""; position: absolute; left: 50%; top: 4px; bottom: 6px; border-left: 1.6px solid var(--ink-3); }
+.ar::after { content: ""; position: absolute; left: calc(50% - 4.5px); bottom: 2px; border: 5px solid transparent; border-top: 6px solid var(--ink-3); border-bottom: 0; }
+.ar.dash::before { border-left-style: dashed; }
+.ar span { position: absolute; top: 50%; left: calc(50% + 10px); transform: translateY(-50%); font: 500 10.5px var(--font-mono); color: var(--ink-3); white-space: nowrap; }
+.ar.dash span { left: auto; right: calc(50% + 10px); }
+.a1 { grid-area: a1; } .a2 { grid-area: a2; } .a3 { grid-area: a3; } .a4 { grid-area: a4; } .a5 { grid-area: a5; }
+.arh { grid-area: h; position: relative; align-self: center; height: 40px; }
+.arh::before { content: ""; position: absolute; left: 2px; right: 6px; top: 50%; border-top: 1.6px solid var(--ink-3); }
+.arh::after { content: ""; position: absolute; right: 1px; top: calc(50% - 4.5px); border: 5px solid transparent; border-left: 6px solid var(--ink-3); border-right: 0; }
+.arh span { position: absolute; left: 0; right: 0; bottom: 26px; text-align: center; font: 500 10px var(--font-mono); color: var(--ink-3); }
+@media (max-width: 640px) {
+  .arch { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "app app" "a1 a2" "pres infra" "a3 a4" "appl appl" "a5 a5" "dom dom" "db db"; }
+  .arh { display: none; }
+  .l-db { margin-top: 20px; }
+}
+.principles { display: flex; flex-direction: column; gap: 4px; }
+.principles li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.principles li:last-child { border-bottom: 0; }
+.principles .i { width: 22px; height: 22px; padding: 3px; border-radius: 50%; color: var(--ok); background: var(--ok-soft); stroke-width: 2.4; margin-top: 2px; }
+.principles b { display: block; font-size: 15px; margin-bottom: 2px; }
+.principles p { font-size: 14px; color: var(--ink-2); }
+.steps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; counter-reset: step; }
+@media (max-width: 1040px) { .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .steps { grid-template-columns: minmax(0, 1fr); } }
+.steps li { counter-increment: step; position: relative; display: flex; flex-direction: column; gap: 6px; padding: 16px; }
+.steps li::before { content: counter(step); display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--surface); font: 600 12px var(--font-mono); }
+.steps .lyr { font: 600 10.5px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.steps code { align-self: flex-start; font-size: 12px; font-weight: 600; color: var(--accent); background: none; border: 0; padding: 0; white-space: normal; word-break: break-word; }
+.steps p { font-size: 13.5px; color: var(--ink-2); }
+
+/* ---------- 05 tech ---------- */
+.stack { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1040px) { .stack { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .stack { grid-template-columns: minmax(0, 1fr); } }
+.stack .card { padding: 20px; }
+.stack h3 { display: flex; align-items: center; gap: 10px; font-size: 15px; margin-bottom: 14px; }
+.stack h3 .i { width: 30px; height: 30px; padding: 6px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); }
+.stack li { padding: 10px 0; border-top: 1px solid var(--line-2); }
+.stack li b { display: block; font-size: 14.5px; }
+.stack li span { display: block; font-size: 13px; color: var(--ink-3); line-height: 1.5; }
+.compare-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+.compare { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 620px; }
+.compare th, .compare td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+.compare thead th { font-size: 12.5px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; background: var(--surface-2); }
+.compare tbody tr:last-child td, .compare tbody tr:last-child th { border-bottom: 0; }
+.compare tbody th { font-weight: 500; color: var(--ink); }
+.compare td { color: var(--ink-2); }
+.compare .pick { background: color-mix(in srgb, var(--accent-2) 8%, transparent); color: var(--ink); font-weight: 500; }
+.compare thead .pick { color: var(--accent); background: color-mix(in srgb, var(--accent-2) 16%, var(--surface-2)); }
+
+/* ---------- 06 workflow ---------- */
+.flow { display: grid; grid-template-columns: minmax(0, 1fr) 132px minmax(0, 1fr) 132px minmax(0, 1fr) 132px minmax(0, 1fr); align-items: stretch; }
+.flow .node { padding: 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); }
+.alt .flow .node { background: var(--bg); }
+.flow .node.out { border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); background: color-mix(in srgb, var(--ok) 8%, var(--surface)) !important; }
+.flow .node small { display: block; font: 600 10.5px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.flow .node b { display: block; margin: 4px 0; font: 600 14.5px var(--font-mono); color: var(--ink); }
+.flow .node span { display: block; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+.flow .edge { position: relative; min-height: 70px; }
+.flow .edge::before { content: ""; position: absolute; left: 6px; right: 8px; top: 50%; border-top: 1.6px solid var(--ink-3); }
+.flow .edge::after { content: ""; position: absolute; right: 3px; top: calc(50% - 4.5px); border: 5px solid transparent; border-left: 6px solid var(--ink-3); border-right: 0; }
+.flow .edge span { position: absolute; left: 6px; right: 6px; bottom: calc(50% + 8px); font: 500 11px/1.35 var(--font-mono); color: var(--ink-3); text-align: center; }
+@media (max-width: 1040px) {
+  .flow { grid-template-columns: minmax(0, 1fr); max-width: 520px; }
+  .flow .edge { min-height: 56px; }
+  .flow .edge::before { left: 24px; right: auto; top: 4px; bottom: 8px; border-top: 0; border-left: 1.6px solid var(--ink-3); }
+  .flow .edge::after { left: 19.5px; right: auto; top: auto; bottom: 3px; border: 5px solid transparent; border-top: 6px solid var(--ink-3); border-bottom: 0; }
+  .flow .edge span { left: 40px; right: 0; bottom: auto; top: 50%; transform: translateY(-50%); text-align: left; }
+}
+.pipeline { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; counter-reset: p; }
+.pipeline li { counter-increment: p; position: relative; padding: 0 18px 0 0; }
+.pipeline li::before { content: counter(p); position: relative; z-index: 1; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--surface); border: 2px solid var(--ok); color: var(--ok); font: 600 13px var(--font-mono); margin-bottom: 14px; }
+.alt .pipeline li::before { background: var(--surface); }
+.pipeline li::after { content: ""; position: absolute; left: 34px; right: 0; top: 16px; border-top: 2px solid color-mix(in srgb, var(--ok) 40%, var(--line)); }
+.pipeline li:last-child::after { display: none; }
+.pipeline b { display: block; font-size: 15px; margin-bottom: 4px; }
+.pipeline p { font-size: 13.5px; color: var(--ink-2); }
+@media (max-width: 900px) {
+  .pipeline { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .pipeline li { display: grid; grid-template-columns: 34px minmax(0, 1fr); column-gap: 16px; padding: 0 0 22px; }
+  .pipeline li::before { grid-row: span 2; margin: 0; }
+  .pipeline li::after { left: 16px; right: auto; top: 34px; bottom: 0; border-top: 0; border-left: 2px solid color-mix(in srgb, var(--ok) 40%, var(--line)); }
+}
+.cmd { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 16px; border-radius: 12px; background: var(--navy); color: #D7E2F3; border: 1px solid var(--on-navy-line); }
+.cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-size: 13px; padding: 8px 0; background: none; border: 0; color: inherit; scrollbar-width: thin; }
+.copy { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--on-navy-line); background: rgba(232, 238, 248, .06); color: var(--on-navy); font-size: 12.5px; font-weight: 600; cursor: pointer; flex: none; }
+.copy:hover { background: rgba(232, 238, 248, .12); }
+.copy .i { width: 15px; height: 15px; }
+.wf-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+@media (max-width: 980px) { .wf-grid { grid-template-columns: minmax(0, 1fr); } }
+.actions { width: 100%; border-collapse: collapse; font-size: 14px; }
+.actions th, .actions td { padding: 13px 18px; text-align: left; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+.actions tr:last-child td { border-bottom: 0; }
+.actions thead th { font-size: 12px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; }
+.actions td:first-child { font-weight: 600; white-space: nowrap; }
+.actions td { color: var(--ink-2); }
+.actions td:first-child { color: var(--ink); }
+.ai { display: flex; flex-direction: column; gap: 14px; padding: 22px; }
+.ai h3 { display: flex; align-items: center; gap: 10px; font-size: 17px; }
+.ai h3 .i { width: 32px; height: 32px; padding: 6px; border-radius: 9px; color: var(--g-people); background: color-mix(in srgb, var(--g-people) var(--tint), var(--surface)); }
+.ai p { font-size: 14px; color: var(--ink-2); }
+.skills { display: flex; flex-wrap: wrap; gap: 6px; }
+.skills code { font-size: 11.5px; padding: 4px 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--ink); white-space: nowrap; }
+.table-card { overflow-x: auto; }
+.table-card table { min-width: 520px; }
+
+/* ---------- 07 docs ---------- */
+.docs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 900px) { .docs { grid-template-columns: minmax(0, 1fr); } }
+.doc { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 24px; padding: 24px; }
+@media (max-width: 560px) { .doc { grid-template-columns: minmax(0, 1fr); } .paper { width: 140px; } }
+.paper { position: relative; aspect-ratio: 210 / 297; border-radius: 6px; background: #FFFFFF; border: 1px solid #D5DCE6; box-shadow: 6px 6px 0 -1px #E4E9F0, 6px 6px 0 0 #D5DCE6, var(--shadow); padding: 14px 12px; display: flex; flex-direction: column; align-items: center; text-align: center; color: #1F3864; overflow: hidden; }
+.paper .uit { font: 700 7px/1.3 var(--font-body); letter-spacing: .04em; color: #43506A; }
+.paper .seal { width: 34px; height: 34px; margin: 10px 0; }
+.paper .t1 { font: 700 8.5px/1.25 var(--font-body); }
+.paper .t2 { margin-top: 4px; font: 700 10.5px/1.2 var(--font-body); color: #0E1A2E; }
+.paper .t3 { margin-top: 8px; font: 500 6.5px/1.4 var(--font-body); color: #43506A; }
+.paper .bars { margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 3px; }
+.paper .bars i { display: block; height: 3px; border-radius: 2px; background: #E1E7EF; }
+.paper .bars i:nth-child(2) { width: 80%; } .paper .bars i:nth-child(3) { width: 60%; }
+.doc-body { display: flex; flex-direction: column; }
+.doc-body h3 { font-size: 19px; }
+.doc-meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.doc-meta span { font: 500 11.5px var(--font-mono); padding: 3px 8px; border-radius: 6px; background: var(--surface-2); color: var(--ink-2); }
+.doc-body > p { font-size: 14px; color: var(--ink-2); }
+.toc { margin: 14px 0 18px; counter-reset: ch; }
+.toc li { counter-increment: ch; display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 6px; padding: 7px 0; border-top: 1px solid var(--line-2); font-size: 13.5px; }
+.toc li::before { content: counter(ch); font: 600 12px/1.7 var(--font-mono); color: var(--accent-2); }
+.toc li span { color: var(--ink-3); }
+.doc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: auto; }
+.devdocs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 980px) { .devdocs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .devdocs { grid-template-columns: minmax(0, 1fr); } }
+.devdoc { display: flex; flex-direction: column; gap: 6px; padding: 18px; color: var(--ink); transition: border-color .15s, box-shadow .15s; }
+.devdoc:hover { text-decoration: none; border-color: color-mix(in srgb, var(--accent-2) 50%, var(--line)); box-shadow: var(--shadow); }
+.devdoc .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font: 600 13.5px var(--font-mono); color: var(--accent); }
+.devdoc .top .i { width: 15px; height: 15px; color: var(--ink-3); }
+.devdoc p { font-size: 13.5px; color: var(--ink-2); }
+.devdoc.pub { border-color: color-mix(in srgb, var(--accent-2) 40%, var(--line)); background: color-mix(in srgb, var(--accent-2) 7%, var(--surface)); }
+
+/* ---------- 08 download ---------- */
+.platforms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 860px) { .platforms { grid-template-columns: minmax(0, 1fr); } }
+.platform { display: flex; flex-direction: column; gap: 14px; padding: 26px; }
+.platform-top { display: flex; align-items: center; gap: 14px; }
+.platform-top .i { width: 46px; height: 46px; padding: 10px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
+.platform h3 { font-size: 20px; }
+.platform-top p { font-size: 13.5px; color: var(--ink-3); }
+.files li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 14px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface-2); }
+.files li + li { margin-top: 8px; }
+.files code { font-size: 12.5px; color: var(--ink); background: none; border: 0; padding: 0; white-space: normal; word-break: break-all; }
+.files span { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.platform .hint { display: flex; gap: 9px; font-size: 13.5px; color: var(--ink-2); padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--g-classes) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--g-classes) 25%, var(--line)); }
+.platform .hint .i { width: 17px; height: 17px; margin-top: 2px; color: var(--g-classes); }
+.platform .btn { align-self: flex-start; margin-top: auto; }
+.install { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; counter-reset: s; }
+@media (max-width: 980px) { .install { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .install { grid-template-columns: minmax(0, 1fr); } }
+.install li { counter-increment: s; padding: 20px; }
+.install li::before { content: "Step " counter(s); display: block; margin-bottom: 8px; font: 600 11.5px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent-2); }
+.install li > b { display: block; font-size: 16px; margin-bottom: 6px; }
+.install p { font-size: 14px; color: var(--ink-2); }
+.cmds { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 28px; }
+.pipeline + .cmds { margin-top: 32px; }
+.cmds .cmd { margin-top: 0; }
+.cmd .os { flex: none; font: 600 10.5px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: #8FA3C2; padding: 4px 8px; border-radius: 6px; background: rgba(232, 238, 248, .07); }
+
+/* ---------- 09 team ---------- */
+.team { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 980px) { .team { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .team { grid-template-columns: minmax(0, 1fr); } }
+.member { display: flex; flex-direction: column; gap: 12px; padding: 22px; }
+.who { display: flex; align-items: center; gap: 14px; }
+.avatar { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; flex: none; font: 700 17px var(--font-body); letter-spacing: .02em; color: #FFFFFF; background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 55%, #0E1A2E)); }
+.who h3 { font-size: 17px; line-height: 1.3; }
+.who .area { font-size: 13.5px; color: var(--ink-2); font-weight: 500; }
+.badge { display: inline-block; margin-left: 6px; vertical-align: 2px; padding: 2px 8px; border-radius: 999px; font: 600 10.5px var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); }
+.member > p { font-size: 14px; color: var(--ink-2); }
+.member dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; margin: auto 0 0; padding-top: 12px; border-top: 1px solid var(--line-2); font-size: 13px; }
+.member dt { color: var(--ink-3); }
+.member dd { margin: 0; color: var(--ink); }
+.member dd code { font-size: 11.5px; white-space: normal; word-break: break-word; }
+.supervisor { justify-content: center; color: var(--on-navy); background: radial-gradient(360px 240px at 100% 0%, rgba(46, 117, 182, .45), transparent 70%), var(--navy) !important; border-color: color-mix(in srgb, var(--accent-2) 30%, transparent); }
+.supervisor .eyebrow { margin: 0; }
+.supervisor h3 { font-size: 22px; color: #FFFFFF; }
+.supervisor p { color: var(--on-navy-2); font-size: 14.5px; }
+.supervisor dl { border-top-color: var(--on-navy-line); }
+.supervisor dt { color: var(--on-navy-2); }
+.supervisor dd { color: #FFFFFF; }
+
+/* ---------- footer ---------- */
+.foot { background: var(--navy); color: var(--on-navy-2); padding-block: 48px 36px; font-size: 14px; }
+.foot-in { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr)); gap: 32px; }
+@media (max-width: 760px) { .foot-in { grid-template-columns: minmax(0, 1fr); } }
+.foot .brand { margin-bottom: 14px; }
+.foot h4 { margin-bottom: 10px; font: 600 11.5px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--on-navy); }
+.foot li + li { margin-top: 6px; }
+.foot a { color: var(--on-navy-2); }
+.foot a:hover { color: #FFFFFF; }
+.foot .fine { margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--on-navy-line); font-size: 12.5px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; }
+.foot code { color: var(--on-navy); }
+
+/* ---------- lightbox ---------- */
+dialog.lightbox { width: min(1480px, 96vw); max-width: none; max-height: 94vh; padding: 0; border: 0; border-radius: 12px; background: #0A1222; box-shadow: 0 40px 90px rgba(0, 0, 0, .6); overflow: hidden; }
+dialog.lightbox::backdrop { background: rgba(6, 12, 24, .82); backdrop-filter: blur(3px); }
+dialog.lightbox img { width: 100%; height: auto; max-height: calc(94vh - 48px); object-fit: contain; background: #F4F6FA; }
+.lb-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 48px; padding: 0 8px 0 16px; color: #D7E2F3; font-size: 13.5px; }
+.lb-bar button { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: rgba(232, 238, 248, .08); color: #FFFFFF; cursor: pointer; }
+.lb-bar button:hover { background: rgba(232, 238, 248, .16); }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- Icons (stroke icons drawn for this page) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></symbol>
+  <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="i-brief" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3M8 17h6"/></symbol>
+  <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
+  <symbol id="i-cap" viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5M22 9v6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 5h6a4 4 0 0 1 4 4v11a3 3 0 0 0-3-3H2zM22 5h-6a4 4 0 0 0-4 4v11a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="i-form" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h5"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="logo" viewBox="0 0 64 64"><defs><linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2E5A9A"/><stop offset="1" stop-color="#4A94D8"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="14" fill="url(#logo-g)"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 26 32 15l22 11-22 11z" fill="#fff" fill-opacity=".15"/><path d="M19 31v12c0 4 6 7 13 7s13-3 13-7V31M54 26v13"/></g></symbol>
+</svg>
+
+<header class="nav" id="top">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="QLTTTA, back to the top">
+      <svg aria-hidden="true"><use href="#logo"/></svg>
+      <span><b>QLTTTA</b><small>IE103 · Group 1</small></span>
+    </a>
+    <nav class="links" id="nav-links" aria-label="Sections">
+      <a href="#overview">Overview</a>
+      <a href="#product">Product</a>
+      <a href="#database">Database</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#tech">Tech</a>
+      <a href="#workflow">Workflow</a>
+      <a href="#docs">Docs</a>
+      <a href="#download">Download</a>
+      <a href="#team">Team</a>
+    </nav>
+    <button class="menu" id="menu-btn" aria-expanded="false" aria-controls="nav-links" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button>
+    <a class="nav-cta" href="data-map.html"><svg class="i"><use href="#i-map"/></svg><span>Data map</span></a>
+  </div>
+</header>
+
+<main id="main">
+<!-- ============================== hero ============================== -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="wrap hero-in">
+    <div>
+      <p class="eyebrow"><b>IE103</b> Information Management <span aria-hidden="true">·</span> UIT, VNU-HCM</p>
+      <h1 id="hero-title">English center management, <span>built on a database that enforces its own rules.</span></h1>
+      <p class="lede">QLTTTA (<i lang="vi">Quản lý trung tâm tiếng Anh</i>) runs the daily work of a chain of English-language centers: students, classes and timetables, enrollment, tuition, attendance, grades, certificates and teacher payroll. Every write goes through a stored procedure and every user signs in as a real SQL Server user, so the database itself decides what each role may do.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="data-map.html"><svg class="i"><use href="#i-map"/></svg>Explore the data map</a>
+        <a class="btn btn-ghost" href="#download"><svg class="i"><use href="#i-arrow"/></svg>Install the app</a>
+      </div>
+      <ul class="tags" aria-label="Platform">
+        <li>SQL Server 2012+</li><li>C++17 · Qt 6</li><li>Windows &amp; macOS</li><li>Vietnamese &amp; English UI</li>
+      </ul>
+    </div>
+    <div class="hero-visual">
+      <figure class="window">
+        <div class="window-bar" aria-hidden="true"><i></i><i></i><i></i><span>QLTTTA · Manager · Overview</span></div>
+        <img src="report/images/screens/ql_quan_dashboard.png" width="1440" height="860" alt="The manager's overview screen: students studying, classes in progress, revenue this month, outstanding tuition and a chart of revenue by month">
+      </figure>
+      <div class="sql-card" role="img" aria-label="Example: SQL Server rejects an enrollment whose schedule clashes with another class of the student">
+        <div class="sql-head"><span class="dot"></span>SQL Server · signed in as academic staff</div>
+<pre><span class="k">EXEC</span> dbo.usp_Enrollment_Create
+     @StudentId = <span class="s">'ST00012'</span>, @ClassId = <span class="s">'CL0006'</span>,
+     @EnrollmentId = @id <span class="k">OUTPUT</span>;</pre>
+        <p class="sql-err"><b>Msg 50024</b><span>The class schedule clashes with another class the student is taking.</span></p>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <dl class="stats" aria-label="The database in numbers">
+      <div><dt>tables</dt><dd data-stat="tables">21</dd></div>
+      <div><dt>stored procedures</dt><dd data-stat="procedures">64</dd></div>
+      <div><dt>functions</dt><dd data-stat="functions">19</dd></div>
+      <div><dt>views</dt><dd data-stat="views">13</dd></div>
+      <div><dt>triggers</dt><dd data-stat="triggers">16</dd></div>
+      <div><dt>automated SQL test cases</dt><dd data-stat="sqlTests">181</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- ============================== 01 overview ============================== -->
+<section class="sec" id="overview" aria-labelledby="overview-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker"><span>01</span>Overview</p>
+      <h2 id="overview-h">One chain of centers, four roles, one source of truth</h2>
+      <p>The grading focus of IE103 is the database, so the business rules live in SQL Server: constraints, procedures, triggers and permissions. The Qt desktop app is the presentation layer that the staff of each role use every day.</p>
+    </div>
+
+    <div class="roles">
+      <article class="card role" style="--c: var(--accent-2)">
+        <div class="role-top"><span class="role-ic"><svg class="i"><use href="#i-brief"/></svg></span><h3>Manager</h3></div>
+        <div class="ids"><code>ql_quan</code><code>rl_Manager</code></div>
+        <p>Runs the chain: overview and revenue of every branch, the catalogs (courses, teachers, employees, branches and rooms, promotions), accounts and backups.</p>
+        <p class="deny"><svg class="i"><use href="#i-ban"/></svg><span><b>Denied:</b> changing the audit log, deleting a receipt.</span></p>
+      </article>
+      <article class="card role" style="--c: var(--g-training)">
+        <div class="role-top"><span class="role-ic"><svg class="i"><use href="#i-cal"/></svg></span><h3>Academic staff</h3></div>
+        <div class="ids"><code>gvu_lan</code><code>rl_AcademicStaff</code></div>
+        <p>Students and placement tests, classes and weekly timetables, enrollments and transfers, attendance, the grade book and learning results.</p>
+        <p class="deny"><svg class="i"><use href="#i-ban"/></svg><span><b>Denied:</b> reading the payroll, collecting tuition.</span></p>
+      </article>
+      <article class="card role" style="--c: var(--g-finance)">
+        <div class="role-top"><span class="role-ic"><svg class="i"><use href="#i-receipt"/></svg></span><h3>Accountant</h3></div>
+        <div class="ids"><code>kt_minh</code><code>rl_Accountant</code></div>
+        <p>Tuition in installments with a printed receipt, outstanding balances, revenue by month or period, and the monthly teacher payroll.</p>
+        <p class="deny"><svg class="i"><use href="#i-ban"/></svg><span><b>Denied:</b> entering grades, enrolling students.</span></p>
+      </article>
+      <article class="card role" style="--c: var(--g-people)">
+        <div class="role-top"><span class="role-ic"><svg class="i"><use href="#i-cap"/></svg></span><h3>Teacher</h3></div>
+        <div class="ids"><code>gv_john</code><code>rl_Teacher</code></div>
+        <p>Only their own classes, students, teaching schedule, attendance, grades and pay, through security views filtered by the signed-in teacher.</p>
+        <p class="deny"><svg class="i"><use href="#i-ban"/></svg><span><b>Denied:</b> reading the student, receipt and payroll tables.</span></p>
+      </article>
+    </div>
+    <p class="note">Each account is a contained database user that belongs to exactly one role; a <code>DENY</code> overrides any <code>GRANT</code>. The demo accounts above share one password, listed in <code>docs/SETUP.md</code>.</p>
+
+    <div class="sub-h"><h3>What the application covers</h3></div>
+    <div class="feats">
+      <div class="feat"><svg class="i"><use href="#i-cap"/></svg><div><h4>Training</h4><p>Students with XML import and export, placement tests, classes (open, weekly schedule, generate sessions, start, cancel, evaluate), enrollments, timetable and attendance, grade book, learning results.</p></div></div>
+      <div class="feat"><svg class="i"><use href="#i-receipt"/></svg><div><h4>Finance</h4><p>Tuition collection with a printable receipt, outstanding tuition, revenue by month or period, teacher payroll (finalize, deduction, paid).</p></div></div>
+      <div class="feat"><svg class="i"><use href="#i-layers"/></svg><div><h4>Catalogs and system</h4><p>Courses and grade components, teachers, employees, branches and rooms, promotions; accounts (create, lock, reset the password) and backups.</p></div></div>
+      <div class="feat"><svg class="i"><use href="#i-list"/></svg><div><h4>Lists and reports</h4><p>Every list has a quick filter and a totals row, and exports to a PDF report with header and footer or to CSV that opens in Excel.</p></div></div>
+      <div class="feat"><svg class="i"><use href="#i-globe"/></svg><div><h4>Vietnamese and English</h4><p>Switch the language at runtime without signing out; values stored in the database and its business messages are translated too.</p></div></div>
+      <div class="feat"><svg class="i"><use href="#i-box"/></svg><div><h4>Installers</h4><p>A Windows setup or portable ZIP and a macOS <code>.dmg</code> that bundles the FreeTDS driver, built by GitHub Actions for every release.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 02 product ============================== -->
+<section class="sec alt" id="product" aria-labelledby="product-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker"><span>02</span>Product</p>
+      <h2 id="product-h">A desktop app with a menu for every role</h2>
+      <p>The menu of each role is the permission matrix of the database, so a screen appears only when SQL Server would let that user run it. Pick a role to see what it works with.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Role" id="role-seg">
+      <button type="button" data-role="manager" aria-pressed="true"><svg class="i"><use href="#i-brief"/></svg>Manager</button>
+      <button type="button" data-role="staff" aria-pressed="false"><svg class="i"><use href="#i-cal"/></svg>Academic staff</button>
+      <button type="button" data-role="accountant" aria-pressed="false"><svg class="i"><use href="#i-receipt"/></svg>Accountant</button>
+      <button type="button" data-role="teacher" aria-pressed="false"><svg class="i"><use href="#i-cap"/></svg>Teacher</button>
+    </div>
+    <div class="tour">
+      <div class="shots" id="shots" role="group" aria-label="Screens"></div>
+      <figure class="shot-frame" style="margin:0">
+        <div class="window">
+          <div class="window-bar" aria-hidden="true"><i></i><i></i><i></i><span id="shot-bar">QLTTTA · Manager · Overview</span></div>
+          <button type="button" class="zoom-btn" id="shot-zoom" aria-label="Enlarge the screenshot">
+            <img id="shot-img" src="report/images/screens/ql_quan_dashboard.png" width="1440" height="860" loading="lazy" alt="Manager: overview of the chain with key figures and revenue by month">
+          </button>
+        </div>
+        <figcaption class="shot-cap" id="shot-cap"><b>Overview.</b> Key figures for the whole chain or one branch, and revenue by month.</figcaption>
+      </figure>
+    </div>
+    <p class="note">Screenshots of the Vietnamese UI (the default) with the demo data, generated by <code>tools/qlttta_screenshots</code>. Click a screenshot to enlarge it.</p>
+  </div>
+</section>
+
+<!-- ============================== 03 database ============================== -->
+<section class="sec" id="database" aria-labelledby="database-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker"><span>03</span>Database</p>
+      <h2 id="database-h">The database is the core of the project</h2>
+      <p>Written for SQL Server 2012 and later, entirely in English: objects, stored values and business messages. The rules hold even when someone edits the data directly in SSMS, because constraints, procedures and triggers check them, not the app.</p>
+    </div>
+
+    <div class="concepts">
+      <article class="card concept"><span class="file">01_tables.sql</span><h4>Integrity constraints</h4><p>Primary and foreign keys, <code>CHECK</code>, <code>UNIQUE</code>, filtered unique indexes, defaults, and sequences that create readable IDs such as <code>ST00001</code> and <code>CL0001</code>.</p></article>
+      <article class="card concept"><span class="file">04_procedures.sql</span><h4>Stored procedures</h4><p>The only write path: transactions, <code>OUTPUT</code> parameters, <code>THROW</code> with business messages, safe dynamic SQL, <code>EXECUTE AS OWNER</code> and a recursive CTE.</p><div class="eg"><code>usp_Student_Add</code><code>usp_Enrollment_Create</code></div></article>
+      <article class="card concept"><span class="file">02_functions.sql</span><h4>Functions</h4><p>Scalar, inline and multi-statement table-valued functions, including the clock of the center (UTC+07:00) and the timetable clash check.</p><div class="eg"><code>fn_Today</code><code>fn_StudentScheduleClash</code></div></article>
+      <article class="card concept"><span class="file">05_triggers.sql</span><h4>Triggers</h4><p>Set-based <code>AFTER</code> and <code>INSTEAD OF</code> triggers: no double-booked room or teacher, amount paid equals the sum of receipts, an audit trail in XML.</p><div class="eg"><code>trg_RECEIPT_UpdateAmountPaid</code><code>trg_CLASS_SCHEDULE_CheckConflict</code></div></article>
+      <article class="card concept"><span class="file">04_procedures.sql</span><h4>Cursors</h4><p>Row-by-row processing where the course asks for it: evaluating the results of a class and closing the monthly payroll of the teachers.</p><div class="eg"><code>usp_Class_EvaluateResults</code><code>usp_Payroll_Finalize</code></div></article>
+      <article class="card concept"><span class="file">03_views.sql</span><h4>Views</h4><p>Reporting views for balances, revenue and results, plus security views that show a teacher only their own rows.</p><div class="eg"><code>vw_OutstandingTuition</code><code>vw_Teacher_MyClasses</code></div></article>
+      <article class="card concept"><span class="file">06_security.sql</span><h4>Authentication and authorization</h4><p>Contained database users in four roles, object- and column-level <code>GRANT</code> / <code>DENY</code>, ownership chaining through views and procedures, an append-only audit log.</p></article>
+      <article class="card concept"><span class="file">01 · 04 · 08_demo_queries.sql</span><h4>XML and XQuery</h4><p>Course syllabi as typed XML validated by an XSD, teacher profiles and audit values as XML, queried with <code>.value()</code>, <code>.nodes()</code>, <code>.modify()</code> and <code>FOR XML PATH</code>.</p></article>
+      <article class="card concept"><span class="file">09_backup_restore.sql</span><h4>Backup and restore</h4><p>A full, differential and log backup chain, restore with <code>NORECOVERY</code> / <code>RECOVERY</code>, and backups started from the app.</p><div class="eg"><code>usp_Backup</code></div></article>
+      <article class="card concept"><span class="file">10_import_export.sql</span><h4>Import and export</h4><p><code>BULK INSERT</code> of a CSV file, XML import through <code>.nodes()</code>, XML export, and CSV / PDF export of every list in the app.</p></article>
+      <article class="card concept"><span class="file">11_distributed_demo.sql</span><h4>Distributed database</h4><p>Horizontal fragmentation by branch, replicated catalog tables, a distributed view and checks of completeness and disjointness.</p></article>
+      <article class="card concept tests"><span class="file">12_tests.sql · 13_server_tests.sql</span><h4>Automated SQL tests</h4><p><b data-stat="dbTests">161</b> database cases and <b data-stat="serverTests">20</b> server-level cases: every rule, constraint and permission must be rejected for the right reason. Cases that write roll back.</p></article>
+    </div>
+
+    <div class="sub-h"><h3>Tables by business group</h3><p>The colors match the interactive data map.</p></div>
+    <div class="tables">
+      <div class="groups">
+        <div class="card group" style="--g: var(--g-org)"><h4>Organization</h4><p>Branches and classrooms, the basis of the distributed design</p><ul><li data-table="BRANCH">BRANCH</li><li data-table="ROOM">ROOM</li></ul></div>
+        <div class="card group" style="--g: var(--g-people)"><h4>People and accounts</h4><p>Office staff, teachers, and the login of each one</p><ul><li data-table="EMPLOYEE">EMPLOYEE</li><li data-table="TEACHER">TEACHER</li><li data-table="ACCOUNT">ACCOUNT</li></ul></div>
+        <div class="card group" style="--g: var(--g-training)"><h4>Training</h4><p>Programs, courses with an XML syllabus and a prerequisite, grade weights</p><ul><li data-table="PROGRAM">PROGRAM</li><li data-table="COURSE">COURSE</li><li data-table="GRADE_COMPONENT">GRADE_COMPONENT</li></ul></div>
+        <div class="card group" style="--g: var(--g-classes)"><h4>Classes and schedules</h4><p>Classes, their weekly timetable and the generated sessions</p><ul><li data-table="CLASS">CLASS</li><li data-table="CLASS_SCHEDULE">CLASS_SCHEDULE</li><li data-table="CLASS_SESSION">CLASS_SESSION</li></ul></div>
+        <div class="card group" style="--g: var(--g-students)"><h4>Students and enrollment</h4><p>Students, placement tests, and the n-n link to classes</p><ul><li data-table="STUDENT">STUDENT</li><li data-table="PLACEMENT_TEST">PLACEMENT_TEST</li><li data-table="ENROLLMENT">ENROLLMENT</li></ul></div>
+        <div class="card group" style="--g: var(--g-finance)"><h4>Finance</h4><p>Promotions, receipts in installments, monthly payroll</p><ul><li data-table="PROMOTION">PROMOTION</li><li data-table="RECEIPT">RECEIPT</li><li data-table="PAYROLL">PAYROLL</li></ul></div>
+        <div class="card group" style="--g: var(--g-results)"><h4>Learning results</h4><p>Attendance per session, component grades, certificates</p><ul><li data-table="ATTENDANCE">ATTENDANCE</li><li data-table="GRADE">GRADE</li><li data-table="CERTIFICATE">CERTIFICATE</li></ul></div>
+        <div class="card group" style="--g: var(--g-system)"><h4>System</h4><p>Audit trail with old and new values as XML</p><ul><li data-table="AUDIT_LOG">AUDIT_LOG</li></ul></div>
+      </div>
+      <aside class="card map-cta">
+        <svg class="i-big" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-map"/></svg>
+        <h4>Open the interactive data map</h4>
+        <p>Every table with its columns, keys and triggers, the screens that read it, and how a request moves through the procedures.</p>
+        <ul>
+          <li><a href="data-map.html"><span>Table relationships<small>Click a table for its columns, keys and triggers</small></span><svg class="i"><use href="#i-arrow"/></svg></a></li>
+          <li><a href="data-map.html#flow"><span>Business flow<small>A student's way through the system, step by step</small></span><svg class="i"><use href="#i-arrow"/></svg></a></li>
+          <li><a href="data-map.html#app"><span>App flow<small>Which role opens which screen, and what it calls</small></span><svg class="i"><use href="#i-arrow"/></svg></a></li>
+        </ul>
+      </aside>
+    </div>
+
+    <div class="sub-h"><h3>Rules the database guarantees</h3><p>A selection; each one is covered by a test case that must be rejected.</p></div>
+    <ol class="rules">
+      <li><p>No room or teacher is double-booked, and a student never attends two classes that overlap in time.</p><span class="by">Enforced by <code>trg_CLASS_SCHEDULE_CheckConflict</code><code>fn_StudentScheduleClash</code></span></li>
+      <li><p>An enrollment needs an open class with a free seat, and the prerequisite course or a high enough placement-test score.</p><span class="by">Enforced by <code>usp_Enrollment_Create</code><code>trg_ENROLLMENT_CheckCapacity</code></span></li>
+      <li><p>The amount paid always equals the sum of the valid receipts; a receipt is cancelled with a reason, never deleted.</p><span class="by">Enforced by <code>trg_RECEIPT_UpdateAmountPaid</code><code>trg_RECEIPT_PreventDelete</code></span></li>
+      <li><p>A student passes with a final grade of at least 5 and at least 80% attendance; only a passed enrollment receives a certificate.</p><span class="by">Enforced by <code>usp_Class_EvaluateResults</code><code>trg_CERTIFICATE_CheckResult</code></span></li>
+      <li><p>A taught session can no longer change its time, room or teacher, which keeps the payroll correct.</p><span class="by">Enforced by <code>trg_CLASS_SESSION_LockTaught</code></span></li>
+      <li><p>The audit log is append-only, even for the manager.</p><span class="by">Enforced by <code>trg_AUDIT_LOG_ReadOnly</code> and a <code>DENY</code></span></li>
+    </ol>
+
+    <div class="sub-h"><h3>Scripts, in the order they run</h3><p><code>scripts/db_init</code> builds the database from scratch with the first eight.</p></div>
+    <div class="scripts">
+      <div class="card sgroup"><h4>Create the database <small>db_init</small></h4><ol>
+        <li><b>00</b>create database</li><li><b>01</b>tables</li><li><b>02</b>functions</li><li><b>03</b>views</li><li><b>04</b>procedures</li><li><b>05</b>triggers</li><li><b>06</b>security</li><li><b>07</b>seed data</li>
+      </ol></div>
+      <div class="card sgroup demo"><h4>Demonstrations <small>by hand</small></h4><ol>
+        <li><b>08</b>queries</li><li><b>09</b>backup / restore</li><li><b>10</b>import / export</li><li><b>11</b>distributed</li>
+      </ol></div>
+      <div class="card sgroup test"><h4>Tests <small>test_all</small></h4><ol>
+        <li><b>12</b>database</li><li><b>13</b>server</li>
+      </ol></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 04 architecture ============================== -->
+<section class="sec alt" id="architecture" aria-labelledby="architecture-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker"><span>04</span>Architecture</p>
+      <h2 id="architecture-h">Clean Architecture, enforced by the build</h2>
+      <p>Four layers and a composition root. The dependency direction is checked twice: CMake does not link the user interface to Qt SQL, and <code>tst_conventions</code> reads every <code>#include</code>.</p>
+    </div>
+    <div class="arch-wrap">
+      <div class="arch" role="img" aria-label="Layers: app creates presentation and infrastructure; presentation calls the application use cases; infrastructure implements the application ports and reaches SQL Server through ODBC; the application depends only on the domain.">
+        <div class="layer l-app"><div class="ln">app <small>composition root</small></div><p><code>main.cpp</code>, <code>AppContainer</code> create the layers and wire them together.</p></div>
+        <div class="ar a1"></div>
+        <div class="ar a2"></div>
+        <div class="layer l-pres"><div class="ln">presentation <small>Qt Widgets</small></div><p>LoginDialog, MainWindow, DataPage, FormDialog, I18n</p><p class="not">no Qt SQL, no SQL text</p></div>
+        <div class="layer l-infra"><div class="ln">infrastructure <small>Qt SQL</small></div><p>DatabaseManager, Sql*Repository, SqlHelpers, SqlErrorMapper</p><p class="not">no Qt Widgets</p></div>
+        <div class="arh"><span>ODBC</span></div>
+        <div class="layer l-db"><div class="ln"><span>SQL Server</span><svg class="i"><use href="#i-db"/></svg></div><p>QLTTTA: procedures, views, triggers, roles. Reached by the infrastructure through ODBC (Driver 18 or FreeTDS).</p></div>
+        <div class="ar a3"><span>calls</span></div>
+        <div class="ar a4 dash"><span>implements ports</span></div>
+        <div class="layer l-appl"><div class="ln">application <small>use cases + ports</small></div><p>StudentService, EnrollmentService, TuitionService, Permissions; ports IStudentRepository, IClassRepository...</p></div>
+        <div class="ar a5"></div>
+        <div class="layer l-dom"><div class="ln">domain <small>Qt Core only</small></div><p>Student, ClassInfo, Account, Role, validation rules, Result&lt;T&gt;</p></div>
+      </div>
+      <ul class="principles">
+        <li><svg class="i"><use href="#i-check"/></svg><div><b>SQL lives in one place</b><p>Only <code>src/infrastructure/repositories</code> holds SQL. Every write calls a stored procedure, with values bound through <code>SqlHelpers::execPrepared</code>.</p></div></li>
+        <li><svg class="i"><use href="#i-check"/></svg><div><b>Errors are values</b><p>Results cross the layers as <code>Result&lt;T&gt;</code>; a database message is shown in the UI language and the form stays open.</p></div></li>
+        <li><svg class="i"><use href="#i-check"/></svg><div><b>Use cases tested without a server</b><p>Unit tests drive the services with fake repositories, so they run anywhere in seconds.</p></div></li>
+        <li><svg class="i"><use href="#i-check"/></svg><div><b>One reference module</b><p>Students is the template: <code>Student</code> → <code>IStudentRepository</code> → <code>StudentService</code> → <code>SqlStudentRepository</code> → <code>StudentPage</code>.</p></div></li>
+      </ul>
+    </div>
+
+    <div class="sub-h"><h3>One click, followed to the database</h3><p>Adding a student: the rules are checked in the app for fast feedback and again in SQL Server, the final source of truth.</p></div>
+    <ol class="steps">
+      <li class="card"><span class="lyr">presentation</span><code>StudentFormDialog</code><p>Academic staff fill in the form and click Save.</p></li>
+      <li class="card"><span class="lyr">application</span><code>StudentService::add</code><p>Normalizes the input and asks the domain to validate it.</p></li>
+      <li class="card"><span class="lyr">domain</span><code>Student::validate</code><p>Returns the list of broken rules; empty means valid.</p></li>
+      <li class="card"><span class="lyr">infrastructure</span><code>SqlStudentRepository</code><p>Runs the procedure with bound values through ODBC.</p></li>
+      <li class="card"><span class="lyr">SQL Server</span><code>usp_Student_Add</code><p><code>CHECK</code>, <code>UNIQUE</code> and a sequence create <code>STxxxxx</code>, or <code>THROW</code> refuses.</p></li>
+      <li class="card"><span class="lyr">back to the UI</span><code>Result&lt;QString&gt;</code><p>The new ID is selected, or the translated message is shown.</p></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================== 05 tech ============================== -->
+<section class="sec" id="tech" aria-labelledby="tech-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker"><span>05</span>Tech stack</p>
+      <h2 id="tech-h">Chosen for the syllabus, built to run anywhere</h2>
+      <p>SQL Server because the course needs procedures, triggers, cursors, authorization, backup and XQuery, and the labs use SSMS. Qt because one C++ code base gives a native app on Windows and macOS.</p>
+    </div>
+    <div class="stack">
+      <div class="card"><h3><svg class="i"><use href="#i-db"/></svg>Database</h3><ul>
+        <li><b>SQL Server 2012+</b><span>T-SQL, contained database users, XML and XQuery</span></li>
+        <li><b>SQL Server 2022 in Docker</b><span>Development on macOS and the Linux CI job</span></li>
+        <li><b>SSMS</b><span>The lab tool: demos, permissions, backups</span></li>
+      </ul></div>
+      <div class="card"><h3><svg class="i"><use href="#i-code"/></svg>Application</h3><ul>
+        <li><b>C++17 and Qt 6 Widgets</b><span>Native desktop UI, Qt Designer forms</span></li>
+        <li><b>Qt SQL over ODBC</b><span>Microsoft ODBC Driver 18 or FreeTDS</span></li>
+        <li><b>Qt Linguist</b><span>Vietnamese translation of the English UI</span></li>
+      </ul></div>
+      <div class="card"><h3><svg class="i"><use href="#i-box"/></svg>Build and delivery</h3><ul>
+        <li><b>CMake presets and Ninja</b><span>One build on macOS, Windows and Linux</span></li>
+        <li><b>GitHub Actions</b><span>Checks, CI on three systems, releases, this site</span></li>
+        <li><b>Inno Setup and .dmg</b><span>Windows setup and ZIP, macOS disk image</span></li>
+      </ul></div>
+      <div class="card"><h3><svg class="i"><use href="#i-gear"/></svg>Docs and tooling</h3><ul>
+        <li><b>python-docx and Graphviz</b><span>Report and user guide generated from the code</span></li>
+        <li><b>clang-format and clangd</b><span>One pinned format version for the team</span></li>
+        <li><b>Claude Code</b><span>AI pair programmer with shared team rules</span></li>
+      </ul></div>
+    </div>
+
+    <div class="sub-h"><h3>Why SQL Server, and not SQLite or PostgreSQL</h3></div>
+    <div class="compare-wrap">
+      <table class="compare">
+        <thead><tr><th scope="col">Syllabus requirement</th><th scope="col">SQLite</th><th scope="col">PostgreSQL</th><th scope="col" class="pick">SQL Server</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Stored procedures and functions</th><td>No</td><td>Yes (PL/pgSQL)</td><td class="pick">Yes, T-SQL as in the labs</td></tr>
+          <tr><th scope="row">Triggers and cursors</th><td>Limited triggers, no cursors</td><td>Yes</td><td class="pick">Yes</td></tr>
+          <tr><th scope="row">Users, roles, GRANT / DENY</th><td>No</td><td>Yes</td><td class="pick">Yes, plus contained users</td></tr>
+          <tr><th scope="row">Full, differential and log backup</th><td>File copy</td><td>pg_dump, WAL</td><td class="pick">T-SQL BACKUP / RESTORE</td></tr>
+          <tr><th scope="row">XML with XPath / XQuery</th><td>No</td><td>XPath 1.0 only</td><td class="pick">Full XQuery</td></tr>
+          <tr><th scope="row">Tool used in class</th><td>-</td><td>-</td><td class="pick">SSMS</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 06 workflow ============================== -->
+<section class="sec alt" id="workflow" aria-labelledby="workflow-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker"><span>06</span>Workflow</p>
+      <h2 id="workflow-h">Every change goes through a pull request and the same tests</h2>
+      <p>Each member owns one area. Changes reach <code>develop</code> through reviewed pull requests; <code>main</code> receives only releases, and every release builds the installers.</p>
+    </div>
+    <ol class="flow" aria-label="From a work branch to a release">
+      <li class="node"><small>work branch</small><b>feature/* · fix/*</b><span>also docs/* and chore/*, one task each</span></li>
+      <li class="edge" aria-hidden="true"><span>PR · Checks</span></li>
+      <li class="node"><small>default branch</small><b>develop</b><span>code owner review; CI runs after the merge</span></li>
+      <li class="edge" aria-hidden="true"><span>PR · CI: macOS, Windows, Linux</span></li>
+      <li class="node"><small>protected</small><b>main</b><span>releases only, all three CI jobs green</span></li>
+      <li class="edge" aria-hidden="true"><span>release.yml</span></li>
+      <li class="node out"><small>GitHub Release</small><b>.dmg · setup.exe · .zip</b><span>tagged vX.Y.Z-build.N, with the merged PRs</span></li>
+    </ol>
+
+    <div class="sub-h"><h3>One command before every pull request</h3><p><code>scripts/test_all</code> stops at the first failing step. CI runs the same suite on Linux against SQL Server.</p></div>
+    <ol class="pipeline">
+      <li><b>Change checks</b><p>Format of the changed C++ lines, commit messages, no build output or <code>.env</code> tracked.</p></li>
+      <li><b>Database</b><p>Re-create the database from scratch, then run every case of <code>12_tests.sql</code>.</p></li>
+      <li><b>Server level</b><p>Backup and restore, <code>BULK INSERT</code>, the distributed database, account lockout.</p></li>
+      <li><b>Build and unit tests</b><p>Use cases with fake repositories, <code>tst_conventions</code>, <code>tst_i18n</code>.</p></li>
+      <li><b>End-to-end GUI</b><p>Every role opens every screen it may use, against the real database.</p></li>
+    </ol>
+    <div class="cmds">
+      <div class="cmd"><span class="os">macOS</span><code>SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker imcp-mssql</code><button type="button" class="copy" data-copy='SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" ./scripts/test_all.sh --docker imcp-mssql'><svg class="i"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+      <div class="cmd"><span class="os">Windows</span><code>.\scripts\test_all.ps1</code><button type="button" class="copy" data-copy=".\scripts\test_all.ps1"><svg class="i"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+    </div>
+
+    <div class="wf-grid">
+      <div class="card table-card">
+        <table class="actions">
+          <thead><tr><th scope="col">GitHub Actions</th><th scope="col">Runs on</th><th scope="col">What it does</th></tr></thead>
+          <tbody>
+            <tr><td>Checks</td><td>pull requests into <code>develop</code></td><td>Change checks, build and unit tests on Linux, no database</td></tr>
+            <tr><td>CI</td><td>merges into <code>develop</code>, pull requests into <code>main</code></td><td>Build and unit tests on macOS and Windows; the full suite on Linux with SQL Server</td></tr>
+            <tr><td>Release</td><td>merges into <code>main</code></td><td>Builds the <code>.dmg</code>, <code>setup.exe</code> and portable <code>.zip</code>, publishes a GitHub Release</td></tr>
+            <tr><td>Pages</td><td>merges into <code>develop</code></td><td>Publishes this site and the data map</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card ai">
+        <h3><svg class="i"><use href="#i-spark"/></svg>AI-assisted, with shared rules</h3>
+        <p>Claude Code is allowed by the instructor. The whole team shares the same instructions (<code>AGENTS.md</code>, <code>.claude/rules/</code>), so every change has the same structure, tests and report, and each member can still explain their own part.</p>
+        <div class="skills"><code>/imcp-setup</code><code>/imcp-commit</code><code>/imcp-create-pr</code><code>/imcp-review</code><code>/imcp-review-codebase</code><code>/imcp-update-report</code><code>/imcp-update-guide</code></div>
+        <p>Commits follow Conventional Commits in English; <code>develop</code> and <code>main</code> need a pull request, an up-to-date branch and the code owner's review.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 07 docs ============================== -->
+<section class="sec" id="docs" aria-labelledby="docs-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker"><span>07</span>Documentation</p>
+      <h2 id="docs-h">A report and a user guide generated from the code</h2>
+      <p>Both are written in Vietnamese and built by Python scripts: SQL code, the data dictionary, query results, diagrams and screenshots come from the repository and a real database, so they never drift from the code.</p>
+    </div>
+    <div class="docs">
+      <article class="card doc">
+        <div class="paper" aria-hidden="true"><span class="uit">UIT · VNU-HCM</span><svg class="seal"><use href="#logo"/></svg><span class="t1">BÁO CÁO ĐỒ ÁN MÔN HỌC</span><span class="t2">QUẢN LÝ THÔNG TIN</span><span class="t3">Xây dựng hệ thống quản lý trung tâm tiếng Anh</span><span class="bars"><i></i><i></i><i></i></span></div>
+        <div class="doc-body">
+          <h3>Project report</h3>
+          <div class="doc-meta"><span>.docx + .pdf</span><span>Vietnamese</span><span>course deliverable</span></div>
+          <p>The design and the implementation, chapter by chapter, with the SQL extracted from the scripts and the results of the real database.</p>
+          <ol class="toc">
+            <li><div>Project overview <span>- goals, scope, technology, team</span></div></li>
+            <li><div>Requirements analysis <span>- processes, use cases, DFD</span></div></li>
+            <li><div>Database design <span>- ERD, class diagram, schema, normalization, constraints</span></div></li>
+            <li><div>Implementation in SQL Server <span>- queries, XQuery, procedures, triggers, cursors</span></div></li>
+            <li><div>Data security <span>- authentication, authorization, audit, backup</span></div></li>
+            <li><div>Presenting information <span>- the QLTTTA application</span></div></li>
+            <li><div>Advanced database models <span>- object-oriented, distributed, NoSQL</span></div></li>
+            <li><div>Conclusion <span>- results, difficulties, next steps</span></div></li>
+          </ol>
+          <div class="doc-actions"><a class="btn btn-line" href="https://github.com/nhutruong-uit/imcp/tree/develop/docs/report"><svg class="i"><use href="#i-file"/></svg>Open in the repository</a><span class="lock"><svg class="i"><use href="#i-lock"/></svg>Team and instructor</span></div>
+        </div>
+      </article>
+      <article class="card doc">
+        <div class="paper" aria-hidden="true"><span class="uit">UIT · VNU-HCM</span><svg class="seal"><use href="#logo"/></svg><span class="t1">HƯỚNG DẪN CÀI ĐẶT VÀ SỬ DỤNG</span><span class="t2">PHẦN MỀM QLTTTA</span><span class="t3">Xây dựng hệ thống quản lý trung tâm tiếng Anh</span><span class="bars"><i></i><i></i><i></i></span></div>
+        <div class="doc-body">
+          <h3>User guide</h3>
+          <div class="doc-meta"><span>.docx + .pdf</span><span>Vietnamese</span><span>for end users</span></div>
+          <p>Practical, step-by-step instructions with screenshots: from installing SQL Server to every screen of every role.</p>
+          <ol class="toc">
+            <li><div>Introduction <span>- roles, system requirements</span></div></li>
+            <li><div>SQL Server and the database <span>- Docker or Windows</span></div></li>
+            <li><div>Installing the application <span>- macOS and Windows</span></div></li>
+            <li><div>Signing in and the common screens <span>- language, password</span></div></li>
+            <li><div>Feature by feature <span>- every screen of every role</span></div></li>
+            <li><div>Troubleshooting <span>- connection check, common errors</span></div></li>
+          </ol>
+          <div class="doc-actions"><a class="btn btn-line" href="https://github.com/nhutruong-uit/imcp/tree/develop/docs/user-guide"><svg class="i"><use href="#i-book"/></svg>Open in the repository</a><span class="lock"><svg class="i"><use href="#i-lock"/></svg>Team and instructor</span></div>
+        </div>
+      </article>
+    </div>
+
+    <div class="sub-h"><h3>Developer documentation</h3><p>In English, next to the code. The repository is private: links with a lock open for the team and the instructor.</p></div>
+    <div class="devdocs">
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/CODE_TOUR.md"><span class="top">CODE_TOUR.md<svg class="i"><use href="#i-lock"/></svg></span><p>Start here if you do not program: reading the SQL and the C++, one action from the click to the database.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/SETUP.md"><span class="top">SETUP.md<svg class="i"><use href="#i-lock"/></svg></span><p>Environment on macOS and Windows, database, demo accounts, tests, installers, troubleshooting.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/ARCHITECTURE.md"><span class="top">ARCHITECTURE.md<svg class="i"><use href="#i-lock"/></svg></span><p>Layers, request flow, naming, the recipe for a new module, the multi-language UI.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/DATABASE.md"><span class="top">DATABASE.md<svg class="i"><use href="#i-lock"/></svg></span><p>Design, object catalog, roles and permissions, mapping to the course syllabus.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/CONTRIBUTING.md"><span class="top">CONTRIBUTING.md<svg class="i"><use href="#i-lock"/></svg></span><p>Branches, conventions, the pull request checklist, working with Claude Code.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/PLAN.md"><span class="top">PLAN.md<svg class="i"><use href="#i-lock"/></svg></span><p>Schedule up to the submission, assignments, oral-defense preparation.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/README.md"><span class="top">README.md<svg class="i"><use href="#i-lock"/></svg></span><p>Quick start, repository layout, testing and the workflows at a glance.</p></a>
+      <a class="card devdoc pub" href="data-map.html"><span class="top">Data map<svg class="i"><use href="#i-arrow"/></svg></span><p>Public and interactive: tables, business flow and app flow by role.</p></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 08 download ============================== -->
+<section class="sec alt" id="download" aria-labelledby="download-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker"><span>08</span>Download</p>
+      <h2 id="download-h">Install the app in four steps</h2>
+      <p>GitHub Actions builds the installers for every release and attaches them to the GitHub Release of the repository. The app needs a SQL Server that holds the QLTTTA database.</p>
+    </div>
+    <div class="platforms">
+      <article class="card platform">
+        <div class="platform-top"><svg class="i"><use href="#i-monitor"/></svg><div><h3>Windows</h3><p>Windows 10 (version 1809 or later) or 11, 64-bit</p></div></div>
+        <ul class="files">
+          <li><code>QLTTTA-x.y.z-windows-x64-setup.exe</code><span>installer, no admin rights</span></li>
+          <li><code>QLTTTA-x.y.z-windows-x64-portable.zip</code><span>unzip and run</span></li>
+        </ul>
+        <p class="hint"><svg class="i"><use href="#i-info"/></svg><span>If SmartScreen warns you, choose <b>More info</b>, then <b>Run anyway</b>: the app is not commercially code-signed.</span></p>
+        <a class="btn btn-solid" href="https://github.com/nhutruong-uit/imcp/releases/latest"><svg class="i"><use href="#i-lock"/></svg>Latest release</a>
+      </article>
+      <article class="card platform">
+        <div class="platform-top"><svg class="i"><use href="#i-laptop"/></svg><div><h3>macOS</h3><p>macOS 15 or later, Apple Silicon</p></div></div>
+        <ul class="files">
+          <li><code>QLTTTA-x.y.z-macos-arm64.dmg</code><span>drag into Applications</span></li>
+        </ul>
+        <p class="hint"><svg class="i"><use href="#i-info"/></svg><span>The FreeTDS driver is bundled. The first launch is blocked: open <b>System Settings › Privacy &amp; Security</b> and choose <b>Open Anyway</b>.</span></p>
+        <a class="btn btn-solid" href="https://github.com/nhutruong-uit/imcp/releases/latest"><svg class="i"><use href="#i-lock"/></svg>Latest release</a>
+      </article>
+    </div>
+
+    <div class="sub-h"><h3>From zero to signed in</h3><p>The repository is private: the instructor is invited so they can download the release.</p></div>
+    <ol class="install">
+      <li class="card"><b>Prepare SQL Server</b><p>SQL Server in Docker on macOS, or SQL Server Express or Developer on Windows. <code>scripts/db_init</code> creates QLTTTA with demo data.</p></li>
+      <li class="card"><b>Install the app</b><p>Run the setup, unzip the portable build, or drag <code>QLTTTA.app</code> into Applications.</p></li>
+      <li class="card"><b>Point it at the server</b><p>Open <b>Server settings</b> on the login screen: <code>localhost,1433</code> for Docker, or <code>localhost\SQLEXPRESS</code>.</p></li>
+      <li class="card"><b>Sign in</b><p>As <code>ql_quan</code>, <code>gvu_lan</code>, <code>kt_minh</code> or <code>gv_john</code>; the shared demo password is in <code>docs/SETUP.md</code>.</p></li>
+    </ol>
+
+    <div class="sub-h"><h3>Joining the team?</h3><p>One command installs what is missing, creates the database and runs the full test suite. In Claude Code: <code>/imcp-setup</code>.</p></div>
+    <div class="cmds">
+      <div class="cmd"><span class="os">macOS</span><code>./scripts/setup_dev.sh --accept-licenses</code><button type="button" class="copy" data-copy="./scripts/setup_dev.sh --accept-licenses"><svg class="i"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+      <div class="cmd"><span class="os">Windows</span><code>powershell -ExecutionPolicy Bypass -File scripts\setup_dev.ps1 -AcceptLicenses</code><button type="button" class="copy" data-copy="powershell -ExecutionPolicy Bypass -File scripts\setup_dev.ps1 -AcceptLicenses"><svg class="i"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 09 team ============================== -->
+<section class="sec" id="team" aria-labelledby="team-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker"><span>09</span>Team</p>
+      <h2 id="team-h">Group 1: five members, five owned areas</h2>
+      <p>Each member owns one area: they understand it in depth, test it, write its part of the report and answer the oral-defense questions about it. The commit history shows who did what.</p>
+    </div>
+    <div class="team">
+      <article class="card member supervisor">
+        <p class="eyebrow">Supervisor</p>
+        <h3>Dr. Võ Phương Bình</h3>
+        <p>IE103 Information Management, University of Information Technology, VNU-HCM.</p>
+        <dl><dt>Class</dt><dd>IE103.Q21.VB2</dd><dt>Group</dt><dd>Group 1</dd></dl>
+      </article>
+      <article class="card member" style="--c: #2E75B6">
+        <div class="who"><span class="avatar" aria-hidden="true">TN</span><div><h3>Trương Quang Như<span class="badge">Lead</span></h3><p class="area">Architecture and application</p></div></div>
+        <p>Clean Architecture, the Qt app, the ODBC connection and sign-in by role, CI/CD and packaging; coordination and integration.</p>
+        <dl><dt>Owns</dt><dd><code>src/</code> <code>tests/</code> <code>.github/</code> <code>scripts/</code> <code>packaging/</code></dd><dt>Report</dt><dd>Chapters 6 and 8, appendix</dd></dl>
+      </article>
+      <article class="card member" style="--c: #0F766E">
+        <div class="who"><span class="avatar" aria-hidden="true">ĐT</span><div><h3>Đỗ Phạm Minh Trâm</h3><p class="area">Survey and analysis</p></div></div>
+        <p>The business processes of the center, actors and use cases, data flow diagrams, the ERD and the class diagram.</p>
+        <dl><dt>Owns</dt><dd>ERD, class diagram, use case and DFD sources</dd><dt>Report</dt><dd>Chapters 1 and 2, sections 3.1-3.2</dd></dl>
+      </article>
+      <article class="card member" style="--c: #A16207">
+        <div class="who"><span class="avatar" aria-hidden="true">NP</span><div><h3>Nguyễn Việt Phú</h3><p class="area">Logical model and constraints</p></div></div>
+        <p>From the ERD to relations, normalization, the data dictionary, integrity constraints and triggers.</p>
+        <dl><dt>Owns</dt><dd><code>01_tables.sql</code> <code>05_triggers.sql</code></dd><dt>Report</dt><dd>Sections 3.3-3.8 and 4.6</dd></dl>
+      </article>
+      <article class="card member" style="--c: #C2410C">
+        <div class="who"><span class="avatar" aria-hidden="true">ĐD</span><div><h3>Đỗ Bình Dương</h3><p class="area">Database programming</p></div></div>
+        <p>Stored procedures, functions, cursors and transactions, SQL queries, XPath and XQuery.</p>
+        <dl><dt>Owns</dt><dd><code>02_functions.sql</code> <code>04_procedures.sql</code> <code>08_demo_queries.sql</code></dd><dt>Report</dt><dd>Chapter 4 (except 4.6)</dd></dl>
+      </article>
+      <article class="card member" style="--c: #7E22CE">
+        <div class="who"><span class="avatar" aria-hidden="true">NG</span><div><h3>Nguyễn Bảo Giang</h3><p class="area">Security and advanced models</p></div></div>
+        <p>Authentication, authorization, security views, audit, backup and restore, import and export; distributed, object-oriented and NoSQL databases.</p>
+        <dl><dt>Owns</dt><dd><code>03_views.sql</code> <code>06_security.sql</code> <code>09-11_*.sql</code></dd><dt>Report</dt><dd>Chapters 5 and 7</dd></dl>
+      </article>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-in">
+      <div>
+        <a class="brand" href="#top"><svg aria-hidden="true"><use href="#logo"/></svg><span><b>QLTTTA</b><small>English Center Management</small></span></a>
+        <p>IE103 Information Management course project, Group 1, University of Information Technology, VNU-HCM.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul><li><a href="data-map.html">Data map</a></li><li><a href="#database">Database</a></li><li><a href="#architecture">Architecture</a></li><li><a href="#download">Download</a></li></ul>
+      </div>
+      <div>
+        <h4>Repository</h4>
+        <ul><li><a href="https://github.com/nhutruong-uit/imcp">Source code</a></li><li><a href="https://github.com/nhutruong-uit/imcp/releases">Releases</a></li><li><a href="https://github.com/nhutruong-uit/imcp/tree/develop/docs/report">Report</a></li><li><a href="https://github.com/nhutruong-uit/imcp/tree/develop/docs/user-guide">User guide</a></li></ul>
+      </div>
+    </div>
+    <div class="fine"><span>The repository is private; repository links open for the team and the instructor.</span><span>This page: <code>docs/index.html</code></span></div>
+  </div>
+</footer>
+
+<dialog class="lightbox" id="lightbox" aria-label="Screenshot">
+  <div class="lb-bar"><span id="lb-title"></span><button type="button" id="lb-close" aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <img id="lb-img" alt="">
+</dialog>
+
+<script>
+(() => {
+'use strict';
+/* The data map used to be the home page: keep its old links (#erd, #flow, #app) working */
+if (/^#(erd|flow|app)$/.test(location.hash)) { location.replace('data-map.html' + location.hash); return; }
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+/* ---------- navigation: mobile menu + the section being read ---------- */
+const menuBtn = $('#menu-btn');
+const setMenu = open => { menuBtn.setAttribute('aria-expanded', String(open)); document.body.classList.toggle('menu-open', open); };
+menuBtn.addEventListener('click', () => setMenu(menuBtn.getAttribute('aria-expanded') !== 'true'));
+$('#nav-links').addEventListener('click', e => { if (e.target.closest('a')) setMenu(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
+
+const navLinks = $$('#nav-links a');
+if ('IntersectionObserver' in window) {
+  const spy = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      navLinks.forEach(a => {
+        if (a.getAttribute('href') === '#' + en.target.id) a.setAttribute('aria-current', 'true');
+        else a.removeAttribute('aria-current');
+      });
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+  navLinks.forEach(a => { const s = document.getElementById(a.getAttribute('href').slice(1)); if (s) spy.observe(s); });
+}
+
+/* ---------- product tour: screenshots by role (files of report/images/screens/) ---------- */
+const ROLES = { manager: 'Manager', staff: 'Academic staff', accountant: 'Accountant', teacher: 'Teacher' };
+const SHOTS = {
+  manager: [
+    ['report/images/screens/ql_quan_dashboard.png', 'Overview', 'Key figures for the whole chain or one branch, and revenue by month.'],
+    ['report/images/screens/ql_quan_revenue.png', 'Revenue', 'Revenue by month and branch, ready to export to PDF or Excel.'],
+    ['report/images/screens/ql_quan_accounts.png', 'Accounts', 'Create, lock and reset the SQL Server accounts of the staff.'],
+    ['report/images/screens/ql_quan_backup.png', 'Backup', 'Full, differential and log backups, started from the app.']
+  ],
+  staff: [
+    ['report/images/screens/gvu_lan_weekly_schedule.png', 'Timetable & attendance', 'The sessions of the week with room, teacher and status; take attendance from here.'],
+    ['report/images/screens/gvu_lan_classes.png', 'Classes', 'Open a class, set its weekly schedule, generate the sessions, start and evaluate it.'],
+    ['report/images/screens/gvu_lan_enrollments.png', 'Enrollments', 'Enroll, transfer or put on hold; the database checks seats, clashes and prerequisites.'],
+    ['report/images/screens/gvu_lan_learning_results.png', 'Learning results', 'Final grade, attendance rate and the pass or fail result of every enrollment.']
+  ],
+  accountant: [
+    ['report/images/screens/kt_minh_tuition.png', 'Tuition collection', 'Collect tuition in installments and print the receipt.'],
+    ['report/images/screens/kt_minh_outstanding_tuition.png', 'Outstanding tuition', 'Who still owes what, with the totals of the list.'],
+    ['report/images/screens/kt_minh_revenue.png', 'Revenue', 'Revenue by month and branch for the accountant.'],
+    ['report/images/screens/kt_minh_payroll.png', 'Teacher payroll', 'Finalize the month, add deductions and mark the pay as paid.']
+  ],
+  teacher: [
+    ['report/images/screens/gv_john_my_teaching_schedule.png', 'Teaching schedule', 'Only the sessions this teacher teaches.'],
+    ['report/images/screens/gv_john_my_grade_book.png', 'My grade book', 'Grades for the teacher\'s own classes, by grade component.'],
+    ['report/images/screens/gv_john_my_classes.png', 'My classes', 'The classes in the teacher\'s charge and their students.'],
+    ['report/images/screens/gv_john_my_pay.png', 'My pay', 'The monthly payroll of the signed-in teacher, nothing else.']
+  ]
+};
+let role = 'manager', shot = 0;
+const img = $('#shot-img'), cap = $('#shot-cap'), bar = $('#shot-bar'), list = $('#shots');
+function showShot(i) {
+  shot = i;
+  const [src, title, text] = SHOTS[role][i];
+  if (img.getAttribute('src') !== src) { img.classList.add('loading'); img.src = src; }
+  img.alt = ROLES[role] + ': ' + title + '. ' + text;
+  bar.textContent = 'QLTTTA · ' + ROLES[role] + ' · ' + title;
+  cap.innerHTML = '';
+  const b = document.createElement('b'); b.textContent = title + '.';
+  cap.append(b, ' ' + text);
+  $$('button', list).forEach((btn, k) => btn.setAttribute('aria-pressed', String(k === i)));
+}
+img.addEventListener('load', () => img.classList.remove('loading'));
+img.addEventListener('error', () => img.classList.remove('loading'));
+function showRole(r) {
+  role = r;
+  $$('#role-seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.role === r)));
+  list.innerHTML = '';
+  SHOTS[r].forEach(([, title, text], i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    const t = document.createElement('b'); t.textContent = title;
+    const d = document.createElement('span'); d.textContent = text;
+    btn.append(t, d);
+    btn.addEventListener('click', () => showShot(i));
+    list.append(btn);
+  });
+  showShot(0);
+}
+$('#role-seg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) showRole(b.dataset.role); });
+showRole('manager');
+
+/* ---------- lightbox ---------- */
+const lb = $('#lightbox');
+$('#shot-zoom').addEventListener('click', () => {
+  if (typeof lb.showModal !== 'function') { window.open(img.src, '_blank', 'noopener'); return; }
+  $('#lb-img').src = img.src;
+  $('#lb-img').alt = img.alt;
+  $('#lb-title').textContent = bar.textContent;
+  lb.showModal();
+});
+$('#lb-close').addEventListener('click', () => lb.close());
+lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+/* ---------- copy buttons ---------- */
+$$('.copy').forEach(btn => btn.addEventListener('click', async () => {
+  const label = $('span', btn);
+  try { await navigator.clipboard.writeText(btn.dataset.copy); label.textContent = 'Copied'; }
+  catch (err) { label.textContent = 'Select and copy'; }
+  setTimeout(() => { label.textContent = 'Copy'; }, 1600);
+}));
+})();
+</script>
+</body>
+</html>

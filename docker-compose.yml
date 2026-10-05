@@ -1,0 +1,25 @@
+# SQL Server 2022 for development (macOS / Linux / Windows with Docker).
+# 1. Create a .env file next to this one:  MSSQL_SA_PASSWORD=<strong password, >= 8 chars, upper/lower/digit/symbol>
+# 2. docker compose up -d
+# 3. SQL_PASSWORD=<password> ./scripts/db_init.sh --docker imcp-mssql
+# Note: running this image means you accept the SQL Server Developer Edition license terms (ACCEPT_EULA).
+# Apple Silicon: enable "Use Rosetta for x86_64/amd64 emulation" in Docker Desktop.
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: imcp-mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in the .env file}"
+      # No TZ needed: the database stores instants in UTC and computes the center's dates itself
+      # (dbo.fn_Today, 02_functions.sql), so the container's time zone does not matter
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    restart: unless-stopped
+
+volumes:
+  mssql-data:

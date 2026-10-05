@@ -1,0 +1,18 @@
+# Normalize line endings to LF in the repo
+* text=auto eol=lf
+
+# Windows scripts keep CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.iss text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.icns binary
+*.docx binary
+*.pdf binary
+# Sample CSV for BULK INSERT is stored as UTF-16 LE
+database/samples/*.csv binary

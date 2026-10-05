@@ -1,0 +1,65 @@
+# Pages: publishes the project site to GitHub Pages, so anyone (the instructor, visitors, the team) can open it at
+# https://nhutruong-uit.github.io/imcp/ without cloning the repository:
+#   - docs/index.html     -> index.html      the project site: overview, database, architecture, workflow, docs,
+#                                             download, team
+#   - docs/data-map.html  -> data-map.html   the interactive map of the tables and the app flow
+#   - the screenshots that docs/index.html shows (docs/report/images/screens/*.png, demo data), at the same
+#     relative path, so the page works the same opened from the file and online
+# The site is PUBLIC even though the repository is private (GitHub Pages of a personal account): never publish the
+# report, the user guide or other docs here - the site links to them in the repository instead. tst_conventions
+# (docs_projectSite_matchesRepository) fails when docs/index.html links to a local file that this workflow does
+# not publish.
+# Runs when one of these files or this workflow changes on develop (Settings > Pages > Source: GitHub Actions; the
+# github-pages environment only accepts deployments from develop).
+name: Pages
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - docs/index.html
+      - docs/data-map.html
+      - docs/report/images/screens/**
+      - .github/workflows/pages.yml
+
+permissions:
+  contents: read
+  pages: write # publish the site
+  id-token: write # prove to Pages that the deployment comes from this workflow
+
+concurrency:
+  group: pages
+  cancel-in-progress: false # let a running deployment finish
+
+jobs:
+  deploy:
+    name: Publish the project site and the data map
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Collect the pages and the screenshots they show
+        run: |
+          SITE="$RUNNER_TEMP/site"
+          mkdir -p "$SITE"
+          cp docs/index.html docs/data-map.html "$SITE/"
+          # Only the screenshots the page names (also in its script), never the whole docs/ folder
+          for shot in $(grep -o 'report/images/screens/[A-Za-z0-9_]*\.png' docs/index.html | sort -u); do
+            mkdir -p "$SITE/$(dirname "$shot")"
+            cp "docs/$shot" "$SITE/$shot"
+          done
+          find "$SITE" -type f | sort
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ runner.temp }}/site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

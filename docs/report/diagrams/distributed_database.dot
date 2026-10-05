@@ -1,0 +1,15 @@
+// Thiết kế CSDL phân tán theo chi nhánh
+digraph DDB {
+  graph [rankdir=TB, fontname="Arial", dpi=220, pad=0.2, nodesep=0.5, ranksep=0.6];
+  node  [fontname="Arial", fontsize=11, shape=box, style="rounded,filled"];
+  edge  [color="#334155", fontname="Arial", fontsize=9];
+  C [label="Trạm trung tâm (Ban quản lý)\nView phân tán: STUDENT = STUDENT_BR01 ∪ STUDENT_BR02\nBáo cáo toàn hệ thống, ACCOUNT, PAYROLL", fillcolor="#C7D2FE"];
+  subgraph cluster_q1 { label="Trạm BR01 - Quận 1"; style=rounded; color="#2E75B6";
+    q1 [label="STUDENT_BR01 = σ BranchId='BR01' (STUDENT)\nCLASS_BR01 = σ BranchId='BR01' (CLASS)\nENROLLMENT_BR01 = ENROLLMENT ⋉ CLASS_BR01\nRECEIPT_BR01 = RECEIPT ⋉ ENROLLMENT_BR01", fillcolor="#DBEAFE"]; }
+  subgraph cluster_td { label="Trạm BR02 - Thủ Đức"; style=rounded; color="#2E75B6";
+    td [label="STUDENT_BR02 = σ BranchId='BR02' (STUDENT)\nCLASS_BR02 = σ BranchId='BR02' (CLASS)\nENROLLMENT_BR02 = ENROLLMENT ⋉ CLASS_BR02\nRECEIPT_BR02 = RECEIPT ⋉ ENROLLMENT_BR02", fillcolor="#DBEAFE"]; }
+  R [label="Nhân bản tại mọi trạm (ít thay đổi):\nPROGRAM, COURSE, GRADE_COMPONENT, PROMOTION", fillcolor="#FEF3C7"];
+  V [label="Phân mảnh dọc TEACHER:\nTEACHER_PUBLIC(TeacherId, FullName, TeacherType, ProfileXml) tại các trạm\nTEACHER_PAY(TeacherId, HourlyRate) chỉ ở trạm trung tâm", fillcolor="#FCE7F3"];
+  C -> q1 [label="Linked Server / UNION ALL"]; C -> td [label="Linked Server / UNION ALL"];
+  R -> q1 [style=dashed, arrowhead=none]; R -> td [style=dashed, arrowhead=none]; V -> C [style=dashed, arrowhead=none];
+}

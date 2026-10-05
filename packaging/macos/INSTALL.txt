@@ -1,0 +1,27 @@
+QLTTTA - ENGLISH CENTER MANAGEMENT (macOS, Apple Silicon)
+=========================================================
+
+Needs macOS @MIN_MACOS@ or later on a Mac with an Apple chip (M1 or newer). On an older macOS, macOS itself
+says that this version of QLTTTA cannot be used.
+
+1. Drag QLTTTA.app into the Applications folder.
+
+2. First launch (the app is self-signed by students, not registered with Apple Developer):
+   - Open QLTTTA once; macOS says it cannot be opened -> click "Done"/"OK".
+   - Open System Settings > Privacy & Security, scroll down to Security,
+     click "Open Anyway" next to QLTTTA and confirm with your password
+     (the button is there for about an hour after the blocked attempt).
+   - Or open Terminal and run:  xattr -dr com.apple.quarantine /Applications/QLTTTA.app
+   Later launches open normally.
+
+3. Login screen > "Server settings":
+   - Server: address of the SQL Server that hosts the QLTTTA database
+     (e.g. localhost,1433 or 192.168.1.10,1433)
+   - Database: QLTTTA
+   Demo accounts and database setup: see docs/SETUP.md in the source code
+   (the release notes link to it).
+
+4. Language: pick "Tiếng Việt" or "English" at the bottom of the login screen or in the header of
+   the main window. The choice is remembered.
+
+The app bundles the SQL Server driver (FreeTDS); nothing else needs to be installed.

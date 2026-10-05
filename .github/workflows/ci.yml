@@ -1,0 +1,214 @@
+# CI: build + unit tests (incl. translations) on macOS and Windows, plus the FULL test suite on Linux
+# (scripts/test_all.sh and scripts/test_all.ps1 against SQL Server 2022 in Docker: database tests, server-level
+# tests, unit tests and end-to-end GUI tests). Runs only:
+#   - when something is merged into develop (GitHub raises a push to develop; the ruleset rejects a direct push);
+#   - when a PR into main is opened/updated: REQUIRED, the ruleset of main needs the three jobs green to merge;
+#   - manually for any branch: gh workflow run CI --ref <branch> -f reason="<what to check>"
+#     (or Actions tab > CI > Run workflow); the run is listed as "Manual CI on <branch>: <reason>".
+# Pushes to feature/fix branches do NOT run CI; PRs into develop only run the fast checks.yml (no database):
+# run scripts/test_all.sh locally before merging.
+# A merge into main runs release.yml (packaging); CI does not run again because the PR into main already ran it.
+# Keep the job names: they are the required status checks of main.
+# The first failing job stops the whole run (job "Stop the run on the first failure", not a required check).
+name: CI
+# Manual runs get a descriptive title; push / PR runs keep GitHub's default (commit message / PR title)
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+  && format('Manual CI on {0}{1}', github.ref_name, inputs.reason && format(': {0}', inputs.reason) || '')
+  || '' }}
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: What this run checks (shown in the run title)
+        required: false
+        type: string
+
+# The token of the jobs can only read the repository; the job that cancels a failed run asks for more itself
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS (Apple Silicon)
+    runs-on: macos-latest
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Qt, ODBC, Ninja (Homebrew)
+        run: brew install qt qt-unixodbc unixodbc ninja
+
+      - name: Configure
+        run: cmake --preset macos-debug
+
+      - name: Build
+        run: cmake --build --preset macos-debug
+
+      - name: Unit test
+        # -V: prints every test function (PASS/SKIP) in the CI log; e2e needs a database so it is Skipped
+        run: ctest --preset macos-debug --output-on-failure -V
+
+  windows:
+    name: Windows (Qt + MinGW)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Qt 6.8 LTS + MinGW + Ninja
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          arch: "win64_mingw"
+          tools: "tools_mingw1310 tools_ninja"
+          cache: true
+
+      - name: Add MinGW and Ninja to PATH
+        shell: pwsh
+        run: |
+          "$env:IQTA_TOOLS\mingw1310_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          "$env:IQTA_TOOLS\Ninja" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Configure
+        run: cmake --preset windows-debug
+
+      - name: Build
+        run: cmake --build --preset windows-debug
+
+      - name: Unit test
+        # -V: prints every test function (PASS/SKIP) in the CI log; e2e needs a database so it is Skipped
+        run: ctest --preset windows-debug --output-on-failure -V
+
+  full-tests:
+    name: Full tests (Linux + SQL Server)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Start SQL Server 2022 Developer (Docker)
+        # ACCEPT_EULA=Y: the repository owner accepted the SQL Server Developer Edition license for this CI job
+        # (development/test use only). The sa password is random for every run and masked in the log.
+        run: |
+          MSSQL_SA_PASSWORD="Ci-$(openssl rand -hex 16)-Aa1"
+          echo "::add-mask::$MSSQL_SA_PASSWORD"
+          echo "SQL_PASSWORD=$MSSQL_SA_PASSWORD" >> "$GITHUB_ENV"
+          export MSSQL_SA_PASSWORD
+          docker run -d --name qlttta-mssql -p 1433:1433 \
+            -e ACCEPT_EULA=Y -e MSSQL_PID=Developer -e MSSQL_SA_PASSWORD \
+            mcr.microsoft.com/mssql/server:2022-latest
+
+      - name: Install Microsoft ODBC Driver 18, FreeTDS, Ninja
+        # ACCEPT_EULA=Y: the repository owner accepted the Microsoft ODBC Driver 18 license for this CI job too.
+        # FreeTDS (open source) is the driver bundled in the macOS .dmg: the end-to-end test runs through it as well.
+        run: |
+          curl -sSL -o /tmp/packages-microsoft-prod.deb \
+            https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb
+          sudo dpkg -i /tmp/packages-microsoft-prod.deb
+          sudo apt-get update -qq
+          sudo ACCEPT_EULA=Y apt-get install -y -qq msodbcsql18 tdsodbc ninja-build
+
+      - name: Install clang-format (team version)
+        # Step 1 of test_all (check_changes) needs git clang-format, same install as checks.yml
+        run: |
+          python3 -m venv "$RUNNER_TEMP/clang-format"
+          "$RUNNER_TEMP/clang-format/bin/pip" install -q "clang-format==$(tr -d '[:space:]' < .clang-format-version)"
+          echo "$RUNNER_TEMP/clang-format/bin" >> "$GITHUB_PATH"
+
+      - name: Install Qt 6.8 LTS
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          arch: "linux_gcc_64"
+          cache: true
+
+      - name: Wait for SQL Server
+        run: |
+          for _ in $(seq 1 60); do
+            if SQLCMDPASSWORD="$SQL_PASSWORD" docker exec -e SQLCMDPASSWORD qlttta-mssql \
+                 /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -Q "SELECT 1" > /dev/null 2>&1; then
+              echo "SQL Server is ready"; exit 0
+            fi
+            sleep 2
+          done
+          docker logs qlttta-mssql | tail -30
+          exit 1
+
+      - name: Full test suite (scripts/test_all.sh)
+        run: ./scripts/test_all.sh --docker qlttta-mssql
+
+      - name: Full test suite again with the PowerShell version (scripts/test_all.ps1)
+        # Keeps the .sh and .ps1 versions doing the same steps (the build is incremental, so this is quick)
+        shell: pwsh
+        run: ./scripts/test_all.ps1 -Docker qlttta-mssql
+
+      - name: End-to-end GUI tests again through FreeTDS
+        # Qt's ODBC plugin turns Unicode off for FreeTDS: SqlHelpers::execPrepared must keep Vietnamese text intact
+        env:
+          QLTTTA_ODBC_DRIVER: /usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so
+          QLTTTA_E2E_PASSWORD: Demo@2026 # demo accounts (docs/SETUP.md), not a real password
+        run: |
+          ctest --preset linux-debug -R e2e --output-on-failure --output-junit "$PWD/build/test-results/ctest-freetds.xml"
+          if grep -q 'status="notrun"\|<skipped' build/test-results/ctest-freetds.xml; then
+            echo "FAILED: the end-to-end test was skipped." >&2; exit 1
+          fi
+
+      - name: Upload the test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: full-test-results
+          path: build/test-results/
+          if-no-files-found: ignore
+
+  stop-on-failure:
+    # GitHub cancels the other jobs on a failure only inside a matrix (fail-fast); the three jobs above are separate,
+    # so this job watches them and cancels the whole run when one fails (no macOS/Windows minutes spent on a run that
+    # is already red). The failed job keeps its red X, the others end as "cancelled".
+    name: Stop the run on the first failure
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      actions: write # read the jobs of this run and cancel it
+    steps:
+      - name: Cancel the run as soon as another job fails
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SELF: Stop the run on the first failure # this job's own name, not watched
+          RUN: repos/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ATTEMPT: ${{ github.run_attempt }}
+        # An API error is retried and the watch gives up after 80 minutes (full tests time out at 60), so this job
+        # never turns a green run red. A job over its timeout-minutes ends as failure or cancelled.
+        run: |
+          end=$((SECONDS + 80 * 60))
+          while (( SECONDS < end )); do
+            sleep 15
+            jobs="$(gh api "$RUN/attempts/$ATTEMPT/jobs" \
+              --jq '.jobs[] | select(.name != env.SELF) | "\(.status)|\(.conclusion)|\(.name)"')" || continue
+            failed="$(grep -E '^completed\|(failure|timed_out|cancelled)\|' <<< "$jobs" | cut -d'|' -f3- || true)"
+            open="$(grep -vc '^completed|' <<< "$jobs" || true)"
+            if [[ -n "$failed" ]]; then
+              echo "FAILED: $failed"
+              if (( open > 0 )); then
+                echo "Cancelling the run ($open job(s) still queued or running)"
+                gh api -X POST "$RUN/cancel" > /dev/null || true
+              fi
+              exit 0
+            fi
+            if [[ -n "$jobs" ]] && (( open == 0 )); then
+              echo "All jobs passed"
+              exit 0
+            fi
+          done
+          echo "Jobs still running after 80 minutes - stopped watching"

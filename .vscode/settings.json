@@ -1,0 +1,23 @@
+{
+  // clangd finds compile_commands.json via the symlink the CMake build creates at the repo root.
+  // --query-driver lets clangd ask whichever compiler the preset recorded (Apple c++, MinGW g++, ...)
+  // for its system include paths.
+  "clangd.arguments": [
+    "--query-driver=**",
+    "--background-index",
+    "--clang-tidy=false",
+    "--header-insertion=never",
+    "--completion-style=detailed"
+  ],
+  "clangd.detectExtensionConflicts": true,
+  "[cpp]": {
+    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+  },
+  "files.associations": {
+    "*.sql": "sql",
+    // Qt Linguist files are XML. A pattern with "/" is matched against the
+    // absolute path and anchored at the start, so it never hits this repo.
+    // A pattern without "/" is matched against the file name only.
+    "qlttta_vi.ts": "xml"
+  }
+}
