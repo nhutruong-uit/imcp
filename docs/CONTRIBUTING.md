@@ -33,8 +33,8 @@ chore/<short-name>
   their own PRs once the checks are green (`gh pr merge --admin`, or "Merge with bypass" on GitHub; the bypass is
   recorded on the PR). Nobody else can bypass.
 - PR title, description and commit messages are written **in English**. With Claude Code: type
-  `/imcp-create-pr`. (A private repo needs GitHub Pro; students can get it for free via the GitHub Student Developer
-  Pack.)
+  `/imcp-create-pr`. The repository is public: rulesets, GitHub Pages and the CI minutes of the standard runners
+  need no paid plan.
 
 ## How do non-programming members contribute?
 
