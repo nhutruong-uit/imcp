@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(QLTTTA
-    VERSION 0.1.0
+    VERSION 1.0.0
     DESCRIPTION "English center management system - IE103 course project"
     LANGUAGES CXX)
 
