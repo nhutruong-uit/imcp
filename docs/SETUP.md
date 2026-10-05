@@ -102,6 +102,11 @@ Connection check without the GUI (for diagnosing errors; `QLTTTA_SERVER` is opti
 ```bash
 QLTTTA_USER=ql_quan QLTTTA_PASSWORD='Demo@2026' /Applications/QLTTTA.app/Contents/MacOS/QLTTTA --check-connection
 ```
+```powershell
+$env:QLTTTA_USER = 'ql_quan'; $env:QLTTTA_PASSWORD = 'Demo@2026'
+# installed for all users; for the current user only: $env:LOCALAPPDATA\Programs\QLTTTA\QLTTTA.exe
+& "C:\Program Files\QLTTTA\QLTTTA.exe" --check-connection | Out-Host   # | Out-Host waits for the GUI app
+```
 It prints `OK: <full name> (<role>)` and exits with code 0, or `ERROR: <message>` and exits with code 1 (in the
 language chosen last in the app).
 
@@ -125,8 +130,9 @@ powershell -ExecutionPolicy Bypass -File scripts\setup_dev.ps1 -AcceptLicenses
 ```
 `--accept-licenses` (`-AcceptLicenses`) means you accept the SQL Server Developer Edition license and, on macOS, the
 Docker Desktop terms; without it those steps are skipped. Other options: `--container <name>` (`-Docker <name>`),
-`-Server <instance>` (Windows), `--with-msodbc` (`-WithMsOdbc`: Microsoft ODBC Driver 18, optional) and `--skip-tests`
-(`-SkipTests`). On macOS a missing SQL Server becomes the `imcp-mssql` container of `docker-compose.yml`, with a random
+`-Server <instance>` (Windows), `--with-msodbc` (`-WithMsOdbc`: Microsoft ODBC Driver 18 - not needed on macOS or on a
+Windows PC with SQL Server installed, needed on Windows with `-Docker` or a SQL Server on another PC, see
+`docs/ARCHITECTURE.md` section 6) and `--skip-tests` (`-SkipTests`). On macOS a missing SQL Server becomes the `imcp-mssql` container of `docker-compose.yml`, with a random
 sa password written to `.env`. On Windows, Qt 6.8 + MinGW, CMake and Ninja are installed into `C:\Qt` with aqtinstall
 (the tool CI uses, no Qt account needed) and `QT_ROOT_DIR` and `PATH` are set for your user. What only you can do -
 install Homebrew, sign in with `gh auth login`, set your git name, restart Windows - is listed at the end with the
@@ -167,7 +173,7 @@ SQL_PASSWORD='<sa password>' ./scripts/test_all.sh --docker imcp-mssql   # or dr
 ```
 It runs, in order: change checks against `origin/develop` (`scripts/check_changes.sh`: format of the changed C++
 lines, commit messages, no build output / `.env` in the repository) → re-initialize the database →
-`database/12_tests.sql` (126 cases: constraints, business rules, functions/triggers/cursors, XML, authorization, schema
+`database/12_tests.sql` (161 cases: constraints, business rules, functions/triggers/cursors, XML, authorization, schema
 conventions) → `database/13_server_tests.sql` (20 server-level cases: backup and restore, BULK INSERT of the sample
 CSV, the distributed database of `11_distributed_demo.sql`, account lockout and password reset with real sign-ins) → build → unit tests
 (incl. `tst_conventions`) → end-to-end GUI tests. It stops at the first failing step and exits with a non-zero code; details are written to `build/test-results/`. Add `--no-init` to skip the
@@ -180,7 +186,7 @@ The change checks need `clang-format` and `git clang-format` of the team version
 `./scripts/check_changes.sh` (Windows: `.\scripts\check_changes.ps1`).
 A skipped end-to-end test counts as a failure, so a missing password or an unreachable database cannot pass silently.
 The last line is
-`ALL TESTS PASSED: database 146/146 cases (12_tests + 13_server_tests), unit tests + end-to-end GUI tests passed.`
+`ALL TESTS PASSED: database 181/181 cases (12_tests + 13_server_tests), unit tests + end-to-end GUI tests passed.`
 
 The server-level step needs a **sysadmin** login (`sa`, or a Windows account that is sysadmin) and the MSOLEDBSQL
 provider (installed with SQL Server 2019+, also in the Docker image): it creates scratch databases `QLTTTA_T_*`, backup
@@ -262,6 +268,11 @@ the same way as the report:
 python3 docs/user-guide/build_user_guide.py
 ./docs/report/tools/export_pdf.sh docs/user-guide/QLTTTA_User_Guide.docx
 swift docs/report/tools/check_pdf.swift check docs/user-guide/QLTTTA_User_Guide.pdf
+```
+On Windows (Word for Windows; the exit code of `export_pdf.ps1` is the field check, there is no swift):
+```powershell
+py docs\user-guide\build_user_guide.py
+.\docs\report\tools\export_pdf.ps1 docs\user-guide\QLTTTA_User_Guide.docx
 ```
 
 ### Translations (multi-language UI)

@@ -23,6 +23,19 @@ QStringList discountTypes();          // PERCENT, AMOUNT (codes, shown through t
 inline constexpr int codeLength = 10; // every code column is VARCHAR(10)
 } // namespace CatalogValues
 
+// Ranges of the CHECK constraints of the catalog tables, used by validate() and by the form fields
+namespace CatalogLimits {
+inline constexpr int minRoomCapacity = 1; // CK_ROOM_Capacity
+inline constexpr int maxRoomCapacity = 100;
+inline constexpr int minSessionCount = 1; // CK_COURSE_SessionCount
+inline constexpr int maxSessionCount = 200;
+inline constexpr int minSessionMinutes = 30; // CK_COURSE_SessionMinutes
+inline constexpr int maxSessionMinutes = 240;
+inline constexpr double maxPlacementScore = 10;  // CK_COURSE_MinPlacementScore (0-10)
+inline constexpr double maxWeight = 100;         // CK_GRADE_COMPONENT_Weight (above 0, at most 100)
+inline constexpr double maxPercentDiscount = 50; // CK_PROMOTION_DiscountValue
+} // namespace CatalogLimits
+
 // A branch (table BRANCH). The student screens only need id and name (active branches for the combo boxes).
 struct Branch {
     QString id;

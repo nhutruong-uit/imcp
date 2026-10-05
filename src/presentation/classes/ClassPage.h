@@ -29,7 +29,7 @@ private:
     void cancelClass();
     void showStudents();
     void evaluateResults();
-    void showResults();
+    void showResults(const QString& id, const QString& name);
 
     QList<Branch> m_branches;
     QComboBox* m_branchFilter = nullptr;

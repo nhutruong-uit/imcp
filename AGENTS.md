@@ -67,6 +67,7 @@ Windows (PowerShell, after `scripts\setup_dev.ps1`): the same steps with the `wi
 cmake --preset windows-debug; cmake --build --preset windows-debug; ctest --preset windows-debug
 $env:QLTTTA_USER = 'ql_quan'; $env:QLTTTA_PASSWORD = 'Demo@2026'; $env:QLTTTA_SERVER = 'localhost'
 .\build\windows-debug\QLTTTA.exe --check-connection | Out-Host   # | Out-Host: wait for the GUI app, show its output
+py docs\report\tools\export_data.py --server localhost --windows-auth   # report data from the database
 py docs\report\build_report.py; .\docs\report\tools\export_pdf.ps1          # report docx -> PDF (Word for Windows)
 py docs\user-guide\build_user_guide.py; .\docs\report\tools\export_pdf.ps1 docs\user-guide\QLTTTA_User_Guide.docx
 .\scripts\package.ps1                                    # dist\...-portable.zip (+ setup.exe with Inno Setup 6)
@@ -100,10 +101,11 @@ py docs\user-guide\build_user_guide.py; .\docs\report\tools\export_pdf.ps1 docs\
   `06_security.sql` and every new rule/constraint/permission gets a test case in `12_tests.sql` (or
   `13_server_tests.sql` for server-level features) registered in `#Expected`. Never change the expectation of an
   existing case to make the tests green unless the specification really changed - then say so in the PR.
-- **Enforced by tests** (`test_all`, CI): `tst_conventions` (SQL syntax and headers, layers, SQL location, scripts,
-  numbers quoted in the docs, the data map `docs/data-map.html`), `12_tests.sql` T28-T30 and T32 (naming,
-  permission matrix, `SET NOCOUNT ON`, UTC times), `tst_i18n` (translations and database messages), `check_changes`
-  (format of the changed lines, commit messages). Fix the code, not the check.
+- **Enforced by tests** (`test_all`, CI): `tst_conventions` (SQL syntax and headers, layers, SQL location, result
+  columns read by name, test names, scripts, numbers quoted in the docs, the data map `docs/data-map.html`),
+  `12_tests.sql` T28-T30 and T32 (naming, permission matrix, `SET NOCOUNT ON`, UTC times), `tst_i18n`
+  (translations and database messages), `check_changes` (format of the changed lines, commit messages). Fix the
+  code, not the check.
 - **Git**: default branch `develop`; work on `feature/...`/`fix/...`/`docs/...`/`chore/...` branches and PR into
   `develop`. Never push directly to `develop` or `main` (both protected by rulesets: a PR, the branch up to date, and
   one approving review from the code owner `nhutruong-uit` in `.github/CODEOWNERS`). `develop` also requires the

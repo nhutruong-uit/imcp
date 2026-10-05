@@ -98,7 +98,8 @@ GO
 /* A1. usp_Student_Add: add a student, return the new ID through an OUTPUT parameter
        Reference implementation of the team: copy its layout for a new write procedure.
        Used by: Students screen - Add (SqlStudentRepository::add); roles rl_Manager, rl_AcademicStaff;
-                tests T01 (12_tests.sql), S08 (13_server_tests.sql), e2e academicStaff_searchAddDeleteStudent.
+                tests T01 (12_tests.sql), S08 (13_server_tests.sql),
+                e2e academicStaff_studentsFlow_searchesAddsAndDeletes.
        Rules:   the name must not be empty (50001); the phone (50002) and the email (50003) must not belong
                 to another student. These checks give a clear message; the filtered unique indexes
                 UX_STUDENT_Phone / UX_STUDENT_Email remain the real guarantee. Age, guardian and contact
@@ -197,7 +198,8 @@ GO
 
 /* A3. usp_Student_Delete: only a student who never enrolled can be deleted
        Used by: Students screen - Delete (SqlStudentRepository::remove); roles rl_Manager, rl_AcademicStaff;
-                e2e academicStaff_searchAddDeleteStudent; test T41 (a student with an enrollment history).
+                e2e academicStaff_studentsFlow_searchesAddsAndDeletes;
+                test T41 (a student with an enrollment history).
        Rules:   a student with any enrollment keeps the history (enrollments, receipts, grades point to it),
                 so the message (50005) suggests the status Dropped out instead. The placement tests go first
                 because FK_PLACEMENT_TEST_STUDENT (no ON DELETE CASCADE) would block deleting the student.
@@ -288,11 +290,18 @@ GO
 
 /* B1. usp_Class_Create: open a new class; the tuition defaults to the course tuition
        Used by: Classes screen - New class (SqlClassRepository::add), 07_seed_data.sql (creates the demo
-                classes); roles rl_Manager, rl_AcademicStaff.
-       Rules:   the course must be Open (50010) and the teacher still Teaching (50011). The room must belong
-                to the branch of the class and hold MaxStudents (trigger trg_CLASS_CheckRoom). A new class
-                starts as Enrolling (DF_CLASS_Status); its sessions are created later by B2 + B3.
-       Concepts: optional parameter with a computed default (@Tuition), OUTPUT inserted.ClassId INTO @New. */
+                classes); roles rl_Manager, rl_AcademicStaff; tests T122 (a suspended branch), T123 (a room under
+                maintenance).
+       Rules:   the course must be Open (50010), the teacher still Teaching (50011), the branch Active (50085)
+                and the room not under maintenance (50084). The room must belong to the branch of the class and
+                hold MaxStudents (trigger trg_CLASS_CheckRoom). A new class starts as Enrolling
+                (DF_CLASS_Status); its sessions are created later by B2 + B3.
+       Steps:   the checks run in a transaction that keeps the course, teacher and branch rows locked
+                (UPDLOCK, HOLDLOCK) until COMMIT. J8, J15 and J2 take the same locks before they discontinue the
+                course, let the teacher leave or suspend the branch, so a class can never be opened on something
+                that is being closed at the same moment (each side waits for the other, then sees its result).
+       Concepts: optional parameter with a computed default (@Tuition), OUTPUT inserted.ClassId INTO @New,
+                 pessimistic locking (UPDLOCK, HOLDLOCK), THROW inside TRY. */
 IF OBJECT_ID(N'dbo.usp_Class_Create', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Class_Create;
 GO
 CREATE PROCEDURE dbo.usp_Class_Create
@@ -308,38 +317,59 @@ CREATE PROCEDURE dbo.usp_Class_Create
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
 
-    -- 1. Business rules
-    IF NOT EXISTS (SELECT 1 FROM dbo.COURSE WHERE CourseId = @CourseId AND Status = N'Open')
-        THROW 50010, N'The course does not exist or is no longer offered.', 1;
-    IF NOT EXISTS (SELECT 1 FROM dbo.TEACHER WHERE TeacherId = @TeacherId AND Status = N'Teaching')
-        THROW 50011, N'The teacher does not exist or is no longer teaching.', 1;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        -- 1. Business rules, on rows locked until COMMIT
+        IF NOT EXISTS (SELECT 1 FROM dbo.COURSE WITH (UPDLOCK, HOLDLOCK)
+                       WHERE CourseId = @CourseId AND Status = N'Open')
+            THROW 50010, N'The course does not exist or is no longer offered.', 1;
+        IF NOT EXISTS (SELECT 1 FROM dbo.TEACHER WITH (UPDLOCK, HOLDLOCK)
+                       WHERE TeacherId = @TeacherId AND Status = N'Teaching')
+            THROW 50011, N'The teacher does not exist or is no longer teaching.', 1;
+        IF NOT EXISTS (SELECT 1 FROM dbo.BRANCH WITH (UPDLOCK, HOLDLOCK)
+                       WHERE BranchId = @BranchId AND Status = N'Active')
+            THROW 50085, N'The branch does not exist or is suspended.', 1;
+        IF EXISTS (SELECT 1 FROM dbo.ROOM WHERE RoomId = @RoomId AND Status = N'Maintenance')
+            THROW 50084, N'The room is under maintenance; choose another room.', 1;
 
-    -- 2. No tuition given => the tuition of the course (a class may also get its own price)
-    IF @Tuition IS NULL
-        SELECT @Tuition = Tuition FROM dbo.COURSE WHERE CourseId = @CourseId;
+        -- 2. No tuition given => the tuition of the course (a class may also get its own price)
+        IF @Tuition IS NULL
+            SELECT @Tuition = Tuition FROM dbo.COURSE WHERE CourseId = @CourseId;
 
-    -- 3. Insert and return the generated ClassId (DEFAULT from seq_CLASS), same pattern as A1
-    DECLARE @New TABLE (ClassId VARCHAR(10));
-    INSERT INTO dbo.CLASS (ClassName, CourseId, BranchId, TeacherId, RoomId, StartDate, MaxStudents, Tuition)
-    OUTPUT inserted.ClassId INTO @New
-    VALUES (@ClassName, @CourseId, @BranchId, @TeacherId, @RoomId, @StartDate, @MaxStudents, @Tuition);
+        -- 3. Insert and return the generated ClassId (DEFAULT from seq_CLASS), same pattern as A1
+        DECLARE @New TABLE (ClassId VARCHAR(10));
+        INSERT INTO dbo.CLASS (ClassName, CourseId, BranchId, TeacherId, RoomId, StartDate, MaxStudents, Tuition)
+        OUTPUT inserted.ClassId INTO @New
+        VALUES (@ClassName, @CourseId, @BranchId, @TeacherId, @RoomId, @StartDate, @MaxStudents, @Tuition);
 
-    SELECT @ClassId = ClassId FROM @New;
+        SELECT @ClassId = ClassId FROM @New;
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 
 /* B2. usp_ClassSchedule_Add: add a weekly time slot to a class
        (trigger trg_CLASS_SCHEDULE_CheckConflict checks room/teacher clashes)
        Used by: Classes screen - Weekly schedule (SqlClassRepository::saveSlot), 07_seed_data.sql; roles
-                rl_Manager, rl_AcademicStaff; tests T08 (a busy room is rejected), T75 (a finished class).
+                rl_Manager, rl_AcademicStaff; tests T08 (a busy room is rejected), T75 (a finished class), T105
+                (a slot that clashes with another class of an enrolled student), T124 (a class with taught
+                sessions), T125 (the generated sessions are removed).
        Rules:   only a class that is Enrolling or In progress gets new slots (50080: the timetable of a
                 finished or cancelled class is history). One slot per class and weekday (primary key
                 ClassId + Weekday). Weekday is ISO (1 = Monday ... 7 = Sunday) and the hours must lie
-                between 07:00 and 22:00 (CK_CLASS_SCHEDULE_Weekday, CK_CLASS_SCHEDULE_Time). Sessions that
-                already exist are not changed: B3 rebuilds them as long as no session has been taught or
-                cancelled.
-       Concepts: upsert (IF EXISTS UPDATE ELSE INSERT), a rule across rows checked by a trigger. */
+                between 07:00 and 22:00 (CK_CLASS_SCHEDULE_Weekday, CK_CLASS_SCHEDULE_Time). The new slot must
+                not clash with another class of a student who studies in this class (50024, the same check as
+                C1 and B6). The weekly timetable is the plan the sessions are generated from, so the two always
+                agree: once a session was taught or cancelled the timetable is fixed (50086), and before that a
+                change removes the generated sessions (and EndDate, like B6) - the screen generates them again.
+       Concepts: upsert (IF EXISTS UPDATE ELSE INSERT), a rule across rows checked by a trigger, CROSS APPLY of
+                 an inline table-valued function, THROW inside TRY (the CATCH rolls back and re-raises it). */
 IF OBJECT_ID(N'dbo.usp_ClassSchedule_Add', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_ClassSchedule_Add;
 GO
 CREATE PROCEDURE dbo.usp_ClassSchedule_Add
@@ -350,16 +380,42 @@ CREATE PROCEDURE dbo.usp_ClassSchedule_Add
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     IF NOT EXISTS (SELECT 1 FROM dbo.CLASS WHERE ClassId = @ClassId AND Status IN (N'Enrolling', N'In progress'))
         THROW 50080, N'Only an enrolling or in-progress class can be changed.', 1;
-    -- Save = change the slot of this weekday when it exists, add it otherwise. Either way the AFTER INSERT,
-    -- UPDATE trigger rolls back a clash with another active class in the same room or with the same teacher.
-    IF EXISTS (SELECT 1 FROM dbo.CLASS_SCHEDULE WHERE ClassId = @ClassId AND Weekday = @Weekday)
-        UPDATE dbo.CLASS_SCHEDULE SET StartTime = @StartTime, EndTime = @EndTime
-        WHERE ClassId = @ClassId AND Weekday = @Weekday;
-    ELSE
-        INSERT INTO dbo.CLASS_SCHEDULE (ClassId, Weekday, StartTime, EndTime)
-        VALUES (@ClassId, @Weekday, @StartTime, @EndTime);
+    IF EXISTS (SELECT 1 FROM dbo.CLASS_SESSION WHERE ClassId = @ClassId AND Status <> N'Scheduled')
+        THROW 50086, N'The weekly schedule of a class with taught or cancelled sessions can no longer change.', 1;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        -- 1. The generated sessions (all still Scheduled) follow the old timetable: remove them with EndDate, B3
+        --    generates them again. Without EndDate the checks below use the estimated period (fn_ClassPeriod).
+        DELETE FROM dbo.CLASS_SESSION WHERE ClassId = @ClassId;
+        UPDATE dbo.CLASS SET EndDate = NULL WHERE ClassId = @ClassId AND EndDate IS NOT NULL;
+
+        -- 2. Save = change the slot of this weekday when it exists, add it otherwise. Either way the AFTER INSERT,
+        --    UPDATE trigger rolls back a clash with another active class in the same room or with the same teacher.
+        IF EXISTS (SELECT 1 FROM dbo.CLASS_SCHEDULE WITH (UPDLOCK, HOLDLOCK)
+                   WHERE ClassId = @ClassId AND Weekday = @Weekday)
+            UPDATE dbo.CLASS_SCHEDULE SET StartTime = @StartTime, EndTime = @EndTime
+            WHERE ClassId = @ClassId AND Weekday = @Weekday;
+        ELSE
+            INSERT INTO dbo.CLASS_SCHEDULE (ClassId, Weekday, StartTime, EndTime)
+            VALUES (@ClassId, @Weekday, @StartTime, @EndTime);
+
+        -- 3. The students of the class must not get a clash with their other classes (fn_StudentScheduleClash
+        --    reads the slots just written, inside the same transaction)
+        IF EXISTS (SELECT 1 FROM dbo.ENROLLMENT en
+                   CROSS APPLY dbo.fn_StudentScheduleClash(en.StudentId, en.ClassId, en.EnrollmentId) c
+                   WHERE en.ClassId = @ClassId AND en.Status = N'Studying')
+            THROW 50024, N'The class schedule clashes with another class the student is taking.', 1;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 
@@ -503,12 +559,14 @@ GO
        Rules:   a TEACHER account may only change the sessions it teaches (CLASS_SESSION.TeacherId = the
                 teacher linked to the signed-in account, 50017); the other roles may change any session.
                 The sessions of a Finished or Cancelled class are final (50018, like grades and attendance).
-                A NULL description keeps the old one. Status values: CK_CLASS_SESSION_Status. The trigger
-                trg_CLASS_SESSION_LockTaught refuses a future session marked Taught and a Taught session that
-                changes its status, date, time, room or teacher; F1 pays the Taught sessions.
-                Tests: P20, T50 and T51 (trigger), T56 (a finished class).
+                A NULL description keeps the old one, an empty one removes it (the screen sends the text of the
+                field, so clearing the field clears the content). Status values: CK_CLASS_SESSION_Status. The
+                trigger trg_CLASS_SESSION_LockTaught refuses a future session marked Taught and a Taught session
+                that changes its status, date, time, room or teacher; F1 pays the Taught sessions.
+                Tests: P20, T50 and T51 (trigger), T56 (a finished class), T106 (keep, change and clear the
+                content).
        Concepts: a row-level permission inside a procedure (fn_CurrentRole, fn_CurrentTeacherId),
-                 ISNULL to keep the current value. */
+                 CASE + NULLIF to tell "keep" (NULL) from "remove" (empty text). */
 IF OBJECT_ID(N'dbo.usp_Session_Update', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Session_Update;
 GO
 CREATE PROCEDURE dbo.usp_Session_Update
@@ -532,9 +590,11 @@ BEGIN
     IF @ClassStatus IN (N'Finished', N'Cancelled')
         THROW 50018, N'The sessions of a finished or cancelled class cannot be changed.', 1;
 
-    -- 3. Save the status and, when given, the content of the lesson
+    -- 3. Save the status and the content of the lesson: NULL keeps it, an empty text removes it
     UPDATE dbo.CLASS_SESSION
-    SET Status = @Status, Description = ISNULL(@Description, Description)
+    SET Status = @Status,
+        Description = CASE WHEN @Description IS NULL THEN Description
+                           ELSE NULLIF(LTRIM(RTRIM(@Description)), N'') END
     WHERE SessionId = @SessionId;
 END;
 GO
@@ -542,25 +602,34 @@ GO
 /* B6. usp_Class_Update: change a class that is still running (name, teacher, room, start date, size, tuition)
        Used by: Classes screen - Edit (SqlClassRepository::update); roles rl_Manager, rl_AcademicStaff;
                 tests T72 (a size below the enrolled students), T73 (a teacher who is busy at that time), T74 (the
-                scheduled sessions follow the new teacher and room).
+                scheduled sessions follow the new teacher and room), T83 (a new start date for a class in
+                progress), T101 and T102 (a new start date, also after the old end date), T111 (a new start date
+                that clashes with another class of a student), T114 (a teacher who is not teaching), T116 (a past
+                session that is still Scheduled keeps its teacher).
        Rules:   the class must exist (50012) and be Enrolling or In progress (50080); a new teacher must still
-                be Teaching (50011); the start date only moves while the class is Enrolling and none of its
+                be Teaching (50011); a new room is not under maintenance (50084); the start date only moves while the class is Enrolling and none of its
                 sessions was taught or cancelled (50081); the maximum size never falls below the number of
                 enrolled students (50082 - trg_ENROLLMENT_CheckCapacity only checks new enrollments). The room
                 must belong to the branch and hold the size (trg_CLASS_CheckRoom). A new tuition only applies
                 to later enrollments: an enrollment keeps the BaseTuition it was given (C1).
-       Steps:   1. Read the class as it is now and check the rules.
-                2. In one transaction: UPDATE CLASS. A new start date makes the generated sessions wrong: they
-                   are all still Scheduled (rule above), so they are deleted and EndDate becomes NULL again -
-                   the screen then generates them with B3. Otherwise the Scheduled sessions take the new
-                   teacher and room (a taught session keeps them, trg_CLASS_SESSION_LockTaught).
+       Steps:   1. In one transaction, read the class with UPDLOCK, HOLDLOCK and check the rules: the class row
+                   (and a new teacher's row) stays locked until COMMIT, so an enrollment (C1 takes the same lock)
+                   or usp_Teacher_Update cannot change what was checked before the UPDATE.
+                2. UPDATE CLASS. A new start date makes the generated sessions wrong: they
+                   are all still Scheduled (rule above), so they are deleted and EndDate becomes NULL in the
+                   same UPDATE (the old EndDate may lie before the new start date: CK_CLASS_Dates) - the screen
+                   then generates them with B3. Otherwise the Scheduled sessions from today on take the new
+                   teacher and room; a past session keeps them even while it is still Scheduled (taught but not
+                   confirmed yet: its own teacher confirms it and F1 pays that teacher), and a taught session
+                   keeps them anyway (trg_CLASS_SESSION_LockTaught).
                 3. Every weekly slot of the class is written again unchanged (SET StartTime = StartTime): that
                    fires trg_CLASS_SCHEDULE_CheckConflict, which compares the slots with the NEW teacher, room
                    and period of the class and rolls back a clash with another class - one rule, one place.
                 4. A new period may clash with another class of an enrolled student: the same check as C1
                    (fn_StudentScheduleClash, 50024) for every Studying enrollment of the class.
-       Concepts: re-checking a rule by firing its trigger, multi-step transaction, CROSS APPLY of an inline
-                 table-valued function, THROW inside TRY (the CATCH rolls back and re-raises it). */
+       Concepts: re-checking a rule by firing its trigger, multi-step transaction, pessimistic locking (UPDLOCK,
+                 HOLDLOCK), CROSS APPLY of an inline table-valued function, THROW inside TRY (the CATCH rolls
+                 back and re-raises it). */
 IF OBJECT_ID(N'dbo.usp_Class_Update', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Class_Update;
 GO
 CREATE PROCEDURE dbo.usp_Class_Update
@@ -575,41 +644,45 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
-    DECLARE @Status NVARCHAR(20), @OldTeacherId VARCHAR(10), @OldStartDate DATE;
-
-    -- 1. The class as it is now; still NULL => no such class
-    SELECT @Status = Status, @OldTeacherId = TeacherId, @OldStartDate = StartDate
-    FROM dbo.CLASS WHERE ClassId = @ClassId;
-    IF @Status IS NULL
-        THROW 50012, N'Class not found.', 1;
-    IF @Status NOT IN (N'Enrolling', N'In progress')
-        THROW 50080, N'Only an enrolling or in-progress class can be changed.', 1;
-    IF @TeacherId <> @OldTeacherId
-       AND NOT EXISTS (SELECT 1 FROM dbo.TEACHER WHERE TeacherId = @TeacherId AND Status = N'Teaching')
-        THROW 50011, N'The teacher does not exist or is no longer teaching.', 1;
-    IF @StartDate <> @OldStartDate
-       AND (@Status <> N'Enrolling'
-            OR EXISTS (SELECT 1 FROM dbo.CLASS_SESSION WHERE ClassId = @ClassId AND Status <> N'Scheduled'))
-        THROW 50081, N'The start date can only change while the class is enrolling and none of its sessions has been taught or cancelled.', 1;
-    IF @MaxStudents < dbo.fn_EnrolledCount(@ClassId)
-        THROW 50082, N'The maximum size cannot be lower than the number of students enrolled in the class.', 1;
+    DECLARE @Status NVARCHAR(20), @OldTeacherId VARCHAR(10), @OldRoomId VARCHAR(10), @OldStartDate DATE;
 
     BEGIN TRY
         BEGIN TRANSACTION;
-        -- 2. The class (trg_CLASS_CheckRoom checks the room), then its sessions
+        -- 1. The class as it is now, locked until COMMIT (UPDLOCK, HOLDLOCK, as in C1: no enrollment slips in
+        --    between the size check and the UPDATE); still NULL => no such class
+        SELECT @Status = Status, @OldTeacherId = TeacherId, @OldRoomId = RoomId, @OldStartDate = StartDate
+        FROM dbo.CLASS WITH (UPDLOCK, HOLDLOCK) WHERE ClassId = @ClassId;
+        IF @Status IS NULL
+            THROW 50012, N'Class not found.', 1;
+        IF @Status NOT IN (N'Enrolling', N'In progress')
+            THROW 50080, N'Only an enrolling or in-progress class can be changed.', 1;
+        -- A new teacher must still teach; the teacher row stays locked, so usp_Teacher_Update waits to set Left
+        IF @TeacherId <> @OldTeacherId
+           AND NOT EXISTS (SELECT 1 FROM dbo.TEACHER WITH (UPDLOCK, HOLDLOCK)
+                           WHERE TeacherId = @TeacherId AND Status = N'Teaching')
+            THROW 50011, N'The teacher does not exist or is no longer teaching.', 1;
+        IF @RoomId <> @OldRoomId AND EXISTS (SELECT 1 FROM dbo.ROOM WHERE RoomId = @RoomId AND Status = N'Maintenance')
+            THROW 50084, N'The room is under maintenance; choose another room.', 1;
+        IF @StartDate <> @OldStartDate
+           AND (@Status <> N'Enrolling'
+                OR EXISTS (SELECT 1 FROM dbo.CLASS_SESSION WHERE ClassId = @ClassId AND Status <> N'Scheduled'))
+            THROW 50081, N'The start date can only change while the class is enrolling and none of its sessions has been taught or cancelled.', 1;
+        IF @MaxStudents < dbo.fn_EnrolledCount(@ClassId)
+            THROW 50082, N'The maximum size cannot be lower than the number of students enrolled in the class.', 1;
+
+        -- 2. The class (trg_CLASS_CheckRoom checks the room), then its sessions. A new start date clears EndDate
+        --    in the same statement: CK_CLASS_Dates checks the row as it is after the UPDATE.
         UPDATE dbo.CLASS
         SET ClassName = LTRIM(RTRIM(@ClassName)), TeacherId = @TeacherId, RoomId = @RoomId, StartDate = @StartDate,
+            EndDate = CASE WHEN @StartDate <> @OldStartDate THEN NULL ELSE EndDate END,
             MaxStudents = @MaxStudents, Tuition = @Tuition
         WHERE ClassId = @ClassId;
 
         IF @StartDate <> @OldStartDate
-        BEGIN
             DELETE FROM dbo.CLASS_SESSION WHERE ClassId = @ClassId;
-            UPDATE dbo.CLASS SET EndDate = NULL WHERE ClassId = @ClassId;
-        END
         ELSE
             UPDATE dbo.CLASS_SESSION SET TeacherId = @TeacherId, RoomId = @RoomId
-            WHERE ClassId = @ClassId AND Status = N'Scheduled';
+            WHERE ClassId = @ClassId AND Status = N'Scheduled' AND SessionDate >= dbo.fn_Today();
 
         -- 3. Re-check the weekly slots against the other classes (fires trg_CLASS_SCHEDULE_CheckConflict)
         UPDATE dbo.CLASS_SCHEDULE SET StartTime = StartTime WHERE ClassId = @ClassId;
@@ -632,11 +705,12 @@ GO
 
 /* B7. usp_ClassSchedule_Remove: remove a weekly time slot of a class
        Used by: Classes screen - Weekly schedule (SqlClassRepository::removeSlot); roles rl_Manager,
-                rl_AcademicStaff; test T75.
-       Rules:   only for a class that is Enrolling or In progress (50080) and a slot that exists (50083).
-                Sessions that were already generated are not changed: generate them again (B3) as long as none
-                was taught or cancelled.
-       Concepts: DELETE on a composite key, @@ROWCOUNT to detect "not found". */
+                rl_AcademicStaff; tests T94 (a slot removed), T112 (a slot that does not exist).
+       Rules:   only for a class that is Enrolling or In progress (50080), whose sessions were neither taught nor
+                cancelled (50086, as B2: the timetable and the sessions always agree), and a slot that exists
+                (50083). The generated sessions follow the old timetable, so they are removed with EndDate; the
+                screen generates them again (B3).
+       Concepts: DELETE on a composite key, @@ROWCOUNT to detect "not found", a multi-step transaction. */
 IF OBJECT_ID(N'dbo.usp_ClassSchedule_Remove', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_ClassSchedule_Remove;
 GO
 CREATE PROCEDURE dbo.usp_ClassSchedule_Remove
@@ -645,17 +719,31 @@ CREATE PROCEDURE dbo.usp_ClassSchedule_Remove
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     IF NOT EXISTS (SELECT 1 FROM dbo.CLASS WHERE ClassId = @ClassId AND Status IN (N'Enrolling', N'In progress'))
         THROW 50080, N'Only an enrolling or in-progress class can be changed.', 1;
-    DELETE FROM dbo.CLASS_SCHEDULE WHERE ClassId = @ClassId AND Weekday = @Weekday;
-    IF @@ROWCOUNT = 0
-        THROW 50083, N'Schedule slot not found.', 1;
+    IF EXISTS (SELECT 1 FROM dbo.CLASS_SESSION WHERE ClassId = @ClassId AND Status <> N'Scheduled')
+        THROW 50086, N'The weekly schedule of a class with taught or cancelled sessions can no longer change.', 1;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        DELETE FROM dbo.CLASS_SCHEDULE WHERE ClassId = @ClassId AND Weekday = @Weekday;
+        IF @@ROWCOUNT = 0
+            THROW 50083, N'Schedule slot not found.', 1;
+        DELETE FROM dbo.CLASS_SESSION WHERE ClassId = @ClassId;
+        UPDATE dbo.CLASS SET EndDate = NULL WHERE ClassId = @ClassId AND EndDate IS NOT NULL;
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 
 /* B8. usp_ClassSchedule_ByClass: the weekly time slots of a class
        Used by: Classes screen - Weekly schedule (SqlClassRepository::schedule); roles rl_Manager,
-                rl_AcademicStaff; test T75.
+                rl_AcademicStaff; test T94.
        Returns: one row per weekday of the class (1 = Monday ... 7 = Sunday) with its hours as hh:mi text
                 (CONVERT style 108 gives hh:mi:ss, LEFT keeps hh:mi).
        Concepts: a read procedure on a table the role cannot SELECT itself (ownership chaining). */
@@ -687,9 +775,11 @@ GO
        Used by: Enrollments screen - New enrollment (SqlEnrollmentRepository::enroll), 07_seed_data.sql (every
                 demo enrollment); roles rl_Manager, rl_AcademicStaff (DENY EXECUTE to rl_Accountant, test P04);
                 tests T03 (already enrolled), T04 (entry requirement), T05 (schedule clash), T15 (valid enrollment
-                with a promotion).
+                with a promotion), T120 (a date in the future).
        Steps:   1. Defaults: the enrollment date is today and the employee is the signed-in one
-                   (fn_CurrentEmployeeId) when the caller passes NULL.
+                   (fn_CurrentEmployeeId) when the caller passes NULL. A past date is allowed (a paper form typed
+                   later), a future one is not (50100): attendance counts from that day (ClassJoinedOn), so a
+                   student dated in the future would have no session to count and pass on attendance.
                 2. The student must exist and not be Dropped out (50020).
                 3. One SELECT reads the class and its course: tuition, status, prerequisite and minimum
                    placement score. Then: the class exists (50012), still accepts enrollments (50021), the
@@ -706,12 +796,14 @@ GO
                    periods (the same check as C2 and C3).
                 6. A promotion code must exist and be valid on the enrollment date (50025); the discount comes
                    from fn_DiscountAmount (0 on a free class is a valid discount).
-                7. In one transaction: insert the ENROLLMENT (ClassJoinedOn = the enrollment date; TuitionDue =
-                   BaseTuition - DiscountAmount is a computed column; the capacity trigger may roll back here),
-                   set a Prospective / On hold / Completed student to Studying, commit, and return the new ID
-                   through the OUTPUT parameter.
-       Concepts: multi-step transaction (SET XACT_ABORT ON + TRY/CATCH + THROW;), NOT EXISTS subqueries,
-                 TOP (1) with ORDER BY, an inline table-valued function in EXISTS, scalar functions,
+                7. In one transaction: lock the class row (UPDLOCK, HOLDLOCK) and check its status again, so
+                   two enrollments into the last seat run one after the other; insert the ENROLLMENT
+                   (ClassJoinedOn = the enrollment date; TuitionDue = BaseTuition - DiscountAmount is a computed
+                   column; the capacity trigger may roll back here), set a Prospective / On hold / Completed
+                   student to Studying, commit, and return the new ID through the OUTPUT parameter.
+       Concepts: multi-step transaction (SET XACT_ABORT ON + TRY/CATCH + THROW;), pessimistic locking
+                 (UPDLOCK, HOLDLOCK), NOT EXISTS subqueries, TOP (1) with ORDER BY, an inline table-valued
+                 function in EXISTS, scalar functions,
                  OUTPUT inserted.x INTO @New, a business rule that a CHECK constraint cannot express (it needs
                  other tables). */
 IF OBJECT_ID(N'dbo.usp_Enrollment_Create', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Enrollment_Create;
@@ -733,6 +825,8 @@ BEGIN
 
     SET @EnrolledOn = ISNULL(@EnrolledOn, dbo.fn_Today());
     SET @EmployeeId = COALESCE(@EmployeeId, dbo.fn_CurrentEmployeeId());
+    IF @EnrolledOn > dbo.fn_Today()
+        THROW 50100, N'An enrollment cannot be dated in the future.', 1;
 
     IF NOT EXISTS (SELECT 1 FROM dbo.STUDENT WHERE StudentId = @StudentId AND Status <> N'Dropped out')
         THROW 50020, N'The student does not exist or has dropped out.', 1;
@@ -779,6 +873,12 @@ BEGIN
 
     BEGIN TRY
         BEGIN TRANSACTION;
+        -- The class row stays locked until COMMIT (UPDLOCK = read for update, HOLDLOCK = keep the lock until the
+        -- end): a second enrollment into the same class waits here, then the capacity trigger sees the seat taken
+        -- ("is full" instead of a deadlock); usp_Class_Update takes the same lock before it lowers the size
+        SELECT @ClassStatus = Status FROM dbo.CLASS WITH (UPDLOCK, HOLDLOCK) WHERE ClassId = @ClassId;
+        IF @ClassStatus NOT IN (N'Enrolling', N'In progress')
+            THROW 50021, N'The class no longer accepts enrollments.', 1;
 
         DECLARE @New TABLE (EnrollmentId VARCHAR(10));
         INSERT INTO dbo.ENROLLMENT (StudentId, ClassId, EnrolledOn, ClassJoinedOn, BaseTuition, PromotionId,
@@ -865,12 +965,15 @@ BEGIN
     -- 5. Two writes that must succeed together (SET XACT_ABORT ON + TRY/CATCH, see the file header)
     BEGIN TRY
         BEGIN TRANSACTION;
+        -- The new class row stays locked until COMMIT, like in C1: an enrollment into its last seat waits here
+        DECLARE @Locked VARCHAR(10);
+        SELECT @Locked = ClassId FROM dbo.CLASS WITH (UPDLOCK, HOLDLOCK) WHERE ClassId = @NewClassId;
         -- Attendance in the old class means nothing for the new class
         -- (those rows would point to sessions of another class, which trg_ATTENDANCE_CheckClass forbids)
         DELETE at FROM dbo.ATTENDANCE at JOIN dbo.CLASS_SESSION se ON se.SessionId = at.SessionId
         WHERE at.EnrollmentId = @EnrollmentId AND se.ClassId = @OldClassId;
 
-        -- ClassJoinedOn: today, never before EnrolledOn (an enrollment may be dated in advance)
+        -- ClassJoinedOn: today, never before EnrolledOn (CK_ENROLLMENT_ClassJoinedOn)
         UPDATE dbo.ENROLLMENT
         SET ClassId = @NewClassId, Status = N'Studying', BaseTuition = @NewTuition, DiscountAmount = @NewDiscount,
             ClassJoinedOn = CASE WHEN dbo.fn_Today() > EnrolledOn THEN dbo.fn_Today() ELSE EnrolledOn END
@@ -944,7 +1047,7 @@ GO
 
 /* C4. usp_Enrollment_ByClass: students of a class
        Used by: Classes screen - Students (SqlClassRepository::students); roles rl_Manager, rl_AcademicStaff,
-                rl_Accountant; test T76.
+                rl_Accountant; test T108.
        Returns: one row per enrollment of the class (every status) with a contact phone (the student's,
                 else the guardian's), tuition due, amount paid, balance, status, final grade and result.
                 TuitionDue is a computed column; AmountPaid is kept up to date by trg_RECEIPT_UpdateAmountPaid.
@@ -1010,9 +1113,12 @@ GO
        and blocks payments above the tuition due.
        Used by: Tuition collection screen - Collect payment (SqlTuitionRepository::collect); roles rl_Manager,
                 rl_Accountant (DENY EXECUTE to rl_AcademicStaff: they cannot collect money); tests T06 (payment above
-                the tuition), T20 (payment, then cancellation), P16 (academic staff are refused).
+                the tuition), T20 (payment, then cancellation), P16 (academic staff are refused), T121 (a payment
+                dated in the future).
        Rules:   a collecting employee is required (50030): the signed-in one (fn_CurrentEmployeeId) unless
-                @EmployeeId is passed; the enrollment must exist and not be Left (50031); the amount must be
+                @EmployeeId is passed; @PaidAtUtc may be in the past (a payment typed later, the demo history) but
+                not in the future (50034: revenue would show money not received yet); the enrollment must exist
+                and not be Left (50031); the amount must be
                 > 0 (CK_RECEIPT_Amount). After the INSERT, trg_RECEIPT_UpdateAmountPaid recomputes AmountPaid
                 and rolls back a payment above the tuition due; trg_RECEIPT_Audit writes an XML audit row.
        Concepts: a derived attribute kept by a trigger, OUTPUT inserted.ReceiptId INTO @New, default values. */
@@ -1034,6 +1140,8 @@ BEGIN
 
     IF @EmployeeId IS NULL
         THROW 50030, N'The current account is not linked to an employee who can collect payments.', 1;
+    IF @PaidAtUtc > GETUTCDATE()
+        THROW 50034, N'A payment cannot be dated in the future.', 1;
     IF NOT EXISTS (SELECT 1 FROM dbo.ENROLLMENT WHERE EnrollmentId = @EnrollmentId AND Status <> N'Left')
         THROW 50031, N'Valid enrollment not found.', 1;
 
@@ -1078,10 +1186,14 @@ GO
 
 /* D3. usp_Receipt_Print: data for printing a receipt
        Used by: Tuition collection screen - Print receipt (SqlTuitionRepository::print, a PDF made by the application);
-                roles rl_Manager, rl_Accountant; test T77.
-       Returns: one row with the receipt, the student, class and course, the current balance of the
-                enrollment, the employee who collected it and the branch header (name, address, phone).
-       Concepts: a chain of INNER JOINs (every linked row must exist). */
+                roles rl_Manager, rl_Accountant; test T107.
+       Returns: one row with the receipt, the student, class and course, the amount paid and the balance of
+                the enrollment right after this payment, the employee who collected it and the branch header
+                (name, address, phone). A receipt printed again later shows the same figures: AmountPaid is the
+                sum of the valid receipts of the enrollment up to this one (by payment time, then ID), not
+                ENROLLMENT.AmountPaid of today.
+       Concepts: a chain of INNER JOINs (every linked row must exist), CROSS APPLY of a correlated subquery
+                 (a running total). */
 IF OBJECT_ID(N'dbo.usp_Receipt_Print', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Receipt_Print;
 GO
 CREATE PROCEDURE dbo.usp_Receipt_Print
@@ -1091,7 +1203,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT rc.ReceiptId, rc.PaidAtUtc, rc.Amount, rc.PaymentMethod, rc.Description, rc.Status,
            st.StudentId, st.FullName AS StudentName, cl.ClassId, cl.ClassName, co.CourseName,
-           en.TuitionDue, en.AmountPaid, en.TuitionDue - en.AmountPaid AS Balance,
+           en.TuitionDue, paid.AmountPaid, en.TuitionDue - paid.AmountPaid AS Balance,
            em.FullName AS CollectedBy, br.BranchName, br.Address AS BranchAddress, br.Phone AS BranchPhone
     FROM dbo.RECEIPT rc
     JOIN dbo.ENROLLMENT en ON en.EnrollmentId = rc.EnrollmentId
@@ -1100,6 +1212,12 @@ BEGIN
     JOIN dbo.COURSE co     ON co.CourseId = cl.CourseId
     JOIN dbo.EMPLOYEE em   ON em.EmployeeId = rc.CollectedByEmployeeId
     JOIN dbo.BRANCH br     ON br.BranchId = cl.BranchId
+    -- The valid receipts of the enrollment up to and including this one (same time: the smaller ID first)
+    CROSS APPLY (SELECT ISNULL(SUM(r2.Amount), 0) AS AmountPaid
+                 FROM dbo.RECEIPT r2
+                 WHERE r2.EnrollmentId = rc.EnrollmentId AND r2.Status = N'Valid'
+                   AND (r2.PaidAtUtc < rc.PaidAtUtc
+                        OR (r2.PaidAtUtc = rc.PaidAtUtc AND r2.ReceiptId <= rc.ReceiptId))) paid
     WHERE rc.ReceiptId = @ReceiptId;
 END;
 GO
@@ -1111,7 +1229,8 @@ GO
                 who collected it, description and cancel reason. The keyword searches the receipt, student and
                 class IDs and the student name.
        Concepts: a local period turned into a half-open UTC range (as G2, so IX_RECEIPT_PaidAtUtc stays usable),
-                 optional parameters, a chain of INNER JOINs. */
+                 optional parameters with OPTION (RECOMPILE) (a plan for the values of each call), a chain of
+                 INNER JOINs. */
 IF OBJECT_ID(N'dbo.usp_Receipt_Search', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Receipt_Search;
 GO
 CREATE PROCEDURE dbo.usp_Receipt_Search
@@ -1140,7 +1259,10 @@ BEGIN
       AND (@FromUtc IS NULL OR rc.PaidAtUtc >= @FromUtc)
       AND (@ToUtc IS NULL OR rc.PaidAtUtc < @ToUtc)
       AND (@Status IS NULL OR rc.Status = @Status)
-    ORDER BY rc.PaidAtUtc DESC, rc.ReceiptId DESC;
+    ORDER BY rc.PaidAtUtc DESC, rc.ReceiptId DESC
+    -- A plan made for these exact values: with "NULL = no limit" filters a cached plan made for NULL dates would
+    -- scan every receipt even when a period is given; RECOMPILE lets the optimizer seek IX_RECEIPT_PaidAtUtc
+    OPTION (RECOMPILE);
 END;
 GO
 
@@ -1150,7 +1272,7 @@ GO
 
 /* E1. usp_PlacementTest_Add (a trigger recommends the matching course)
        Used by: Placement tests screen - New test (SqlPlacementRepository::add); roles rl_Manager,
-                rl_AcademicStaff; test T78.
+                rl_AcademicStaff; test T109 (the overall score rounds like the application shows it).
        Steps:   1. Insert the four skill scores (0-10, CK_PLACEMENT_TEST_Scores). OverallScore is a computed
                    column (the average of the four); trg_PLACEMENT_TEST_Recommend then fills
                    RecommendedCourseId with fn_RecommendCourse.
@@ -1210,6 +1332,7 @@ CREATE PROCEDURE dbo.usp_Attendance_Save
 AS
 BEGIN
     SET NOCOUNT ON;
+
     -- 1. A teacher may only mark the sessions they teach (a rule GRANT cannot express)
     IF dbo.fn_CurrentRole() = 'TEACHER'
        AND NOT EXISTS (SELECT 1 FROM dbo.CLASS_SESSION WHERE SessionId = @SessionId
@@ -1220,8 +1343,11 @@ BEGIN
                WHERE se.SessionId = @SessionId AND cl.Status = N'Finished')
         THROW 50046, N'The class has finished and its results are final; attendance can no longer be changed.', 1;
 
-    -- 3. Save = update the mark when it exists, insert it otherwise
-    IF EXISTS (SELECT 1 FROM dbo.ATTENDANCE WHERE SessionId = @SessionId AND EnrollmentId = @EnrollmentId)
+    -- 3. Save = update the mark when it exists, insert it otherwise. The existence check keeps its lock (UPDLOCK,
+    --    HOLDLOCK) until the caller's COMMIT: the application saves every mark inside one transaction, so two
+    --    saves of the same mark run one after the other instead of both trying to INSERT
+    IF EXISTS (SELECT 1 FROM dbo.ATTENDANCE WITH (UPDLOCK, HOLDLOCK)
+               WHERE SessionId = @SessionId AND EnrollmentId = @EnrollmentId)
         UPDATE dbo.ATTENDANCE SET Status = @Status, Notes = @Notes
         WHERE SessionId = @SessionId AND EnrollmentId = @EnrollmentId;
     ELSE
@@ -1299,8 +1425,11 @@ BEGIN
     IF @ClassStatus = N'Finished'
         THROW 50042, N'The class has finished and its results are final; grades can no longer be changed.', 1;
 
-    -- 3. Save = update the score (and who/when) when it exists, insert it otherwise (the DEFAULTs fill who/when)
-    IF EXISTS (SELECT 1 FROM dbo.GRADE WHERE EnrollmentId = @EnrollmentId AND ComponentId = @ComponentId)
+    -- 3. Save = update the score (and who/when) when it exists, insert it otherwise (the DEFAULTs fill who/when).
+    --    The existence check keeps its lock (UPDLOCK, HOLDLOCK) until the caller's COMMIT: the application saves
+    --    every score inside one transaction, so two saves of the same score run one after the other
+    IF EXISTS (SELECT 1 FROM dbo.GRADE WITH (UPDLOCK, HOLDLOCK)
+               WHERE EnrollmentId = @EnrollmentId AND ComponentId = @ComponentId)
         UPDATE dbo.GRADE SET Score = @Score, EnteredAtUtc = GETUTCDATE(), EnteredBy = ORIGINAL_LOGIN()
         WHERE EnrollmentId = @EnrollmentId AND ComponentId = @ComponentId;
     ELSE
@@ -1474,7 +1603,7 @@ END;
 GO
 
 /* E7. usp_Grade_ByClass: the grade book of a class, one row per student and grade component
-       Used by: Grade book screen (SqlGradeRepository::sheet); roles rl_Manager, rl_AcademicStaff; test T79.
+       Used by: Grade book screen (SqlGradeRepository::cells); roles rl_Manager, rl_AcademicStaff; test T79.
                 A teacher reads the same rows for the classes they teach through vw_Teacher_MyGrades.
        Returns: every enrollment of the class paired with every grade component of its course (JOIN), with the
                 score when it exists (LEFT JOIN on both key columns: a missing score is NULL, an empty cell
@@ -1508,21 +1637,23 @@ GO
        Used by: Teacher payroll screen - Finalize month (SqlPayrollRepository::finalize), 07_seed_data.sql (the
                 last 2 months); roles rl_Manager, rl_Accountant; tests T24 (figures
                 match the taught sessions), T25 (a future month is rejected), T58 (running it again removes a
-                row that no longer has a taught session).
-       Steps:   1. Refuse a future month (50050); DATEFROMPARTS builds the first day of that month, and
-                   [@From, @To) is the month as a date range (a sargable filter on SessionDate).
+                row that no longer has a taught session), T103 (a lower rate under a deduction is refused).
+       Steps:   1. Refuse a future month (50050); the running month is allowed as a preview that the next run
+                   refreshes (F3 pays a month only once it is over). DATEFROMPARTS builds the first day of that
+                   month, and [@From, @To) is the month as a date range (a sargable filter on SessionDate).
                 2. In one transaction a cursor reads one row per teacher who taught in that month (teachers
                    without a Taught session get no row): the number of Taught sessions, the hours
                    (SUM of DATEDIFF in minutes / 60) and the current hourly rate.
                 3. Bonus 500,000 when the teacher taught 20 sessions or more.
                 4. Upsert into PAYROLL (one row per teacher and month, UQ_PAYROLL_TeacherId_Month_Year): an
                    existing row is refreshed only while its status is Finalized - a Paid row is never changed;
-                   otherwise a new row is inserted. After the loop, a Finalized row of a teacher who no longer
-                   has a Taught session that month is deleted. Running the procedure again for a month is
-                   therefore safe.
+                   otherwise a new row is inserted. A refreshed row keeps its Deduction (F2) and takes the
+                   current rate; CK_PAYROLL_Deduction refuses the whole run when the pay would then fall below
+                   that deduction. After the loop, a Finalized row of a teacher who no longer has a Taught
+                   session that month is deleted. Running the procedure again for a month is therefore safe.
                 5. Commit and return the payroll of the month. TotalPay is a computed column
                    (Hours x HourlyRate + Bonus - Deduction), never written by hand. The hourly rate is copied
-                   into PAYROLL, so a later rate change does not alter old payslips.
+                   into PAYROLL, so a later rate change does not alter a Paid payslip.
        Concepts: cursor (explained in the E5 header) over a GROUP BY query, upsert, computed PERSISTED column,
                  multi-step transaction. */
 IF OBJECT_ID(N'dbo.usp_Payroll_Finalize', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Payroll_Finalize;
@@ -1601,11 +1732,13 @@ GO
 
 /* F2. usp_Payroll_Adjust: set the deduction of a payroll row (an advance, a missed duty...)
        Used by: Teacher payroll screen - Deduction (SqlPayrollRepository::adjust); roles rl_Manager, rl_Accountant;
-                tests T80 (TotalPay follows), T81 (a paid row), T82 (more than the pay of the month).
+                tests T80 (TotalPay follows), T81 (a paid row), T82 (more than the pay of the month), T113 (a row
+                that does not exist).
        Rules:   the row must exist (50051) and still be Finalized (50052: a Paid row is final); the deduction is
-                not negative (CK_PAYROLL_Figures) and at most the pay of the month, hours x rate + bonus (50053),
-                so TotalPay never becomes negative. TotalPay is a computed column: SQL Server recomputes it.
-                F1 keeps the deduction when it refreshes a Finalized row.
+                not negative (CK_PAYROLL_Figures) and at most the pay of the month, hours x rate + bonus (50053,
+                the readable form of CK_PAYROLL_Deduction), so TotalPay never becomes negative. TotalPay is a
+                computed column: SQL Server recomputes it. F1 keeps the deduction when it refreshes a Finalized
+                row.
        Concepts: a computed PERSISTED column recomputed by an UPDATE, a rule across the columns of a row. */
 IF OBJECT_ID(N'dbo.usp_Payroll_Adjust', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Payroll_Adjust;
 GO
@@ -1634,10 +1767,12 @@ GO
 
 /* F3. usp_Payroll_MarkPaid: record that the pay of a row has been paid out
        Used by: Teacher payroll screen - Mark as paid (SqlPayrollRepository::markPaid); roles rl_Manager,
-                rl_Accountant; test T81.
-       Rules:   the row must exist (50051) and be Finalized (50052). Paid is the last state: F1 and F2 never
-                change a Paid row again.
-       Concepts: a one-way state change, @@ROWCOUNT. */
+                rl_Accountant; tests T81 (the row is Paid, then F2 refuses it), T115 (a month that has not ended).
+       Rules:   the row must exist (50051) and be Finalized (50052); its month must be over (50054). Paid is the
+                last state: F1 and F2 never change a Paid row again, so a month paid while it is still running
+                would never pay the sessions taught after that day. F1 may still finalize the running month: a
+                Finalized row is a preview that the next run refreshes.
+       Concepts: a one-way state change, @@ROWCOUNT, a month as a date range (DATEFROMPARTS, DATEADD). */
 IF OBJECT_ID(N'dbo.usp_Payroll_MarkPaid', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Payroll_MarkPaid;
 GO
 CREATE PROCEDURE dbo.usp_Payroll_MarkPaid
@@ -1645,8 +1780,13 @@ CREATE PROCEDURE dbo.usp_Payroll_MarkPaid
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF NOT EXISTS (SELECT 1 FROM dbo.PAYROLL WHERE PayrollId = @PayrollId)
+    DECLARE @Month TINYINT, @Year SMALLINT;
+    SELECT @Month = Month, @Year = Year FROM dbo.PAYROLL WHERE PayrollId = @PayrollId;
+    IF @Month IS NULL
         THROW 50051, N'Payroll row not found.', 1;
+    -- The first day of the next month is still to come => the month is not over
+    IF DATEADD(MONTH, 1, DATEFROMPARTS(@Year, @Month, 1)) > dbo.fn_Today()
+        THROW 50054, N'A month can only be marked as paid after it has ended.', 1;
     UPDATE dbo.PAYROLL SET Status = N'Paid' WHERE PayrollId = @PayrollId AND Status = N'Finalized';
     IF @@ROWCOUNT = 0
         THROW 50052, N'A paid payroll row can no longer be changed.', 1;
@@ -2167,7 +2307,7 @@ GO
 
 /* I6. usp_Account_List: accounts with the role code (the application shows the localized role name and converts the
        UTC times to the user's time zone)
-       Used by: Accounts screen (SqlListRepository, ListKind::Accounts; a manager-only feature in Permissions);
+       Used by: Accounts screen (SqlAccountRepository::list; a manager-only feature in Permissions);
                 rl_Manager only.
        Returns: every account with the name of its employee or teacher (two LEFT JOINs + COALESCE: an account
                 belongs to exactly one of them), ordered by role (manager first), then by username.
@@ -2305,21 +2445,33 @@ CREATE PROCEDURE dbo.usp_Branch_Update
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF NOT EXISTS (SELECT 1 FROM dbo.BRANCH WHERE BranchId = @BranchId)
-        THROW 50090, N'The record to update does not exist.', 1;
-    IF @Status = N'Suspended'
-       AND EXISTS (SELECT 1 FROM dbo.CLASS WHERE BranchId = @BranchId AND Status IN (N'Enrolling', N'In progress'))
-        THROW 50093, N'A branch with active classes cannot be suspended.', 1;
+    SET XACT_ABORT ON;
 
-    UPDATE dbo.BRANCH
-    SET BranchName = LTRIM(RTRIM(@BranchName)), Address = @Address, Phone = NULLIF(@Phone, ''),
-        Email = NULLIF(@Email, ''), FoundedOn = @FoundedOn, Status = @Status
-    WHERE BranchId = @BranchId;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        -- The branch row stays locked until COMMIT (UPDLOCK, HOLDLOCK): usp_Class_Create takes the same lock, so no
+        -- class is opened in the branch between the check below and the UPDATE
+        IF NOT EXISTS (SELECT 1 FROM dbo.BRANCH WITH (UPDLOCK, HOLDLOCK) WHERE BranchId = @BranchId)
+            THROW 50090, N'The record to update does not exist.', 1;
+        IF @Status = N'Suspended'
+           AND EXISTS (SELECT 1 FROM dbo.CLASS WHERE BranchId = @BranchId AND Status IN (N'Enrolling', N'In progress'))
+            THROW 50093, N'A branch with active classes cannot be suspended.', 1;
+
+        UPDATE dbo.BRANCH
+        SET BranchName = LTRIM(RTRIM(@BranchName)), Address = @Address, Phone = NULLIF(@Phone, ''),
+            Email = NULLIF(@Email, ''), FoundedOn = @FoundedOn, Status = @Status
+        WHERE BranchId = @BranchId;
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 
 /* J3. usp_Room_Add: add a classroom to a branch
-       Used by: Branches & rooms screen - New room (SqlCatalogRepository::addRoom); rl_Manager; test T86.
+       Used by: Branches & rooms screen - New room (SqlCatalogRepository::addRoom); rl_Manager; tests T86, T95.
        Rules:   the code is new and well formed (50091, 50092); the branch exists (FK_ROOM_BRANCH); the name is
                 unique inside the branch (UQ_ROOM_BranchId_RoomName); capacity 1-100 and the room type
                 (CK_ROOM_Capacity, CK_ROOM_RoomType). A new room is Available (DF_ROOM_Status).
@@ -2456,7 +2608,7 @@ END;
 GO
 
 /* J8. usp_Course_Update: change a course, or stop offering it
-       Used by: Courses screen - Edit course (SqlCourseRepository::update); rl_Manager; test T88.
+       Used by: Courses screen - Edit course (SqlCourseRepository::update); rl_Manager; tests T88, T89, T90.
        Rules:   the course must exist (50090); it is not Discontinued while an Enrolling or In progress class
                 runs it (50094); the prerequisite chain has no loop (50095). CK_COURSE_Prerequisite only stops
                 a course from being its own prerequisite; a longer loop (A needs B, B needs A) would lock both
@@ -2481,41 +2633,52 @@ CREATE PROCEDURE dbo.usp_Course_Update
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     DECLARE @LoopCount INT = 0;
-    SET @PrerequisiteCourseId = NULLIF(@PrerequisiteCourseId, '');
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.COURSE WHERE CourseId = @CourseId)
-        THROW 50090, N'The record to update does not exist.', 1;
-    IF @Status = N'Discontinued'
-       AND EXISTS (SELECT 1 FROM dbo.CLASS WHERE CourseId = @CourseId AND Status IN (N'Enrolling', N'In progress'))
-        THROW 50094, N'A course with active classes cannot be discontinued.', 1;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        SET @PrerequisiteCourseId = NULLIF(@PrerequisiteCourseId, '');
+        -- The course row stays locked until COMMIT (UPDLOCK, HOLDLOCK): usp_Class_Create takes the same lock, so no
+        -- class of the course is opened between the check below and the UPDATE
+        IF NOT EXISTS (SELECT 1 FROM dbo.COURSE WITH (UPDLOCK, HOLDLOCK) WHERE CourseId = @CourseId)
+            THROW 50090, N'The record to update does not exist.', 1;
+        IF @Status = N'Discontinued'
+           AND EXISTS (SELECT 1 FROM dbo.CLASS WHERE CourseId = @CourseId AND Status IN (N'Enrolling', N'In progress'))
+            THROW 50094, N'A course with active classes cannot be discontinued.', 1;
 
-    -- Walk the prerequisite chain upwards from the new prerequisite: the anchor is that course, each recursive
-    -- step adds the prerequisite of the course found before
-    IF @PrerequisiteCourseId IS NOT NULL
-    BEGIN
-        WITH Chain (CourseId, PrerequisiteCourseId, Depth) AS (
-            SELECT CourseId, PrerequisiteCourseId, 1 FROM dbo.COURSE WHERE CourseId = @PrerequisiteCourseId
-            UNION ALL
-            SELECT co.CourseId, co.PrerequisiteCourseId, ch.Depth + 1
-            FROM dbo.COURSE co JOIN Chain ch ON co.CourseId = ch.PrerequisiteCourseId
-            WHERE ch.Depth < 100
-        )
-        SELECT @LoopCount = COUNT(*) FROM Chain WHERE CourseId = @CourseId;
-        IF @LoopCount > 0
-            THROW 50095, N'The prerequisite would make a loop: a course cannot require itself, not even through other courses.', 1;
-    END;
+        -- Walk the prerequisite chain upwards from the new prerequisite: the anchor is that course, each recursive
+        -- step adds the prerequisite of the course found before
+        IF @PrerequisiteCourseId IS NOT NULL
+        BEGIN
+            WITH Chain (CourseId, PrerequisiteCourseId, Depth) AS (
+                SELECT CourseId, PrerequisiteCourseId, 1 FROM dbo.COURSE WHERE CourseId = @PrerequisiteCourseId
+                UNION ALL
+                SELECT co.CourseId, co.PrerequisiteCourseId, ch.Depth + 1
+                FROM dbo.COURSE co JOIN Chain ch ON co.CourseId = ch.PrerequisiteCourseId
+                WHERE ch.Depth < 100
+            )
+            SELECT @LoopCount = COUNT(*) FROM Chain WHERE CourseId = @CourseId;
+            IF @LoopCount > 0
+                THROW 50095, N'The prerequisite would make a loop: a course cannot require itself, not even through other courses.', 1;
+        END;
 
-    UPDATE dbo.COURSE
-    SET ProgramId = @ProgramId, CourseName = LTRIM(RTRIM(@CourseName)), Level = @Level, SessionCount = @SessionCount,
-        SessionMinutes = @SessionMinutes, Tuition = @Tuition, MinPlacementScore = @MinPlacementScore,
-        PrerequisiteCourseId = @PrerequisiteCourseId, Status = @Status
-    WHERE CourseId = @CourseId;
+        UPDATE dbo.COURSE
+        SET ProgramId = @ProgramId, CourseName = LTRIM(RTRIM(@CourseName)), Level = @Level, SessionCount = @SessionCount,
+            SessionMinutes = @SessionMinutes, Tuition = @Tuition, MinPlacementScore = @MinPlacementScore,
+            PrerequisiteCourseId = @PrerequisiteCourseId, Status = @Status
+        WHERE CourseId = @CourseId;
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 
 /* J9. usp_Course_SetSyllabus: replace the XML syllabus of a course (NULL removes it)
-       Used by: Courses screen - Syllabus (SqlCourseRepository::setSyllabus); rl_Manager; test T89.
+       Used by: Courses screen - Syllabus (SqlCourseRepository::setSyllabus); rl_Manager; test T91.
        Rules:   the course must exist (50090). COURSE.SyllabusXml is TYPED XML: SQL Server validates the
                 document against the schema collection xsc_CourseSyllabus while it is written. A document that
                 breaks the schema raises a system error 6900-6999; the CATCH turns it into a business message
@@ -2550,8 +2713,10 @@ END;
 GO
 
 /* J10. usp_GradeComponent_Save: add a grade component to a course (@ComponentId NULL) or change one
-        Used by: Courses screen - Grade components (SqlCourseRepository::saveComponent); rl_Manager; test T90.
-        Rules:   a changed component must exist (50090); name unique inside the course
+        Used by: Courses screen - Grade components (SqlCourseRepository::saveComponent); rl_Manager; tests T92, T104.
+        Rules:   a changed component must exist in that course (50090): a component never moves to another
+                 course, its scores belong to the classes of its own course (fn_FinalGrade would count them for
+                 the old one); name unique inside the course
                  (UQ_GRADE_COMPONENT_CourseId_ComponentName); weight above 0 and at most 100
                  (CK_GRADE_COMPONENT_Weight). The components of a course with evaluated classes are frozen
                  (trg_GRADE_COMPONENT_Lock, test T68). The weights of a course need not add up to 100 after
@@ -2573,17 +2738,17 @@ BEGIN
         VALUES (@CourseId, LTRIM(RTRIM(@ComponentName)), @Weight);
     ELSE
     BEGIN
-        IF NOT EXISTS (SELECT 1 FROM dbo.GRADE_COMPONENT WHERE ComponentId = @ComponentId)
+        IF NOT EXISTS (SELECT 1 FROM dbo.GRADE_COMPONENT WHERE ComponentId = @ComponentId AND CourseId = @CourseId)
             THROW 50090, N'The record to update does not exist.', 1;
         UPDATE dbo.GRADE_COMPONENT
-        SET CourseId = @CourseId, ComponentName = LTRIM(RTRIM(@ComponentName)), Weight = @Weight
-        WHERE ComponentId = @ComponentId;
+        SET ComponentName = LTRIM(RTRIM(@ComponentName)), Weight = @Weight
+        WHERE ComponentId = @ComponentId AND CourseId = @CourseId;
     END;
 END;
 GO
 
 /* J11. usp_GradeComponent_Delete: remove a grade component that has no score yet
-        Used by: Courses screen - Grade components (SqlCourseRepository::removeComponent); rl_Manager; test T90.
+        Used by: Courses screen - Grade components (SqlCourseRepository::removeComponent); rl_Manager; tests T92, T93.
         Rules:   the component must exist (50090) and have no score in GRADE (50097: the scores would be lost, and
                  FK_GRADE_GRADE_COMPONENT refuses it anyway with a technical message); the components of a
                  course with evaluated classes are frozen (trg_GRADE_COMPONENT_Lock).
@@ -2604,7 +2769,7 @@ END;
 GO
 
 /* J12. usp_Employee_Add: hire an office employee, return the new ID
-        Used by: Employees screen - New employee (SqlStaffRepository::addEmployee); rl_Manager; test T91.
+        Used by: Employees screen - New employee (SqlStaffRepository::addEmployee); rl_Manager; test T96.
         Rules:   every format and range is a constraint of EMPLOYEE: phone unique (UQ_EMPLOYEE_Phone), email
                  unique when given (UX_EMPLOYEE_Email), gender, position, salary >= 0, at least 18 years old on
                  the hire date (CK_EMPLOYEE_Age). The hire date defaults to today (fn_Today).
@@ -2638,7 +2803,7 @@ END;
 GO
 
 /* J13. usp_Employee_Update: change an employee, or record that they left
-        Used by: Employees screen - Edit (SqlStaffRepository::updateEmployee); rl_Manager; test T91.
+        Used by: Employees screen - Edit (SqlStaffRepository::updateEmployee); rl_Manager; tests T96, T110.
         Rules:   the employee must exist (50090); nobody is set to Left while their sign-in account is still
                  Active (50098: lock it first with I2, so the person can no longer sign in). The constraints of
                  EMPLOYEE check the new values (J12).
@@ -2676,7 +2841,7 @@ END;
 GO
 
 /* J14. usp_Teacher_Add: hire a teacher, return the new ID
-        Used by: Teachers screen - New teacher (SqlStaffRepository::addTeacher); rl_Manager; test T92.
+        Used by: Teachers screen - New teacher (SqlStaffRepository::addTeacher); rl_Manager; test T97.
         Rules:   the constraints of TEACHER: phone and email unique, degree, teacher type, hourly rate > 0, a
                  native speaker is not of Vietnamese nationality (CK_TEACHER_Native), at least 18 years old on
                  the hire date (CK_TEACHER_Age). @ProfileXml is untyped XML (certificates, experience,
@@ -2712,11 +2877,12 @@ END;
 GO
 
 /* J15. usp_Teacher_Update: change a teacher, put them on leave or record that they left
-        Used by: Teachers screen - Edit (SqlStaffRepository::updateTeacher); rl_Manager; test T92.
+        Used by: Teachers screen - Edit (SqlStaffRepository::updateTeacher); rl_Manager; tests T97, T98.
         Rules:   the teacher must exist (50090); a teacher is not set to Left while they are the main teacher of
                  an Enrolling or In progress class or their account is still Active (50098: hand the classes over
                  with B6 and lock the account first). On leave is allowed: another teacher may take the class.
-                 A new hourly rate only applies to months finalized later (F1 copies the rate into PAYROLL).
+                 A new hourly rate applies to the months finalized, or finalized again, after it; a Paid month
+                 keeps its rate (F1 copies the rate into PAYROLL).
         Concepts: rules across tables (TEACHER - CLASS - ACCOUNT), a single UPDATE. */
 IF OBJECT_ID(N'dbo.usp_Teacher_Update', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Teacher_Update;
 GO
@@ -2738,23 +2904,35 @@ CREATE PROCEDURE dbo.usp_Teacher_Update
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF NOT EXISTS (SELECT 1 FROM dbo.TEACHER WHERE TeacherId = @TeacherId)
-        THROW 50090, N'The record to update does not exist.', 1;
-    IF @Status = N'Left'
-       AND (EXISTS (SELECT 1 FROM dbo.CLASS WHERE TeacherId = @TeacherId AND Status IN (N'Enrolling', N'In progress'))
-            OR EXISTS (SELECT 1 FROM dbo.ACCOUNT WHERE TeacherId = @TeacherId AND Status = N'Active'))
-        THROW 50098, N'An employee or teacher with an active account or an active class cannot be set to Left: lock the account and hand the classes over first.', 1;
+    SET XACT_ABORT ON;
 
-    UPDATE dbo.TEACHER
-    SET FullName = LTRIM(RTRIM(@FullName)), DateOfBirth = @DateOfBirth, Gender = @Gender, Nationality = @Nationality,
-        Phone = @Phone, Email = @Email, Degree = @Degree, TeacherType = @TeacherType, HourlyRate = @HourlyRate,
-        BranchId = @BranchId, HireDate = @HireDate, ProfileXml = @ProfileXml, Status = @Status
-    WHERE TeacherId = @TeacherId;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        -- The teacher row stays locked until COMMIT (UPDLOCK, HOLDLOCK): usp_Class_Create and usp_Class_Update take
+        -- the same lock, so no class is given to the teacher between the check below and the UPDATE
+        IF NOT EXISTS (SELECT 1 FROM dbo.TEACHER WITH (UPDLOCK, HOLDLOCK) WHERE TeacherId = @TeacherId)
+            THROW 50090, N'The record to update does not exist.', 1;
+        IF @Status = N'Left'
+           AND (EXISTS (SELECT 1 FROM dbo.CLASS WHERE TeacherId = @TeacherId AND Status IN (N'Enrolling', N'In progress'))
+                OR EXISTS (SELECT 1 FROM dbo.ACCOUNT WHERE TeacherId = @TeacherId AND Status = N'Active'))
+            THROW 50098, N'An employee or teacher with an active account or an active class cannot be set to Left: lock the account and hand the classes over first.', 1;
+
+        UPDATE dbo.TEACHER
+        SET FullName = LTRIM(RTRIM(@FullName)), DateOfBirth = @DateOfBirth, Gender = @Gender, Nationality = @Nationality,
+            Phone = @Phone, Email = @Email, Degree = @Degree, TeacherType = @TeacherType, HourlyRate = @HourlyRate,
+            BranchId = @BranchId, HireDate = @HireDate, ProfileXml = @ProfileXml, Status = @Status
+        WHERE TeacherId = @TeacherId;
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 
 /* J16. usp_Promotion_Add: create a tuition promotion
-        Used by: Promotions screen - New promotion (SqlCatalogRepository::addPromotion); rl_Manager; test T93.
+        Used by: Promotions screen - New promotion (SqlCatalogRepository::addPromotion); rl_Manager; test T99.
         Rules:   the code is new and well formed (50091, 50092); PERCENT or AMOUNT (CK_PROMOTION_DiscountType); a
                  positive value, at most 50 for a percentage (CK_PROMOTION_DiscountValue); the end date is not
                  before the start date (CK_PROMOTION_Dates).
@@ -2782,10 +2960,17 @@ END;
 GO
 
 /* J17. usp_Promotion_Update: change a promotion (for example end it early)
-        Used by: Promotions screen - Edit (SqlCatalogRepository::updatePromotion); rl_Manager; test T93.
-        Rules:   the promotion must exist (50090); the CHECK constraints of J16 apply. Enrollments made earlier
-                 keep the DiscountAmount they were given (C1 stores the amount, not the rule of the promotion).
-        Concepts: a single UPDATE; a stored amount instead of a value recomputed from the current rule. */
+        Used by: Promotions screen - Edit (SqlCatalogRepository::updatePromotion); rl_Manager; tests T99, T100,
+                 T117 (a used promotion gets another discount), T118 (it ends before its last use), T119 (it is
+                 renamed and ended on the day of its last use).
+        Rules:   the promotion must exist (50090); the CHECK constraints of J16 apply. Enrollments keep the
+                 DiscountAmount they were given (C1 stores the amount), but a class transfer (C2) applies the
+                 promotion again on the tuition of the new class with fn_DiscountAmount on EnrolledOn. So once an
+                 enrollment uses the promotion, its rule is frozen: the discount type, value and start date no
+                 longer change (50110) and the end date never moves before the last enrollment that used it
+                 (50111). The name can always change, and the promotion can still be ended early.
+        Concepts: a rule that depends on other rows (COUNT / MAX over ENROLLMENT), a stored amount next to a rule
+                  that is applied again later. */
 IF OBJECT_ID(N'dbo.usp_Promotion_Update', N'P') IS NOT NULL DROP PROCEDURE dbo.usp_Promotion_Update;
 GO
 CREATE PROCEDURE dbo.usp_Promotion_Update
@@ -2798,8 +2983,19 @@ CREATE PROCEDURE dbo.usp_Promotion_Update
 AS
 BEGIN
     SET NOCOUNT ON;
+    DECLARE @Uses INT, @LastUse DATE;
     IF NOT EXISTS (SELECT 1 FROM dbo.PROMOTION WHERE PromotionId = @PromotionId)
         THROW 50090, N'The record to update does not exist.', 1;
+
+    -- A promotion in use keeps its rule: C2 applies it again when a student changes class
+    SELECT @Uses = COUNT(*), @LastUse = MAX(EnrolledOn) FROM dbo.ENROLLMENT WHERE PromotionId = @PromotionId;
+    IF @Uses > 0 AND EXISTS (SELECT 1 FROM dbo.PROMOTION
+                             WHERE PromotionId = @PromotionId
+                               AND (DiscountType <> @DiscountType OR DiscountValue <> @DiscountValue
+                                    OR StartDate <> @StartDate))
+        THROW 50110, N'A promotion already used by enrollments keeps its discount and start date; only its name and end date can change.', 1;
+    IF @EndDate < @LastUse
+        THROW 50111, N'The end date cannot be before the last enrollment that used the promotion.', 1;
 
     UPDATE dbo.PROMOTION
     SET PromotionName = LTRIM(RTRIM(@PromotionName)), DiscountType = @DiscountType, DiscountValue = @DiscountValue,

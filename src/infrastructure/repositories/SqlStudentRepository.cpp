@@ -19,23 +19,23 @@ Result<QList<Student>> SqlStudentRepository::search(const StudentFilter& filter)
     QList<Student> students;
     while (q.next()) {
         Student s;
-        s.id = q.value(0).toString();
-        s.fullName = q.value(1).toString();
-        s.dateOfBirth = q.value(2).toDate();
-        s.gender = q.value(3).toString();
-        s.phone = q.value(4).toString();
-        s.email = q.value(5).toString();
-        s.guardianName = q.value(6).toString();
-        s.guardianPhone = q.value(7).toString();
-        s.branchId = q.value(8).toString();
-        s.branchName = q.value(9).toString();
-        s.registeredOn = q.value(10).toDate();
-        s.status = q.value(11).toString();
-        s.activeClassCount = q.value(12).toInt();
-        s.outstandingBalance = q.value(13).toLongLong();
+        s.id = field(q, "StudentId").toString();
+        s.fullName = field(q, "FullName").toString();
+        s.dateOfBirth = field(q, "DateOfBirth").toDate();
+        s.gender = field(q, "Gender").toString();
+        s.phone = field(q, "Phone").toString();
+        s.email = field(q, "Email").toString();
+        s.guardianName = field(q, "GuardianName").toString();
+        s.guardianPhone = field(q, "GuardianPhone").toString();
+        s.branchId = field(q, "BranchId").toString();
+        s.branchName = field(q, "BranchName").toString();
+        s.registeredOn = field(q, "RegisteredOn").toDate();
+        s.status = field(q, "Status").toString();
+        s.activeClassCount = field(q, "ActiveClassCount").toInt();
+        s.outstandingBalance = field(q, "TotalBalance").toLongLong();
         students.append(s);
     }
-    return Result<QList<Student>>::success(students);
+    return afterRead(q, students);
 }
 
 Result<Student> SqlStudentRepository::findById(const QString& id) {
@@ -48,20 +48,20 @@ Result<Student> SqlStudentRepository::findById(const QString& id) {
     // Columns: StudentId, FullName, DateOfBirth, Gender, Phone, Email, Address, Occupation, GuardianName,
     //          GuardianPhone, BranchId, RegisteredOn, Status, Notes
     Student s;
-    s.id = q.value(0).toString();
-    s.fullName = q.value(1).toString();
-    s.dateOfBirth = q.value(2).toDate();
-    s.gender = q.value(3).toString();
-    s.phone = q.value(4).toString();
-    s.email = q.value(5).toString();
-    s.address = q.value(6).toString();
-    s.occupation = q.value(7).toString();
-    s.guardianName = q.value(8).toString();
-    s.guardianPhone = q.value(9).toString();
-    s.branchId = q.value(10).toString();
-    s.registeredOn = q.value(11).toDate();
-    s.status = q.value(12).toString();
-    s.notes = q.value(13).toString();
+    s.id = field(q, "StudentId").toString();
+    s.fullName = field(q, "FullName").toString();
+    s.dateOfBirth = field(q, "DateOfBirth").toDate();
+    s.gender = field(q, "Gender").toString();
+    s.phone = field(q, "Phone").toString();
+    s.email = field(q, "Email").toString();
+    s.address = field(q, "Address").toString();
+    s.occupation = field(q, "Occupation").toString();
+    s.guardianName = field(q, "GuardianName").toString();
+    s.guardianPhone = field(q, "GuardianPhone").toString();
+    s.branchId = field(q, "BranchId").toString();
+    s.registeredOn = field(q, "RegisteredOn").toDate();
+    s.status = field(q, "Status").toString();
+    s.notes = field(q, "Notes").toString();
     return Result<Student>::success(s);
 }
 
@@ -127,8 +127,8 @@ Result<ImportResult> SqlStudentRepository::importXml(const QString& xml, const Q
         return Result<ImportResult>::failure(errorOf(q));
     ImportResult r;
     if (q.next()) {
-        r.imported = q.value(0).toInt();
-        r.skipped = q.value(1).toInt();
+        r.imported = field(q, "ImportedRows").toInt();
+        r.skipped = field(q, "SkippedRows").toInt();
     }
     return Result<ImportResult>::success(r);
 }

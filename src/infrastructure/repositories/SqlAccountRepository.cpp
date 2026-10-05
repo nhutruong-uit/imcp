@@ -45,8 +45,8 @@ Result<QList<LookupItem>> SqlAccountRepository::peopleWithoutAccount(Role role) 
             {});
     return queryLookup(
         m_db,
-        QStringLiteral("SELECT em.EmployeeId, em.EmployeeId + N' - ' + em.FullName + N' (' + em.Position "
-                       "+ N')' FROM dbo.EMPLOYEE em WHERE em.Status <> N'Left' AND NOT EXISTS "
+        QStringLiteral("SELECT em.EmployeeId, em.EmployeeId + N' - ' + em.FullName, em.Position "
+                       "FROM dbo.EMPLOYEE em WHERE em.Status <> N'Left' AND NOT EXISTS "
                        "(SELECT 1 FROM dbo.ACCOUNT ac WHERE ac.EmployeeId = em.EmployeeId) "
                        "ORDER BY em.FullName"),
         {});

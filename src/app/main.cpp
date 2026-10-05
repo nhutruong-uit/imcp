@@ -29,13 +29,17 @@ int main(int argc, char* argv[]) {
     // Diagnostic mode (no GUI): QLTTTA_USER, QLTTTA_PASSWORD, optional QLTTTA_SERVER
     //   ./QLTTTA --check-connection
     if (QApplication::arguments().contains(QStringLiteral("--check-connection"))) {
+        // QLTTTA_SERVER only applies to this check: the server saved by the login screen is put back
+        const ServerConfig saved = container.auth().serverConfig();
         if (qEnvironmentVariableIsSet("QLTTTA_SERVER")) {
-            ServerConfig config = container.auth().serverConfig();
+            ServerConfig config = saved;
             config.host = qEnvironmentVariable("QLTTTA_SERVER");
             container.auth().saveServerConfig(config);
         }
         const auto result = container.auth().login(qEnvironmentVariable("QLTTTA_USER"),
                                                    qEnvironmentVariable("QLTTTA_PASSWORD"));
+        if (qEnvironmentVariableIsSet("QLTTTA_SERVER"))
+            container.auth().saveServerConfig(saved);
         QTextStream out(stdout);
         if (result.ok())
             out << "OK: " << result.value().fullName << " (" << Labels::role(result.value().role) << ")"

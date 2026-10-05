@@ -40,17 +40,17 @@ Result<Course> SqlCourseRepository::findById(const QString& id) {
     if (!q.next())
         return Result<Course>::failure(tr("Course %1 was not found.").arg(id));
     Course c;
-    c.id = q.value(0).toString();
-    c.programId = q.value(1).toString();
-    c.name = q.value(2).toString();
-    c.level = q.value(3).toString();
-    c.sessionCount = q.value(4).toInt();
-    c.sessionMinutes = q.value(5).toInt();
-    c.tuition = q.value(6).toLongLong();
-    if (!q.value(7).isNull())
-        c.minPlacementScore = q.value(7).toDouble();
-    c.prerequisiteId = q.value(8).toString();
-    c.status = q.value(9).toString();
+    c.id = field(q, "CourseId").toString();
+    c.programId = field(q, "ProgramId").toString();
+    c.name = field(q, "CourseName").toString();
+    c.level = field(q, "Level").toString();
+    c.sessionCount = field(q, "SessionCount").toInt();
+    c.sessionMinutes = field(q, "SessionMinutes").toInt();
+    c.tuition = field(q, "Tuition").toLongLong();
+    if (!field(q, "MinPlacementScore").isNull())
+        c.minPlacementScore = field(q, "MinPlacementScore").toDouble();
+    c.prerequisiteId = field(q, "PrerequisiteCourseId").toString();
+    c.status = field(q, "Status").toString();
     return Result<Course>::success(c);
 }
 

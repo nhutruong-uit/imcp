@@ -1,6 +1,6 @@
 # Last commit covered by a codebase review (/imcp-review-codebase, docs/reviews/README.md).
 # The next review starts from it: git diff <commit> origin/develop -- . ':(exclude)docs/reviews'
-commit: 43015b6a8116cd99696031a17809a33b4427a92a
-develop: aec45e03c6d97e4fc4ce0eeb38ca5869af61b352
-date: 2026-10-04
-log: docs/reviews/2026-10-03-codebase.md
+commit: af2cc2625e34cae0d2ffc94d4d9da1fa27db21b0
+develop: b5387ff8393aeb2121a179753aa4a18a9113bb2d
+date: 2026-10-05
+log: docs/reviews/2026-10-04-codebase.md

@@ -44,11 +44,9 @@ void TeacherPage::editTeacher(bool isNew) {
         }
         t = current.value();
     }
-    const auto branches = m_services.catalog.activeBranches();
-    QList<LookupItem> branchItems;
-    if (branches.ok())
-        for (const Branch& b : branches.value())
-            branchItems.append({b.id, b.name});
+    QString branchError;
+    const QList<LookupItem> branchItems =
+        Fields::branchItems(m_services.catalog.activeBranches(), &branchError);
 
     FormDialog dialog(isNew ? tr("New teacher") : tr("Edit teacher %1").arg(t.id), this);
     dialog.resize(600, 720);
@@ -106,6 +104,7 @@ void TeacherPage::editTeacher(bool isNew) {
         savedId = result.value();
         return VoidResult::success();
     });
+    dialog.showError(branchError); // empty: no error line
     if (dialog.exec() == QDialog::Accepted)
         reloadAndSelect(QStringLiteral("TeacherId"), savedId);
 }

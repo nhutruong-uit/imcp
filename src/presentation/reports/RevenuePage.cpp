@@ -1,6 +1,7 @@
 #include "presentation/reports/RevenuePage.h"
 
 #include "presentation/common/Fields.h"
+#include "presentation/common/UiHelpers.h"
 
 #include <QComboBox>
 #include <QDateEdit>
@@ -21,6 +22,8 @@ RevenuePage::RevenuePage(AppServices services, QWidget* parent)
     if (branches.ok())
         for (const Branch& b : branches.value())
             m_branch->addItem(b.name, b.id);
+    else
+        UiHelpers::showError(this, branches.error()); // only "All branches" is left to choose
     addFilter(m_view);
     addFilter(m_from);
     addFilter(m_to);

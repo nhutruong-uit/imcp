@@ -101,7 +101,10 @@ names such as `CK_STUDENT_Guardian`.
 ## 4. Adding a new module (cookbook)
 
 Example: the **Enrollments** module (database table `ENROLLMENT`), built with these steps. The reference
-implementation is the Students module (`Student*`); every other module follows the same layout.
+implementation is the Students module (`Student*`); every other module follows the same layout. Its page is
+older than `DataPage` and builds its own table (`StudentPage`, `StudentTableModel`, the Qt Designer form): a new
+list screen starts from `DataPage` instead (template: `EnrollmentPage`, below). Services whose one form both adds
+and edits (catalog, courses, staff) have `save(x, isNew)`, which calls the add or the update procedure.
 
 1. **Database**: the procedures (`usp_Enrollment_Create`, `usp_Enrollment_Search`, ...). For new ones, write them in
    `04_procedures.sql`, add `GRANT EXECUTE` in `06_security.sql`, add a case to `12_tests.sql` and register their
@@ -140,7 +143,9 @@ two base classes of `src/presentation/common/`:
   `Fields` helpers (`Fields::text`, `date`, `money`, `values` for stored database values, `lookup` for a code +
   name list) and passes the save action (`setSaveAction`, which returns a `VoidResult`). A failed save shows the
   translated database message in the form and keeps the dialog open, so nothing typed is lost. A larger form
-  subclasses it (`ClassFormDialog`, `EnrollDialog`, `CollectPaymentDialog`, `PlacementTestDialog`).
+  subclasses it (`ClassFormDialog`, `EnrollDialog`, `CollectPaymentDialog`, `PlacementTestDialog`). Return in a
+  field clicks Save, as in any Qt dialog; a search or filter field inside the form is registered with
+  `setSearchField`, so Return runs the search instead of saving the first match.
 - `TableDialog` shows a read-only list in a window of its own (the students or results of a class, a syllabus,
   a search result) with Excel / PDF export.
 

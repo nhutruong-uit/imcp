@@ -23,7 +23,7 @@ PDF="${DOCX%.docx}.pdf"
 NAME="$(basename "$DOCX")"           # working copy in .build, also the name of the document inside Word
 WORK_PDF="$BUILD/${NAME%.docx}.pdf"
 
-[[ "$(uname)" == "Darwin" ]] || { echo "This script only runs on macOS (Windows: export the PDF by hand, see the top of this file)." >&2; exit 2; }
+[[ "$(uname)" == "Darwin" ]] || { echo "This script only runs on macOS (Windows: run docs\report\tools\export_pdf.ps1)." >&2; exit 2; }
 [[ -d "/Applications/Microsoft Word.app" ]] || { echo "Microsoft Word is not installed." >&2; exit 2; }
 mkdir -p "$BUILD"   # NEVER delete this folder: Word would lose the access it was granted
 
@@ -43,9 +43,11 @@ for fld in d.element.body.iter(qn("w:fldChar")):
 d.save(sys.argv[2])
 PY
 rm -f "$WORK_PDF"
-# A "~$<name>.docx" lock left by a failed export stops Word from opening the document => delete it unless Word has it open
+# A lock left by a failed export stops Word from opening the document => delete it unless Word has it open. Word
+# names it "~$" + the name without its first two characters (a long name such as IE103_Group1_Report.docx) or
+# "~$" + the whole name (a short one), so both are removed.
 if ! osascript -e 'tell application "Microsoft Word" to get name of every document' 2>/dev/null | grep -qF "$NAME"; then
-  rm -f "$BUILD/~\$$NAME"
+  rm -f "$BUILD/~\$$NAME" "$BUILD/~\$${NAME:2}"
 fi
 
 # Open through LaunchServices (the sandbox silently blocks Word's AppleScript "open" for files without granted access)

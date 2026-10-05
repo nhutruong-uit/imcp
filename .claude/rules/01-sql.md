@@ -100,10 +100,11 @@ A procedure with a single write statement needs no TRY/TRANSACTION (like `usp_St
 |---|---|---|---|---|
 | A. Students | 50001-50009 | | E. Attendance, grades, results | 50040-50049 |
 | B. Classes, schedules, sessions | 50010-50019 | | F. Payroll | 50050-50059 |
-| B6-B8. Class changes, slot removal | 50080-50089 | | I. Accounts | 50060-50069 |
+| B (continued). Class changes, rooms, slots | 50080-50089 | | I. Accounts | 50060-50069 |
 | C. Enrollment, class transfer | 50020-50029 | | I7. Backup | 50070-50079 |
 | D. Receipts | 50030-50039 | | J. Catalogs | 50090-50098 |
-Every block is taken: a new group reuses a message of its own area or asks the team for a new range (50100...).
+| C (continued). Enrollment | 50100-50109 | | J (continued). Catalogs | 50110-50119 |
+A full block continues in a new block of ten (50100 and up), agreed with the team lead and added to this table.
 `50099` is reserved for the test scripts (`12_tests.sql`, `13_server_tests.sql`). Triggers use
 `RAISERROR (N'...', 16, 1); ROLLBACK TRANSACTION;`. Numbers in use:
 `grep -o "THROW 50[0-9]*" database/04_procedures.sql | sort -u`.

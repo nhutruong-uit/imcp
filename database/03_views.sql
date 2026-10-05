@@ -296,7 +296,7 @@ GO
        builds every pair and the LEFT JOIN with GRADE (on both EnrollmentId and ComponentId) adds
        the score when it exists, so a missing score shows as NULL - like a grading sheet with
        empty cells. Grades are saved through usp_Grade_Save, not through this view.
-       Used by: My grade book screen (SqlGradeRepository::sheet); SELECT is GRANTed to rl_Teacher
+       Used by: My grade book screen (SqlGradeRepository::cells); SELECT is GRANTed to rl_Teacher
        (06_security.sql).
        Concepts: security view, LEFT JOIN on two columns to show missing values. */
 IF OBJECT_ID(N'dbo.vw_Teacher_MyGrades', N'V') IS NOT NULL DROP VIEW dbo.vw_Teacher_MyGrades;

@@ -14,6 +14,7 @@ DATA = REPORT_DIR / "data"
 # Real student IDs for the copy handed in to the lecturer: {"<member name>": "<student ID>"}, never committed
 STUDENT_IDS_FILE = REPORT_DIR / "student_ids.local.json"
 
+# The assignment table of the report; docs/PLAN.md section 2 shows the same table in English (change both).
 # The student IDs are masked (only the last 2 digits) because the repository may be public;
 # use_real_student_ids() puts the real ones back for the submission build (--submission)
 MEMBERS = [

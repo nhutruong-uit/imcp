@@ -157,6 +157,9 @@ VoidResult DatabaseManager::open(const ServerConfig& config, const QString& user
             db.setConnectOptions(QStringLiteral("SQL_ATTR_LOGIN_TIMEOUT=8"));
             if (db.open()) {
                 m_driver = driver;
+                // The connection string holds the password; the open connection no longer needs it (no
+                // reconnect reads it), so it is not kept in memory for the whole session
+                db.setDatabaseName(QString());
                 // Same session settings whatever the default language of the login: dates are read as
                 // year-month-day and SQL Server's own messages stay English, which SqlErrorMapper recognizes
                 QSqlQuery(db).exec(QStringLiteral("SET DATEFORMAT ymd; SET LANGUAGE us_english;"));

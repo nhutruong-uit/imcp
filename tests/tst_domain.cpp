@@ -9,6 +9,7 @@
 #include "domain/entities/GradeBook.h"
 #include "domain/entities/Language.h"
 #include "domain/entities/NewAccount.h"
+#include "domain/entities/PlacementTest.h"
 #include "domain/entities/Receipt.h"
 #include "domain/entities/Role.h"
 #include "domain/entities/Session.h"
@@ -33,10 +34,12 @@ private:
     }
 
 private slots:
-    void validStudent_hasNoErrors() { QVERIFY(validStudent().validate(QDate(2026, 10, 1)).isEmpty()); }
+    void validate_validStudent_hasNoErrors() {
+        QVERIFY(validStudent().validate(QDate(2026, 10, 1)).isEmpty());
+    }
 
     // age() counts one year less until the birthday of that year has come
-    void age_beforeBirthday() {
+    void age_beforeBirthday_countsOneYearLess() {
         Student s;
         s.dateOfBirth = QDate(2008, 12, 31);
         QCOMPARE(s.age(QDate(2026, 10, 1)), 17);
@@ -44,7 +47,7 @@ private slots:
     }
 
     // Same rule as CK_STUDENT_Guardian: under 18 needs a guardian name and phone
-    void under18_requiresGuardian() {
+    void validate_under18WithoutGuardian_isRejected() {
         Student s = validStudent();
         s.dateOfBirth = QDate(2015, 1, 1);
         QVERIFY(!s.validate(QDate(2026, 10, 1)).isEmpty());
@@ -54,14 +57,14 @@ private slots:
     }
 
     // Same rule as CK_STUDENT_Phone: 9-11 digits and nothing else
-    void phone_digitsOnly() {
+    void validate_phoneWithDash_isRejected() {
         Student s = validStudent();
         s.phone = QStringLiteral("09-123");
         QVERIFY(!s.validate(QDate(2026, 10, 1)).isEmpty());
     }
 
     // Close to CK_STUDENT_Email: something@something.something
-    void email_format() {
+    void validate_emailWithoutAt_isRejected() {
         Student s = validStudent();
         s.email = QStringLiteral("not-an-email");
         QVERIFY(!s.validate(QDate(2026, 10, 1)).isEmpty());
@@ -70,7 +73,7 @@ private slots:
     }
 
     // Same rule as CK_STUDENT_Contact: the phone of the student or of the guardian
-    void atLeastOneContactNumber() {
+    void validate_noContactNumber_isRejected() {
         Student s = validStudent();
         s.phone.clear();
         QVERIFY(!s.validate(QDate(2026, 10, 1)).isEmpty());
@@ -99,7 +102,7 @@ private slots:
     }
 
     // Role codes stored in ACCOUNT.Role <-> Role; case-insensitive, an unknown code gives Role::Unknown
-    void role_codeMapping() {
+    void roleFromCode_unknownCode_givesUnknownRole() {
         QCOMPARE(roleFromCode(QStringLiteral("MANAGER")), Role::Manager);
         QCOMPARE(roleFromCode(QStringLiteral("teacher")), Role::Teacher);
         QCOMPARE(roleFromCode(QStringLiteral("ACADEMIC_STAFF")), Role::AcademicStaff);
@@ -108,7 +111,7 @@ private slots:
     }
 
     // Language codes saved in the settings (vi / en); an unsupported code falls back to Vietnamese
-    void language_codeMapping() {
+    void languageFromCode_unsupportedCode_fallsBackToVietnamese() {
         QCOMPARE(languageCode(Language::Vietnamese), QStringLiteral("vi"));
         QCOMPARE(languageCode(Language::English), QStringLiteral("en"));
         QCOMPARE(languageFromCode(QStringLiteral("en")), Language::English);
@@ -128,7 +131,7 @@ private slots:
     }
 
     // Codes chosen by the user: letters, digits, dash and underscore, at most 10 characters (THROW 50092)
-    void validation_code() {
+    void isCode_spaceAccentOrTooLong_isRejected() {
         QVERIFY(Validation::isCode(QStringLiteral("D1-101")));
         QVERIFY(Validation::isCode(QStringLiteral("PR_OPEN")));
         QVERIFY(!Validation::isCode(QStringLiteral("D1 101")));
@@ -140,7 +143,7 @@ private slots:
     }
 
     // ClassInfo mirrors CK_CLASS_MaxStudents (1-50) and the references a class needs
-    void classInfo_validate() {
+    void classInfo_outOfRangeOrMissingReference_isRejected() {
         ClassInfo c;
         c.name = QStringLiteral("IELTS 6.5 - evening");
         c.courseId = QStringLiteral("IE-65");
@@ -158,7 +161,7 @@ private slots:
     }
 
     // CK_CLASS_SCHEDULE_Weekday and CK_CLASS_SCHEDULE_Time: 1-7, ends after it starts, within 07:00-22:00
-    void scheduleSlot_validate() {
+    void scheduleSlot_outsideOpeningHours_isRejected() {
         ScheduleSlot slot{2, QTime(18, 0), QTime(20, 0)};
         QVERIFY(slot.validate().isEmpty());
         slot.end = QTime(17, 0);
@@ -169,10 +172,21 @@ private slots:
         QCOMPARE(slot.validate().size(), 1);
     }
 
+    // The weights of a course must add up to 100 before its classes can be evaluated; 99.99 is not 100
+    void weightsComplete_totalBelow100_isFalse() {
+        GradeBook book;
+        book.components = {{7, QStringLiteral("Homework"), 40}, {8, QStringLiteral("Final"), 59.99}};
+        QVERIFY(!book.weightsComplete());
+        book.components[1].weight = 60;
+        QVERIFY(book.weightsComplete());
+        book.components.append({9, QStringLiteral("Bonus"), 5});
+        QVERIFY(!book.weightsComplete()); // above 100 is not complete either
+    }
+
     // The database returns one row per student and component; the grade book has one row per student and
     // computes the final grade like dbo.fn_FinalGrade (NULL while a score is missing, rounded once to 2
     // decimals)
-    void gradeBook_pivotAndFinalGrade() {
+    void gradeBook_cells_pivotToRowsWithFinalGrade() {
         const QString an = QStringLiteral("An");
         const QString binh = QStringLiteral("Bình");
         const QList<GradeCell> cells = {
@@ -195,8 +209,55 @@ private slots:
         QVERIFY(!book.finalGrade(5).has_value()); // no such row
     }
 
+    // 4.89 x 50 + 5.10 x 50 = 499.5 exactly, but 499.49999999999994 in binary: without the small correction
+    // of finalGrade the grade book would show 4.99 (Failed) while fn_FinalGrade gives 5.00 (Passed)
+    void gradeBook_finalGradeOnHalf_roundsUpLikeTheDatabase() {
+        const QString an = QStringLiteral("An");
+        const GradeBook book = GradeBook::fromCells({
+            {QStringLiteral("EN1"), QStringLiteral("ST1"), an, 1, QStringLiteral("Midterm"), 50, 4.89},
+            {QStringLiteral("EN1"), QStringLiteral("ST1"), an, 2, QStringLiteral("Final"), 50, 5.10},
+        });
+        QCOMPARE(*book.finalGrade(0), 5.0);
+    }
+
+    // OverallScore = CAST(sum / 4 AS DECIMAL(4,2)) rounds the exact average half up (T109 checks the database
+    // side with the same scores); a binary double average rounds these cases down
+    void placementTest_overall_roundsLikeTheDatabase() {
+        PlacementTest t;
+        t.listening = 9.3;
+        t.speaking = 9;
+        t.reading = 9;
+        t.writing = 9;
+        QCOMPARE(t.overall(), 9.08); // 9.075
+        t.listening = 5;
+        t.speaking = 5;
+        t.reading = 5.06;
+        t.writing = 6.92;
+        QCOMPARE(t.overall(), 5.5); // 5.495, the entry score of IE-55
+        t.listening = 7.1;
+        t.speaking = 7;
+        t.reading = 7;
+        t.writing = 7;
+        QCOMPARE(t.overall(), 7.03); // 7.025
+        t.listening = 7.12;
+        QCOMPARE(t.overall(), 7.03); // 7.03 exactly
+    }
+
+    void placementTest_futureDateOrScoreAbove10_isRejected() {
+        const QDate today(2026, 10, 5);
+        PlacementTest t;
+        t.studentId = QStringLiteral("ST00001");
+        t.listening = t.speaking = t.reading = t.writing = 6;
+        QVERIFY(t.validate(today).isEmpty());
+        t.testDate = today.addDays(1);
+        QCOMPARE(t.validate(today).size(), 1);
+        t.testDate = today;
+        t.writing = 10.5;
+        QCOMPARE(t.validate(today).size(), 1);
+    }
+
     // The payment form: an amount above what is still owed is refused before the triggers would refuse it
-    void receipt_validate() {
+    void receipt_amountAboveBalance_isRejected() {
         ReceiptRequest r;
         r.enrollmentId = QStringLiteral("EN000001");
         r.amount = 2000000;
@@ -220,7 +281,7 @@ private slots:
 
     // The catalog rules: code format for a new row only, percentages at most 50, end not before start, the
     // prerequisite is not the course itself, a weight above 0
-    void catalog_validate() {
+    void catalog_invalidRow_isRejected() {
         Branch b;
         b.id = QStringLiteral("BR 03");
         b.name = QStringLiteral("New branch");
@@ -248,7 +309,7 @@ private slots:
 
     // Staff: at least 18 on the hire date (CK_TEACHER_Age), a native speaker is not Vietnamese
     // (CK_TEACHER_Native)
-    void teacher_validate() {
+    void teacher_under18OrVietnameseNative_isRejected() {
         Teacher t;
         t.fullName = QStringLiteral("Anna Lee");
         t.dateOfBirth = QDate(1995, 1, 1);
@@ -267,7 +328,7 @@ private slots:
     }
 
     // The username pattern of usp_Account_Create (no diacritics), the password length and its confirmation
-    void newAccount_validate() {
+    void newAccount_badUsernameOrPassword_isRejected() {
         NewAccount a;
         a.username = QStringLiteral("gvu_hoa");
         a.password = QStringLiteral("Secret@123");

@@ -38,6 +38,11 @@ StudentProfileDialog::StudentProfileDialog(AppServices services, const QString& 
         identity->setObjectName(QStringLiteral("Muted"));
         identity->setWordWrap(true);
         v->addWidget(identity);
+    } else if (!students.ok()) {
+        auto* error = new QLabel(students.error(), this);
+        error->setObjectName(QStringLiteral("ErrorText"));
+        error->setWordWrap(true);
+        v->addWidget(error);
     }
 
     auto* enrollmentsTitle = new QLabel(tr("Enrollments"), this);
@@ -61,6 +66,8 @@ StudentProfileDialog::StudentProfileDialog(AppServices services, const QString& 
         auto* tests = new DataTable(QStringLiteral("profileTestTable"), this);
         const auto testRows = services.placement.search(QString(), studentId);
         tests->setData(testRows.ok() ? testRows.value() : TableData());
+        if (!testRows.ok())
+            testsTitle->setText(testRows.error()); // not "no test": the list could not be read
         tests->setHiddenColumns({QStringLiteral("StudentId"), QStringLiteral("StudentName")});
         v->addWidget(tests, 1);
     }

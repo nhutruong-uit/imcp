@@ -1,5 +1,7 @@
 #include "application/services/StaffService.h"
 
+#include "domain/common/Validation.h"
+
 StaffService::StaffService(IStaffRepository& repository) : m_repository(repository) {}
 
 Result<TableData> StaffService::employees() {
@@ -43,7 +45,9 @@ Result<QString> StaffService::saveTeacher(const Teacher& t, const QDate& today) 
     c.nationality = c.nationality.simplified();
     c.phone = c.phone.trimmed();
     c.email = c.email.trimmed().toLower();
-    c.profileXml = c.profileXml.trimmed();
+    // Without the <?xml ... encoding=...?> declaration: SQL Server cannot store Unicode text that names an
+    // encoding in an XML column (error 9402), the same as the syllabus and the student import
+    c.profileXml = Validation::withoutXmlDeclaration(c.profileXml);
     const QStringList errors = c.validate(today);
     if (!errors.isEmpty())
         return Result<QString>::failure(errors.join(QLatin1Char('\n')));

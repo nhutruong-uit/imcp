@@ -17,12 +17,13 @@ shift it if the instructor announces something different.
 
 | Member | Area owned | Files | Report parts | Demo during the defense |
 |---|---|---|---|---|
-| **Trương Quang Như** (NT, `******22`) | Architecture & application: Clean Architecture, Qt, ODBC connection, login, CI/CD, packaging; integration | `src/`, `tests/`, `.github/`, `scripts/package-*`, `packaging/` | Ch.6 (Presenting information), Ch.8, installation appendix | Run the app with the 4 roles, installers on Windows/Mac |
+| **Trương Quang Như** (NT, `******22`) | Architecture & application: Clean Architecture, Qt, ODBC connection, login, CI/CD, packaging; integration | `src/`, `tests/`, `.github/`, `scripts/`, `packaging/` | Ch.6 (Presenting information), Ch.8, installation appendix | Run the app with the 4 roles, installers on Windows/Mac |
 | **Đỗ Phạm Minh Trâm** (`******42`) | Survey & analysis: the center's business processes, actors, use cases, DFD, ERD (Chen), CD | report Ch.1-2, ERD/CD figures | Ch.1, Ch.2, sections 3.1-3.2 | Present the problem, the ERD |
-| **Nguyễn Việt Phú** (`******25`) | Logical model & constraints: ERD → relations, 3NF normalization, data dictionary, integrity constraints, **triggers** | `01_tables.sql`, `05_triggers.sql` | Sections 3.3-3.7, 4.6 | Violate constraints live in SSMS (overpaying tuition, schedule clash, ...) |
+| **Nguyễn Việt Phú** (`******25`) | Logical model & constraints: ERD → relations, 3NF normalization, data dictionary, integrity constraints, **triggers** | `01_tables.sql`, `05_triggers.sql` | Sections 3.3-3.8, 4.6 | Violate constraints live in SSMS (overpaying tuition, schedule clash, ...) |
 | **Đỗ Bình Dương** (`******08`) | Database programming: **stored procedures, functions, cursors**, transactions, SQL queries, **XML/XPath/XQuery** | `02_functions.sql`, `04_procedures.sql`, `08_demo_queries.sql` | Ch.4 (except 4.6) | Call `usp_Enrollment_Create`, `usp_Class_EvaluateResults` (cursor), XQuery queries |
-| **Nguyễn Bảo Giang** (`******09`) | Security & advanced models: **authentication, authorization, security views**, audit, **backup/restore**, import/export, distributed DB, OODB, NoSQL | `03_views.sql`, `06_security.sql`, `09`-`11_*.sql` | Ch.5, Ch.7 | Sign in to SSMS as `gv_john` and get blocked from table STUDENT; backup → restore; distributed view |
+| **Nguyễn Bảo Giang** (`******09`) | Security & advanced models: **authentication, authorization, security views**, audit, **backup/restore**, import/export, distributed DB, OODB, NoSQL | `03_views.sql`, `06_security.sql`, `09`-`12_*.sql` | Ch.5, Ch.7 | Sign in to SSMS as `gv_john` and get blocked from table STUDENT; backup → restore; distributed view |
 
+The table of the report (`MEMBERS` in `docs/report/content/common.py`) is the reference: change both together.
 Everyone makes **the slides for their own part** (3-4 slides); the team lead merges them and unifies the template.
 
 ## 3. Schedule

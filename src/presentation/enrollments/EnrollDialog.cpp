@@ -43,6 +43,7 @@ EnrollDialog::EnrollDialog(EnrollmentService& enrollments, StudentService& stude
         Fields::select(m_class, classId);
 
     m_enrolledOn = Fields::date(this, QDate::currentDate());
+    m_enrolledOn->setMaximumDate(QDate::currentDate()); // an enrollment is never dated in the future (50100)
     m_promotion = new QComboBox(this);
     m_promotion->setObjectName(QStringLiteral("promotionCombo"));
 
@@ -55,7 +56,7 @@ EnrollDialog::EnrollDialog(EnrollmentService& enrollments, StudentService& stude
     setSaveText(tr("Enroll"));
 
     connect(findButton, &QPushButton::clicked, this, &EnrollDialog::searchStudents);
-    connect(m_studentSearch, &QLineEdit::returnPressed, this, &EnrollDialog::searchStudents);
+    setSearchField(m_studentSearch, [this] { searchStudents(); });
     connect(m_class, &QComboBox::currentIndexChanged, this, &EnrollDialog::showClassInfo);
     connect(m_enrolledOn, &QDateEdit::dateChanged, this, &EnrollDialog::loadPromotions);
     if (!studentId.isEmpty())
@@ -90,6 +91,8 @@ void EnrollDialog::loadPromotions() {
     const auto promotions = m_enrollments.promotionOptions(m_enrolledOn->date());
     Fields::fillLookup(m_promotion, promotions.ok() ? promotions.value() : QList<LookupItem>(),
                        tr("No promotion"));
+    if (!promotions.ok())
+        showError(promotions.error()); // "No promotion" alone would hide a valid code
     if (m_promotion->findData(current) >= 0)
         Fields::select(m_promotion, current);
 }
@@ -113,7 +116,7 @@ bool EnrollDialog::save() {
     request.classId = Fields::value(m_class);
     request.promotionId = Fields::value(m_promotion);
     request.enrolledOn = m_enrolledOn->date();
-    const auto result = m_enrollments.enroll(request);
+    const auto result = m_enrollments.enroll(request, QDate::currentDate());
     if (!result.ok()) {
         showError(result.error());
         return false;

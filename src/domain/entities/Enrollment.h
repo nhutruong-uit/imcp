@@ -23,7 +23,9 @@ struct EnrollmentRequest {
     QString promotionId; // empty = no promotion
     QDate enrolledOn;    // empty = today (the procedure's default)
 
-    QStringList validate() const;
+    // A past date is allowed (a paper form typed later), a future one is not (50100: attendance counts from
+    // it)
+    QStringList validate(const QDate& today) const;
 
     Q_DECLARE_TR_FUNCTIONS(EnrollmentRequest)
 };

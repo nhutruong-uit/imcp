@@ -44,10 +44,7 @@ void PromotionPage::editPromotion(bool isNew) {
     auto* code = Fields::code(&dialog, p.id);
     code->setEnabled(isNew);
     auto* name = Fields::text(&dialog, 100, p.name);
-    auto* type = new QComboBox(&dialog);
-    for (const QString& t : CatalogValues::discountTypes())
-        type->addItem(Labels::discountType(t), t);
-    Fields::select(type, p.discountType);
+    auto* type = Fields::values(&dialog, CatalogValues::discountTypes(), p.discountType); // as in the list
     auto* value = Fields::decimal(&dialog, 0, 999999999, 0, p.discountValue);
     value->setGroupSeparatorShown(true);
     auto* from = Fields::date(&dialog, p.startDate);

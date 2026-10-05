@@ -80,10 +80,12 @@ QVariant GradeBookModel::data(const QModelIndex& index, int role) const {
         bold.setBold(true);
         return bold;
     }
+    // Red below the pass mark only: at the pass mark or above the result also depends on the attendance,
+    // which the grade book does not show (usp_Class_EvaluateResults decides Passed / Failed)
     if (role == Qt::ForegroundRole && isFinal) {
         const std::optional<double> grade = finalGrade(index.row());
-        if (grade)
-            return QColor(*grade >= 5 ? Theme::kPositiveText : Theme::kNegativeText);
+        if (grade && *grade < GradeLimits::passMark)
+            return QColor(Theme::kNegativeText);
     }
     return {};
 }
@@ -98,7 +100,7 @@ bool GradeBookModel::setData(const QModelIndex& index, const QVariant& value, in
     double v = QLocale().toDouble(text, &ok);
     if (!ok)
         v = text.replace(QLatin1Char(','), QLatin1Char('.')).toDouble(&ok);
-    if (!ok || v < 0 || v > 10)
+    if (!ok || v < GradeLimits::minScore || v > GradeLimits::maxScore)
         return false;
     m_changes.insert({index.row(), componentId}, v);
     emit dataChanged(index, this->index(index.row(), columnCount() - 1));
@@ -133,7 +135,7 @@ QVariant GradeBookModel::headerData(int section, Qt::Orientation orientation, in
         if (key != QStringLiteral("Score"))
             return Columns::title(key);
         const GradeComponentInfo& c = m_book.components.at(componentIndex);
-        return QStringLiteral("%1 (%2%)").arg(c.name, QLocale().toString(c.weight, 'f', 0));
+        return QStringLiteral("%1 (%2%)").arg(c.name, QLocale().toString(c.weight)); // 20, 33.33
     }
     return {};
 }

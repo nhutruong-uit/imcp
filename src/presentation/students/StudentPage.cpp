@@ -85,20 +85,27 @@ StudentPage::StudentPage(AppServices services, QWidget* parent) : QWidget(parent
     m_profileButton = UiHelpers::secondaryButton(tr("Profile"), QStringLiteral("user"), this);
     m_profileButton->setObjectName(QStringLiteral("profileButton"));
     actions->addWidget(m_profileButton);
-    if (m_canEdit) {
+    // Enroll and Placement test open the forms of their own features, so each button follows the permission
+    // of that feature (the same roles today, but a change of the matrix must not leave a button behind)
+    const Role role = m_services.auth.role();
+    if (Permissions::canEdit(role, Feature::Enrollments)) {
         m_enrollButton = UiHelpers::secondaryButton(tr("Enroll"), QStringLiteral("user-plus"), this);
         m_enrollButton->setObjectName(QStringLiteral("enrollButton"));
+        actions->addWidget(m_enrollButton);
+        connect(m_enrollButton, &QPushButton::clicked, this, &StudentPage::enroll);
+    }
+    if (Permissions::canEdit(role, Feature::PlacementTests)) {
         m_testButton = UiHelpers::secondaryButton(tr("Placement test"), QStringLiteral("clipboard"), this);
         m_testButton->setObjectName(QStringLiteral("placementTestButton"));
+        actions->addWidget(m_testButton);
+        connect(m_testButton, &QPushButton::clicked, this, &StudentPage::placementTest);
+    }
+    if (m_canEdit) {
         auto* exportButton = UiHelpers::secondaryButton(tr("Export XML"), QStringLiteral("download"), this);
         auto* importButton = UiHelpers::secondaryButton(tr("Import XML"), QStringLiteral("upload"), this);
-        actions->addWidget(m_enrollButton);
-        actions->addWidget(m_testButton);
         actions->addSpacing(12);
         actions->addWidget(exportButton);
         actions->addWidget(importButton);
-        connect(m_enrollButton, &QPushButton::clicked, this, &StudentPage::enroll);
-        connect(m_testButton, &QPushButton::clicked, this, &StudentPage::placementTest);
         connect(exportButton, &QPushButton::clicked, this, &StudentPage::exportXml);
         connect(importButton, &QPushButton::clicked, this, &StudentPage::importXml);
     }
@@ -182,7 +189,8 @@ void StudentPage::search() {
         return;
     }
     m_model->setStudents(result.value());
-    m_count->setText(tr("%1 students").arg(result.value().size()));
+    const auto count = result.value().size();
+    m_count->setText(count == 1 ? tr("1 student") : tr("%1 students").arg(count));
     updateButtons();
 }
 

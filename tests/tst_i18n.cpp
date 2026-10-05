@@ -61,7 +61,7 @@ private slots:
     void cleanup() { I18n::apply(Language::English); }
 
     // Without a translation the English source texts and English number/month formats are used
-    void english_isTheSourceLanguage() {
+    void apply_english_usesSourceTexts() {
         QVERIFY(I18n::apply(Language::English));
         QCOMPARE(I18n::current(), Language::English);
         QCOMPARE(Labels::feature(Feature::Students).name, QStringLiteral("Students"));
@@ -77,7 +77,7 @@ private slots:
     }
 
     // The embedded .qm file loads and changes texts and formats (thousands separator, month/weekday names)
-    void vietnamese_translationIsLoaded() {
+    void apply_vietnamese_loadsTranslation() {
         QVERIFY2(I18n::apply(Language::Vietnamese), "cannot load :/i18n/qlttta_vi.qm");
         QCOMPARE(I18n::current(), Language::Vietnamese);
         QCOMPARE(Labels::feature(Feature::Students).name, QStringLiteral("Học viên"));
@@ -104,7 +104,7 @@ private slots:
     }
 
     // Each menu entry, role and column has a Vietnamese text that differs from the English one
-    void everyCatalogTextIsTranslated() {
+    void catalogTexts_vietnamese_differFromEnglish() {
         I18n::apply(Language::English);
         const QStringList english = catalogTexts();
         QVERIFY(I18n::apply(Language::Vietnamese));
@@ -131,7 +131,7 @@ private slots:
     // Every display value of a CHECK ... IN (N'...') constraint in the schema is registered in DbValues, so a
     // value added to the database cannot reach the Vietnamese UI untranslated (codes such as 'MANAGER' have
     // no N prefix)
-    void dbValues_coverEveryCheckConstraintValue() {
+    void dbValues_everyCheckConstraintValue_isRegistered() {
         const QString schema = readDatabaseScript(QStringLiteral("01_tables.sql"));
         static const QRegularExpression checkIn(
             QStringLiteral("CHECK\\s*\\(\\s*\\w+\\s+IN\\s*\\(([^)]*)\\)"));
@@ -155,7 +155,7 @@ private slots:
     }
 
     // Highlighting comes from the stored value and the column key, never from translated text
-    void highlighting_usesStoredValuesAndColumnKeys() {
+    void tone_vietnameseUi_followsStoredValues() {
         QVERIFY(I18n::apply(Language::Vietnamese));
         QCOMPARE(DbValues::tone(QStringLiteral("Passed")), DbValues::Tone::Positive);
         QCOMPARE(DbValues::tone(QStringLiteral("Failed")), DbValues::Tone::Negative);
@@ -168,7 +168,7 @@ private slots:
     }
 
     // Business messages of the database (English) are shown in Vietnamese, values included
-    void dbMessages_areTranslated() {
+    void dbMessages_vietnameseUi_areTranslated() {
         QVERIFY(I18n::apply(Language::Vietnamese));
         QCOMPARE(DbMessages::translate(QStringLiteral("The current password is incorrect.")),
                  QStringLiteral("Mật khẩu hiện tại không đúng."));
@@ -188,7 +188,7 @@ private slots:
 
     // Every THROW/RAISERROR message of the procedures and triggers is in the DbMessages catalog, and the
     // fixed parts of the templates (messages built from values) exist in the SQL scripts
-    void dbMessages_coverEveryDatabaseMessage() {
+    void dbMessages_everyDatabaseMessage_isInCatalog() {
         const QString sql = readDatabaseScript(QStringLiteral("04_procedures.sql")) +
                             readDatabaseScript(QStringLiteral("05_triggers.sql"));
         static const QRegularExpression raised(
@@ -216,7 +216,7 @@ private slots:
     }
 
     // The language picker always shows each language in its own name, whatever the UI language
-    void languageNames_areNeverTranslated() {
+    void languageNames_anyUiLanguage_stayInOwnLanguage() {
         QVERIFY(I18n::apply(Language::Vietnamese));
         QCOMPARE(Labels::language(Language::English), QStringLiteral("English"));
         I18n::apply(Language::English);
@@ -224,7 +224,7 @@ private slots:
     }
 
     // Guard for new strings: after `update_translations`, every entry of the .ts file must be translated
-    void tsFile_hasNoUnfinishedTranslations() {
+    void tsFile_afterUpdate_hasNoUnfinishedEntry() {
         QFile file(QStringLiteral(QLTTTA_TS_FILE));
         QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(file.fileName()));
         QXmlStreamReader xml(&file);

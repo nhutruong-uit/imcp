@@ -1,11 +1,13 @@
 #include "presentation/backup/BackupPage.h"
 
+#include "application/services/BackupService.h"
 #include "presentation/common/UiHelpers.h"
 
 #include <QApplication>
 #include <QComboBox>
 #include <QDateTime>
 #include <QFormLayout>
+#include <QHash>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -36,9 +38,12 @@ BackupPage::BackupPage(AppServices services, QWidget* parent) : QWidget(parent),
     auto* form = new QFormLayout;
     m_type = new QComboBox(card);
     m_type->setObjectName(QStringLiteral("backupTypeCombo"));
-    m_type->addItem(tr("Full backup (FULL)"), QStringLiteral("FULL"));
-    m_type->addItem(tr("Differential backup (DIFF)"), QStringLiteral("DIFF"));
-    m_type->addItem(tr("Transaction log backup (LOG)"), QStringLiteral("LOG"));
+    // The types usp_Backup accepts come from the use case; the page only gives each one its label
+    const QHash<QString, QString> labels = {{QStringLiteral("FULL"), tr("Full backup (FULL)")},
+                                            {QStringLiteral("DIFF"), tr("Differential backup (DIFF)")},
+                                            {QStringLiteral("LOG"), tr("Transaction log backup (LOG)")}};
+    for (const QString& type : BackupService::types())
+        m_type->addItem(labels.value(type, type), type);
     m_folder = new QLineEdit(card);
     m_folder->setPlaceholderText(tr("Default backup folder of the server"));
     form->addRow(tr("Type"), m_type);

@@ -57,8 +57,10 @@ QStringList Room::validate(bool isNew) const {
         errors << tr("Please choose a branch.");
     if (name.trimmed().isEmpty())
         errors << tr("The room name is required.");
-    if (capacity < 1 || capacity > 100)
-        errors << tr("The capacity must be between 1 and 100.");
+    if (capacity < CatalogLimits::minRoomCapacity || capacity > CatalogLimits::maxRoomCapacity)
+        errors << tr("The capacity must be between %1 and %2.")
+                      .arg(CatalogLimits::minRoomCapacity)
+                      .arg(CatalogLimits::maxRoomCapacity);
     if (!CatalogValues::roomTypes().contains(type))
         errors << tr("Invalid room type.");
     if (!CatalogValues::roomStatuses().contains(status))
@@ -85,14 +87,21 @@ QStringList Course::validate(bool isNew) const {
         errors << tr("The course name is required.");
     if (!CatalogValues::levels().contains(level))
         errors << tr("Invalid level.");
-    if (sessionCount < 1 || sessionCount > 200)
-        errors << tr("A course has 1 to 200 sessions.");
-    if (sessionMinutes < 30 || sessionMinutes > 240)
-        errors << tr("A session lasts 30 to 240 minutes.");
+    if (sessionCount < CatalogLimits::minSessionCount || sessionCount > CatalogLimits::maxSessionCount)
+        errors << tr("A course has %1 to %2 sessions.")
+                      .arg(CatalogLimits::minSessionCount)
+                      .arg(CatalogLimits::maxSessionCount);
+    if (sessionMinutes < CatalogLimits::minSessionMinutes ||
+        sessionMinutes > CatalogLimits::maxSessionMinutes)
+        errors << tr("A session lasts %1 to %2 minutes.")
+                      .arg(CatalogLimits::minSessionMinutes)
+                      .arg(CatalogLimits::maxSessionMinutes);
     if (tuition < 0)
         errors << tr("The tuition cannot be negative.");
-    if (minPlacementScore && (*minPlacementScore < 0 || *minPlacementScore > 10))
-        errors << tr("The minimum placement score must be between 0 and 10.");
+    if (minPlacementScore &&
+        (*minPlacementScore < 0 || *minPlacementScore > CatalogLimits::maxPlacementScore))
+        errors << tr("The minimum placement score must be between 0 and %1.")
+                      .arg(CatalogLimits::maxPlacementScore);
     if (!prerequisiteId.isEmpty() && prerequisiteId == id)
         errors << tr("A course cannot be its own prerequisite.");
     if (!CatalogValues::courseStatuses().contains(status))
@@ -106,8 +115,8 @@ QStringList GradeComponent::validate() const {
         errors << tr("Please choose a course.");
     if (name.trimmed().isEmpty())
         errors << tr("The component name is required.");
-    if (weight <= 0 || weight > 100)
-        errors << tr("The weight must be above 0 and at most 100.");
+    if (weight <= 0 || weight > CatalogLimits::maxWeight)
+        errors << tr("The weight must be above 0 and at most %1.").arg(CatalogLimits::maxWeight);
     return errors;
 }
 
@@ -122,8 +131,8 @@ QStringList Promotion::validate(bool isNew) const {
         errors << tr("Invalid discount type.");
     if (discountValue <= 0)
         errors << tr("The discount must be greater than 0.");
-    else if (discountType == QLatin1String("PERCENT") && discountValue > 50)
-        errors << tr("A percentage discount is at most 50%.");
+    else if (discountType == QLatin1String("PERCENT") && discountValue > CatalogLimits::maxPercentDiscount)
+        errors << tr("A percentage discount is at most %1%.").arg(CatalogLimits::maxPercentDiscount);
     if (!startDate.isValid() || !endDate.isValid())
         errors << tr("Invalid dates.");
     else if (endDate < startDate)

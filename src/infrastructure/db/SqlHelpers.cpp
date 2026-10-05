@@ -104,7 +104,17 @@ bool execPrepared(QSqlQuery& q, const DatabaseManager& db, const QString& sql, c
     return q.exec();
 }
 
-TableData readTable(QSqlQuery& q) {
+QVariant field(const QSqlQuery& q, const char* column) {
+    const int index = q.record().indexOf(QLatin1String(column));
+    Q_ASSERT_X(index >= 0, "SqlHelpers::field", column);
+    if (index < 0) {
+        qWarning("SqlHelpers::field: the result has no column %s", column);
+        return {};
+    }
+    return q.value(index);
+}
+
+Result<TableData> readTable(QSqlQuery& q) {
     TableData table;
     const QSqlRecord record = q.record(); // describes the columns of the result
     const int columnCount = record.count();
@@ -117,7 +127,7 @@ TableData readTable(QSqlQuery& q) {
             row.append(q.value(i));
         table.rows.append(row);
     }
-    return table;
+    return afterRead(q, table);
 }
 
 VoidResult execCall(const DatabaseManager& db, const QString& sql, const QVariantList& values) {
@@ -131,7 +141,7 @@ Result<TableData> queryTable(const DatabaseManager& db, const QString& sql, cons
     QSqlQuery q = makeQuery(db.db());
     if (!execPrepared(q, db, sql, values))
         return Result<TableData>::failure(errorOf(q));
-    return Result<TableData>::success(readTable(q));
+    return readTable(q);
 }
 
 Result<QList<LookupItem>> queryLookup(const DatabaseManager& db, const QString& sql,
@@ -140,9 +150,11 @@ Result<QList<LookupItem>> queryLookup(const DatabaseManager& db, const QString& 
     if (!execPrepared(q, db, sql, values))
         return Result<QList<LookupItem>>::failure(errorOf(q));
     QList<LookupItem> items;
+    const bool hasDetail = q.record().count() > 2;
     while (q.next())
-        items.append({q.value(0).toString(), q.value(1).toString()});
-    return Result<QList<LookupItem>>::success(items);
+        items.append(
+            {q.value(0).toString(), q.value(1).toString(), hasDetail ? q.value(2).toString() : QString()});
+    return afterRead(q, items);
 }
 
 } // namespace SqlHelpers

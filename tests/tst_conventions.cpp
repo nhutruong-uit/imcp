@@ -14,6 +14,7 @@
 #include <QRegularExpression>
 #include <QSet>
 #include <QtTest>
+#include <algorithm>
 
 namespace {
 // Repository root, compiled in by tests/CMakeLists.txt (target_compile_definitions QLTTTA_SOURCE_DIR)
@@ -150,6 +151,54 @@ QString dataMapConstant(const QString& start, const QString& end) {
     const qsizetype from = page.indexOf(start);
     const qsizetype to = from < 0 ? -1 : page.indexOf(end, from);
     return to < 0 ? QString() : page.mid(from, to - from);
+}
+
+// The names of the procedures, views, functions, triggers, sequences, XML schemas, constraints and indexes
+// that the database scripts create (01-05 and the distributed demo 11)
+QSet<QString> createdDatabaseNames() {
+    QSet<QString> defined;
+    const QRegularExpression definition(
+        QStringLiteral("\\b(?:PROCEDURE|VIEW|FUNCTION|TRIGGER|SEQUENCE|COLLECTION)\\s+dbo\\.(\\w+)|"
+                       "\\bCONSTRAINT\\s+(\\w+)|\\bINDEX\\s+(\\w+)"),
+        QRegularExpression::CaseInsensitiveOption);
+    for (const QString& script :
+         {QStringLiteral("01_tables.sql"), QStringLiteral("02_functions.sql"), QStringLiteral("03_views.sql"),
+          QStringLiteral("04_procedures.sql"), QStringLiteral("05_triggers.sql"),
+          QStringLiteral("11_distributed_demo.sql")}) {
+        for (auto it = definition.globalMatch(sqlCode(script)); it.hasNext();) {
+            const auto m = it.next();
+            for (int group = 1; group <= 3; ++group)
+                if (!m.captured(group).isEmpty())
+                    defined << m.captured(group);
+        }
+    }
+    return defined;
+}
+
+// "file:line: problem" for every database name of text that no script creates. A name followed by * or _ is a
+// family ("vw_Teacher_My*", "usp_Student_*"): one created name must start with it.
+QStringList unknownDatabaseNames(const QString& file, const QString& text, const QSet<QString>& defined) {
+    static const QRegularExpression name(
+        QStringLiteral("\\b(?:usp|vw|fn|trg|seq|xsc|CK|UQ|UX|IX)_\\w+(\\*?)"));
+    QStringList problems;
+    for (auto it = name.globalMatch(text); it.hasNext();) {
+        const auto m = it.next();
+        QString found = m.captured();
+        const bool family = found.endsWith(QLatin1Char('_')) || found.endsWith(QLatin1Char('*'));
+        if (found.endsWith(QLatin1Char('*')))
+            found.chop(1);
+        const bool exists = family ? std::any_of(defined.cbegin(), defined.cend(),
+                                                 [&](const QString& d) { return d.startsWith(found); })
+                                   : defined.contains(found);
+        if (!exists)
+            problems << QStringLiteral(
+                            "%1:%2: %3 is not created in the database scripts - use its current name "
+                            "or remove it")
+                            .arg(file)
+                            .arg(lineOf(text, m.capturedStart()))
+                            .arg(m.captured());
+    }
+    return problems;
 }
 } // namespace
 
@@ -300,6 +349,50 @@ private slots:
                     problems << findAll(
                         file, withoutComments(readText(file), false), direct,
                         QStringLiteral("use SqlHelpers::execPrepared(q, m_db, sql, {values})"));
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
+
+    // A result with several columns is read by column name (SqlHelpers::field), so a procedure that gets a
+    // new column or another order cannot shift the values; value(0) stays for one-column results (a new ID, a
+    // count)
+    void repositories_resultColumns_readByName() {
+        const QRegularExpression positional(QStringLiteral("\\.value\\(\\s*[1-9]\\d*\\s*\\)"));
+        QStringList problems;
+        for (const QString& file :
+             filesIn(QStringLiteral("src/infrastructure/repositories"), {QStringLiteral("*.cpp")}))
+            problems << findAll(file, withoutComments(readText(file), false), positional,
+                                QStringLiteral("read the column by name: SqlHelpers::field(q, \"Column\")"));
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
+
+    // 03-tests.md: a test function is named subject_condition_expectedResult, so a failure in the ctest
+    // output says what broke without opening the file. Only the "private slots:" sections hold tests; Qt's
+    // own initTestCase/cleanupTestCase/init/cleanup and the *_data tables keep their names.
+    void tests_slotNames_followSubjectConditionResult() {
+        static const QRegularExpression section(QStringLiteral("^(private slots|private|public|protected):"));
+        static const QRegularExpression slot(QStringLiteral("^    void (\\w+)\\(\\)"));
+        static const QStringList qtNames = {QStringLiteral("initTestCase"), QStringLiteral("cleanupTestCase"),
+                                            QStringLiteral("init"), QStringLiteral("cleanup")};
+        QStringList problems;
+        for (const QString& file : filesIn(QStringLiteral("tests"), {QStringLiteral("tst_*.cpp")}, false)) {
+            const QStringList lines = readText(file).split(QLatin1Char('\n'));
+            bool inSlots = false;
+            for (int i = 0; i < lines.size(); ++i) {
+                if (const auto s = section.match(lines.at(i)); s.hasMatch())
+                    inSlots = s.captured(1) == QStringLiteral("private slots");
+                const auto m = slot.match(lines.at(i));
+                if (!inSlots || !m.hasMatch())
+                    continue;
+                const QString name = m.captured(1);
+                if (qtNames.contains(name) || name.endsWith(QStringLiteral("_data")))
+                    continue;
+                if (name.split(QLatin1Char('_'), Qt::SkipEmptyParts).size() < 3)
+                    problems << QStringLiteral("%1:%2: name the test subject_condition_expectedResult (%3)")
+                                    .arg(file)
+                                    .arg(i + 1)
+                                    .arg(name);
+            }
+        }
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 
@@ -502,41 +595,31 @@ private slots:
     }
 
     // 06-docs.md: every database object that docs/data-map.html names in its explanations (procedures, views,
-    // functions, triggers, sequences, the XML schema, constraints, indexes) exists in database/01-05, so
-    // renaming or dropping one also updates the business flow and the app flow of the page. Wildcards
-    // ("usp_Student_*") are not names.
+    // functions, triggers, sequences, the XML schema, constraints, indexes) exists in the database scripts,
+    // so renaming or dropping one also updates the business flow and the app flow of the page. A family
+    // ("usp_Student_*") needs one object of that name.
     void docs_dataMapNames_existInScripts() {
-        QSet<QString> defined;
-        const QRegularExpression definition(
-            QStringLiteral("\\b(?:PROCEDURE|VIEW|FUNCTION|TRIGGER|SEQUENCE|COLLECTION)\\s+dbo\\.(\\w+)|"
-                           "\\bCONSTRAINT\\s+(\\w+)|\\bINDEX\\s+(\\w+)"),
-            QRegularExpression::CaseInsensitiveOption);
-        for (const QString& script : {QStringLiteral("01_tables.sql"), QStringLiteral("02_functions.sql"),
-                                      QStringLiteral("03_views.sql"), QStringLiteral("04_procedures.sql"),
-                                      QStringLiteral("05_triggers.sql")}) {
-            for (auto it = definition.globalMatch(sqlCode(script)); it.hasNext();) {
-                const auto m = it.next();
-                for (int group = 1; group <= 3; ++group)
-                    if (!m.captured(group).isEmpty())
-                        defined << m.captured(group);
-            }
-        }
+        const QSet<QString> defined = createdDatabaseNames();
         const QString file = QStringLiteral("docs/data-map.html");
         const QString page = readText(file);
-        const QRegularExpression name(QStringLiteral("\\b(?:usp|vw|fn|trg|seq|xsc|CK|UQ|UX|IX)_\\w+"));
-        QStringList problems;
-        for (auto it = name.globalMatch(page); it.hasNext();) {
-            const auto m = it.next();
-            if (!m.captured().endsWith(QLatin1Char('_')) && !defined.contains(m.captured()))
-                problems << QStringLiteral(
-                                "%1:%2: %3 is not created in database/01-05 - use its current name or "
-                                "remove it")
-                                .arg(file)
-                                .arg(lineOf(page, m.capturedStart()))
-                                .arg(m.captured());
-        }
         QVERIFY2(!page.isEmpty() && !defined.isEmpty(),
                  "docs/data-map.html or the database scripts not found");
+        const QStringList problems = unknownDatabaseNames(file, page, defined);
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
+
+    // 05-report.md / 06-docs.md: the same check for the other documents - the docs (docs/*.md), the content
+    // of the report (docs/report/content) and of the user guide (docs/user-guide/chapters) - so a renamed
+    // procedure or view cannot stay in a chapter of the report that the team defends
+    void docs_reportAndGuideNames_existInScripts() {
+        const QSet<QString> defined = createdDatabaseNames();
+        QStringList files = filesIn(QStringLiteral("docs"), {QStringLiteral("*.md")}, false);
+        files << filesIn(QStringLiteral("docs/report/content"), {QStringLiteral("*.py")}, false)
+              << filesIn(QStringLiteral("docs/user-guide/chapters"), {QStringLiteral("*.py")}, false);
+        QVERIFY2(files.size() > 10, "docs, docs/report/content or docs/user-guide/chapters not found");
+        QStringList problems;
+        for (const QString& file : files)
+            problems << unknownDatabaseNames(file, readText(file), defined);
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 

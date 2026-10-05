@@ -33,5 +33,6 @@ private:
     QLabel* m_outstanding = nullptr;
     QLabel* m_sessionsToday = nullptr;
     QLabel* m_error = nullptr;
+    QString m_branchError; // the branch list could not be read
     RevenueChart* m_chart = nullptr;
 };

@@ -8,8 +8,8 @@ Result<TableData> EnrollmentService::search(const EnrollmentFilter& filter) {
     return m_repository.search(f);
 }
 
-Result<QString> EnrollmentService::enroll(const EnrollmentRequest& request) {
-    const QStringList errors = request.validate();
+Result<QString> EnrollmentService::enroll(const EnrollmentRequest& request, const QDate& today) {
+    const QStringList errors = request.validate(today);
     if (!errors.isEmpty())
         return Result<QString>::failure(errors.join(QLatin1Char('\n')));
     return m_repository.enroll(request);

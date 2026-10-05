@@ -41,6 +41,9 @@ Everything here is **English**.
   (`docs_dataMapNames_existInScripts`) and `SCREENS` is the menu of `Permissions::allowedFeatures` with the names
   of `Labels::feature` (`docs_dataMapScreens_matchPermissions`). Whether an explanation is still right is up to
   the author and the reviewer.
+- ✔ The same name check covers `docs/*.md`, the report content (`docs/report/content`) and the user guide
+  (`docs/user-guide/chapters`) (`docs_reportAndGuideNames_existInScripts`): a renamed procedure or view is
+  renamed in the documents too. A family of objects is written with `*` (`vw_Teacher_My*`).
 
 ## Style
 - Short sentences, imperative for instructions; identifiers, paths and commands in backticks; relative links

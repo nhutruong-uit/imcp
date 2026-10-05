@@ -27,10 +27,10 @@ Result<PlacementResult> SqlPlacementRepository::add(const PlacementTest& test) {
     if (!q.next())
         return Result<PlacementResult>::failure(tr("The new placement test was not returned."));
     PlacementResult r;
-    r.testId = q.value(0).toString();
-    r.overallScore = q.value(1).toDouble();
-    r.recommendedCourseId = q.value(2).toString();
-    r.recommendedCourse = q.value(3).toString();
+    r.testId = field(q, "TestId").toString();
+    r.overallScore = field(q, "OverallScore").toDouble();
+    r.recommendedCourseId = field(q, "RecommendedCourseId").toString();
+    r.recommendedCourse = field(q, "RecommendedCourse").toString();
     return Result<PlacementResult>::success(r);
 }
 

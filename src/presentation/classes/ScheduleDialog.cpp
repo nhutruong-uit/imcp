@@ -50,10 +50,10 @@ ScheduleDialog::ScheduleDialog(ClassService& service, const QString& classId, co
           static_cast<QWidget*>(saveButton), static_cast<QWidget*>(removeButton)})
         w->setVisible(canEdit);
 
-    auto* note =
-        new QLabel(tr("Existing sessions do not change: generate the sessions again on the Classes page "
-                      "while none has been taught."),
-                   this);
+    auto* note = new QLabel(
+        tr("A change removes the generated sessions; they are generated again from the new "
+           "timetable when you close this window. Once a session was taught the timetable is fixed."),
+        this);
     note->setObjectName(QStringLiteral("Muted"));
     note->setWordWrap(true);
     note->setVisible(canEdit);

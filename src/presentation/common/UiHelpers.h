@@ -19,6 +19,9 @@ QLabel* pageTitle(const QString& text, QWidget* parent);
 QFrame* card(QWidget* parent);
 void showError(QWidget* parent, const QString& message); // warning box with the (translated) error
 bool confirm(QWidget* parent, const QString& question);  // Yes/No box, "No" by default; true = Yes
+// A title as a file name: characters that Windows or macOS do not allow in a name become "-"
+// ("Payroll of 9/2026" would otherwise point into a folder "Payroll of 9")
+QString fileName(const QString& title);
 // File dialog, then export the model to CSV/PDF
 void exportCsv(QWidget* parent, const QAbstractItemModel& model, const QString& suggestedName);
 void exportPdf(QWidget* parent, const QAbstractItemModel& model, const QString& title,
