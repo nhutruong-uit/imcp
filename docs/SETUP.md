@@ -76,7 +76,7 @@ summarized in [DATABASE.md](DATABASE.md#4-roles-and-permissions).
 
 ## 2. Running the application from the installer (level A)
 
-Download the files from the repo's **Releases** page (the instructor is invited as a collaborator so they can download):
+Download the files from the repo's **Releases** page (public, no GitHub account needed):
 
 - **Windows 10 (version 1809 or later) or 11, 64-bit**: `QLTTTA-x.y.z-windows-x64-setup.exe` (no administrator
   rights needed; it stops on an older Windows) or the `portable.zip`.

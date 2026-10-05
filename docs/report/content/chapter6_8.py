@@ -343,7 +343,7 @@ def appendix(r):
     ])
     r.h2("B. Cài ứng dụng")
     r.bullets([
-        "Tải file cài trong mục **Releases** của kho GitHub `nhutruong-uit/imcp` (giảng viên được mời làm collaborator).",
+        "Tải file cài trong mục **Releases** của kho GitHub công khai `nhutruong-uit/imcp` (không cần tài khoản GitHub).",
         "Windows: chạy `...-setup.exe` (không cần quyền admin) hoặc giải nén bản portable; nếu SmartScreen cảnh báo chọn "
         "*More info → Run anyway*.",
         "macOS: mở `.dmg`, kéo QLTTTA vào Applications; lần đầu mở chọn *System Settings → Privacy & Security → Open Anyway*.",

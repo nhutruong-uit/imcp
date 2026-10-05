@@ -629,8 +629,8 @@ private slots:
     // 06-docs.md / 04-scripts-ci.md: docs/index.html, the public project site, lists the tables of
     // 01_tables.sql in their business groups (data-table="...") and links only to what pages.yml publishes
     // next to it: the data map and the screenshots of docs/report/images/screens/ (demo data), which must
-    // exist. Every other document is an absolute link to the private repository: a relative link would be
-    // broken online, and publishing another doc would make it public.
+    // exist. Every other document is an absolute link to the repository: a relative link would be broken
+    // online, and publishing a copy of another doc would leave two versions to keep in step.
     void docs_projectSite_matchesRepository() {
         const QString file = QStringLiteral("docs/index.html");
         const QString page = readText(file);
