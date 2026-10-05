@@ -13,7 +13,7 @@
   user guide or a document of docs/ here. tst_conventions (docs_projectSite_matchesRepository) checks that every
   local link is the data map or one of those screenshots and that the tables listed here are the tables of
   01_tables.sql; docs_databaseNumbers_matchScripts checks the numbers marked data-stat; database object names
-  (usp_, vw_, fn_, trg_...) must exist in database/01-05 (docs_sitePages_namesExistInScripts).
+  (usp_, vw_, fn_, trg_...) must exist in the database scripts (docs_sitePages_namesExistInScripts).
   Libraries: Google Fonts only; the page works without them.
 -->
 <html lang="en">
@@ -623,8 +623,8 @@ dialog.lightbox img { width: 100%; height: auto; max-height: calc(94vh - 48px); 
       <div><dt>stored procedures</dt><dd data-stat="procedures">64</dd></div>
       <div><dt>functions</dt><dd data-stat="functions">19</dd></div>
       <div><dt>views</dt><dd data-stat="views">13</dd></div>
-      <div><dt>triggers</dt><dd data-stat="triggers">15</dd></div>
-      <div><dt>automated SQL test cases</dt><dd data-stat="sqlTests">146</dd></div>
+      <div><dt>triggers</dt><dd data-stat="triggers">16</dd></div>
+      <div><dt>automated SQL test cases</dt><dd data-stat="sqlTests">181</dd></div>
     </dl>
   </div>
 </section>
@@ -729,7 +729,7 @@ dialog.lightbox img { width: 100%; height: auto; max-height: calc(94vh - 48px); 
       <article class="card concept"><span class="file">09_backup_restore.sql</span><h4>Backup and restore</h4><p>A full, differential and log backup chain, restore with <code>NORECOVERY</code> / <code>RECOVERY</code>, and backups started from the app.</p><div class="eg"><code>usp_Backup</code></div></article>
       <article class="card concept"><span class="file">10_import_export.sql</span><h4>Import and export</h4><p><code>BULK INSERT</code> of a CSV file, XML import through <code>.nodes()</code>, XML export, and CSV / PDF export of every list in the app.</p></article>
       <article class="card concept"><span class="file">11_distributed_demo.sql</span><h4>Distributed database</h4><p>Horizontal fragmentation by branch, replicated catalog tables, a distributed view and checks of completeness and disjointness.</p></article>
-      <article class="card concept tests"><span class="file">12_tests.sql · 13_server_tests.sql</span><h4>Automated SQL tests</h4><p><b data-stat="dbTests">126</b> database cases and <b data-stat="serverTests">20</b> server-level cases: every rule, constraint and permission must be rejected for the right reason. Cases that write roll back.</p></article>
+      <article class="card concept tests"><span class="file">12_tests.sql · 13_server_tests.sql</span><h4>Automated SQL tests</h4><p><b data-stat="dbTests">161</b> database cases and <b data-stat="serverTests">20</b> server-level cases: every rule, constraint and permission must be rejected for the right reason. Cases that write roll back.</p></article>
     </div>
 
     <div class="sub-h"><h3>Tables by business group</h3><p>The colors match the interactive data map.</p></div>
