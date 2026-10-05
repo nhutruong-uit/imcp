@@ -68,5 +68,6 @@ paths:
 - That job runs `test_all.sh` and then `test_all.ps1` (pwsh) against the same server, so both versions must keep
   working on Linux too (`linux-debug` preset).
 - Claude Code never starts a manual CI run (`gh workflow run CI ...`) on its own - only when the user asks (the branch
-  may still get commits, and a run blocks the macOS and Windows runners for several minutes). `.claude/settings.json` makes Claude ask before
-  `gh workflow run`, `gh pr merge` and force pushes, and removes the AI attribution lines from commits and PRs.
+  may still get commits, and a run blocks the macOS and Windows runners for several minutes).
+  `.claude/settings.json` makes Claude ask before `gh workflow run`, `gh pr merge` and force pushes, and removes the
+  AI attribution lines from commits and PRs.
