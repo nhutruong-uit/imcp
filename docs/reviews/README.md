@@ -33,4 +33,4 @@ git diff --stat "$BASE" origin/develop -- . ':(exclude)docs/reviews'
 | Date | Reviewed `develop` | Marker (last reviewed commit) | Log | Fix PR |
 |---|---|---|---|---|
 | 2026-10-03 | `024144d`, merged up to `aec45e0` | `43015b6` | [2026-10-03-codebase.md](2026-10-03-codebase.md) | branch `fix/codebase-review` |
-| 2026-10-04 | `64e3db6` (incremental from `43015b6`) | `8348dd7` | [2026-10-04-codebase.md](2026-10-04-codebase.md) | branch `fix/codebase-review-2026-10-04` |
+| 2026-10-04 | `64e3db6` (incremental from `43015b6`), merged up to `b5387ff`; open items resolved 2026-10-05 | `af2cc26` | [2026-10-04-codebase.md](2026-10-04-codebase.md) | branch `fix/codebase-review-2026-10-04` |
