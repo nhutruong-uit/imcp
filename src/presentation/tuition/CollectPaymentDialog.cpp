@@ -2,6 +2,7 @@
 
 #include "application/services/TuitionService.h"
 #include "presentation/common/DataTable.h"
+#include "presentation/common/DbValues.h"
 #include "presentation/common/Fields.h"
 #include "presentation/common/Format.h"
 
@@ -28,7 +29,8 @@ CollectPaymentDialog::CollectPaymentDialog(TuitionService& service, QWidget* par
     m_amount->setObjectName(QStringLiteral("amountEdit"));
     m_method = Fields::values(this, ReceiptValues::paymentMethods());
     m_description = Fields::text(this, ReceiptLimits::description);
-    m_description->setPlaceholderText(tr("Tuition payment"));
+    // An empty description is stored as this default by usp_Receipt_Create
+    m_description->setPlaceholderText(DbValues::label(ReceiptValues::defaultDescription()));
 
     body()->addWidget(m_filter);
     body()->addWidget(m_enrollments, 1);

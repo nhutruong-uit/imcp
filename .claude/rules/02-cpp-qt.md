@@ -34,7 +34,7 @@ in `docs/ARCHITECTURE.md`.
 - Classes/structs PascalCase (`EnrollmentService`); functions and variables camelCase (`add`, `filter`).
 - Members prefixed with `m_` (`m_repository`); enum values PascalCase (`Feature::OutstandingTuition`).
 - Repository functions: `search`, `findById`, `add`, `update`, `remove`; services: `search`, `details`, `add`,
-  `update`, `remove`.
+  `update`, `remove` (a service whose one form adds and edits may offer `save(x, isNew)`, which picks add or update).
 - Database names appear only inside SQL strings; C++ names follow the database names (`StudentId` → `id`,
   `BranchId` → `branchId`). Stored database values are English constants in the domain
   (e.g. `StudentValues::statuses()`), never display text.

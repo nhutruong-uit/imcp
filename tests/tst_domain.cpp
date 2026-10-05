@@ -172,6 +172,17 @@ private slots:
         QCOMPARE(slot.validate().size(), 1);
     }
 
+    // The weights of a course must add up to 100 before its classes can be evaluated; 99.99 is not 100
+    void weightsComplete_totalBelow100_isFalse() {
+        GradeBook book;
+        book.components = {{7, QStringLiteral("Homework"), 40}, {8, QStringLiteral("Final"), 59.99}};
+        QVERIFY(!book.weightsComplete());
+        book.components[1].weight = 60;
+        QVERIFY(book.weightsComplete());
+        book.components.append({9, QStringLiteral("Bonus"), 5});
+        QVERIFY(!book.weightsComplete()); // above 100 is not complete either
+    }
+
     // The database returns one row per student and component; the grade book has one row per student and
     // computes the final grade like dbo.fn_FinalGrade (NULL while a score is missing, rounded once to 2
     // decimals)

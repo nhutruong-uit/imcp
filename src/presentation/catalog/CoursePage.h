@@ -32,6 +32,7 @@ private:
 
     QLabel* m_componentsTitle = nullptr;
     DataTable* m_components = nullptr;
+    QString m_componentsOf; // the course whose grade components are shown, empty = none
     QPushButton* m_editComponent = nullptr;
     QPushButton* m_removeComponent = nullptr;
 };

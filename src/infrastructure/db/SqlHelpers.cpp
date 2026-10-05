@@ -114,7 +114,7 @@ QVariant field(const QSqlQuery& q, const char* column) {
     return q.value(index);
 }
 
-TableData readTable(QSqlQuery& q) {
+Result<TableData> readTable(QSqlQuery& q) {
     TableData table;
     const QSqlRecord record = q.record(); // describes the columns of the result
     const int columnCount = record.count();
@@ -127,7 +127,7 @@ TableData readTable(QSqlQuery& q) {
             row.append(q.value(i));
         table.rows.append(row);
     }
-    return table;
+    return afterRead(q, table);
 }
 
 VoidResult execCall(const DatabaseManager& db, const QString& sql, const QVariantList& values) {
@@ -141,7 +141,7 @@ Result<TableData> queryTable(const DatabaseManager& db, const QString& sql, cons
     QSqlQuery q = makeQuery(db.db());
     if (!execPrepared(q, db, sql, values))
         return Result<TableData>::failure(errorOf(q));
-    return Result<TableData>::success(readTable(q));
+    return readTable(q);
 }
 
 Result<QList<LookupItem>> queryLookup(const DatabaseManager& db, const QString& sql,
@@ -154,7 +154,7 @@ Result<QList<LookupItem>> queryLookup(const DatabaseManager& db, const QString& 
     while (q.next())
         items.append(
             {q.value(0).toString(), q.value(1).toString(), hasDetail ? q.value(2).toString() : QString()});
-    return Result<QList<LookupItem>>::success(items);
+    return afterRead(q, items);
 }
 
 } // namespace SqlHelpers

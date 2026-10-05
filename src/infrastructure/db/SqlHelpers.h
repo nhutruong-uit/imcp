@@ -12,6 +12,7 @@
 #include <QSqlQuery>
 #include <QString>
 #include <QVariant>
+#include <utility>
 
 // Small tools shared by every Sql*Repository. The rule they enforce: a value never becomes part of the SQL
 // text; it is sent separately as a parameter for a '?' marker, so input such as "x'; DROP TABLE ..."
@@ -70,16 +71,23 @@ BoundStatement withUnicodeText(const QString& sql, const QVariantList& values);
 // Prepares sql, binds values and executes it (through withUnicodeText when the connection uses FreeTDS)
 bool execPrepared(QSqlQuery& q, const DatabaseManager& db, const QString& sql, const QVariantList& values);
 
-/// The value of a column of the current row, found by its NAME (the column name or AS alias of the SQL),
-/// never by
-// its position: a procedure that gets a new column or another column order cannot shift the values. An
-// unknown name is a programming error - it stops a Debug build (the tests) and gives an empty value in a
+// The value of a column of the current row, found by its NAME (the column name or AS alias of the SQL),
+// never by its position: a procedure that gets a new column or another column order cannot shift the values.
+// An unknown name is a programming error - it stops a Debug build (the tests) and gives an empty value in a
 // Release build.
 QVariant field(const QSqlQuery& q, const char* column);
 
+// The end of a read loop (while (q.next()) ...): q.next() also answers false when the connection breaks half
+// way, so the rows read up to an error are reported as that error, never as a shorter list
+template <typename T> Result<T> afterRead(const QSqlQuery& q, T value) {
+    if (q.lastError().isValid())
+        return Result<T>::failure(errorOf(q));
+    return Result<T>::success(std::move(value));
+}
+
 // The rows of the current result of q as TableData: the column names (or AS aliases) become the column keys,
 // so the SQL holds no display text (the presentation layer finds the titles in its column catalog, Columns)
-TableData readTable(QSqlQuery& q);
+Result<TableData> readTable(QSqlQuery& q);
 
 // Shortcuts for the three shapes of call the repositories make (each one goes through execPrepared):
 // a call without result (most write procedures), a list for a table, and a list of choices for a combo box

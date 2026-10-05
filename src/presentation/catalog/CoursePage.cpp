@@ -92,9 +92,17 @@ QString CoursePage::selectedCourseId() const {
 }
 
 void CoursePage::loadComponents() {
+    // A refresh of the list above calls this three times (the reset clears the selection, the row is selected
+    // again, dataLoaded): the second list is read once per row shown. The reset clears the row first, so a
+    // refresh still reads it again.
+    const QString courseId = selectedCourseId();
+    if (!courseId.isEmpty() && courseId == m_componentsOf)
+        return;
+    m_componentsOf = courseId;
     m_componentsTitle->setText(tr("Grade components of %1 (the weights must add up to 100%)")
                                    .arg(selected(QStringLiteral("CourseName")).toString()));
-    const auto components = m_services.courses.components(selectedCourseId());
+    const auto components = courseId.isEmpty() ? Result<TableData>::success(TableData())
+                                               : m_services.courses.components(courseId);
     m_components->setData(components.ok() ? components.value() : TableData());
     if (!components.ok())
         m_componentsTitle->setText(components.error());
@@ -126,12 +134,15 @@ void CoursePage::editCourse(bool isNew) {
     for (const QString& l : CatalogValues::levels())
         level->addItem(l, l);
     Fields::select(level, c.level);
-    auto* sessions = Fields::integer(&dialog, 1, 200, c.sessionCount);
-    auto* minutes = Fields::integer(&dialog, 30, 240, c.sessionMinutes);
+    auto* sessions = Fields::integer(&dialog, CatalogLimits::minSessionCount, CatalogLimits::maxSessionCount,
+                                     c.sessionCount);
+    auto* minutes = Fields::integer(&dialog, CatalogLimits::minSessionMinutes,
+                                    CatalogLimits::maxSessionMinutes, c.sessionMinutes);
     auto* tuition = Fields::money(&dialog, c.tuition);
     auto* hasMinimum = new QCheckBox(tr("Entry requires a placement score of at least"), &dialog);
     hasMinimum->setChecked(c.minPlacementScore.has_value());
-    auto* minimum = Fields::decimal(&dialog, 0, 10, 2, c.minPlacementScore.value_or(5));
+    auto* minimum =
+        Fields::decimal(&dialog, 0, CatalogLimits::maxPlacementScore, 2, c.minPlacementScore.value_or(5));
     minimum->setEnabled(hasMinimum->isChecked());
     auto* minimumRow = new QHBoxLayout;
     minimumRow->addWidget(hasMinimum);
@@ -317,7 +328,7 @@ void CoursePage::editComponent(bool isNew) {
     }
     FormDialog dialog(isNew ? tr("New grade component") : tr("Edit grade component"), this);
     auto* name = Fields::text(&dialog, 50, c.name);
-    auto* weight = Fields::decimal(&dialog, 0.01, 100, 2, isNew ? 10 : c.weight);
+    auto* weight = Fields::decimal(&dialog, 0.01, CatalogLimits::maxWeight, 2, isNew ? 10 : c.weight);
     dialog.form()->addRow(tr("Course"),
                           new QLabel(selected(QStringLiteral("CourseName")).toString(), &dialog));
     dialog.form()->addRow(tr("Component name"), name);

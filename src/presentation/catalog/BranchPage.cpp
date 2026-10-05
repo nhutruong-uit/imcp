@@ -67,9 +67,16 @@ void BranchPage::dataLoaded() {
 }
 
 void BranchPage::loadRooms() {
+    // A refresh of the list above calls this three times (the reset clears the selection, the row is selected
+    // again, dataLoaded): the second list is read once per row shown. The reset clears the row first, so a
+    // refresh still reads it again.
     const QString branchId = selected(QStringLiteral("BranchId")).toString();
+    if (!branchId.isEmpty() && branchId == m_roomsOf)
+        return;
+    m_roomsOf = branchId;
     m_roomsTitle->setText(tr("Rooms of %1").arg(selected(QStringLiteral("BranchName")).toString()));
-    const auto rooms = m_services.catalog.roomList(branchId);
+    const auto rooms =
+        branchId.isEmpty() ? Result<TableData>::success(TableData()) : m_services.catalog.roomList(branchId);
     m_rooms->setData(rooms.ok() ? rooms.value() : TableData());
     // An empty list without a reason would look like a branch without rooms
     if (!rooms.ok())
@@ -148,7 +155,8 @@ void BranchPage::editRoom(bool isNew) {
     code->setEnabled(isNew);
     auto* branch = Fields::lookup(&dialog, branchItems, r.branchId);
     auto* name = Fields::text(&dialog, 50, r.name);
-    auto* capacity = Fields::integer(&dialog, 1, 100, r.capacity);
+    auto* capacity =
+        Fields::integer(&dialog, CatalogLimits::minRoomCapacity, CatalogLimits::maxRoomCapacity, r.capacity);
     auto* type = Fields::values(&dialog, CatalogValues::roomTypes(), r.type);
     auto* status = Fields::values(&dialog, CatalogValues::roomStatuses(), r.status);
     status->setEnabled(!isNew);

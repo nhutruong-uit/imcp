@@ -27,7 +27,6 @@ public:
     QVBoxLayout* body() const { return m_body; } // widgets placed under the form
     void setSaveAction(std::function<VoidResult()> action);
     void setSaveText(const QString& text);
-    void hideSaveButton(); // a dialog that only shows data: the Cancel button becomes Close
     void showError(const QString& message);
     // A search or filter field of the form: Return runs search (when given) and stays in the dialog.
     // QLineEdit passes Return on to the dialog after returnPressed, and the dialog would click Save.

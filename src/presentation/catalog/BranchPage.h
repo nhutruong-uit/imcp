@@ -25,6 +25,7 @@ private:
 
     QLabel* m_roomsTitle = nullptr;
     DataTable* m_rooms = nullptr;
+    QString m_roomsOf; // the branch whose rooms are shown, empty = none
     QPushButton* m_addRoom = nullptr;
     QPushButton* m_editRoom = nullptr;
 };

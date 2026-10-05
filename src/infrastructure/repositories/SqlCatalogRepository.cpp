@@ -19,7 +19,7 @@ Result<QList<Branch>> SqlCatalogRepository::branches() {
         b.name = field(q, "BranchName").toString();
         branches.append(b);
     }
-    return Result<QList<Branch>>::success(branches);
+    return afterRead(q, branches);
 }
 
 Result<TableData> SqlCatalogRepository::branchList() {

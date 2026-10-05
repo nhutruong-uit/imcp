@@ -41,7 +41,7 @@ Result<QList<AttendanceMark>> SqlSessionRepository::attendance(int sessionId) {
         marks.append({field(q, "EnrollmentId").toString(), field(q, "StudentId").toString(),
                       field(q, "StudentName").toString(), field(q, "Status").toString(),
                       field(q, "Notes").toString(), field(q, "IsSaved").toInt() == 1});
-    return Result<QList<AttendanceMark>>::success(marks);
+    return afterRead(q, marks);
 }
 
 // One usp_Attendance_Save call per student, all in one transaction: either the whole list is saved or none of

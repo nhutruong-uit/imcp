@@ -35,7 +35,7 @@ Result<QList<MonthlyRevenue>> SqlStatisticsRepository::monthlyRevenue(int year, 
     QList<MonthlyRevenue> months;
     while (q.next())
         months.append({field(q, "Month").toInt(), field(q, "Revenue").toLongLong()});
-    return Result<QList<MonthlyRevenue>>::success(months);
+    return afterRead(q, months);
 }
 
 Result<TableData> SqlStatisticsRepository::revenueReport(const QDate& from, const QDate& to,

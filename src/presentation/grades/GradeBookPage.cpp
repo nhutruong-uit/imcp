@@ -205,7 +205,7 @@ void GradeBookPage::reload() {
         info << m_classError;
     info << (finished ? tr("The class has finished: its grades are final.")
                       : tr("Double-click a score to change it (0 to 10), then save."));
-    if (!book.value().components.isEmpty() && qAbs(total - 100) > 0.001)
+    if (!book.value().components.isEmpty() && !book.value().weightsComplete())
         info << tr("Warning: the weights of the course add up to %1%, not 100%: the class cannot be "
                    "evaluated.")
                     .arg(QLocale().toString(total)); // 99.99, not a rounded 100

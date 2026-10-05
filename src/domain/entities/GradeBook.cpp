@@ -42,3 +42,7 @@ double GradeBook::totalWeight() const {
         total += c.weight;
     return total;
 }
+
+bool GradeBook::weightsComplete() const {
+    return std::abs(totalWeight() - 100) <= 0.001;
+}

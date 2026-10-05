@@ -59,7 +59,7 @@ Result<QList<ClassOption>> SqlEnrollmentRepository::openClasses() {
                         field(q, "BranchId").toString(), field(q, "BranchName").toString(),
                         field(q, "Status").toString(), field(q, "Tuition").toLongLong(),
                         field(q, "SeatsLeft").toInt()});
-    return Result<QList<ClassOption>>::success(classes);
+    return afterRead(q, classes);
 }
 
 Result<QList<LookupItem>> SqlEnrollmentRepository::promotionOptions(const QDate& date) {

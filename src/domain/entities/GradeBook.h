@@ -52,6 +52,9 @@ struct GradeBook {
     // nullopt while a component has no score (or the course has no component)
     std::optional<double> finalGrade(int row) const;
     double totalWeight() const; // must be 100 before the class can be evaluated (vw_CourseInvalidWeights)
+    // The weights add up to 100 (to 0.001: 99.99 is not complete); vw_CourseInvalidWeights lists the courses
+    // where they do not, and usp_Class_EvaluateResults refuses their classes
+    bool weightsComplete() const;
 };
 
 // A score to save with usp_Grade_Save

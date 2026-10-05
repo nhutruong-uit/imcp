@@ -5,7 +5,13 @@ QStringList paymentMethods() {
     return {QStringLiteral("Cash"), QStringLiteral("Bank transfer"), QStringLiteral("Card")};
 }
 QStringList statuses() {
-    return {QStringLiteral("Valid"), QStringLiteral("Cancelled")};
+    return {valid(), QStringLiteral("Cancelled")};
+}
+QString valid() {
+    return QStringLiteral("Valid");
+}
+QString defaultDescription() {
+    return QStringLiteral("Tuition payment");
 }
 } // namespace ReceiptValues
 

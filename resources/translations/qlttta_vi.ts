@@ -590,10 +590,6 @@
         <translation>Lọc theo học viên, lớp hoặc mã ghi danh...</translation>
     </message>
     <message>
-        <source>Tuition payment</source>
-        <translation>Thu học phí</translation>
-    </message>
-    <message>
         <source>Enrollment</source>
         <translation>Ghi danh</translation>
     </message>
@@ -1140,20 +1136,8 @@
         <translation>Trình độ không hợp lệ.</translation>
     </message>
     <message>
-        <source>A course has 1 to 200 sessions.</source>
-        <translation>Một khóa học có từ 1 đến 200 buổi.</translation>
-    </message>
-    <message>
-        <source>A session lasts 30 to 240 minutes.</source>
-        <translation>Một buổi học dài từ 30 đến 240 phút.</translation>
-    </message>
-    <message>
         <source>The tuition cannot be negative.</source>
         <translation>Học phí không được âm.</translation>
-    </message>
-    <message>
-        <source>The minimum placement score must be between 0 and 10.</source>
-        <translation>Điểm đầu vào tối thiểu phải từ 0 đến 10.</translation>
     </message>
     <message>
         <source>A course cannot be its own prerequisite.</source>
@@ -1162,6 +1146,18 @@
     <message>
         <source>Invalid status.</source>
         <translation>Trạng thái không hợp lệ.</translation>
+    </message>
+    <message>
+        <source>A course has %1 to %2 sessions.</source>
+        <translation>Một khóa học có từ %1 đến %2 buổi.</translation>
+    </message>
+    <message>
+        <source>A session lasts %1 to %2 minutes.</source>
+        <translation>Một buổi học dài từ %1 đến %2 phút.</translation>
+    </message>
+    <message>
+        <source>The minimum placement score must be between 0 and %1.</source>
+        <translation>Điểm đầu vào tối thiểu phải từ 0 đến %1.</translation>
     </message>
 </context>
 <context>
@@ -2069,6 +2065,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <source>Upcoming</source>
         <translation>Chưa bắt đầu</translation>
     </message>
+    <message>
+        <source>Tuition payment</source>
+        <translation>Thu học phí</translation>
+    </message>
 </context>
 <context>
     <name>Employee</name>
@@ -2338,10 +2338,6 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <source>Cancel</source>
         <translation>Hủy</translation>
     </message>
-    <message>
-        <source>Close</source>
-        <translation>Đóng</translation>
-    </message>
 </context>
 <context>
     <name>Format</name>
@@ -2424,8 +2420,8 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Vui lòng nhập tên cột điểm.</translation>
     </message>
     <message>
-        <source>The weight must be above 0 and at most 100.</source>
-        <translation>Trọng số phải lớn hơn 0 và tối đa 100.</translation>
+        <source>The weight must be above 0 and at most %1.</source>
+        <translation>Trọng số phải lớn hơn 0 và tối đa %1.</translation>
     </message>
 </context>
 <context>
@@ -2945,16 +2941,16 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Mức giảm phải lớn hơn 0.</translation>
     </message>
     <message>
-        <source>A percentage discount is at most 50%.</source>
-        <translation>Giảm theo phần trăm tối đa 50%.</translation>
-    </message>
-    <message>
         <source>Invalid dates.</source>
         <translation>Ngày không hợp lệ.</translation>
     </message>
     <message>
         <source>The end date cannot be before the start date.</source>
         <translation>Ngày kết thúc không được trước ngày bắt đầu.</translation>
+    </message>
+    <message>
+        <source>A percentage discount is at most %1%.</source>
+        <translation>Giảm theo phần trăm tối đa %1%.</translation>
     </message>
 </context>
 <context>
@@ -3123,16 +3119,16 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Vui lòng nhập tên phòng.</translation>
     </message>
     <message>
-        <source>The capacity must be between 1 and 100.</source>
-        <translation>Sức chứa phải từ 1 đến 100.</translation>
-    </message>
-    <message>
         <source>Invalid room type.</source>
         <translation>Loại phòng không hợp lệ.</translation>
     </message>
     <message>
         <source>Invalid status.</source>
         <translation>Trạng thái không hợp lệ.</translation>
+    </message>
+    <message>
+        <source>The capacity must be between %1 and %2.</source>
+        <translation>Sức chứa phải từ %1 đến %2.</translation>
     </message>
 </context>
 <context>
@@ -3792,6 +3788,10 @@ Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ 
     <message>
         <source>Delete student %1 - %2?</source>
         <translation>Xóa học viên %1 - %2?</translation>
+    </message>
+    <message>
+        <source>1 student</source>
+        <translation>1 học viên</translation>
     </message>
 </context>
 <context>

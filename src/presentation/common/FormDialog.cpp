@@ -54,11 +54,6 @@ void FormDialog::setSaveText(const QString& text) {
     m_buttons->button(QDialogButtonBox::Save)->setText(text);
 }
 
-void FormDialog::hideSaveButton() {
-    m_buttons->button(QDialogButtonBox::Save)->hide();
-    m_buttons->button(QDialogButtonBox::Cancel)->setText(tr("Close"));
-}
-
 void FormDialog::showError(const QString& message) {
     m_error->setText(message);
     m_error->setVisible(!message.isEmpty());

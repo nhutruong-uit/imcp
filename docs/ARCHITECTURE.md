@@ -101,7 +101,10 @@ names such as `CK_STUDENT_Guardian`.
 ## 4. Adding a new module (cookbook)
 
 Example: the **Enrollments** module (database table `ENROLLMENT`), built with these steps. The reference
-implementation is the Students module (`Student*`); every other module follows the same layout.
+implementation is the Students module (`Student*`); every other module follows the same layout. Its page is
+older than `DataPage` and builds its own table (`StudentPage`, `StudentTableModel`, the Qt Designer form): a new
+list screen starts from `DataPage` instead (template: `EnrollmentPage`, below). Services whose one form both adds
+and edits (catalog, courses, staff) have `save(x, isNew)`, which calls the add or the update procedure.
 
 1. **Database**: the procedures (`usp_Enrollment_Create`, `usp_Enrollment_Search`, ...). For new ones, write them in
    `04_procedures.sql`, add `GRANT EXECUTE` in `06_security.sql`, add a case to `12_tests.sql` and register their

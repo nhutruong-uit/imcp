@@ -19,7 +19,8 @@
 // Repeated runs give the same pictures for the same data: the login screen always shows the username
 // ql_quan, never the account remembered from the previous run.
 // Runs without a display: QT_QPA_PLATFORM=offscreen ./qlttta_screenshots
-// Exit code: 0 = every account signed in, 1 = some sign-in failed, 2 = no password given.
+/// Exit code: 0 = every account signed in and every picture was written, 1 = a sign-in or a picture failed,
+// 2 = no password given.
 #include "app/AppContainer.h"
 #include "application/services/Permissions.h"
 #include "presentation/common/I18n.h"
@@ -48,6 +49,15 @@ void wait(int ms) {
         QApplication::processEvents(QEventLoop::AllEvents, 20);
         QThread::msleep(10);
     }
+}
+
+// Saves the picture of a widget; a file that cannot be written is reported and counted as a failure, so the
+// report and the guide never keep an old picture without a word
+bool savePicture(QWidget& widget, const QString& path, QTextStream& out) {
+    if (widget.grab().save(path))
+        return true;
+    out << "   cannot write " << path << "\n";
+    return false;
 }
 
 // The grade books open on the first class of their list, which may have no score yet: show a class in
@@ -148,6 +158,7 @@ int main(int argc, char* argv[]) {
     config.host = qEnvironmentVariable("QLTTTA_SERVER", QStringLiteral("localhost,1433"));
     container.auth().saveServerConfig(config);
 
+    int failures = 0; // accounts that could not sign in and pictures that could not be written
     { // Login screen
         LoginDialog login(container.auth(), container.language());
         // The dialog pre-fills the username saved by the last sign-in (the last account of the previous run),
@@ -162,23 +173,25 @@ int main(int argc, char* argv[]) {
         login.resize(860, 520);
         login.show();
         wait(300);
-        login.grab().save(QDir(folder).filePath(QStringLiteral("login.png")));
+        if (!savePicture(login, QDir(folder).filePath(QStringLiteral("login.png")), out))
+            ++failures;
         // Same screen with the server settings opened (user guide: connecting to SQL Server)
         if (auto* toggle = login.findChild<QPushButton*>(QStringLiteral("LinkButton"))) {
             toggle->click();
             login.resize(960, 640); // wide enough for the whole certificate option label
             wait(300);
-            login.grab().save(QDir(folder).filePath(QStringLiteral("login_server_settings.png")));
+            if (!savePicture(login, QDir(folder).filePath(QStringLiteral("login_server_settings.png")), out))
+                ++failures;
         }
     }
     { // Change password dialog (opened from the header of the main window)
         ChangePasswordDialog dialog(container.auth());
         dialog.show();
         wait(300);
-        dialog.grab().save(QDir(folder).filePath(QStringLiteral("change_password.png")));
+        if (!savePicture(dialog, QDir(folder).filePath(QStringLiteral("change_password.png")), out))
+            ++failures;
     }
 
-    int failures = 0;
     for (const QString& account : accounts) {
         const auto result = container.auth().login(account, password);
         if (!result.ok()) {
@@ -199,7 +212,8 @@ int main(int argc, char* argv[]) {
                     showClassWithScores(w);
                 // e.g. gvu_lan_students.png (names used by the report)
                 const QString name = QStringLiteral("%1_%2.png").arg(account, fileName(f));
-                w.grab().save(QDir(folder).filePath(name));
+                if (!savePicture(w, QDir(folder).filePath(name), out))
+                    ++failures;
                 out << "   -> " << name << "\n";
             }
             // Student edit form (Qt Designer)
@@ -211,7 +225,10 @@ int main(int argc, char* argv[]) {
                                              student.value());
                     dialog.show();
                     wait(300);
-                    dialog.grab().save(QDir(folder).filePath(account + QStringLiteral("_student_form.png")));
+                    if (!savePicture(dialog,
+                                     QDir(folder).filePath(account + QStringLiteral("_student_form.png")),
+                                     out))
+                        ++failures;
                 }
             }
         }

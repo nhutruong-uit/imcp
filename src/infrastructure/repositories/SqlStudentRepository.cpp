@@ -35,7 +35,7 @@ Result<QList<Student>> SqlStudentRepository::search(const StudentFilter& filter)
         s.outstandingBalance = field(q, "TotalBalance").toLongLong();
         students.append(s);
     }
-    return Result<QList<Student>>::success(students);
+    return afterRead(q, students);
 }
 
 Result<Student> SqlStudentRepository::findById(const QString& id) {

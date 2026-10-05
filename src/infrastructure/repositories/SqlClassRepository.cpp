@@ -20,7 +20,7 @@ Result<TableData> SqlClassRepository::search(const ClassFilter& filter) {
     const QVariant status = stringOrNull(filter.status);
     if (!execPrepared(q, m_db, sql, {branch, branch, status, status}))
         return Result<TableData>::failure(errorOf(q));
-    return Result<TableData>::success(readTable(q));
+    return readTable(q);
 }
 
 Result<ClassInfo> SqlClassRepository::findById(const QString& id) {
@@ -83,7 +83,7 @@ Result<QList<ScheduleSlot>> SqlClassRepository::schedule(const QString& classId)
         slot.end = QTime::fromString(field(q, "EndTime").toString(), QStringLiteral("HH:mm"));
         timetable.append(slot);
     }
-    return Result<QList<ScheduleSlot>>::success(timetable);
+    return afterRead(q, timetable);
 }
 
 VoidResult SqlClassRepository::saveSlot(const QString& classId, const ScheduleSlot& slot) {
@@ -143,14 +143,14 @@ Result<TableData> SqlClassRepository::students(const QString& classId, bool mine
                  : QStringLiteral("EXEC dbo.usp_Enrollment_ByClass @ClassId = ?");
     if (!execPrepared(q, m_db, sql, {classId}))
         return Result<TableData>::failure(errorOf(q));
-    return Result<TableData>::success(readTable(q));
+    return readTable(q);
 }
 
 Result<TableData> SqlClassRepository::results(const QString& classId) {
     QSqlQuery q = makeQuery(m_db.db());
     if (!execPrepared(q, m_db, QStringLiteral("EXEC dbo.usp_Report_ClassResults @ClassId = ?"), {classId}))
         return Result<TableData>::failure(errorOf(q));
-    return Result<TableData>::success(readTable(q));
+    return readTable(q);
 }
 
 Result<QList<LookupItem>> SqlClassRepository::courseOptions() {

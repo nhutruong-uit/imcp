@@ -31,7 +31,7 @@ Result<QList<ClassOption>> SqlGradeRepository::classes(bool mineOnly) {
         c.status = field(q, "Status").toString();
         classes.append(c);
     }
-    return Result<QList<ClassOption>>::success(classes);
+    return afterRead(q, classes);
 }
 
 Result<QList<GradeCell>> SqlGradeRepository::cells(const QString& classId, bool mineOnly) {
@@ -58,7 +58,7 @@ Result<QList<GradeCell>> SqlGradeRepository::cells(const QString& classId, bool 
             c.score = field(q, "Score").toDouble();
         cells.append(c);
     }
-    return Result<QList<GradeCell>>::success(cells);
+    return afterRead(q, cells);
 }
 
 // One usp_Grade_Save call per changed score, in one transaction (all saved, or none)
