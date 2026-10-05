@@ -316,6 +316,37 @@ private slots:
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 
+    // 03-tests.md: a test function is named subject_condition_expectedResult, so a failure in the ctest
+    // output says what broke without opening the file. Only the "private slots:" sections hold tests; Qt's
+    // own initTestCase/cleanupTestCase/init/cleanup and the *_data tables keep their names.
+    void tests_slotNames_followSubjectConditionResult() {
+        static const QRegularExpression section(QStringLiteral("^(private slots|private|public|protected):"));
+        static const QRegularExpression slot(QStringLiteral("^    void (\\w+)\\(\\)"));
+        static const QStringList qtNames = {QStringLiteral("initTestCase"), QStringLiteral("cleanupTestCase"),
+                                            QStringLiteral("init"), QStringLiteral("cleanup")};
+        QStringList problems;
+        for (const QString& file : filesIn(QStringLiteral("tests"), {QStringLiteral("tst_*.cpp")}, false)) {
+            const QStringList lines = readText(file).split(QLatin1Char('\n'));
+            bool inSlots = false;
+            for (int i = 0; i < lines.size(); ++i) {
+                if (const auto s = section.match(lines.at(i)); s.hasMatch())
+                    inSlots = s.captured(1) == QStringLiteral("private slots");
+                const auto m = slot.match(lines.at(i));
+                if (!inSlots || !m.hasMatch())
+                    continue;
+                const QString name = m.captured(1);
+                if (qtNames.contains(name) || name.endsWith(QStringLiteral("_data")))
+                    continue;
+                if (name.split(QLatin1Char('_'), Qt::SkipEmptyParts).size() < 3)
+                    problems << QStringLiteral("%1:%2: name the test subject_condition_expectedResult (%3)")
+                                    .arg(file)
+                                    .arg(i + 1)
+                                    .arg(name);
+            }
+        }
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
+
     // 04-scripts-ci.md: .sh = bash + set -euo pipefail; .ps1 = UTF-8 with BOM, CRLF, stop on errors
     void scripts_shellAndPowerShell_followFormat() {
         QStringList problems;

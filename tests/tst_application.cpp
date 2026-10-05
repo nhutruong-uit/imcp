@@ -18,6 +18,7 @@
 #include "application/services/EnrollmentService.h"
 #include "application/services/GradeService.h"
 #include "application/services/LanguageService.h"
+#include "application/services/ListService.h"
 #include "application/services/PayrollService.h"
 #include "application/services/Permissions.h"
 #include "application/services/SessionService.h"
@@ -413,6 +414,16 @@ public:
     }
 };
 
+// Records which lists were read
+class FakeListRepository : public IListRepository {
+public:
+    QList<ListKind> kinds;
+    Result<TableData> fetch(ListKind kind) override {
+        kinds << kind;
+        return Result<TableData>::success(TableData());
+    }
+};
+
 class TestApplication : public QObject {
     Q_OBJECT
 
@@ -491,7 +502,7 @@ private slots:
 
     // The quick checks of AuthService before the database: at least 8 characters, the confirmation must
     // match; a valid change reaches the gateway (the fake accepts it)
-    void changePassword_validatesInput() {
+    void changePassword_shortOrMismatched_isRejected() {
         FakeAuthGateway gateway;
         FakeSettings settings;
         AuthService auth(gateway, settings);
@@ -508,7 +519,7 @@ private slots:
 
     // Spot checks of the role -> feature matrix of Permissions (it decides what the menu shows; the GRANTs of
     // 06_security.sql are the real check)
-    void permissions_teacherCannotSeeStudents() {
+    void permissions_eachRole_seesOnlyItsFeatures() {
         QVERIFY(!Permissions::isAllowed(Role::Teacher, Feature::Students));
         QVERIFY(Permissions::isAllowed(Role::Teacher, Feature::MyTeachingSchedule));
         QVERIFY(!Permissions::isAllowed(Role::AcademicStaff, Feature::Payroll));
@@ -566,7 +577,7 @@ private slots:
 
     // Start and Cancel send the two moves usp_Class_UpdateStatus accepts; a bad slot is refused before the
     // database
-    void classService_statusAndSlots() {
+    void classService_statusMoveOrBadSlot_sendsOnlyValidCalls() {
         FakeClassRepository repository;
         ClassService service(repository);
         QVERIFY(service.start(QStringLiteral("CL0010")).ok());
@@ -584,7 +595,7 @@ private slots:
 
     // The transfer targets: open classes of the same course AND branch, without the current class
     // (usp_Enrollment_TransferClass refuses the others with 50027)
-    void transferTargets_sameCourseAndBranchOnly() {
+    void transferTargets_otherClasses_keepSameCourseAndBranch() {
         FakeEnrollmentRepository repository;
         EnrollmentService service(repository);
         const auto targets = service.transferTargets(QStringLiteral("CL0004"));
@@ -611,7 +622,7 @@ private slots:
 
     // An enrollment needs a student and a class; transfer needs another class; the status moves are sent as
     // stored values
-    void enrollmentService_validatesInput() {
+    void enrollmentService_missingOrSameClass_doesNotCallRepository() {
         FakeEnrollmentRepository repository;
         EnrollmentService service(repository);
         EnrollmentRequest request;
@@ -633,7 +644,7 @@ private slots:
     }
 
     // A payment above the balance and a cancellation without a reason never reach the database
-    void tuitionService_overpaymentAndReason() {
+    void tuitionService_overpaymentOrNoReason_doesNotCallRepository() {
         FakeTuitionRepository repository;
         TuitionService service(repository);
         ReceiptRequest r;
@@ -654,7 +665,7 @@ private slots:
     }
 
     // The timetable asks for one whole week: from Monday (included) to the next Monday (excluded)
-    void sessionService_weekRange() {
+    void sessionService_anyDayOfWeek_asksMondayToMonday() {
         FakeSessionRepository repository;
         SessionService service(repository);
         QVERIFY(service.week(QDate(2026, 10, 8), false).ok()); // a Thursday
@@ -670,7 +681,7 @@ private slots:
     }
 
     // The grade book comes back pivoted; a score outside 0-10 is never saved
-    void gradeService_bookAndScores() {
+    void gradeService_scoreAbove10_isNotSaved() {
         FakeGradeRepository repository;
         GradeService service(repository);
         const auto book = service.book(QStringLiteral("CL0003"), false);
@@ -685,7 +696,7 @@ private slots:
     }
 
     // A future month and a negative deduction are refused before the database (50050, CK_PAYROLL_Figures)
-    void payrollService_validatesInput() {
+    void payrollService_futureMonthOrNegativeDeduction_isRejected() {
         FakePayrollRepository repository;
         PayrollService service(repository);
         QVERIFY(!service.finalize(11, 2026, QDate(2026, 10, 4)).ok());
@@ -698,7 +709,7 @@ private slots:
     }
 
     // Account administration: the username rule, lock / unlock, reset with confirmation
-    void accountService_validatesInput() {
+    void accountService_usernameWithAccents_isRejected() {
         FakeAccountRepository repository;
         AccountService service(repository);
         NewAccount a;
@@ -725,7 +736,7 @@ private slots:
     }
 
     // A new code is normalized to upper case; a malformed code never reaches usp_Branch_Add (50092)
-    void catalogService_codes() {
+    void catalogService_newCode_isNormalizedOrRejected() {
         FakeCatalog repository;
         CatalogService service(repository);
         Branch b;
@@ -778,7 +789,7 @@ private slots:
 
     // The XML declaration is removed before the syllabus reaches the typed XML column; a bad course never
     // saves
-    void courseService_syllabusAndValidation() {
+    void courseService_declarationOrBadCourse_isStrippedOrRejected() {
         FakeCourseRepository repository;
         CourseService service(repository);
         QVERIFY(
@@ -800,7 +811,7 @@ private slots:
     }
 
     // A teacher of 16 is not hired (CK_TEACHER_Age); a valid employee gets the ID from the repository
-    void staffService_validatesInput() {
+    void staffService_teacherUnder18_isRejected() {
         FakeStaffRepository repository;
         StaffService service(repository);
         Teacher t;
@@ -857,7 +868,7 @@ private slots:
     }
 
     // Only the three backup types of usp_Backup are sent (50070 otherwise)
-    void backupService_types() {
+    void backupService_unknownType_isRejected() {
         FakeBackupRepository repository;
         BackupService service(repository);
         QVERIFY(!service.backup(QStringLiteral("COPY"), QString()).ok());
@@ -867,8 +878,25 @@ private slots:
         QVERIFY(path.value().endsWith(QStringLiteral("FULL.bak")));
     }
 
+    // ListService checks the role before reading: nobody signed in, a list of another role and a feature with
+    // its own page never reach the repository; an allowed list is read as its ListKind
+    void listService_featureNotAllowedOrWithoutList_doesNotCallRepository() {
+        FakeAuthGateway gateway;
+        FakeSettings settings;
+        AuthService auth(gateway, settings);
+        FakeListRepository repository;
+        ListService service(repository, auth);
+        QVERIFY(!service.fetch(Feature::LearningResults).ok()); // not signed in yet
+        QVERIFY(auth.login(QStringLiteral("gvu_lan"), QStringLiteral("right-password")).ok());
+        QVERIFY(!service.fetch(Feature::MyPay).ok());    // the teacher's own list
+        QVERIFY(!service.fetch(Feature::Students).ok()); // allowed, but it has its own page
+        QVERIFY(repository.kinds.isEmpty());
+        QVERIFY(service.fetch(Feature::LearningResults).ok());
+        QCOMPARE(repository.kinds, QList<ListKind>({ListKind::LearningResults}));
+    }
+
     // The student import needs a branch and a student export (<Students>); the declaration is removed
-    void studentService_importXml() {
+    void studentService_importWithoutBranchOrStudents_isRejected() {
         FakeStudentRepository repository;
         FakeCatalog catalog;
         StudentService service(repository, catalog);

@@ -24,6 +24,8 @@
 // - *_data() function: a data-driven test. QTest::addColumn/newRow build a table; the test with the same
 //   name runs once per row and reads the values with QFETCH.
 // - QSignalSpy: counts how often a signal was emitted.
+// - qScopeGuard: runs its code when the test function ends, also when a QVERIFY fails half way, so a test
+//   that changed the seed data puts it back through the services even if it stopped before its own restore.
 #include "app/AppContainer.h"
 #include "application/services/Permissions.h"
 #include "presentation/common/Columns.h"
@@ -49,6 +51,7 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QScopeGuard>
 #include <QSignalSpy>
 #include <QStackedWidget>
 #include <QTableView>
@@ -243,7 +246,7 @@ private slots:
 
     // Main flow of the Students module as academic staff: menu of the role, hidden revenue, search, add with
     // the guardian rule (first save refused), then delete the new student again
-    void academicStaff_searchAddDeleteStudent() {
+    void academicStaff_studentsFlow_searchesAddsAndDeletes() {
         QVERIFY(login(QStringLiteral("gvu_lan"), m_password));
         QCOMPARE(m_app->auth().role(), Role::AcademicStaff);
 
@@ -269,34 +272,47 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(table->model()->rowCount(), 1, 3000);
         QCOMPARE(table->model()->index(0, 1).data().toString(), QStringLiteral("Ngô Khánh Linh"));
 
+        // If a check below fails before the delete at the end, the student added here is removed anyway
+        auto removeTestStudent = qScopeGuard([this] {
+            StudentFilter filter;
+            filter.keyword = QStringLiteral("Kiểm Thử E2E");
+            const auto found = m_app->services().students.search(filter);
+            for (const Student& s : found.ok() ? found.value() : QList<Student>())
+                m_app->services().students.remove(s.id);
+        });
+
         // Add a 10-year-old student: first save fails (no guardian), second save with a guardian succeeds
         QString firstError;
         bool formOpened = false;
+        QPushButton* add = w.findChild<QPushButton*>(QStringLiteral("addButton"));
+        QVERIFY(add);
         QTimer::singleShot(300, this, [&] {
             auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
             if (!dialog)
                 return;
-            formOpened = true;
-            dialog->findChild<QLineEdit*>(QStringLiteral("fullNameEdit"))
-                ->setText(QStringLiteral("Bé Kiểm Thử E2E"));
-            dialog->findChild<QDateEdit*>(QStringLiteral("dateOfBirthEdit"))
-                ->setDate(QDate::currentDate().addYears(-10));
-            auto* save = dialog->findChild<QDialogButtonBox*>(QStringLiteral("buttonBox"))
-                             ->button(QDialogButtonBox::Save);
-            save->click();
-            for (QLabel* l : dialog->findChildren<QLabel*>(QStringLiteral("ErrorText")))
-                if (!l->isHidden())
-                    firstError = l->text();
-            dialog->findChild<QLineEdit*>(QStringLiteral("guardianNameEdit"))
-                ->setText(QStringLiteral("Phụ Huynh E2E"));
-            dialog->findChild<QLineEdit*>(QStringLiteral("guardianPhoneEdit"))
-                ->setText(QStringLiteral("0987000111"));
-            save->click();
+            auto* name = dialog->findChild<QLineEdit*>(QStringLiteral("fullNameEdit"));
+            auto* birth = dialog->findChild<QDateEdit*>(QStringLiteral("dateOfBirthEdit"));
+            auto* guardianName = dialog->findChild<QLineEdit*>(QStringLiteral("guardianNameEdit"));
+            auto* guardianPhone = dialog->findChild<QLineEdit*>(QStringLiteral("guardianPhoneEdit"));
+            auto* buttons = dialog->findChild<QDialogButtonBox*>(QStringLiteral("buttonBox"));
+            QPushButton* save = buttons ? buttons->button(QDialogButtonBox::Save) : nullptr;
+            if (name && birth && guardianName && guardianPhone && save) {
+                formOpened = true;
+                name->setText(QStringLiteral("Bé Kiểm Thử E2E"));
+                birth->setDate(QDate::currentDate().addYears(-10));
+                save->click();
+                for (QLabel* l : dialog->findChildren<QLabel*>(QStringLiteral("ErrorText")))
+                    if (!l->isHidden())
+                        firstError = l->text();
+                guardianName->setText(QStringLiteral("Phụ Huynh E2E"));
+                guardianPhone->setText(QStringLiteral("0987000111"));
+                save->click();
+            }
             if (dialog->isVisible())
                 dialog->reject(); // never hang if saving failed
         });
         search->clear();
-        QTest::mouseClick(w.findChild<QPushButton*>(QStringLiteral("addButton")), Qt::LeftButton);
+        QTest::mouseClick(add, Qt::LeftButton);
         QVERIFY(formOpened);
         QVERIFY2(firstError.contains(QStringLiteral("phụ huynh")), qPrintable(firstError));
 
@@ -307,11 +323,17 @@ private slots:
 
         // Delete the new student (confirm with Yes)
         table->selectRow(0);
+        QPushButton* remove = w.findChild<QPushButton*>(QStringLiteral("deleteButton"));
+        QVERIFY(remove);
         QTimer::singleShot(300, this, [] {
-            if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget()))
-                box->button(QMessageBox::Yes)->click();
+            if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) {
+                if (QAbstractButton* yes = box->button(QMessageBox::Yes))
+                    yes->click();
+                else
+                    box->done(0); // never hang
+            }
         });
-        QTest::mouseClick(w.findChild<QPushButton*>(QStringLiteral("deleteButton")), Qt::LeftButton);
+        QTest::mouseClick(remove, Qt::LeftButton);
         QTRY_COMPARE_WITH_TIMEOUT(table->model()->rowCount(), 0, 3000);
     }
 
@@ -331,7 +353,7 @@ private slots:
         QCOMPARE(table->model()->index(0, 0).data().toString(), QStringLiteral("ST00054"));
     }
 
-    void teacher_seesOnlyOwnClasses() {
+    void teacher_myClassesAndSchedule_showOnlyOwnClasses() {
         QVERIFY(login(QStringLiteral("gv_john"), m_password));
         MainWindow w(m_app->services());
         w.show();
@@ -376,7 +398,8 @@ private slots:
         // Accountants can only view students: Add/Edit/Delete are hidden
         w.openFeature(Feature::Students);
         QTRY_VERIFY(visibleTable(w, QStringLiteral("studentTable")) != nullptr);
-        QVERIFY(w.findChild<QPushButton*>(QStringLiteral("addButton"))->isHidden());
+        QPushButton* add = w.findChild<QPushButton*>(QStringLiteral("addButton"));
+        QVERIFY(add && add->isHidden());
 
         w.openFeature(Feature::OutstandingTuition);
         QTableView* table = nullptr;
@@ -503,6 +526,17 @@ private slots:
         auto* search = w.findChild<QLineEdit*>(QStringLiteral("searchEdit"));
         typeText(search, QStringLiteral("ST00010"));
         QTRY_COMPARE_WITH_TIMEOUT(table->model()->rowCount(), 1, 3000);
+        QPushButton* edit = w.findChild<QPushButton*>(QStringLiteral("editButton"));
+        QVERIFY(edit);
+
+        // The seed data is put back even when a check below fails before the restore through the form
+        const auto original = m_app->services().students.details(QStringLiteral("ST00010"));
+        QVERIFY2(original.ok(), qPrintable(original.error()));
+        auto restore = qScopeGuard([&] {
+            const auto now = m_app->services().students.details(QStringLiteral("ST00010"));
+            if (now.ok() && now.value().address != original.value().address)
+                m_app->services().students.update(original.value(), QDate::currentDate());
+        });
 
         // Opens the Edit form, changes the Address field and saves; false if the form did not open or close
         auto editAddress = [&](const QString& newAddress, QString* oldAddress) {
@@ -512,18 +546,20 @@ private slots:
                 if (!dialog)
                     return;
                 auto* field = dialog->findChild<QLineEdit*>(QStringLiteral("addressEdit"));
-                if (oldAddress)
-                    *oldAddress = field->text();
-                field->setText(newAddress);
-                dialog->findChild<QDialogButtonBox*>(QStringLiteral("buttonBox"))
-                    ->button(QDialogButtonBox::Save)
-                    ->click();
-                saved = !dialog->isVisible();
+                auto* buttons = dialog->findChild<QDialogButtonBox*>(QStringLiteral("buttonBox"));
+                QPushButton* save = buttons ? buttons->button(QDialogButtonBox::Save) : nullptr;
+                if (field && save) {
+                    if (oldAddress)
+                        *oldAddress = field->text();
+                    field->setText(newAddress);
+                    save->click();
+                    saved = !dialog->isVisible();
+                }
                 if (dialog->isVisible())
                     dialog->reject(); // never hang if saving failed
             });
             table->selectRow(0);
-            QTest::mouseClick(w.findChild<QPushButton*>(QStringLiteral("editButton")), Qt::LeftButton);
+            QTest::mouseClick(edit, Qt::LeftButton);
             return saved;
         };
 
@@ -552,30 +588,41 @@ private slots:
         QTRY_VERIFY((list = visibleList(w)) != nullptr);
         QTRY_VERIFY(list->rowCount() > 0);
         const QString classId = QStringLiteral("CL0003");
+        QPushButton* edit = visibleButton(w, QStringLiteral("editButton"));
+        QVERIFY(edit);
+
+        // The seed data is put back even when a check below fails before the restore through the form
+        const auto original = m_app->services().classes.details(classId);
+        QVERIFY2(original.ok(), qPrintable(original.error()));
+        auto restore = qScopeGuard([&] {
+            const auto now = m_app->services().classes.details(classId);
+            if (now.ok() && now.value().name != original.value().name)
+                m_app->services().classes.update(original.value());
+        });
 
         // Opens the Edit form of the class, changes its name and saves; false if the form did not close
         auto rename = [&](const QString& newName, QString* oldName) {
+            if (!list->selectWhere(QStringLiteral("ClassId"), classId))
+                return false;
             bool saved = false;
             QTimer::singleShot(300, this, [&] {
                 auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
                 if (!dialog)
                     return;
                 auto* field = dialog->findChild<QLineEdit*>(QStringLiteral("classNameEdit"));
-                if (field) {
+                auto* buttons = dialog->findChild<QDialogButtonBox*>(QStringLiteral("buttonBox"));
+                QPushButton* save = buttons ? buttons->button(QDialogButtonBox::Save) : nullptr;
+                if (field && save) {
                     if (oldName)
                         *oldName = field->text();
                     field->setText(newName);
-                    dialog->findChild<QDialogButtonBox*>(QStringLiteral("buttonBox"))
-                        ->button(QDialogButtonBox::Save)
-                        ->click();
+                    save->click();
                     saved = !dialog->isVisible();
                 }
                 if (dialog->isVisible())
                     dialog->reject(); // never hang if saving failed
             });
-            if (!list->selectWhere(QStringLiteral("ClassId"), classId))
-                return false;
-            QTest::mouseClick(visibleButton(w, QStringLiteral("editButton")), Qt::LeftButton);
+            QTest::mouseClick(edit, Qt::LeftButton);
             return saved;
         };
 
@@ -612,14 +659,24 @@ private slots:
             if (list->valueAt(r, QStringLiteral("Status")).toString() == EnrollmentValues::studying())
                 enrollmentId = list->valueAt(r, QStringLiteral("EnrollmentId")).toString();
         QVERIFY2(!enrollmentId.isEmpty(), "no Studying enrollment in the seed data");
+        QPushButton* hold = visibleButton(w, QStringLiteral("holdButton"));
+        QPushButton* resume = visibleButton(w, QStringLiteral("resumeButton"));
+        QVERIFY(hold && resume);
 
+        // The enrollment is resumed through the service when a check fails before the resume below
+        bool resumed = false;
+        auto restore = qScopeGuard([&] {
+            if (!resumed)
+                m_app->services().enrollments.resume(enrollmentId);
+        });
         QVERIFY(list->selectWhere(QStringLiteral("EnrollmentId"), enrollmentId));
-        QTest::mouseClick(visibleButton(w, QStringLiteral("holdButton")), Qt::LeftButton);
+        QTest::mouseClick(hold, Qt::LeftButton);
         QTRY_COMPARE(list->selectedValue(QStringLiteral("EnrollmentId")).toString(), enrollmentId);
         QTRY_COMPARE(list->selectedValue(QStringLiteral("Status")).toString(), EnrollmentValues::onHold());
 
-        QTest::mouseClick(visibleButton(w, QStringLiteral("resumeButton")), Qt::LeftButton); // restore
+        QTest::mouseClick(resume, Qt::LeftButton); // restore
         QTRY_COMPARE(list->selectedValue(QStringLiteral("Status")).toString(), EnrollmentValues::studying());
+        resumed = true;
         QCOMPARE(boxes.questions().size(), 2);
         QVERIFY2(boxes.texts().isEmpty(), qPrintable(boxes.texts().join(QStringLiteral(" | "))));
     }
@@ -639,6 +696,8 @@ private slots:
         const auto before = m_app->services().enrollments.search(EnrollmentFilter());
         QVERIFY2(before.ok(), qPrintable(before.error()));
 
+        QPushButton* add = visibleButton(w, QStringLiteral("addButton"));
+        QVERIFY(add);
         bool stayedOpen = false;
         bool errorShown = true;
         int matches = 0;
@@ -660,7 +719,7 @@ private slots:
             if (dialog->isVisible())
                 dialog->reject(); // never hang
         });
-        QTest::mouseClick(visibleButton(w, QStringLiteral("addButton")), Qt::LeftButton);
+        QTest::mouseClick(add, Qt::LeftButton);
         QVERIFY2(stayedOpen, "Return in the search field closed the form");
         QVERIFY2(!errorShown, "Return in the search field tried to save the enrollment");
         QVERIFY(matches > 0);
@@ -682,10 +741,13 @@ private slots:
         DataTable* list = nullptr;
         QTRY_VERIFY((list = visibleList(w)) != nullptr);
         QTRY_VERIFY(list->rowCount() > 0);
+        QPushButton* previousWeek = visibleButton(w, QStringLiteral("previousWeekButton"));
+        QPushButton* attendance = visibleButton(w, QStringLiteral("attendanceButton"));
+        QVERIFY(previousWeek && attendance);
         int sessionId = 0;
         for (int week = 0; week < 2 && sessionId == 0; ++week) {
             if (week > 0)
-                QTest::mouseClick(visibleButton(w, QStringLiteral("previousWeekButton")), Qt::LeftButton);
+                QTest::mouseClick(previousWeek, Qt::LeftButton);
             for (int r = 0; r < list->rowCount() && sessionId == 0; ++r) {
                 const int id = list->valueAt(r, QStringLiteral("SessionId")).toInt();
                 const auto marks = m_app->services().sessions.attendance(id);
@@ -705,6 +767,8 @@ private slots:
         // after the data is restored.
         bool keptOnReturn = true;
         auto mark = [&](const QString& status, QString* oldStatus) {
+            if (!list->selectWhere(QStringLiteral("SessionId"), sessionId))
+                return false;
             bool saved = false;
             QTimer::singleShot(300, this, [&] {
                 auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
@@ -713,7 +777,8 @@ private slots:
                 auto* grid = dialog->findChild<QTableWidget*>(QStringLiteral("attendanceTable"));
                 auto* combo = grid ? qobject_cast<QComboBox*>(grid->cellWidget(0, 2)) : nullptr;
                 auto* notes = grid ? qobject_cast<QLineEdit*>(grid->cellWidget(0, 3)) : nullptr;
-                if (combo && notes) {
+                auto* save = dialog->findChild<QPushButton*>(QStringLiteral("saveAttendanceButton"));
+                if (combo && notes && save) {
                     if (oldStatus)
                         *oldStatus = combo->currentData().toString();
                     const QString absent = AttendanceValues::statuses().constLast();
@@ -723,15 +788,13 @@ private slots:
                     keptOnReturn =
                         keptOnReturn && dialog->isVisible() && combo->currentData().toString() == absent;
                     combo->setCurrentIndex(combo->findData(status));
-                    dialog->findChild<QPushButton*>(QStringLiteral("saveAttendanceButton"))->click();
+                    save->click();
                     saved = !dialog->isVisible();
                 }
                 if (dialog->isVisible())
                     dialog->reject(); // never hang if saving failed
             });
-            if (!list->selectWhere(QStringLiteral("SessionId"), sessionId))
-                return false;
-            QTest::mouseClick(visibleButton(w, QStringLiteral("attendanceButton")), Qt::LeftButton);
+            QTest::mouseClick(attendance, Qt::LeftButton);
             return saved;
         };
         auto firstStatus = [&] {
@@ -739,7 +802,14 @@ private slots:
             return marks.ok() && !marks.value().isEmpty() ? marks.value().first().status : QString();
         };
 
+        // The marks are saved back through the service when a check fails before the restore below
+        const auto originalMarks = m_app->services().sessions.attendance(sessionId);
+        QVERIFY2(originalMarks.ok(), qPrintable(originalMarks.error()));
         const QString before = firstStatus();
+        auto restore = qScopeGuard([&] {
+            if (firstStatus() != before)
+                m_app->services().sessions.saveAttendance(sessionId, originalMarks.value());
+        });
         QString changed; // any other stored status
         for (const QString& s : AttendanceValues::statuses())
             if (changed.isEmpty() && s != before)

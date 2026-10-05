@@ -98,7 +98,8 @@ GO
 /* A1. usp_Student_Add: add a student, return the new ID through an OUTPUT parameter
        Reference implementation of the team: copy its layout for a new write procedure.
        Used by: Students screen - Add (SqlStudentRepository::add); roles rl_Manager, rl_AcademicStaff;
-                tests T01 (12_tests.sql), S08 (13_server_tests.sql), e2e academicStaff_searchAddDeleteStudent.
+                tests T01 (12_tests.sql), S08 (13_server_tests.sql),
+                e2e academicStaff_studentsFlow_searchesAddsAndDeletes.
        Rules:   the name must not be empty (50001); the phone (50002) and the email (50003) must not belong
                 to another student. These checks give a clear message; the filtered unique indexes
                 UX_STUDENT_Phone / UX_STUDENT_Email remain the real guarantee. Age, guardian and contact
@@ -197,7 +198,8 @@ GO
 
 /* A3. usp_Student_Delete: only a student who never enrolled can be deleted
        Used by: Students screen - Delete (SqlStudentRepository::remove); roles rl_Manager, rl_AcademicStaff;
-                e2e academicStaff_searchAddDeleteStudent; test T41 (a student with an enrollment history).
+                e2e academicStaff_studentsFlow_searchesAddsAndDeletes;
+                test T41 (a student with an enrollment history).
        Rules:   a student with any enrollment keeps the history (enrollments, receipts, grades point to it),
                 so the message (50005) suggests the status Dropped out instead. The placement tests go first
                 because FK_PLACEMENT_TEST_STUDENT (no ON DELETE CASCADE) would block deleting the student.

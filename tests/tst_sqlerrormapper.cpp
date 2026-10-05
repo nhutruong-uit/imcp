@@ -17,14 +17,14 @@ class TestSqlErrorMapper : public QObject {
 
 private slots:
     // The [vendor][driver][server] prefixes in front of the database message are removed
-    void stripsOdbcPrefix() {
+    void cleanMessage_odbcPrefix_isRemoved() {
         const QString raw = QStringLiteral("[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]"
                                            "The student is already enrolled in this class.");
         QCOMPARE(SqlErrorMapper::cleanMessage(raw),
                  QStringLiteral("The student is already enrolled in this class."));
     }
 
-    void stripsSqlStateSuffix() {
+    void cleanMessage_sqlStateSuffix_isRemoved() {
         QCOMPARE(SqlErrorMapper::cleanMessage(QStringLiteral("The current password is incorrect., 37000")),
                  QStringLiteral("The current password is incorrect."));
         QCOMPARE(SqlErrorMapper::cleanMessage(
@@ -37,7 +37,7 @@ private slots:
     }
 
     // Business messages: exact text or template with values; unknown messages pass through unchanged
-    void dbMessages_matchExactTextAndTemplates() {
+    void isKnown_exactTextOrTemplate_matches() {
         QVERIFY(DbMessages::isKnown(QStringLiteral("The current password is incorrect.")));
         QVERIFY(DbMessages::isKnown(QStringLiteral("Class CL0003 is full.")));
         QVERIFY(DbMessages::isKnown(QStringLiteral("Grades are still missing for 12 student(s).")));
@@ -49,7 +49,7 @@ private slots:
     }
 
     // A business message of a procedure/trigger (THROW/RAISERROR) is cleaned, then looked up in DbMessages
-    void businessError_goesThroughTheCatalog() {
+    void message_businessError_goesThroughCatalog() {
         const QSqlError e(
             QStringLiteral("QODBC: Unable to execute statement"),
             QStringLiteral("[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Class CL0008 is full."),
@@ -58,7 +58,7 @@ private slots:
     }
 
     // Error 18456 (login failed) becomes a readable text instead of the raw ODBC message
-    void loginFailure() {
+    void message_loginFailed_isReadable() {
         const QSqlError e(
             QStringLiteral("QODBC: Unable to connect"),
             QStringLiteral(
@@ -103,7 +103,7 @@ private slots:
     }
 
     // Error 547 (CHECK constraint): the constraint name is read from the message and mapped to its own text
-    void checkConstraintViolation() {
+    void message_checkConstraint_usesConstraintText() {
         const QSqlError e(
             QStringLiteral("QODBC: Unable to execute statement"),
             QStringLiteral("[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]The INSERT statement "
@@ -128,7 +128,7 @@ private slots:
     }
 
     // A value with ; or } is wrapped in {...} with } doubled, so a password cannot add another ODBC keyword
-    void connectionString_escapesSpecialCharacters() {
+    void connectionString_passwordWithSemicolon_isEscaped() {
         ServerConfig c;
         const QString s =
             DatabaseManager::connectionString(QStringLiteral("ODBC Driver 18 for SQL Server"), c,
