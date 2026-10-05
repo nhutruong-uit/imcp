@@ -47,11 +47,14 @@ jobs:
           VERSION=$(plutil -extract LSMinimumSystemVersion raw build/macos-release/src/app/QLTTTA.app/Contents/Info.plist)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "The .dmg runs on macOS $VERSION or later" >> "$GITHUB_STEP_SUMMARY"
+      # The artifacts only carry the installers to the publish job, which attaches them to the Release (kept for
+      # good), so one day is enough. A manual test run or a re-run of the publish job must use them within that day.
       - uses: actions/upload-artifact@v6
         with:
           name: qlttta-macos
           path: dist/*.dmg
           if-no-files-found: error
+          retention-days: 1
 
   windows:
     name: Build the Windows setup.exe + portable .zip
@@ -84,6 +87,7 @@ jobs:
             dist/*.exe
             dist/*.zip
           if-no-files-found: error
+          retention-days: 1
 
   publish:
     name: Publish the GitHub Release (main only)
