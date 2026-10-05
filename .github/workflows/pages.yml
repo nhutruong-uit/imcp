@@ -5,8 +5,8 @@
 #   - docs/data-map.html  -> data-map.html   the interactive map of the tables and the app flow
 #   - the screenshots that docs/index.html shows (docs/report/images/screens/*.png, demo data), at the same
 #     relative path, so the page works the same opened from the file and online
-# The site is PUBLIC even though the repository is private (GitHub Pages of a personal account): never publish the
-# report, the user guide or other docs here - the site links to them in the repository instead. tst_conventions
+# One copy of every document: never publish the report, the user guide or other docs here (a copy would go out of
+# date) - the site links to them in the public repository instead. tst_conventions
 # (docs_projectSite_matchesRepository) fails when docs/index.html links to a local file that this workflow does
 # not publish.
 # Runs when one of these files or this workflow changes on develop (Settings > Pages > Source: GitHub Actions; the

@@ -47,8 +47,8 @@ which builds the installers and creates the GitHub Release `v<version>-build.<ru
 2. Choose the new version (Semantic Versioning) from `git log --oneline origin/main..origin/develop`:
    - a breaking change (`type!:` or `BREAKING CHANGE`) → major; while the major is `0`, minor instead (`1.0.0` only
      when the user asks for it);
-   - at least one `feat` → minor (`0.1.0` → `0.2.0`);
-   - otherwise (only `fix`, `docs`, `chore`, ...) → patch (`0.2.0` → `0.2.1`).
+   - at least one `feat` → minor (`1.0.0` → `1.1.0`);
+   - otherwise (only `fix`, `docs`, `chore`, ...) → patch (`1.1.0` → `1.1.1`).
    An argument `major`/`minor`/`patch` or an explicit `X.Y.Z` from the user wins. Tell the user the chosen version.
 3. `develop` is protected, so the bump goes in through its own small PR into `develop`:
    ```bash
