@@ -135,7 +135,7 @@
     "definition": "([Status]=N'Unexcused absence' OR [Status]=N'Excused absence' OR [Status]=N'Late' OR [Status]=N'Present')"
    }
   ],
-  "row_count": 1424
+  "row_count": 1310
  },
  {
   "table_name": "AUDIT_LOG",
@@ -221,7 +221,7 @@
     "definition": "([Action]='DELETE' OR [Action]='UPDATE' OR [Action]='INSERT')"
    }
   ],
-  "row_count": 235
+  "row_count": 246
  },
  {
   "table_name": "BRANCH",
@@ -1148,6 +1148,10 @@
     "definition": "([ClassJoinedOn]>=[EnrolledOn])"
    },
    {
+    "name": "CK_ENROLLMENT_Completed",
+    "definition": "([Status]=N'Completed' AND [Result] IS NOT NULL OR [Status]<>N'Completed' AND [Result] IS NULL AND [FinalGrade] IS NULL)"
+   },
+   {
     "name": "CK_ENROLLMENT_DiscountAmount",
     "definition": "([DiscountAmount]>=(0) AND [DiscountAmount]<=[BaseTuition])"
    },
@@ -1405,6 +1409,10 @@
    }
   ],
   "checks": [
+   {
+    "name": "CK_PAYROLL_Deduction",
+    "definition": "([Deduction]<=(CONVERT([decimal](14,0),[Hours]*[HourlyRate])+[Bonus]))"
+   },
    {
     "name": "CK_PAYROLL_Figures",
     "definition": "([SessionCount]>=(0) AND [Hours]>=(0) AND [Bonus]>=(0) AND [Deduction]>=(0))"
@@ -1776,7 +1784,7 @@
     "definition": "([Status]=N'Cancelled' OR [Status]=N'Valid')"
    }
   ],
-  "row_count": 97
+  "row_count": 95
  },
  {
   "table_name": "ROOM",

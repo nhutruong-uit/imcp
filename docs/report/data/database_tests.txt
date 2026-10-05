@@ -2,7 +2,7 @@ P01|Teacher SELECTs the STUDENT table|Rejected|Rejected|PASSED|The SELECT permis
 P02|Teacher SELECTs the views of their classes/students|Succeeded|Succeeded|PASSED|2 classes, 14 students of TE0001 (expected 2 / 14)
 P03|Teacher grades a class of another teacher|Rejected|Rejected|PASSED|You can only enter grades for classes you teach.
 P04|Accountant enrolls a student|Rejected|Rejected|PASSED|The EXECUTE permission was denied on the object 'usp_Enrollment_Create', database 'QLTTTA', schema 'dbo'.
-P05|Accountant SELECTs the TEACHER.HourlyRate column|Succeeded|Succeeded|PASSED|Read hourly rate 450,000
+P05|Accountant SELECTs the TEACHER.HourlyRate column|Succeeded|Succeeded|PASSED|Read hourly rate 450,000 (stored 450,000)
 P06|Academic staff SELECT the TEACHER.HourlyRate column|Rejected|Rejected|PASSED|The SELECT permission was denied on the column 'HourlyRate' of the object 'TEACHER', database 'QLTTTA', schema 'dbo'.
 P07|Academic staff SELECT the PAYROLL table|Rejected|Rejected|PASSED|The SELECT permission was denied on the object 'PAYROLL', database 'QLTTTA', schema 'dbo'.
 P08|Manager DELETEs from the RECEIPT table|Rejected|Rejected|PASSED|The DELETE permission was denied on the object 'RECEIPT', database 'QLTTTA', schema 'dbo'.
@@ -21,8 +21,10 @@ P20|Teacher updates a session of another teacher|Rejected|Rejected|PASSED|You ca
 P21|Teacher takes attendance for a session of another teacher|Rejected|Rejected|PASSED|You can only take attendance for sessions you teach.
 P22|Academic staff open a branch|Rejected|Rejected|PASSED|The EXECUTE permission was denied on the object 'usp_Branch_Add', database 'QLTTTA', schema 'dbo'.
 P23|Accountant changes a class|Rejected|Rejected|PASSED|The EXECUTE permission was denied on the object 'usp_Class_Update', database 'QLTTTA', schema 'dbo'.
-P24|Accountant searches receipts and enrollments|Succeeded|Succeeded|PASSED|97 receipts, 84 enrollments
+P24|Accountant searches receipts and enrollments|Succeeded|Succeeded|PASSED|95 receipts, 84 enrollments
 P25|Teacher reads the grade book of another class|Rejected|Rejected|PASSED|The EXECUTE permission was denied on the object 'usp_Grade_ByClass', database 'QLTTTA', schema 'dbo'.
+P26|Manager writes a catalog table directly|Rejected|Rejected|PASSED|The UPDATE permission was denied on the object 'COURSE', database 'QLTTTA', schema 'dbo'.
+P27|Accountant sees the monthly revenue on the Dashboard|Succeeded|Succeeded|PASSED|RevenueThisMonth = 5000000
 T01|Student under 18 without guardian details|Rejected|Rejected|PASSED|The INSERT statement conflicted with the CHECK constraint "CK_STUDENT_Guardian". The conflict occurred in database "QLTTTA", table "dbo.STUDENT".
 T02|Invalid phone number format (domain CHECK)|Rejected|Rejected|PASSED|The INSERT statement conflicted with the CHECK constraint "CK_STUDENT_Phone". The conflict occurred in database "QLTTTA", table "dbo.STUDENT", column 'Phone'.
 T03|Enrolling twice in the same class|Rejected|Rejected|PASSED|The student is already enrolled in this class.
@@ -32,14 +34,12 @@ T06|Payment above the outstanding tuition|Rejected|Rejected|PASSED|The amount ex
 T07|Physically deleting a receipt|Rejected|Rejected|PASSED|Receipts cannot be deleted. Use the Cancel receipt function instead.
 T08|Two classes in the same room at the same time|Rejected|Rejected|PASSED|Schedule conflict with class CL0004 (same room D1-102).
 T09|Room of another branch than the class|Rejected|Rejected|PASSED|The room must belong to the same branch as the class.
-T100|Update a promotion that does not exist|Rejected|Rejected|PASSED|The record to update does not exist.
-T101|usp_Class_Update: new start date, sessions generated again|Succeeded|Succeeded|PASSED|0 sessions after the update, then 20/20 from 2026-10-17
 T10|Score outside the 0-10 domain|Rejected|Rejected|PASSED|The INSERT statement conflicted with the CHECK constraint "CK_GRADE_Score". The conflict occurred in database "QLTTTA", table "dbo.GRADE", column 'Score'.
 T11|Changing the audit log|Rejected|Rejected|PASSED|The audit log is append-only; it cannot be changed or deleted.
 T12|Certificate for a student who failed|Rejected|Rejected|PASSED|Certificates are only issued to students who passed.
 T13|Changing the time of a taught session|Rejected|Rejected|PASSED|The date, time, room and teacher of a taught session cannot be changed.
 T14|Transfer to a class of another course|Rejected|Rejected|PASSED|A student can only be transferred to an open class of the same course and branch.
-T15|Valid enrollment with a promotion|Succeeded|Succeeded|PASSED|ID EN000085, tuition due 3,300,000 VND (expected 3,300,000)
+T15|Valid enrollment with a promotion|Succeeded|Succeeded|PASSED|ID EN000097, tuition due 3,300,000 VND (expected 3,300,000)
 T16|fn_Classification: thresholds at 9 / 8 / 6.5 / 5|Succeeded|Succeeded|PASSED|11/11 grades (NULL included) classified correctly
 T17|fn_FinalGrade: weighted grade, NULL when a score is missing|Succeeded|Succeeded|PASSED|22/22 enrollments match; one score of EN000001 removed => NULL
 T18|fn_AttendanceRate: late counts as present, excused absence does not|Succeeded|Succeeded|PASSED|2 present + 1 late out of 24 taught sessions => 12.50% (expected 12.50%)
@@ -53,10 +53,10 @@ T25|Finalizing the payroll of a future month|Rejected|Rejected|PASSED|Payroll ca
 T26|Student XML export/import, duplicates skipped|Succeeded|Succeeded|PASSED|Exported 72/72 students; imported 1 row(s), skipped 1 duplicate phone row(s)
 T27|Course syllabus that violates the XML schema|Rejected|Rejected|PASSED|XML Validation: Invalid content. Expected element(s): 'Textbook'. Found: element 'ElementNotInSchema' instead. Location: /*:Syllabus[1]/*:ElementNotInSchema[1].
 T28|Naming conventions of tables, columns, objects, constraints and indexes|Succeeded|Succeeded|PASSED|Every name follows the conventions
-T29|Least privilege: table permissions of the roles = 06_security.sql|Succeeded|Succeeded|PASSED|42 expected permissions, no extra and none missing
-T30|Procedures/triggers set NOCOUNT ON, no SELECT * in modules|Succeeded|Succeeded|PASSED|111 modules checked, all follow the conventions
+T29|Least privilege: table permissions of the roles = 06_security.sql|Succeeded|Succeeded|PASSED|25 expected permissions, no extra and none missing
+T30|Procedures/triggers set NOCOUNT ON, no SELECT * in modules|Succeeded|Succeeded|PASSED|112 modules checked, all follow the conventions
 T31|Receipt at 00:30 center time counts in the center's day and month|Succeeded|Succeeded|PASSED|paid 2024-01-31 17:30 UTC: fn_MonthlyRevenue Jan/Feb = 0/1, vw_MonthlyRevenue Feb = 1, usp_Report_Revenue rows on 31 Jan = 0, revenue on 1 Feb = 100000
-T32|Instants in UTC (...Utc), no server-local clock, DATE defaults in center time|Succeeded|Succeeded|PASSED|111 modules and 45 defaults checked; center offset +07:00
+T32|Instants in UTC (...Utc), no server-local clock, DATE defaults in center time|Succeeded|Succeeded|PASSED|112 modules and 45 defaults checked; center offset +07:00
 T33|Prerequisite course required when no minimum score is set|Rejected|Rejected|PASSED|The student does not meet the entry requirement of course IE-65 (complete the prerequisite course first).
 T34|Transfer into a class that clashes with another class of the student|Rejected|Rejected|PASSED|The class schedule clashes with another class the student is taking.
 T35|Re-evaluation: certificates follow the corrected results|Succeeded|Succeeded|PASSED|CL0001: EN000001 failed and lost the certificate = 1, EN000002 re-graded 10 = 1; 9 certificates for 9 passed; 0 mismatch(es)
@@ -72,7 +72,7 @@ T44|Changing the attendance of a finished class|Rejected|Rejected|PASSED|The cla
 T45|Locking an account without saying lock or unlock|Rejected|Rejected|PASSED|Choose whether to lock or unlock the account.
 T46|Transfer: the tuition of the new class applies|Succeeded|Succeeded|PASSED|BaseTuition 4,200,000, discount 500,000, due 3,700,000 (expected 4,200,000 / 500,000)
 T47|Transfer when more was paid than the new tuition|Rejected|Rejected|PASSED|The student has paid more than the tuition of the new class; cancel a receipt before the transfer.
-T48|fn_AttendanceRate: only sessions since the student joined the class count|Succeeded|Succeeded|PASSED|EN000023 joined on 2026-08-27, present at 11 sessions => 100.00%
+T48|fn_AttendanceRate: only sessions since the student joined the class count|Succeeded|Succeeded|PASSED|EN000023 joined on 2026-09-03, present at 9 sessions => 100.00%
 T49|fn_RecommendCourse: no course that needs its prerequisite|Succeeded|Succeeded|PASSED|score 0.5 => CM-A1 (expected CM-A1)
 T50|Marking a future session as taught|Rejected|Rejected|PASSED|A session can only be marked as taught on or after its date.
 T51|Setting a taught session back to Scheduled|Rejected|Rejected|PASSED|A taught session cannot change its status.
@@ -88,20 +88,20 @@ T60|Teacher younger than 18 when hired|Rejected|Rejected|PASSED|The UPDATE state
 T61|Room capacity below the size of an active class|Rejected|Rejected|PASSED|The room is used by an active class: it must stay in the branch of the class and hold its maximum size.
 T62|Account for an employee who has left|Rejected|Rejected|PASSED|An account cannot be created for an employee or teacher who has left.
 T63|fn_FinalGrade: one rounding at the end (4.994959 => 4.99)|Succeeded|Succeeded|PASSED|EN000023 => 4.99
-T64|usp_Enrollment_Create: a valid promotion code on a free class|Succeeded|Succeeded|PASSED|ST00070 => EN000092, tuition due 0
-T65|usp_Enrollment_Create: admitted on the score or on the prerequisite|Succeeded|Succeeded|PASSED|ST00070 (score 6.0) => EN000093; ST00010 (passed IE-FND, score 1.0) => EN000094
+T64|usp_Enrollment_Create: a valid promotion code on a free class|Succeeded|Succeeded|PASSED|ST00070 => EN000106, tuition due 0
+T65|usp_Enrollment_Create: admitted on the score or on the prerequisite|Succeeded|Succeeded|PASSED|ST00070 (score 6.0) => EN000107; ST00010 (passed IE-FND, score 1.0) => EN000108
 T66|ID sequences end at the largest number their code can hold|Succeeded|Succeeded|PASSED|8 sequences checked
 T67|usp_Dashboard_Stats: students with a Studying enrollment|Succeeded|Succeeded|PASSED|62 active students (expected 62; STUDENT rows with status Studying: 62)
 T68|New grade weight for a course with evaluated classes|Rejected|Rejected|PASSED|The grade components of a course with evaluated classes cannot be changed; open a new course instead.
-T69|Transfer: attendance of the new class counts from the transfer day|Succeeded|Succeeded|PASSED|EN000034 joined on 2026-10-04 after 4 taught sessions => NULL (nothi
+T69|Transfer: attendance of the new class counts from the transfer day|Succeeded|Succeeded|PASSED|EN000034 joined on 2026-10-05 after 4 taught sessions => NULL (nothi
 T70|Transfer to a class of another branch|Rejected|Rejected|PASSED|A student can only be transferred to an open class of the same course and branch.
 T71|usp_Class_EvaluateResults: students without another class become Completed|Succeeded|Succeeded|PASSED|CL0001: 4 Completed, 8 still Studying, 0 wrong
 T72|Class size below the enrolled students|Rejected|Rejected|PASSED|The maximum size cannot be lower than the number of students enrolled in the class.
 T73|Class gets a teacher who is busy at that time|Rejected|Rejected|PASSED|Schedule conflict with class CL0005 (same teacher TE0006).
-T74|usp_Class_Update: coming sessions follow the new teacher and room|Succeeded|Succeeded|PASSED|6/6 scheduled sessions moved, 14/14 past sessions kept
+T74|usp_Class_Update: coming sessions follow the new teacher and room|Succeeded|Succeeded|PASSED|8/8 scheduled sessions moved, 12/12 past sessions kept
 T75|Weekly slot for a finished class|Rejected|Rejected|PASSED|Only an enrolling or in-progress class can be changed.
 T76|usp_Enrollment_Search by student and by keyword|Succeeded|Succeeded|PASSED|ST00001: 2/2 rows; CL0003 Studying: 12/12
-T77|usp_Receipt_Search = usp_Report_Revenue for a period|Succeeded|Succeeded|PASSED|42/42 receipts, 143,464,000 VND (report 143,464,000)
+T77|usp_Receipt_Search = usp_Report_Revenue for a period|Succeeded|Succeeded|PASSED|44/44 receipts, 149,314,000 VND (report 149,314,000)
 T78|usp_PlacementTest_Search keeps every test|Succeeded|Succeeded|PASSED|44/44 tests, 44/44 recommendations
 T79|usp_Grade_ByClass: one cell per student and component|Succeeded|Succeeded|PASSED|36/36 cells, 24/24 scores
 T80|usp_Payroll_Adjust: TotalPay follows the deduction|Succeeded|Succeeded|PASSED|Total pay 11,400,000 (expected 11,400,000)
@@ -120,7 +120,42 @@ T92|usp_GradeComponent_Save / _Delete and the 100% check|Succeeded|Succeeded|PAS
 T93|Delete a grade component with scores|Rejected|Rejected|PASSED|A grade component that already has scores cannot be deleted.
 T94|usp_ClassSchedule_Remove + ByClass|Succeeded|Succeeded|PASSED|2 slots before, 1 after
 T95|Room code with a space|Rejected|Rejected|PASSED|A code may only contain letters, digits, dashes and underscores.
-T96|usp_Employee_Add + usp_Employee_Update|Succeeded|Succeeded|PASSED|new ID EM0007, changed row found: 1
-T97|usp_Teacher_Add + usp_Teacher_Update|Succeeded|Succeeded|PASSED|new ID TE0009, IELTS 8.5, rate 450,000
+T96|usp_Employee_Add + usp_Employee_Update|Succeeded|Succeeded|PASSED|new ID EM0008, changed row found: 1
+T97|usp_Teacher_Add + usp_Teacher_Update|Succeeded|Succeeded|PASSED|new ID TE0010, IELTS 8.5, rate 450,000
 T98|Teacher with active classes leaves|Rejected|Rejected|PASSED|An employee or teacher with an active account or an active class cannot be set to Left: lock the account and hand the classes over first.
 T99|usp_Promotion_Add + usp_Promotion_Update|Succeeded|Succeeded|PASSED|discount while valid 1,000,000, after the end 0
+T100|Update a promotion that does not exist|Rejected|Rejected|PASSED|The record to update does not exist.
+T101|usp_Class_Update: new start date, sessions generated again|Succeeded|Succeeded|PASSED|0 sessions after the update, then 20/20 from 2026-10-24
+T102|usp_Class_Update: new start date after the old end date|Succeeded|Succeeded|PASSED|start 2026-12-27, end NULL, 0 sessions left
+T103|Month finalized again with a lower rate under a deduction|Rejected|Rejected|PASSED|The UPDATE statement conflicted with the CHECK constraint "CK_PAYROLL_Deduction". The conflict occurred in database "QLTTTA", table "dbo.PAYROLL".
+T104|Grade component moved to another course|Rejected|Rejected|PASSED|The record to update does not exist.
+T105|Weekly slot that clashes with a class of an enrolled student|Rejected|Rejected|PASSED|The class schedule clashes with another class the student is taking.
+T106|usp_Session_Update: content kept with NULL, removed with an empty text|Succeeded|Succeeded|PASSED|set "Unit 5: reading", kept "Unit 5: reading", cleared NULL
+T107|usp_Receipt_Print: amount paid and balance right after the payment|Succeeded|Succeeded|PASSED|EN000003: first receipt RC000003 shows 3250000 paid (amount 3250000), last RC000081 shows 6500000 (enrollment 6500000)
+T108|usp_Enrollment_ByClass: every enrollment of the class and its balance|Succeeded|Succeeded|PASSED|12/12 rows, balance 0/0
+T109|usp_PlacementTest_Add: overall score rounds half up|Succeeded|Succeeded|PASSED|9.30/9/9/9 -> 9.08, 5/5/5.06/6.92 -> 5.50
+T110|Employee with an active account leaves|Rejected|Rejected|PASSED|An employee or teacher with an active account or an active class cannot be set to Left: lock the account and hand the classes over first.
+T111|New start date that clashes with a class of an enrolled student|Rejected|Rejected|PASSED|The class schedule clashes with another class the student is taking.
+T112|Remove a weekly slot the class does not have|Rejected|Rejected|PASSED|Schedule slot not found.
+T113|Deduction on a payroll row that does not exist|Rejected|Rejected|PASSED|Payroll row not found.
+T114|Class gets a teacher who is not teaching|Rejected|Rejected|PASSED|The teacher does not exist or is no longer teaching.
+T115|Pay of the running month marked as paid|Rejected|Rejected|PASSED|A month can only be marked as paid after it has ended.
+T116|usp_Class_Update: a past unconfirmed session keeps its teacher|Succeeded|Succeeded|PASSED|past session: TE0005 (old TE0005), 8/8 coming sessions moved
+T117|Used promotion gets another discount|Rejected|Rejected|PASSED|A promotion already used by enrollments keeps its discount and start date; only its name and end date can change.
+T118|Used promotion ends before its last use|Rejected|Rejected|PASSED|The end date cannot be before the last enrollment that used the promotion.
+T119|usp_Promotion_Update: a used promotion renamed and ended early|Succeeded|Succeeded|PASSED|Opening offer (ended), ends 2026-10-04
+T120|Enrollment dated in the future|Rejected|Rejected|PASSED|An enrollment cannot be dated in the future.
+T121|Payment dated in the future|Rejected|Rejected|PASSED|A payment cannot be dated in the future.
+T122|New class in a suspended branch|Rejected|Rejected|PASSED|The branch does not exist or is suspended.
+T123|New class in a room under maintenance|Rejected|Rejected|PASSED|The room is under maintenance; choose another room.
+T124|Weekly slot for a class with taught sessions|Rejected|Rejected|PASSED|The weekly schedule of a class with taught or cancelled sessions can no longer change.
+T125|usp_ClassSchedule_Add: the generated sessions follow the new timetable|Succeeded|Succeeded|PASSED|20 sessions before, 0 after; end date NULL; Wednesday slots: 1
+T126|trg_PAYROLL_Audit: a deduction is logged with the old and new value|Succeeded|Succeeded|PASSED|1 new audit row(s), deduction 0 -> 100000
+T127|Enrollment into a finished class|Rejected|Rejected|PASSED|The class no longer accepts enrollments.
+T128|Enrollment with an expired promotion|Rejected|Rejected|PASSED|The promotion code does not exist or has expired.
+T129|Payment for an enrollment that does not exist|Rejected|Rejected|PASSED|Valid enrollment not found.
+T130|Evaluate a class that has not started|Rejected|Rejected|PASSED|The class does not exist or has not started yet.
+T131|Evaluate a class whose weights are not 100%|Rejected|Rejected|PASSED|The grade component weights of the course do not add up to 100.
+T132|Evaluate a class with missing scores|Rejected|Rejected|PASSED|Grades are still missing for 12 student(s).
+T133|Completed enrollment without a result|Rejected|Rejected|PASSED|The UPDATE statement conflicted with the CHECK constraint "CK_ENROLLMENT_Completed". The conflict occurred in database "QLTTTA", table "dbo.ENROLLMENT".
+T134|Class moved to a room under maintenance|Rejected|Rejected|PASSED|The room is under maintenance; choose another room.
