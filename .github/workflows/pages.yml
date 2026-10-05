@@ -1,16 +1,25 @@
-# Pages: publishes docs/data-map.html (the interactive map of the tables and the app flow) to GitHub Pages, so the
-# team can open it at https://nhutruong-uit.github.io/imcp/ without cloning the repository.
-#   - Only this one page is published, as the site's index.html. The site is PUBLIC even though the repository is
-#     private (GitHub Pages of a personal account), so never add the report, the user guide or other docs here.
-#   - Runs when the page or this workflow changes on develop (Settings > Pages > Source: GitHub Actions; the
-#     github-pages environment only accepts deployments from develop).
+# Pages: publishes the project site to GitHub Pages, so anyone (the instructor, visitors, the team) can open it at
+# https://nhutruong-uit.github.io/imcp/ without cloning the repository:
+#   - docs/index.html     -> index.html      the project site: overview, database, architecture, workflow, docs,
+#                                             download, team
+#   - docs/data-map.html  -> data-map.html   the interactive map of the tables and the app flow
+#   - the screenshots that docs/index.html shows (docs/report/images/screens/*.png, demo data), at the same
+#     relative path, so the page works the same opened from the file and online
+# The site is PUBLIC even though the repository is private (GitHub Pages of a personal account): never publish the
+# report, the user guide or other docs here - the site links to them in the repository instead. tst_conventions
+# (docs_projectSite_matchesRepository) fails when docs/index.html links to a local file that this workflow does
+# not publish.
+# Runs when one of these files or this workflow changes on develop (Settings > Pages > Source: GitHub Actions; the
+# github-pages environment only accepts deployments from develop).
 name: Pages
 
 on:
   push:
     branches: [develop]
     paths:
+      - docs/index.html
       - docs/data-map.html
+      - docs/report/images/screens/**
       - .github/workflows/pages.yml
 
 permissions:
@@ -24,7 +33,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Publish the data map
+    name: Publish the project site and the data map
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment:
@@ -33,10 +42,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Collect the page (docs/data-map.html only, served as index.html)
+      - name: Collect the pages and the screenshots they show
         run: |
-          mkdir -p "$RUNNER_TEMP/site"
-          cp docs/data-map.html "$RUNNER_TEMP/site/index.html"
+          SITE="$RUNNER_TEMP/site"
+          mkdir -p "$SITE"
+          cp docs/index.html docs/data-map.html "$SITE/"
+          # Only the screenshots the page names (also in its script), never the whole docs/ folder
+          for shot in $(grep -o 'report/images/screens/[A-Za-z0-9_]*\.png' docs/index.html | sort -u); do
+            mkdir -p "$SITE/$(dirname "$shot")"
+            cp "docs/$shot" "$SITE/$shot"
+          done
+          find "$SITE" -type f | sort
 
       - uses: actions/configure-pages@v6
 
