@@ -121,8 +121,9 @@ def chapter4(g):
         ["Nút **Làm mới**", "Đọc lại dữ liệu mới nhất từ CSDL (khi người khác vừa cập nhật)."],
         ["Nút **Excel**", "Lưu các dòng đang hiển thị ra file `.csv` (mặc định trong thư mục Documents/Tài "
                           "liệu) rồi mở bằng Excel hoặc ứng dụng bảng tính mặc định. File dùng mã UTF-8 nên "
-                          "Excel hiển thị đúng tiếng Việt. Ô bắt đầu bằng `=`, `+` hoặc `@` được thêm dấu `'` ở "
-                          "đầu để Excel không chạy nội dung đó như công thức."],
+                          "Excel hiển thị đúng tiếng Việt. Số tiền và các số khác được ghi dạng số thuần (ví dụ "
+                          "`1500000`, không có dấu chấm và chữ ₫) để Excel cộng, lọc được. Ô bắt đầu bằng `=`, `+` "
+                          "hoặc `@` được thêm dấu `'` ở đầu để Excel không chạy nội dung đó như công thức."],
         ["Nút **PDF**", "Tạo báo cáo PDF khổ A4 (tự xoay ngang khi bảng có hơn 7 cột) gồm tiêu đề trung tâm, "
                         "tên báo cáo, ngày lập, người lập, cột STT, dòng **TỔNG CỘNG** và tổng số dòng; mở ngay "
                         "sau khi lưu."],
@@ -225,6 +226,8 @@ def chapter5(g):
         "**Ghi danh**: mở form ghi danh (mục 5.5) với học viên đang chọn điền sẵn.",
         "**Kiểm tra xếp lớp**: mở form nhập điểm kiểm tra (mục 5.3) với học viên đang chọn điền sẵn.",
     ])
+    g.p("Nút **Ghi danh** chỉ hiện với vai trò được ghi danh (mục 5.5), nút **Kiểm tra xếp lớp** chỉ hiện với vai trò "
+        "được nhập điểm kiểm tra (mục 5.3); hiện nay đó là Quản lý và Giáo vụ.")
     g.h3("5.2.6. Xuất, nhập danh sách bằng XML")
     g.bullets([
         "**Xuất XML**: lưu học viên của chi nhánh đang chọn ở ô lọc chi nhánh (hoặc của mọi chi nhánh) ra một "
@@ -259,9 +262,13 @@ def chapter5(g):
     g.steps([
         "**Mở lớp**: nhập **Tên lớp**, chọn **Khóa học**, **Chi nhánh**, **Giáo viên chính**, **Phòng** (chỉ "
         "phòng của chi nhánh đã chọn), **Khai giảng**, **Sĩ số tối đa**; **Học phí** điền sẵn theo khóa học. "
-        "Bấm **Lưu**: lớp mới có trạng thái **Đang tuyển sinh** và ứng dụng nhắc bước tiếp theo.",
+        "Bấm **Lưu**: lớp mới có trạng thái **Đang tuyển sinh** và ứng dụng nhắc bước tiếp theo. Chi nhánh phải "
+        "đang hoạt động và phòng không được ở trạng thái **Bảo trì**.",
         "**Lịch tuần**: chọn **Thứ**, giờ **Từ** - **Đến** rồi bấm **Lưu khung giờ**; mỗi thứ một khung giờ, "
-        "lưu lại một thứ đã có thì đổi giờ của thứ đó. Chọn một dòng rồi bấm **Xóa khung giờ** để bỏ.",
+        "lưu lại một thứ đã có thì đổi giờ của thứ đó. Chọn một dòng rồi bấm **Xóa khung giờ** để bỏ. Mỗi thay "
+        "đổi xóa các buổi học đã sinh; khi đóng cửa sổ, ứng dụng hỏi **Sinh các buổi học của lớp ... theo lịch "
+        "tuần?** để sinh lại theo lịch mới. Khi lớp đã có buổi **Đã dạy** hoặc **Đã hủy** thì lịch tuần không đổi "
+        "được nữa.",
         "**Sinh buổi học**: tạo đủ số buổi của khóa học theo lịch tuần, bắt đầu từ ngày khai giảng; ứng dụng "
         "báo số buổi đã tạo và ngày của buổi cuối (cũng là ngày kết thúc lớp). Chạy lại thì các buổi cũ được "
         "thay thế, nên chỉ chạy lại được khi chưa có buổi nào **Đã dạy** hoặc **Đã hủy**.",
@@ -281,13 +288,15 @@ def chapter5(g):
     ])
     g.table(["Thao tác", "Quy tắc CSDL kiểm tra"], [
         ["Mở lớp, sửa lớp",
-         "Khóa học **Đang mở**, giáo viên **Đang dạy**; phòng thuộc chi nhánh của lớp và đủ chỗ cho sĩ số tối "
-         "đa; sĩ số tối đa không nhỏ hơn số học viên đang học; chỉ đổi ngày khai giảng khi lớp **Đang tuyển "
+         "Khóa học **Đang mở**, giáo viên **Đang dạy**, chi nhánh đang hoạt động (**Chi nhánh không tồn tại hoặc "
+         "đang tạm ngừng**); phòng thuộc chi nhánh của lớp, không **Bảo trì** (**Phòng đang bảo trì; hãy chọn "
+         "phòng khác**) và đủ chỗ cho sĩ số tối đa; sĩ số tối đa không nhỏ hơn số học viên đang học; chỉ đổi ngày khai giảng khi lớp **Đang tuyển "
          "sinh** và chưa có buổi nào đã dạy hoặc đã hủy; ngày khai giảng mới không làm học viên của lớp bị trùng "
          "lịch với lớp khác của họ."],
-        ["Lịch tuần", "Chỉ với lớp **Đang tuyển sinh** hoặc **Đang học**; giờ học trong khoảng 07:00-22:00; "
-                      "không trùng phòng, không trùng giáo viên với lớp khác cùng thứ và cùng giờ; không làm "
-                      "học viên của lớp bị trùng lịch với lớp khác của họ."],
+        ["Lịch tuần", "Chỉ với lớp **Đang tuyển sinh** hoặc **Đang học** và chưa có buổi đã dạy hoặc đã hủy "
+                      "(**Lịch tuần của lớp đã có buổi đã dạy hoặc đã hủy thì không thể thay đổi nữa**); giờ học "
+                      "trong khoảng 07:00-22:00; không trùng phòng, không trùng giáo viên với lớp khác cùng thứ "
+                      "và cùng giờ; không làm học viên của lớp bị trùng lịch với lớp khác của họ."],
         ["Bắt đầu / hủy lớp",
          "Lớp đi theo thứ tự **Đang tuyển sinh** → **Đang học** → **Đã kết thúc**, hoặc **Đã hủy**. Lớp đã kết "
          "thúc hoặc đã hủy không mở lại được: hãy mở lớp mới."],

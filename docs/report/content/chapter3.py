@@ -67,7 +67,7 @@ PREDICATES = {
     "PLACEMENT_TEST": "Mỗi bài kiểm tra đầu vào của học viên có điểm 4 kỹ năng, điểm tổng và khóa học được đề xuất.",
     "CERTIFICATE": "Mỗi lượt ghi danh đạt yêu cầu được cấp tối đa một chứng nhận có số hiệu duy nhất.",
     "PAYROLL": "Mỗi giáo viên có tối đa một bảng lương cho mỗi tháng, tính từ số giờ đã dạy.",
-    "AUDIT_LOG": "Mỗi dòng nhật ký ghi một thao tác thay đổi dữ liệu nhạy cảm (điểm, phiếu thu), chỉ được ghi thêm.",
+    "AUDIT_LOG": "Mỗi dòng nhật ký ghi một thao tác thay đổi dữ liệu nhạy cảm (điểm, phiếu thu, bảng lương), chỉ được ghi thêm.",
 }
 
 TABLE_ORDER = ["BRANCH", "ROOM", "EMPLOYEE", "TEACHER", "ACCOUNT", "STUDENT", "PROGRAM", "COURSE",

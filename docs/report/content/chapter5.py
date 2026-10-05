@@ -84,7 +84,7 @@ def chapter5(r):
 
     # ------------------------------------------------------------------ 5.4
     r.h2("5.4. Nhật ký kiểm toán (audit)")
-    r.p("Thao tác trên dữ liệu nhạy cảm (điểm số, phiếu thu) được trigger ghi vào AUDIT_LOG: thời điểm, người thực "
+    r.p("Thao tác trên dữ liệu nhạy cảm (điểm số, phiếu thu, bảng lương) được trigger ghi vào AUDIT_LOG: thời điểm, người thực "
         "hiện (`ORIGINAL_LOGIN()` - giữ đúng người thật kể cả khi đang giả lập quyền), bảng, hành động, khóa và **ảnh dữ "
         "liệu cũ/mới dạng XML**. Nhật ký được bảo vệ hai lớp: trigger INSTEAD OF UPDATE, DELETE và `DENY UPDATE, DELETE` "
         "cho cả role Quản lý.")

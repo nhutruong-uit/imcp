@@ -107,7 +107,9 @@ def chapter4(r):
     r.p("Thủ tục kiểm tra lần lượt: học viên còn học, lớp tồn tại và đang nhận ghi danh, chưa ghi danh trùng, **đạt "
         "điều kiện đầu vào** (đã Đạt khóa tiên quyết HOẶC điểm kiểm tra gần nhất ≥ yêu cầu), **không trùng lịch** với "
         "lớp khác đang học, khuyến mãi còn hiệu lực; sau đó trong một giao dịch thêm ENROLLMENT và cập nhật trạng thái học "
-        "viên. Sĩ số tối đa được trigger kiểm tra lại (phòng trường hợp hai người ghi danh đồng thời).")
+        "viên. Ngay đầu giao dịch, thủ tục **khóa dòng lớp** (`UPDLOCK, HOLDLOCK`) rồi mới đếm sĩ số, nên hai người ghi danh "
+        "vào chỗ cuối cùng cùng lúc thì người sau phải chờ và nhận thông báo lớp đã đầy (không gây deadlock); trigger "
+        "`trg_ENROLLMENT_CheckCapacity` vẫn kiểm tra lại sĩ số như lớp bảo vệ cuối cùng.")
     r.code("usp_Enrollment_Create (04_procedures.sql)", sql_object(SQL, "04_procedures.sql", "usp_Enrollment_Create"), size=8.5)
     r.h3("4.4.2. usp_Class_GenerateSessions - sinh lịch buổi học tự động")
     r.code("usp_Class_GenerateSessions (04_procedures.sql)", sql_object(SQL, "04_procedures.sql", "usp_Class_GenerateSessions"), size=8.5)
@@ -171,6 +173,7 @@ def chapter4(r):
         ["trg_GRADE_COMPONENT_Lock", "GRADE_COMPONENT / AFTER INS, UPD, DEL", "Khóa cột điểm của khóa học đã có lớp được đánh giá"],
         ["trg_GRADE_Audit", "GRADE / AFTER INS, UPD, DEL", "Nhật ký thay đổi điểm (XML cũ/mới)"],
         ["trg_RECEIPT_Audit", "RECEIPT / AFTER INS, UPD", "Nhật ký lập/hủy phiếu thu"],
+        ["trg_PAYROLL_Audit", "PAYROLL / AFTER INS, UPD, DEL", "Nhật ký thay đổi lương (số giờ, đơn giá, thưởng, khấu trừ, trạng thái)"],
         ["trg_AUDIT_LOG_ReadOnly", "AUDIT_LOG / INSTEAD OF UPD, DEL", "Nhật ký chỉ ghi thêm"],
         ["trg_PLACEMENT_TEST_Recommend", "PLACEMENT_TEST / AFTER INS, UPD", "Tự đề xuất khóa học"],
         ["trg_CERTIFICATE_CheckResult", "CERTIFICATE / AFTER INS, UPD", "Chỉ cấp cho học viên Đạt"],
@@ -213,6 +216,10 @@ def chapter4(r):
         "`Class %1 is full.`) để hiển thị theo ngôn ngữ giao diện. Lỗi hệ thống (vi phạm CHECK, thiếu quyền, sai mật "
         "khẩu) cũng được ứng dụng dịch sang tiếng Việt.",
         "Trong trigger dùng `RAISERROR ... + ROLLBACK TRANSACTION` theo đúng mẫu bài giảng.",
+        "**Khóa bi quan** cho mẫu “kiểm tra rồi ghi”: trong giao dịch, thủ tục đọc dòng mà quy tắc phụ thuộc với gợi ý "
+        "`WITH (UPDLOCK, HOLDLOCK)` (lớp khi ghi danh, chuyển lớp, sửa lớp; khóa học, giáo viên và chi nhánh khi mở lớp; "
+        "chính dòng đang cập nhật ở các thủ tục danh mục và các thủ tục ghi khung giờ, điểm danh, điểm). Khóa được giữ "
+        "đến khi COMMIT, nên người thứ hai phải chờ rồi thấy trạng thái mới, thay vì cả hai cùng qua bước kiểm tra.",
     ])
 
     # ------------------------------------------------------------------ 4.9
@@ -246,7 +253,13 @@ def chapter4(r):
         "lương không tồn tại, giáo viên không còn dạy). T115-T121 và P26 đi kèm các quyết định sau lần rà soát đó: chỉ "
         "đánh dấu đã trả lương khi tháng đã kết thúc, buổi đã qua giữ giáo viên cũ khi lớp đổi giáo viên, khuyến mãi đã "
         "dùng thì giữ mức giảm và không kết thúc trước lần dùng cuối, ghi danh và phiếu thu không đề ngày tương lai, và "
-        "Quản lý không còn quyền ghi trực tiếp lên bảng danh mục.")
+        "Quản lý không còn quyền ghi trực tiếp lên bảng danh mục. T122-T134 và P27 đi kèm lần xử lý dứt điểm các mục "
+        "còn mở (05/10/2026): không mở hoặc chuyển lớp vào chi nhánh tạm ngưng hay phòng đang bảo trì, khung giờ không "
+        "đổi được khi lớp đã có buổi dạy (đổi khi mọi buổi còn Scheduled thì các buổi đã sinh bị xóa để sinh lại), "
+        "khấu trừ lương được ghi vào nhật ký, ghi danh vào lớp đã kết thúc hoặc với khuyến mãi hết hạn, thu tiền cho "
+        "ghi danh không tồn tại, xét kết quả lớp chưa bắt đầu, lớp có trọng số chưa đủ 100% hay còn thiếu điểm, ghi danh "
+        "Completed mà không có kết quả (CK_ENROLLMENT_Completed), và Kế toán xem được doanh thu tháng trên trang Tổng "
+        "quan (P27, mặt cho phép của P11).")
     r.p("Cách chấm được thiết kế để dùng làm **kiểm thử hồi quy**: bảng `#Expected` liệt kê mọi ca phải chạy và mẫu "
         "thông báo của ca “Rejected” (từ chối) - ca chỉ đạt khi bị từ chối **đúng lý do** (một thủ tục hỏng vì lỗi khác không thể "
         "“đạt” nhầm); có ca không đạt hoặc không chạy thì file kết thúc bằng `THROW 50099`, lệnh `scripts/test_all.sh` "
