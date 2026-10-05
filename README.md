@@ -182,7 +182,7 @@ On Windows run `.\scripts\test_all.ps1`, which does the same steps.
 | [Checks](.github/workflows/checks.yml) | pull requests into `develop` | Change checks, build and unit tests on Linux (no database) |
 | [CI](.github/workflows/ci.yml) | merges into `develop`, pull requests into `main`, manual runs | Build and unit tests on macOS and Windows; the full `test_all` suite on Linux against SQL Server 2022 in Docker |
 | [Release installers (Windows + macOS)](.github/workflows/release.yml) | merges into `main`, manual runs (installers only, no release) | Builds the `.dmg`, `setup.exe` and portable `.zip`, publishes a GitHub Release with the PRs merged since the previous one |
-| [Pages](.github/workflows/pages.yml) | merges into `develop` that change `docs/data-map.html` | Publishes the data map (only that page, public) at <https://nhutruong-uit.github.io/imcp/> |
+| [Pages](.github/workflows/pages.yml) | merges into `develop` that change `docs/index.html`, `docs/data-map.html` or the screenshots | Publishes the project site and the data map (public) at <https://nhutruong-uit.github.io/imcp/> |
 
 Details, options and the database-only test run in SSMS:
 [SETUP.md](docs/SETUP.md#running-the-full-test-suite-with-one-command-before-every-pr).
@@ -222,7 +222,7 @@ tools/               Screenshot generator used for the report and the user guide
 resources/           Icons, the QSS style sheet and translations/qlttta_vi.ts (Vietnamese UI)
 packaging/           Icons, Info.plist, Inno Setup installer, end-user install notes
 scripts/             Dev machine setup, database init, change checks, full test run, macOS/Windows packaging
-.github/             Workflows: Checks (PRs into develop), CI, Release (installers), Pages (data map); the PR template
+.github/             Workflows: Checks (PRs into develop), CI, Release (installers), Pages (project site); the PR template
 .claude/             Claude Code team setup: rules per area, skills, shared settings, C++ format hook
 docs/                Documentation, the project report (docs/report), the user guide (docs/user-guide) and the
                      codebase review logs (docs/reviews)
@@ -238,7 +238,8 @@ docker-compose.yml   SQL Server 2022 Developer for local development
 | [docs/SETUP.md](docs/SETUP.md) | Environment setup on macOS/Windows, database initialization, demo accounts, tests, packaging, troubleshooting |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Clean Architecture, request flow, naming conventions, adding a module, multi-language UI |
 | [docs/DATABASE.md](docs/DATABASE.md) | Database design, object catalog, roles and permissions, mapping to the course syllabus |
-| [docs/data-map.html](docs/data-map.html) | Interactive map, online at <https://nhutruong-uit.github.io/imcp/> or opened from the file: table relationships (click a table for its columns, keys, triggers and the screens that read it), the business flow step by step, the app flow by role |
+| [docs/index.html](docs/index.html) | The public project site, online at <https://nhutruong-uit.github.io/imcp/>: overview, the app by role, database, architecture, tech stack, workflow, report and user guide, installers, team |
+| [docs/data-map.html](docs/data-map.html) | Interactive map, online at <https://nhutruong-uit.github.io/imcp/data-map.html> or opened from the file: table relationships (click a table for its columns, keys, triggers and the screens that read it), the business flow step by step, the app flow by role |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Git/GitHub workflow, coding conventions, pull request checklist, working with Claude Code |
 | [docs/PLAN.md](docs/PLAN.md) | Schedule up to the submission date, member assignments, oral-defense preparation |
 | [docs/reviews/](docs/reviews/) | Logs of the codebase reviews (findings and their status) and the marker of the last reviewed commit |

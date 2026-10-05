@@ -44,8 +44,10 @@ verify the marked (✔) rules automatically on every `test_all` / CI run.
 - ✔ A new, renamed or removed table, column, foreign key or trigger is copied into the constants `TABLES`, `FKS` and
   `TRIGGERS` of `docs/data-map.html` in the same commit (checked by `tst_conventions`,
   `docs_dataMap_matchesScripts`); a new procedure step or app screen goes into its `STEPS` / `SCREENS` by hand.
-  ✔ Renaming or dropping a procedure, view, function, trigger, constraint or index that the page names fails
-  `docs_dataMapNames_existInScripts` until the page is updated.
+  A new or renamed table also goes into its business group on the project site `docs/index.html`
+  (`docs_projectSite_matchesRepository`).
+  ✔ Renaming or dropping a procedure, view, function, trigger, constraint or index that the data map or the
+  project site names fails `docs_sitePages_namesExistInScripts` until the page is updated.
 
 ## Format
 - Keywords in **UPPERCASE** (`SELECT`, `JOIN`, `BEGIN TRY`), **4-space** indentation, every statement ends with `;`.

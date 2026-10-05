@@ -4,13 +4,14 @@
   What it is for: open it in a browser (double-click, or `open docs/data-map.html`) to see how the tables relate,
   which procedure writes which table, which rule or trigger rejects bad data, and which app screen reads what.
   Who uses it: every team member - before changing the schema, when planning a new screen, and to prepare the
-  oral defense.
+  oral defense. Published online at https://nhutruong-uit.github.io/imcp/data-map.html, next to the project site
+  (docs/index.html), which the header links back to.
   Course concepts: ERD and relational schema (primary/foreign keys, cardinality, recursive and n-n relationships),
   integrity constraints and triggers, stored procedures as the only write path, role-based authorization.
   Data: the constants TABLES, FKS and TRIGGERS copy database/01_tables.sql and database/05_triggers.sql. The test
   tst_conventions (docs_dataMap_matchesScripts) fails when they differ - update them in the same commit as the
   scripts. STEPS, SCREENS and the flows describe 04_procedures.sql and src/: tst_conventions also checks that every
-  database object they name exists (docs_dataMapNames_existInScripts) and that SCREENS is the role menu of
+  database object they name exists (docs_sitePages_namesExistInScripts) and that SCREENS is the role menu of
   Permissions.cpp (docs_dataMapScreens_matchPermissions); the explanations themselves are updated by hand.
   Libraries: ELK (elkjs, layered layout) from jsDelivr and Google Fonts; offline, a simpler built-in layout is used.
 -->
@@ -72,6 +73,8 @@ h1, h2, h3, h4 { text-wrap: balance; margin: 0; }
 .top { background: var(--surface); border-bottom: 1px solid var(--line); }
 .top .wrap { padding-block: 26px 0; }
 .eyebrow { margin: 0 0 6px; font: 600 11.5px/1.2 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.eyebrow a { color: var(--accent-2); text-decoration: none; }
+.eyebrow a:hover { text-decoration: underline; }
 h1 { font-size: clamp(26px, 3.4vw, 36px); font-weight: 700; letter-spacing: -.015em; line-height: 1.15; }
 .lede { margin: 8px 0 0; max-width: 68ch; color: var(--ink-2); }
 .stats { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 18px 0 0; padding: 0; }
@@ -275,7 +278,7 @@ table.data td .mono { color: var(--ink); white-space: nowrap; }
 <body>
 <header class="top">
   <div class="wrap">
-    <p class="eyebrow">IE103 · QLTTTA · SQL Server + Qt</p>
+    <p class="eyebrow"><a href="index.html">← QLTTTA project site</a> · IE103 · SQL Server + Qt</p>
     <h1>QLTTTA Data Map</h1>
     <p class="lede">How the tables relate, how the business flow moves through the database, and how the Qt app reaches the data, in one place for the whole team.</p>
     <dl class="stats">
