@@ -256,11 +256,13 @@ case proves it. Use this table to find the code behind a rule during the defense
 | A class whose students paid cannot be cancelled | - | `usp_Class_UpdateStatus` | `T42` |
 | A class goes Enrolling → In progress → Finished or Cancelled, never back (a new class instead); cancelling closes its enrollments | - | `usp_Class_UpdateStatus` | `T54`, `T55` |
 | A changed class keeps at least its enrolled students, moves its start date only while it is enrolling and no session took place (also past its old end date), and its new teacher or room is checked for clashes and applies to the sessions from today on | - | `usp_Class_Update`, `trg_CLASS_SCHEDULE_CheckConflict` fired again | `T72`, `T73`, `T74`, `T83`, `T101`, `T102`, `T114`, `T116` |
-| Only the timetable of an Enrolling or In progress class changes | - | `usp_ClassSchedule_Add`, `usp_ClassSchedule_Remove` | `T75`, `T94`, `T112` |
+| Only the timetable of an Enrolling or In progress class changes, and only while no session was taught or cancelled; a change removes the generated sessions | - | `usp_ClassSchedule_Add`, `usp_ClassSchedule_Remove` | `T75`, `T94`, `T112`, `T124`, `T125` |
+| A class opens (or moves) only with an open course, a teaching teacher, an active branch and a room not under maintenance | - | `usp_Class_Create`, `usp_Class_Update` | `T122`, `T123`, `T134` |
+| Two users at the same moment never break a rule checked first | - | `UPDLOCK, HOLDLOCK` in `usp_Enrollment_Create`, `usp_Class_Create`, `usp_Class_Update`, the slot and catalog procedures | - (needs two sessions at once) |
 | A student is Completed after the last class, Studying again with the next enrollment | - | `usp_Class_EvaluateResults`, `usp_Enrollment_Create` | `T71` |
 | Phone numbers have 9-11 digits | `Student::validate`, digits-only fields | `CK_STUDENT_Phone` | `T02` |
 | No double enrollment in a class | - | `usp_Enrollment_Create`, `UQ_ENROLLMENT_StudentId_ClassId` | `T03` |
-| Entry requirement (prerequisite course or placement score) | - | `usp_Enrollment_Create` | `T04`, `T33`, `T65` |
+| Entry requirement (prerequisite course or placement score); an open class and a valid promotion | - | `usp_Enrollment_Create` | `T04`, `T33`, `T65`, `T127`, `T128` |
 | An enrollment or a receipt is never dated in the future (attendance counts from the enrollment date) | `EnrollmentRequest::validate`, date field limit | `usp_Enrollment_Create`, `usp_Receipt_Create` | `T120`, `T121` |
 | A student cannot take two classes at the same time, also when a class gets a new slot or start date | - | `fn_StudentScheduleClash` in `usp_Enrollment_Create`, `usp_Enrollment_TransferClass`, `usp_Enrollment_UpdateStatus`, `usp_ClassSchedule_Add`, `usp_Class_Update` | `T05`, `T34`, `T52`, `T105`, `T111` |
 | A completed enrollment keeps its status (grade and result come from the evaluation) | - | `usp_Enrollment_UpdateStatus` | `T53` |
@@ -275,12 +277,13 @@ case proves it. Use this table to find the code behind a rule during the defense
 | Grades, attendance and sessions are final once the class is finished | - | `usp_Grade_Save`, `usp_Attendance_Save`, `usp_Session_Update` | `T43`, `T44`, `T56` |
 | Attendance counts the sessions taught since the student joined the class (enrollment or transfer) | - | `fn_AttendanceRate`, `ENROLLMENT.ClassJoinedOn` | `T48`, `T69` |
 | The grade components of an evaluated course are frozen | - | `trg_GRADE_COMPONENT_Lock` | `T68` |
-| A class is evaluated only when no session is still scheduled | - | `usp_Class_EvaluateResults` | `T57` |
+| A class is evaluated only when it started, no session is still scheduled, the weights add up to 100% and every score is there | - | `usp_Class_EvaluateResults` | `T57`, `T130`, `T131`, `T132` |
 | The audit log is append-only | - | `trg_AUDIT_LOG_ReadOnly`, `DENY UPDATE, DELETE` | `T11`, `P14`, `P15` |
 | Certificates only for students who passed, also after a re-evaluation | - | `trg_CERTIFICATE_CheckResult`, `usp_Class_EvaluateResults` | `T12`, `T23`, `T35` |
 | Attendance only for students of the session's class | - | `trg_ATTENDANCE_CheckClass` | `T37` |
 | A grade belongs to a component of the class's course | - | `trg_GRADE_CheckComponent` | `T38` |
-| Every change of a grade is logged | - | `trg_GRADE_Audit` | `T39` |
+| Every change of a grade is logged, and of the pay of a teacher | - | `trg_GRADE_Audit`, `trg_PAYROLL_Audit` | `T39`, `T126` |
+| An enrollment is Completed exactly when it has a result | - | `CK_ENROLLMENT_Completed` | `T133` |
 | A taught session cannot be moved or set back; a future session cannot be marked taught | - | `trg_CLASS_SESSION_LockTaught` | `T13`, `T50`, `T51` |
 | A full class accepts nobody else | - | `trg_ENROLLMENT_CheckCapacity` | `T21` |
 | A teacher sees only their own classes and students | teacher menu (`Permissions`) | `DENY SELECT` on `STUDENT`, `RECEIPT`, `PAYROLL`, the `vw_Teacher_My*` views | `P01`, `P02`, `P18`, `P19` |

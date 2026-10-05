@@ -110,8 +110,12 @@ void ClassPage::editSchedule() {
     const QString id = selectedClassId();
     ScheduleDialog dialog(m_services.classes, id, selectedClassName(), canEdit(), this);
     dialog.exec();
-    if (dialog.changed())
-        reloadAndSelect(QStringLiteral("ClassId"), id);
+    if (!dialog.changed())
+        return;
+    // A timetable change removed the generated sessions (usp_ClassSchedule_Add / _Remove): offer to generate
+    // them again from the new timetable, as after a new start date
+    reloadAndSelect(QStringLiteral("ClassId"), id);
+    generateSessions(id, true);
 }
 
 void ClassPage::generateSessions(const QString& classId, bool askFirst) {

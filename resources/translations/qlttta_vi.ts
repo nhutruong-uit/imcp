@@ -1822,6 +1822,18 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <source>The end date cannot be before the last enrollment that used the promotion.</source>
         <translation>Ngày kết thúc không được trước lần ghi danh cuối cùng đã dùng khuyến mãi này.</translation>
     </message>
+    <message>
+        <source>The room is under maintenance; choose another room.</source>
+        <translation>Phòng đang bảo trì; hãy chọn phòng khác.</translation>
+    </message>
+    <message>
+        <source>The branch does not exist or is suspended.</source>
+        <translation>Chi nhánh không tồn tại hoặc đang tạm ngừng.</translation>
+    </message>
+    <message>
+        <source>The weekly schedule of a class with taught or cancelled sessions can no longer change.</source>
+        <translation>Lịch tuần của lớp đã có buổi đã dạy hoặc đã hủy thì không thể thay đổi nữa.</translation>
+    </message>
 </context>
 <context>
     <name>DbValues</name>
@@ -3150,16 +3162,16 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Đến</translation>
     </message>
     <message>
-        <source>Existing sessions do not change: generate the sessions again on the Classes page while none has been taught.</source>
-        <translation>Các buổi học đã sinh không đổi theo: hãy sinh lại buổi học ở trang Lớp học khi chưa có buổi nào được dạy.</translation>
-    </message>
-    <message>
         <source>Close</source>
         <translation>Đóng</translation>
     </message>
     <message>
         <source>Remove the %1 slot?</source>
         <translation>Xóa khung giờ %1?</translation>
+    </message>
+    <message>
+        <source>A change removes the generated sessions; they are generated again from the new timetable when you close this window. Once a session was taught the timetable is fixed.</source>
+        <translation>Mỗi thay đổi sẽ xóa các buổi học đã sinh; khi đóng cửa sổ này, ứng dụng sinh lại buổi học theo lịch mới. Khi đã có buổi được dạy thì lịch tuần không đổi được nữa.</translation>
     </message>
 </context>
 <context>

@@ -37,6 +37,11 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages",
                       "The maximum size cannot be lower than the number of students enrolled in the class."),
     QT_TRANSLATE_NOOP("DbMessages", "Schedule slot not found."),
+    QT_TRANSLATE_NOOP("DbMessages", "The room is under maintenance; choose another room."),
+    QT_TRANSLATE_NOOP("DbMessages", "The branch does not exist or is suspended."),
+    QT_TRANSLATE_NOOP(
+        "DbMessages",
+        "The weekly schedule of a class with taught or cancelled sessions can no longer change."),
     // C. Enrollment
     QT_TRANSLATE_NOOP("DbMessages", "The student does not exist or has dropped out."),
     QT_TRANSLATE_NOOP("DbMessages", "The class no longer accepts enrollments."),

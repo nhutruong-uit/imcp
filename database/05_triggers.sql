@@ -339,7 +339,7 @@ END;
 GO
 
 /* T10. trg_AUDIT_LOG_ReadOnly (INSTEAD OF UPDATE, DELETE): the audit log is append-only
-        Tested by test T11 (UPDATE as dbo). INSERT stays allowed: the audit triggers T8 and T9 add rows.
+        Tested by test T11 (UPDATE as dbo). INSERT stays allowed: the audit triggers T8, T9 and T16 add rows.
         Why INSTEAD OF: the UPDATE/DELETE is replaced by the error, so no row changes, even for dbo and
         sysadmin, who are not stopped by the DENY UPDATE, DELETE of 06_security.sql. TRUNCATE TABLE fires
         no trigger, but it needs ALTER permission on the table, which no business role has.
@@ -523,5 +523,41 @@ BEGIN
         RAISERROR (N'The grade components of a course with evaluated classes cannot be changed; open a new course instead.', 16, 1);
         ROLLBACK TRANSACTION;
     END;
+END;
+GO
+
+/* T16. trg_PAYROLL_Audit: log every change of the money of a payroll row (old/new data as XML)
+        Fired by: usp_Payroll_Finalize (a new row, a refreshed figure, a row removed because its sessions are no
+        longer Taught), usp_Payroll_Adjust (the deduction) and usp_Payroll_MarkPaid (Status Paid); tested by test
+        T126, which finds the deduction in OldData / NewData.
+        Why: pay is money like receipts - who changed a deduction or paid a month must be traceable.
+        How: AFTER INSERT, UPDATE, DELETE; FULL OUTER JOIN of inserted and deleted on PayrollId (as T8): only
+        inserted = INSERT, only deleted = DELETE, both = UPDATE. A refresh of F1 that changes no figure (only
+        FinalizedAtUtc) is not logged.
+        Concepts: audit trail, FULL OUTER JOIN of inserted/deleted, FOR XML PATH. */
+IF OBJECT_ID(N'dbo.trg_PAYROLL_Audit', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_PAYROLL_Audit;
+GO
+CREATE TRIGGER dbo.trg_PAYROLL_Audit
+ON dbo.PAYROLL
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO dbo.AUDIT_LOG (TableName, Action, RecordKey, OldData, NewData)
+    SELECT N'PAYROLL',
+           CASE WHEN i.PayrollId IS NOT NULL AND d.PayrollId IS NOT NULL THEN 'UPDATE'
+                WHEN i.PayrollId IS NOT NULL THEN 'INSERT' ELSE 'DELETE' END,
+           CAST(COALESCE(i.PayrollId, d.PayrollId) AS NVARCHAR(20)),
+           CASE WHEN d.PayrollId IS NULL THEN NULL
+                ELSE (SELECT d.TeacherId, d.Month, d.Year, d.Hours, d.HourlyRate, d.Bonus, d.Deduction, d.Status
+                      FOR XML PATH('Payroll'), TYPE) END,
+           CASE WHEN i.PayrollId IS NULL THEN NULL
+                ELSE (SELECT i.TeacherId, i.Month, i.Year, i.Hours, i.HourlyRate, i.Bonus, i.Deduction, i.Status
+                      FOR XML PATH('Payroll'), TYPE) END
+    FROM inserted i
+    FULL OUTER JOIN deleted d ON d.PayrollId = i.PayrollId
+    WHERE i.PayrollId IS NULL OR d.PayrollId IS NULL
+       OR i.Hours <> d.Hours OR i.HourlyRate <> d.HourlyRate OR i.Bonus <> d.Bonus OR i.Deduction <> d.Deduction
+       OR i.Status <> d.Status;
 END;
 GO

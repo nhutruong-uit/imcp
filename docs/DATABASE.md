@@ -103,13 +103,13 @@ run `usp_Account_RecordLogin` and `usp_Account_ChangePassword`, and read the cat
 | Syllabus topic | Implementation in the project | File |
 |---|---|---|
 | Conceptual and logical model; ERD, CD | 21 entities, recursive relationship, n-n, specialization (people) | report Ch.3 |
-| Integrity constraints | 21 PK, 32 FK, 75 CHECK, 13 UNIQUE + 5 filtered unique indexes, 45 DEFAULT, 8 SEQUENCE | `01_tables.sql` |
+| Integrity constraints | 21 PK, 32 FK, 76 CHECK, 13 UNIQUE + 5 filtered unique indexes, 45 DEFAULT, 8 SEQUENCE | `01_tables.sql` |
 | XML model | Typed XML (XSD) for course syllabi, untyped XML for teacher profiles and the audit log | `01`, `07` |
 | SQL queries | JOIN, GROUP BY/HAVING, NOT EXISTS, relational division, CTE, recursion, window functions, PIVOT | `08_demo_queries.sql` |
 | XPath/XQuery | `.value() .query() .exist() .nodes() .modify()`, FLWOR, `sql:variable`, `FOR XML PATH` | `04`, `08` |
 | Stored procedures | 64 procedures: business logic, transactions, OUTPUT parameters, safe dynamic SQL, `EXECUTE AS OWNER`, a recursive CTE (prerequisite loops), the catalog procedures of group J | `04_procedures.sql` |
 | Functions | 14 scalar, 4 inline table-valued, 1 multi-statement table-valued (incl. the center time zone functions, section 7) | `02_functions.sql` |
-| Triggers | 15 triggers: AFTER/INSTEAD OF, inter-relation constraints, derived attributes, audit | `05_triggers.sql` |
+| Triggers | 16 triggers: AFTER/INSTEAD OF, inter-relation constraints, derived attributes, audit | `05_triggers.sql` |
 | Cursors | Course-result evaluation (`usp_Class_EvaluateResults`), monthly payroll closing (`usp_Payroll_Finalize`), seed-data loading | `04`, `07` |
 | Views | 13 views, including 5 security views filtered by the logged-in teacher | `03_views.sql` |
 | Authentication / authorization | Contained users, 4 roles, object-level and column-level GRANT/DENY, ownership chaining (section 4) | `06_security.sql` |
@@ -118,7 +118,7 @@ run `usp_Account_RecordLogin` and `usp_Account_ChangePassword`, and read the cat
 | Menu / form / report | Qt application: role-based menu, Qt Designer forms, PDF reports with header/footer/totals | `src/presentation` |
 | Distributed database | Horizontal fragmentation by branch, replicated catalog tables, distributed view, completeness/disjointness check | `11_distributed_demo.sql` |
 | Object-oriented DB, NoSQL | Model conversion and comparison | report Ch.7 |
-| Automated database tests | 147 cases: `T01`-`T27`, `T31`, `T33`-`T65` and `T67`-`T121` (integrity constraints and business rules, functions, triggers, cursors, XML, UTC times, class changes, catalogs, payroll, receipts), `T28`-`T30`, `T32` and `T66` (schema conventions: naming, least-privilege permission matrix, `SET NOCOUNT ON` / no `SELECT *`, time conventions, ID sequence limits) and `P01`-`P26` (permissions, via `EXECUTE AS USER`); every case that writes runs in a transaction that is rolled back | `12_tests.sql` |
+| Automated database tests | 161 cases: `T01`-`T27`, `T31`, `T33`-`T65` and `T67`-`T134` (integrity constraints and business rules, functions, triggers, cursors, XML, UTC times, class changes, catalogs, payroll, receipts), `T28`-`T30`, `T32` and `T66` (schema conventions: naming, least-privilege permission matrix, `SET NOCOUNT ON` / no `SELECT *`, time conventions, ID sequence limits) and `P01`-`P27` (permissions, via `EXECUTE AS USER`); every case that writes runs in a transaction that is rolled back | `12_tests.sql` |
 | Automated server-level tests | 20 cases `S01`-`S20`: backup chain + restore into a new database (contained users sign in to the copy), `usp_Backup` (and its input checks), BULK INSERT of the sample CSV, fragmentation/replication/partition elimination/linked server for `11_distributed_demo.sql`, account lockout and password reset with real sign-ins through a loopback linked server | `13_server_tests.sql` |
 
 `db_init` runs scripts `00`-`07` (create database, tables, functions, views, procedures, triggers, security, seed
@@ -153,7 +153,8 @@ data). Scripts `08`-`11` are demonstrations to run by hand; `12` and `13` are th
 8. A session is marked taught only on or after its date and then stays taught; a taught session cannot change
    time/room/teacher (this keeps payroll data correct). A new teacher or room of a class applies to its sessions from
    today on: a past session keeps the teacher who taught it.
-9. The audit log is append-only (INSTEAD OF UPDATE, DELETE, plus `DENY` even for managers).
+9. Every change of a grade, a receipt or the pay of a teacher is written to the audit log, which is append-only
+   (INSTEAD OF UPDATE, DELETE, plus `DENY` even for managers).
 10. A class goes Enrolling → In progress → Finished (set by the evaluation), or is Cancelled; it never reopens - the
     center opens a new class instead. Cancelling is refused while students hold valid receipts and closes the other
     enrollments (status Left).
@@ -164,6 +165,30 @@ data). Scripts `08`-`11` are demonstrations to run by hand; `12` and `13` are th
     with a lower rate); a month is marked paid only after it has ended, and a paid row never changes.
 13. A promotion that enrollments use keeps its discount and start date (a class transfer applies it again), and its end
     date never moves before the last enrollment that used it.
+14. A class opens only with an open course, a teaching teacher, an active branch and a room that is not under
+    maintenance. Its weekly timetable and its sessions always agree: a timetable change removes the generated sessions
+    (they are generated again), and once a session was taught or cancelled the timetable is fixed.
+15. An enrollment is Completed exactly when it has a result (`CK_ENROLLMENT_Completed`): the evaluation writes the
+    status, the final grade and the result together.
+16. Two users at the same moment never break a rule that was checked first: the procedures lock the row the rule
+    depends on (`UPDLOCK, HOLDLOCK` - the class for its seats, the course, teacher and branch while a class opens)
+    until they commit, so the second user waits and then sees the new state ("Class ... is full" instead of a
+    deadlock).
+
+Business constants live in one place each, written in the rule they belong to (a settings table would add a screen
+and a design the course does not need):
+
+| Constant | Value | Where |
+|---|---|---|
+| Pass mark, attendance needed | final grade ≥ 5, attendance ≥ 80% | `usp_Class_EvaluateResults` (the grade book shows the same mark: `GradeLimits::passMark`) |
+| Payroll bonus | 500,000 VND from 20 taught sessions in a month | `usp_Payroll_Finalize` |
+| Percentage discount cap | 50% | `CK_PROMOTION_DiscountValue` |
+| Opening hours of a timetable slot | 07:00-22:00 | `CK_CLASS_SCHEDULE_Time` |
+| Classification bands | 9 / 8 / 6.5 / 5 | `fn_Classification` |
+
+`CLASS.BranchId` repeats the branch of the room on purpose (a class keeps its branch for revenue and filters even if
+the room moves later); `trg_CLASS_CheckRoom` and `trg_ROOM_CheckClasses` keep the two equal while the class is
+active.
 
 ## 7. Time: UTC instants and center dates
 

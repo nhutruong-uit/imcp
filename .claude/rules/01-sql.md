@@ -100,7 +100,7 @@ A procedure with a single write statement needs no TRY/TRANSACTION (like `usp_St
 |---|---|---|---|---|
 | A. Students | 50001-50009 | | E. Attendance, grades, results | 50040-50049 |
 | B. Classes, schedules, sessions | 50010-50019 | | F. Payroll | 50050-50059 |
-| B6-B8. Class changes, slot removal | 50080-50089 | | I. Accounts | 50060-50069 |
+| B (continued). Class changes, rooms, slots | 50080-50089 | | I. Accounts | 50060-50069 |
 | C. Enrollment, class transfer | 50020-50029 | | I7. Backup | 50070-50079 |
 | D. Receipts | 50030-50039 | | J. Catalogs | 50090-50098 |
 | C (continued). Enrollment | 50100-50109 | | J (continued). Catalogs | 50110-50119 |

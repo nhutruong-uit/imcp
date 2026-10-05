@@ -73,7 +73,7 @@ INSERT #Expected VALUES
     ('T13', N'%taught session%'),               ('T14', N'%same course%'),
     ('T15', NULL), ('T16', NULL), ('T17', NULL), ('T18', NULL), ('T19', NULL), ('T20', NULL),
     ('T21', N'%is full%'),                      ('T22', NULL), ('T23', NULL), ('T24', NULL),
-    ('T25', N'%future month%'),                 ('T26', NULL), ('T27', N'%XML%'),
+    ('T25', N'%future month%'),                 ('T26', NULL), ('T27', N'%''ElementNotInSchema''%'),
     ('T28', NULL), ('T29', NULL), ('T30', NULL), ('T31', NULL), ('T32', NULL),
     ('T33', N'%prerequisite course first%'),    ('T34', N'%clashes with another class%'),
     ('T35', NULL),                              ('T36', N'%letters without diacritics%'),
@@ -125,10 +125,20 @@ INSERT #Expected VALUES
     ('T119', NULL),
     ('T120', N'%enrollment cannot be dated in the future%'),
     ('T121', N'%payment cannot be dated in the future%'),
-    ('P01', N'%STUDENT%'),                      ('P02', NULL),
+    ('T122', N'%branch does not exist or is suspended%'),
+    ('T123', N'%room is under maintenance%'),
+    ('T124', N'%weekly schedule of a class with taught or cancelled sessions%'),
+    ('T125', NULL),                             ('T126', NULL),
+    ('T127', N'%no longer accepts enrollments%'),
+    ('T128', N'%promotion code does not exist or has expired%'),
+    ('T129', N'%Valid enrollment not found%'),  ('T130', N'%has not started yet%'),
+    ('T131', N'%weights of the course do not add up to 100%'),
+    ('T132', N'%Grades are still missing for%'), ('T133', N'%CK_ENROLLMENT_Completed%'),
+    ('T134', N'%room is under maintenance%'),
+    ('P01', N'%''STUDENT''%'),                      ('P02', NULL),
     ('P03', N'%only enter grades%'),            ('P04', N'%usp_Enrollment_Create%'),
     ('P05', NULL),                              ('P06', N'%HourlyRate%'),
-    ('P07', N'%PAYROLL%'),                      ('P08', N'%RECEIPT%'),
+    ('P07', N'%''PAYROLL''%'),                      ('P08', N'%RECEIPT%'),
     ('P09', N'%usp_Account_Create%'),           ('P10', NULL), ('P11', NULL),
     ('P12', N'%current password is incorrect%'), ('P13', N'%current password is incorrect%'),
     ('P14', N'%AUDIT_LOG%'),                    ('P15', N'%AUDIT_LOG%'),
@@ -138,7 +148,7 @@ INSERT #Expected VALUES
     ('P21', N'%only take attendance for sessions you teach%'),
     ('P22', N'%usp_Branch_Add%'),               ('P23', N'%usp_Class_Update%'),
     ('P24', NULL),                              ('P25', N'%usp_Grade_ByClass%'),
-    ('P26', N'%''COURSE''%');
+    ('P26', N'%''COURSE''%'),                   ('P27', NULL);
 GO
 
 /* ---------------- A. INTEGRITY CONSTRAINTS & BUSINESS RULES ---------------- */
@@ -1435,6 +1445,196 @@ BEGIN CATCH
 END CATCH;
 GO
 
+-- T122: a new class in a suspended branch
+--       Proves usp_Class_Create refuses a branch that is not Active (THROW 50085). Scenario, rolled back: BR02 is
+--       suspended directly (usp_Branch_Update would refuse it while BR02 runs classes), then a class opens there.
+BEGIN TRY
+    DECLARE @Class122 VARCHAR(10);
+    BEGIN TRAN;
+    UPDATE dbo.BRANCH SET Status = N'Suspended' WHERE BranchId = 'BR02';
+    EXEC dbo.usp_Class_Create @ClassName = N'T122 class', @CourseId = 'TO-450', @BranchId = 'BR02',
+         @TeacherId = 'TE0004', @RoomId = 'TD-301', @StartDate = '20300107', @ClassId = @Class122 OUTPUT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T122', N'New class in a suspended branch', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T122', N'New class in a suspended branch', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T123: a new class in a room under maintenance
+--       Proves usp_Class_Create refuses a room under maintenance (THROW 50084). Scenario, rolled back: D1-101 goes
+--       to maintenance, then a class of BR01 is opened in it.
+BEGIN TRY
+    DECLARE @Class123 VARCHAR(10);
+    BEGIN TRAN;
+    UPDATE dbo.ROOM SET Status = N'Maintenance' WHERE RoomId = 'D1-101';
+    EXEC dbo.usp_Class_Create @ClassName = N'T123 class', @CourseId = 'TO-450', @BranchId = 'BR01',
+         @TeacherId = 'TE0002', @RoomId = 'D1-101', @StartDate = '20300107', @ClassId = @Class123 OUTPUT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T123', N'New class in a room under maintenance', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T123', N'New class in a room under maintenance', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T124: a new weekly slot for a class that has taught sessions
+--       Proves usp_ClassSchedule_Add keeps the timetable and the sessions in step (THROW 50086): the sessions of
+--       CL0004 (in progress) can no longer be generated again, so its timetable is fixed.
+BEGIN TRY
+    BEGIN TRAN;
+    EXEC dbo.usp_ClassSchedule_Add @ClassId = 'CL0004', @Weekday = 6, @StartTime = '14:00', @EndTime = '15:30';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T124', N'Weekly slot for a class with taught sessions', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T124', N'Weekly slot for a class with taught sessions', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T127: an enrollment into a finished class
+--       Proves usp_Enrollment_Create refuses a class that no longer takes students (THROW 50021): CL0001 is
+--       Finished.
+BEGIN TRY
+    DECLARE @Enrollment127 VARCHAR(10);
+    BEGIN TRAN;
+    EXEC dbo.usp_Enrollment_Create @StudentId = 'ST00001', @ClassId = 'CL0001', @EnrollmentId = @Enrollment127 OUTPUT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T127', N'Enrollment into a finished class', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T127', N'Enrollment into a finished class', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T128: an enrollment with a promotion that has expired
+--       Proves usp_Enrollment_Create refuses a promotion that is not valid on the enrollment date (THROW 50025):
+--       PR-SUMMER ended months ago. The student meets every other rule (CM-A1 has no entry requirement, no clash).
+BEGIN TRY
+    DECLARE @Student128 VARCHAR(10), @Enrollment128 VARCHAR(10);
+    SELECT TOP (1) @Student128 = StudentId FROM dbo.ENROLLMENT
+    WHERE ClassId = 'CL0003' AND Status = N'Studying'
+      AND StudentId NOT IN (SELECT StudentId FROM dbo.ENROLLMENT WHERE ClassId = 'CL0010')
+    ORDER BY StudentId;
+    BEGIN TRAN;
+    EXEC dbo.usp_Enrollment_Create @StudentId = @Student128, @ClassId = 'CL0010', @PromotionId = 'PR-SUMMER',
+         @EnrollmentId = @Enrollment128 OUTPUT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T128', N'Enrollment with an expired promotion', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T128', N'Enrollment with an expired promotion', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T129: a payment for an enrollment that does not exist
+--       Proves usp_Receipt_Create checks the enrollment (THROW 50031) before the INSERT: the foreign key would
+--       refuse it with a technical message.
+BEGIN TRY
+    DECLARE @Receipt129 VARCHAR(10);
+    BEGIN TRAN;
+    EXEC dbo.usp_Receipt_Create @EnrollmentId = 'EN999999', @Amount = 100000, @EmployeeId = 'EM0003',
+         @ReceiptId = @Receipt129 OUTPUT;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T129', N'Payment for an enrollment that does not exist', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T129', N'Payment for an enrollment that does not exist', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T130: evaluating a class that has not started
+--       Proves usp_Class_EvaluateResults only evaluates a class that is In progress or Finished (THROW 50043):
+--       CL0008 is still Enrolling.
+BEGIN TRY
+    BEGIN TRAN;
+    EXEC dbo.usp_Class_EvaluateResults @ClassId = 'CL0008';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T130', N'Evaluate a class that has not started', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T130', N'Evaluate a class that has not started', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T131: evaluating a class whose course weights do not add up to 100
+--       Proves usp_Class_EvaluateResults reads vw_CourseInvalidWeights (THROW 50044). Scenario, rolled back: a
+--       component of TO-450 gets 20% instead of 10% (110% in all), then CL0004 is evaluated.
+BEGIN TRY
+    BEGIN TRAN;
+    UPDATE dbo.GRADE_COMPONENT SET Weight = 20 WHERE CourseId = 'TO-450' AND ComponentName = N'Participation';
+    EXEC dbo.usp_Class_EvaluateResults @ClassId = 'CL0004';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T131', N'Evaluate a class whose weights are not 100%', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T131', N'Evaluate a class whose weights are not 100%', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T132: evaluating a class while scores are missing
+--       Proves usp_Class_EvaluateResults counts the students without a final grade (THROW 50045, a message built
+--       from the count): CL0004 has scores for some components only. Scenario, rolled back: its coming sessions
+--       are cancelled first, so the check of the scheduled sessions (50047, T57) does not stop it earlier.
+BEGIN TRY
+    BEGIN TRAN;
+    UPDATE dbo.CLASS_SESSION SET Status = N'Cancelled' WHERE ClassId = 'CL0004' AND Status = N'Scheduled';
+    EXEC dbo.usp_Class_EvaluateResults @ClassId = 'CL0004';
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T132', N'Evaluate a class with missing scores', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T132', N'Evaluate a class with missing scores', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T133: a completed enrollment without a result
+--       Proves CK_ENROLLMENT_Completed: Status, Result and FinalGrade change together (the evaluation writes all
+--       three), so Completed without a result is refused even for a direct UPDATE.
+BEGIN TRY
+    BEGIN TRAN;
+    UPDATE dbo.ENROLLMENT SET Status = N'Completed'
+    WHERE EnrollmentId = (SELECT TOP (1) EnrollmentId FROM dbo.ENROLLMENT WHERE Status = N'Studying' ORDER BY EnrollmentId);
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T133', N'Completed enrollment without a result', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T133', N'Completed enrollment without a result', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T134: a class moved to a room under maintenance
+--       Proves the room check of usp_Class_Update (THROW 50084, as T123 for a new class). Scenario, rolled back:
+--       D1-101 goes to maintenance, then CL0010 (room D1-102) is given D1-101.
+BEGIN TRY
+    DECLARE @Name134 NVARCHAR(100), @Teacher134 VARCHAR(10), @Start134 DATE, @Max134 INT, @Tuition134 DECIMAL(12,0);
+    SELECT @Name134 = ClassName, @Teacher134 = TeacherId, @Start134 = StartDate, @Max134 = MaxStudents,
+           @Tuition134 = Tuition
+    FROM dbo.CLASS WHERE ClassId = 'CL0010';
+    BEGIN TRAN;
+    UPDATE dbo.ROOM SET Status = N'Maintenance' WHERE RoomId = 'D1-101';
+    EXEC dbo.usp_Class_Update @ClassId = 'CL0010', @ClassName = @Name134, @TeacherId = @Teacher134,
+         @RoomId = 'D1-101', @StartDate = @Start134, @MaxStudents = @Max134, @Tuition = @Tuition134;
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T134', N'Class moved to a room under maintenance', N'Rejected', N'Succeeded', NULL);
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T134', N'Class moved to a room under maintenance', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
 /* ---------------- C. FUNCTIONS, TRIGGERS, CURSORS, XML: CHECKING THE RESULTS ----------------
    Not only "it runs": results are compared with independently computed values or prepared scenarios. */
 
@@ -1672,9 +1872,12 @@ BEGIN TRY
     IF OBJECT_ID('tempdb..#R23') IS NOT NULL DROP TABLE #R23;
     CREATE TABLE #R23 (PassedCount INT, FailedCount INT);
     BEGIN TRAN;
-    -- Remove the previous results to evaluate from scratch
+    -- Remove the previous results to evaluate from scratch (a completed enrollment is open again: a result only
+    -- exists for a Completed enrollment, CK_ENROLLMENT_Completed)
     DELETE ce FROM dbo.CERTIFICATE ce JOIN dbo.ENROLLMENT en ON en.EnrollmentId = ce.EnrollmentId WHERE en.ClassId = @Class23;
-    UPDATE dbo.ENROLLMENT SET Result = NULL, FinalGrade = NULL WHERE ClassId = @Class23;
+    UPDATE dbo.ENROLLMENT
+    SET Result = NULL, FinalGrade = NULL, Status = CASE WHEN Status = N'Completed' THEN N'Studying' ELSE Status END
+    WHERE ClassId = @Class23;
     INSERT #R23 EXEC dbo.usp_Class_EvaluateResults @ClassId = @Class23;
     SELECT @Passed23 = PassedCount, @Failed23 = FailedCount FROM #R23;
 
@@ -1696,6 +1899,7 @@ BEGIN TRY
 
     INSERT #Results VALUES ('T23', N'usp_Class_EvaluateResults: pass on grade and attendance, certificates', N'Succeeded',
         CASE WHEN @Count23 > 0 AND @Wrong23 = 0 AND @WrongCert23 = 0 AND @Passed23 + @Failed23 = @Count23
+                  AND @LowAttendance23 > 0   -- the seed has a student who fails on attendance only: that branch ran
              THEN N'Succeeded' ELSE N'Wrong result' END,
         @Class23 + N': ' + CAST(@Passed23 AS NVARCHAR(10)) + N' passed, ' + CAST(@Failed23 AS NVARCHAR(10))
         + N' failed (' + CAST(@LowAttendance23 AS NVARCHAR(10)) + N' with a passing grade but attendance < 80%); '
@@ -2644,6 +2848,62 @@ BEGIN CATCH
 END CATCH;
 GO
 
+-- T125: a new weekly slot for a class whose sessions are all still scheduled
+--       Proves usp_ClassSchedule_Add keeps the timetable and the sessions in step: the slot is added and the
+--       sessions generated from the old timetable are removed with EndDate (the screen generates them again).
+--       CL0010 (Sat/Sun, enrolling) gets Wednesday 09:00-10:30, a time its room and teacher are free. Rolled back.
+BEGIN TRY
+    DECLARE @Before125 INT = (SELECT COUNT(*) FROM dbo.CLASS_SESSION WHERE ClassId = 'CL0010'),
+            @After125 INT, @End125 DATE, @Slot125 INT;
+    BEGIN TRAN;
+    EXEC dbo.usp_ClassSchedule_Add @ClassId = 'CL0010', @Weekday = 3, @StartTime = '09:00', @EndTime = '10:30';
+    SELECT @After125 = COUNT(*) FROM dbo.CLASS_SESSION WHERE ClassId = 'CL0010';
+    SELECT @End125 = EndDate FROM dbo.CLASS WHERE ClassId = 'CL0010';
+    SELECT @Slot125 = COUNT(*) FROM dbo.CLASS_SCHEDULE WHERE ClassId = 'CL0010' AND Weekday = 3;
+    ROLLBACK;
+    INSERT #Results VALUES ('T125', N'usp_ClassSchedule_Add: the generated sessions follow the new timetable', N'Succeeded',
+        CASE WHEN @Before125 > 0 AND @After125 = 0 AND @End125 IS NULL AND @Slot125 = 1
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(@Before125, N' sessions before, ', @After125, N' after; end date ',
+               ISNULL(CONVERT(VARCHAR(10), @End125, 23), N'NULL'), N'; Wednesday slots: ', @Slot125));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T125', N'usp_ClassSchedule_Add: the generated sessions follow the new timetable', N'Succeeded', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- T126: a deduction on a payroll row is written to the audit log
+--       Proves trg_PAYROLL_Audit: usp_Payroll_Adjust adds one UPDATE row for that PayrollId whose OldData and NewData
+--       hold the old and the new deduction (XML, read with .value). Rolled back.
+BEGIN TRY
+    DECLARE @Payroll126 INT, @OldDeduction126 DECIMAL(12,0), @Before126 INT, @After126 INT, @LoggedOld126 DECIMAL(12,0),
+            @LoggedNew126 DECIMAL(12,0);
+    SELECT TOP (1) @Payroll126 = PayrollId, @OldDeduction126 = Deduction FROM dbo.PAYROLL
+    WHERE Status = N'Finalized' AND Hours > 0 ORDER BY PayrollId;
+    BEGIN TRAN;
+    SELECT @Before126 = COUNT(*) FROM dbo.AUDIT_LOG
+    WHERE TableName = N'PAYROLL' AND RecordKey = CAST(@Payroll126 AS NVARCHAR(20));
+    EXEC dbo.usp_Payroll_Adjust @PayrollId = @Payroll126, @Deduction = 100000;
+    SELECT @After126 = COUNT(*) FROM dbo.AUDIT_LOG
+    WHERE TableName = N'PAYROLL' AND RecordKey = CAST(@Payroll126 AS NVARCHAR(20));
+    SELECT TOP (1) @LoggedOld126 = OldData.value('(/Payroll/Deduction)[1]', 'DECIMAL(12,0)'),
+                   @LoggedNew126 = NewData.value('(/Payroll/Deduction)[1]', 'DECIMAL(12,0)')
+    FROM dbo.AUDIT_LOG
+    WHERE TableName = N'PAYROLL' AND Action = 'UPDATE' AND RecordKey = CAST(@Payroll126 AS NVARCHAR(20))
+    ORDER BY LogId DESC;
+    ROLLBACK;
+    INSERT #Results VALUES ('T126', N'trg_PAYROLL_Audit: a deduction is logged with the old and new value', N'Succeeded',
+        CASE WHEN @After126 = @Before126 + 1 AND @LoggedOld126 = @OldDeduction126 AND @LoggedNew126 = 100000
+             THEN N'Succeeded' ELSE N'Wrong result' END,
+        CONCAT(@After126 - @Before126, N' new audit row(s), deduction ', @LoggedOld126, N' -> ', @LoggedNew126));
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    INSERT #Results VALUES ('T126', N'trg_PAYROLL_Audit: a deduction is logged with the old and new value', N'Succeeded', N'Error', ERROR_MESSAGE());
+END CATCH;
+GO
+
 -- T94: removing a weekly slot, then reading the timetable of the class
 --      Proves usp_ClassSchedule_Remove and usp_ClassSchedule_ByClass: CL0010 meets on Saturday and Sunday; after
 --      Sunday is removed the procedure returns Saturday only. Rolled back.
@@ -3080,17 +3340,24 @@ BEGIN CATCH
 END CATCH;
 GO
 
--- T30: code conventions of 01-sql.md: every procedure and trigger sets NOCOUNT ON; no SELECT * in procedures,
---      views or functions
+-- T30: code conventions of 01-sql.md: every procedure and trigger starts with SET NOCOUNT ON; no SELECT * in
+--      procedures, views or functions
 --      Concept: sys.sql_modules.definition holds the source text of every procedure, trigger, view and function.
 --      SET NOCOUNT ON stops the extra "rows affected" messages; SELECT * would silently change a result when a
 --      column is added.
 BEGIN TRY
     DECLARE @Bad TABLE (Name NVARCHAR(300));
     INSERT @Bad
-    SELECT o.type_desc + N' ' + o.name + N' without SET NOCOUNT ON'
+    -- SET NOCOUNT ON must be the FIRST statement: the text right after the first BEGIN that follows CREATE PROC /
+    -- CREATE TRIGGER, without spaces, tabs and line breaks (anywhere else it lets the first statements print counts)
+    SELECT o.type_desc + N' ' + o.name + N' does not start with SET NOCOUNT ON'
     FROM sys.sql_modules m JOIN sys.objects o ON o.object_id = m.object_id
-    WHERE o.type IN ('P', 'TR') AND m.definition NOT LIKE N'%SET NOCOUNT ON%'
+    CROSS APPLY (SELECT CHARINDEX(CASE o.type WHEN 'P' THEN N'CREATE PROC' ELSE N'CREATE TRIGGER' END,
+                                  m.definition) AS CreatePos) c
+    CROSS APPLY (SELECT CHARINDEX(N'BEGIN', m.definition, c.CreatePos) AS BeginPos) b
+    WHERE o.type IN ('P', 'TR')
+      AND REPLACE(REPLACE(REPLACE(REPLACE(SUBSTRING(m.definition, b.BeginPos + 5, 40), N' ', N''), NCHAR(13), N''),
+                          NCHAR(10), N''), NCHAR(9), N'') NOT LIKE N'SETNOCOUNTON;%'
     UNION ALL
     SELECT o.type_desc + N' ' + o.name + N' uses SELECT *'
     FROM sys.sql_modules m JOIN sys.objects o ON o.object_id = m.object_id
@@ -3271,11 +3538,14 @@ GO
 -- P05: an accountant reads the teachers' hourly rate (column-level GRANT)
 --      Proves the column list of GRANT SELECT ON TEACHER (...) TO rl_Accountant includes HourlyRate (payroll work).
 BEGIN TRY
+    DECLARE @Expected05 DECIMAL(12,0) = (SELECT TOP 1 HourlyRate FROM dbo.TEACHER ORDER BY TeacherId);
     EXECUTE AS USER = N'kt_minh';
     DECLARE @Rate DECIMAL(12,0) = (SELECT TOP 1 HourlyRate FROM dbo.TEACHER ORDER BY TeacherId);
     REVERT;
-    INSERT #Results VALUES ('P05', N'Accountant SELECTs the TEACHER.HourlyRate column', N'Succeeded', N'Succeeded',
-                            N'Read hourly rate ' + FORMAT(@Rate, 'N0'));
+    -- The value read as kt_minh must be the real rate (a GRANT on other columns only would fail before this)
+    INSERT #Results VALUES ('P05', N'Accountant SELECTs the TEACHER.HourlyRate column', N'Succeeded',
+                            CASE WHEN @Rate IS NOT NULL AND @Rate = @Expected05 THEN N'Succeeded' ELSE N'Wrong result' END,
+                            N'Read hourly rate ' + FORMAT(@Rate, 'N0') + N' (stored ' + FORMAT(@Expected05, 'N0') + N')');
 END TRY
 BEGIN CATCH
     REVERT;
@@ -3361,9 +3631,14 @@ BEGIN TRY
     EXEC dbo.usp_Account_Create N'tuvan_mai', N'TuVan@2026', 'ACADEMIC_STAFF', 'EM0006', NULL;
     REVERT;
     DECLARE @UserExists INT = CASE WHEN DATABASE_PRINCIPAL_ID(N'tuvan_mai') IS NOT NULL THEN 1 ELSE 0 END;
+    -- ... and a member of the role of the account (ALTER ROLE ... ADD MEMBER inside the procedure)
+    DECLARE @InRole INT = (SELECT COUNT(*) FROM sys.database_role_members rm
+                           JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id
+                           JOIN sys.database_principals m ON m.principal_id = rm.member_principal_id
+                           WHERE r.name = N'rl_AcademicStaff' AND m.name = N'tuvan_mai');
     IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P10', N'Manager creates an account (user + role)', N'Succeeded',
-                            CASE WHEN @UserExists = 1 THEN N'Succeeded' ELSE N'Rejected' END,
+                            CASE WHEN @UserExists = 1 AND @InRole = 1 THEN N'Succeeded' ELSE N'Rejected' END,
                             N'Created the contained user tuvan_mai in rl_AcademicStaff (rolled back)');
 END TRY
 BEGIN CATCH
@@ -3694,6 +3969,27 @@ BEGIN CATCH
     REVERT;
     IF @@TRANCOUNT > 0 ROLLBACK;
     INSERT #Results VALUES ('P26', N'Manager writes a catalog table directly', N'Rejected', N'Rejected', ERROR_MESSAGE());
+END CATCH;
+GO
+
+-- P27: the accountant sees the monthly revenue on the Dashboard (the positive side of P11)
+--      Proves usp_Dashboard_Stats returns the revenue for the ACCOUNTANT role: without this case a procedure that
+--      hid the revenue from everybody would still pass P11.
+BEGIN TRY
+    IF OBJECT_ID('tempdb..#Dashboard27') IS NOT NULL DROP TABLE #Dashboard27;
+    CREATE TABLE #Dashboard27 (ActiveStudents INT, ActiveClasses INT, EnrollingClasses INT, RevenueThisMonth BIGINT,
+                               TotalOutstanding BIGINT, SessionsToday INT);
+    EXECUTE AS USER = N'kt_minh';
+    INSERT #Dashboard27 EXEC dbo.usp_Dashboard_Stats;
+    REVERT;
+    INSERT #Results SELECT 'P27', N'Accountant sees the monthly revenue on the Dashboard', N'Succeeded',
+                           CASE WHEN RevenueThisMonth IS NOT NULL THEN N'Succeeded' ELSE N'Rejected' END,
+                           CONCAT(N'RevenueThisMonth = ', RevenueThisMonth)
+                    FROM #Dashboard27;
+END TRY
+BEGIN CATCH
+    REVERT;
+    INSERT #Results VALUES ('P27', N'Accountant sees the monthly revenue on the Dashboard', N'Succeeded', N'Error', ERROR_MESSAGE());
 END CATCH;
 GO
 
