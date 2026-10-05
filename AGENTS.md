@@ -102,10 +102,10 @@ py docs\user-guide\build_user_guide.py; .\docs\report\tools\export_pdf.ps1 docs\
   `13_server_tests.sql` for server-level features) registered in `#Expected`. Never change the expectation of an
   existing case to make the tests green unless the specification really changed - then say so in the PR.
 - **Enforced by tests** (`test_all`, CI): `tst_conventions` (SQL syntax and headers, layers, SQL location, result
-  columns read by name, test names, scripts, numbers quoted in the docs, the data map `docs/data-map.html`),
-  `12_tests.sql` T28-T30 and T32 (naming, permission matrix, `SET NOCOUNT ON`, UTC times), `tst_i18n`
-  (translations and database messages), `check_changes` (format of the changed lines, commit messages). Fix the
-  code, not the check.
+  columns read by name, test names, scripts, numbers quoted in the docs, the data map `docs/data-map.html`, the
+  public project site `docs/index.html`), `12_tests.sql` T28-T30 and T32 (naming, permission matrix,
+  `SET NOCOUNT ON`, UTC times), `tst_i18n` (translations and database messages), `check_changes` (format of the
+  changed lines, commit messages). Fix the code, not the check.
 - **Git**: default branch `develop`; work on `feature/...`/`fix/...`/`docs/...`/`chore/...` branches and PR into
   `develop`. Never push directly to `develop` or `main` (both protected by rulesets: a PR, the branch up to date, and
   one approving review from the code owner `nhutruong-uit` in `.github/CODEOWNERS`). `develop` also requires the

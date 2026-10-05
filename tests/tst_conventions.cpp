@@ -437,19 +437,30 @@ private slots:
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 
-    // 06-docs.md: the numbers the docs quote are the real ones (update the docs with the scripts)
+    // 06-docs.md: the numbers the docs quote are the real ones (update the docs with the scripts). The
+    // project site docs/index.html marks every number it shows: <dd data-stat="procedures">64</dd>.
     void docs_databaseNumbers_matchScripts() {
         const QString functions = sqlCode(QStringLiteral("02_functions.sql"));
         const QString tables = sqlCode(QStringLiteral("01_tables.sql"));
+        const int procedures = countOf(sqlCode(QStringLiteral("04_procedures.sql")),
+                                       QStringLiteral("^\\s*CREATE\\s+PROC(EDURE)?\\s"));
+        const int triggers =
+            countOf(sqlCode(QStringLiteral("05_triggers.sql")), QStringLiteral("^\\s*CREATE\\s+TRIGGER\\s"));
+        const int views =
+            countOf(sqlCode(QStringLiteral("03_views.sql")), QStringLiteral("^\\s*CREATE\\s+VIEW\\s"));
         const int dbTests = expectedCases(QStringLiteral("12_tests.sql"));
         const int serverTests = expectedCases(QStringLiteral("13_server_tests.sql"));
         const QString database = QStringLiteral("docs/DATABASE.md");
         const QString setup = QStringLiteral("docs/SETUP.md");
+        const QString site = QStringLiteral("docs/index.html");
         const QString constraints = QStringLiteral("(\\d+) PK, (\\d+) FK, (\\d+) CHECK, (\\d+) UNIQUE \\+ "
                                                    "(\\d+) filtered unique indexes, (\\d+) DEFAULT, "
                                                    "(\\d+) SEQUENCE");
         const QString functionKinds =
             QStringLiteral("(\\d+) scalar, (\\d+) inline table-valued, (\\d+) multi-statement table-valued");
+        const auto stat = [](const char* name) {
+            return QStringLiteral("data-stat=\"%1\">(\\d+)<").arg(QLatin1String(name));
+        };
         // One check = the doc, the regex holding the number, its capture group, the real count
         struct Check {
             QString doc;
@@ -458,14 +469,9 @@ private slots:
             int actual;
         };
         const QList<Check> checks = {
-            {database, QStringLiteral("(\\d+) procedures"), 1,
-             countOf(sqlCode(QStringLiteral("04_procedures.sql")),
-                     QStringLiteral("^\\s*CREATE\\s+PROC(EDURE)?\\s"))},
-            {database, QStringLiteral("(\\d+) triggers"), 1,
-             countOf(sqlCode(QStringLiteral("05_triggers.sql")),
-                     QStringLiteral("^\\s*CREATE\\s+TRIGGER\\s"))},
-            {database, QStringLiteral("(\\d+) views"), 1,
-             countOf(sqlCode(QStringLiteral("03_views.sql")), QStringLiteral("^\\s*CREATE\\s+VIEW\\s"))},
+            {database, QStringLiteral("(\\d+) procedures"), 1, procedures},
+            {database, QStringLiteral("(\\d+) triggers"), 1, triggers},
+            {database, QStringLiteral("(\\d+) views"), 1, views},
             {database, functionKinds, 1,
              countOf(functions, QStringLiteral("^\\s*CREATE\\s+FUNCTION\\s")) -
                  countOf(functions, QStringLiteral("\\bRETURNS\\s+(@\\w+\\s+)?TABLE\\b"))},
@@ -488,6 +494,14 @@ private slots:
              dbTests + serverTests},
             {setup, QStringLiteral("ALL TESTS PASSED: database (\\d+)/(\\d+) cases"), 2,
              dbTests + serverTests},
+            {site, stat("tables"), 1, countOf(tables, QStringLiteral("^\\s*CREATE\\s+TABLE\\s+dbo\\."))},
+            {site, stat("procedures"), 1, procedures},
+            {site, stat("functions"), 1, countOf(functions, QStringLiteral("^\\s*CREATE\\s+FUNCTION\\s"))},
+            {site, stat("views"), 1, views},
+            {site, stat("triggers"), 1, triggers},
+            {site, stat("sqlTests"), 1, dbTests + serverTests},
+            {site, stat("dbTests"), 1, dbTests},
+            {site, stat("serverTests"), 1, serverTests},
         };
         QStringList problems;
         for (const Check& c : checks) {
@@ -594,17 +608,79 @@ private slots:
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 
-    // 06-docs.md: every database object that docs/data-map.html names in its explanations (procedures, views,
-    // functions, triggers, sequences, the XML schema, constraints, indexes) exists in the database scripts,
-    // so renaming or dropping one also updates the business flow and the app flow of the page. A family
-    // ("usp_Student_*") needs one object of that name.
-    void docs_dataMapNames_existInScripts() {
+    // 06-docs.md: every database object that the pages of the site (the data map and the project site) name
+    // in their explanations (procedures, views, functions, triggers, sequences, the XML schema, constraints,
+    // indexes) exists in the database scripts, so renaming or dropping one also updates the business flow and
+    // the app flow of the data map and the examples of the project site. A family ("usp_Student_*") needs one
+    // object of that name.
+    void docs_sitePages_namesExistInScripts() {
         const QSet<QString> defined = createdDatabaseNames();
-        const QString file = QStringLiteral("docs/data-map.html");
+        QVERIFY2(!defined.isEmpty(), "the database scripts were not found");
+        QStringList problems;
+        for (const QString& file :
+             {QStringLiteral("docs/data-map.html"), QStringLiteral("docs/index.html")}) {
+            const QString page = readText(file);
+            QVERIFY2(!page.isEmpty(), qPrintable(file + QStringLiteral(" not found")));
+            problems << unknownDatabaseNames(file, page, defined);
+        }
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
+
+    // 06-docs.md / 04-scripts-ci.md: docs/index.html, the public project site, lists the tables of
+    // 01_tables.sql in their business groups (data-table="...") and links only to what pages.yml publishes
+    // next to it: the data map and the screenshots of docs/report/images/screens/ (demo data), which must
+    // exist. Every other document is an absolute link to the private repository: a relative link would be
+    // broken online, and publishing another doc would make it public.
+    void docs_projectSite_matchesRepository() {
+        const QString file = QStringLiteral("docs/index.html");
         const QString page = readText(file);
-        QVERIFY2(!page.isEmpty() && !defined.isEmpty(),
-                 "docs/data-map.html or the database scripts not found");
-        const QStringList problems = unknownDatabaseNames(file, page, defined);
+        QStringList problems;
+
+        QSet<QString> scripts, listed;
+        const QRegularExpression table(QStringLiteral("\\bCREATE\\s+TABLE\\s+dbo\\.(\\w+)"));
+        for (auto it = table.globalMatch(sqlCode(QStringLiteral("01_tables.sql"))); it.hasNext();)
+            scripts << it.next().captured(1);
+        const QRegularExpression pageTable(QStringLiteral("data-table=\"(\\w+)\""));
+        for (auto it = pageTable.globalMatch(page); it.hasNext();)
+            listed << it.next().captured(1);
+        QStringList missing = (scripts - listed).values(), extra = (listed - scripts).values();
+        missing.sort();
+        extra.sort();
+        for (const QString& name : missing)
+            problems << QStringLiteral(
+                            "%1: table %2 of 01_tables.sql is not listed - add it to its business group")
+                            .arg(file, name);
+        for (const QString& name : extra)
+            problems << QStringLiteral("%1: table %2 is not created in 01_tables.sql - rename or remove it")
+                            .arg(file, name);
+
+        const QRegularExpression link(QStringLiteral("\\b(?:src|href)=\"([^\"#][^\"]*)\""));
+        const QRegularExpression published(
+            QStringLiteral("^(?:data-map\\.html(?:#\\w+)?|report/images/screens/\\w+\\.png)$"));
+        for (auto it = link.globalMatch(page); it.hasNext();) {
+            const auto m = it.next();
+            const QString url = m.captured(1);
+            if (url.startsWith(QStringLiteral("https://")) || url.startsWith(QStringLiteral("data:")))
+                continue;
+            if (!published.match(url).hasMatch())
+                problems << QStringLiteral(
+                                "%1:%2: %3 is not published by pages.yml - link the file on GitHub "
+                                "instead")
+                                .arg(file)
+                                .arg(lineOf(page, m.capturedStart()))
+                                .arg(url);
+        }
+        const QRegularExpression screenshot(QStringLiteral("report/images/screens/\\w+\\.png"));
+        for (auto it = screenshot.globalMatch(page); it.hasNext();) {
+            const auto m = it.next();
+            if (!QFile::exists(kRoot + QStringLiteral("/docs/") + m.captured()))
+                problems << QStringLiteral("%1:%2: %3 does not exist in docs/")
+                                .arg(file)
+                                .arg(lineOf(page, m.capturedStart()))
+                                .arg(m.captured());
+        }
+        QVERIFY2(!page.isEmpty() && !scripts.isEmpty(),
+                 "docs/index.html or database/01_tables.sql not found");
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 
