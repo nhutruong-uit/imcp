@@ -29,6 +29,10 @@ on:
         required: false
         type: string
 
+# The token of the jobs can only read the repository; the job that cancels a failed run asks for more itself
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true

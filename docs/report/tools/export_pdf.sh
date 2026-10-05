@@ -43,9 +43,11 @@ for fld in d.element.body.iter(qn("w:fldChar")):
 d.save(sys.argv[2])
 PY
 rm -f "$WORK_PDF"
-# A "~$<name>.docx" lock left by a failed export stops Word from opening the document => delete it unless Word has it open
+# A lock left by a failed export stops Word from opening the document => delete it unless Word has it open. Word
+# names it "~$" + the name without its first two characters (a long name such as IE103_Group1_Report.docx) or
+# "~$" + the whole name (a short one), so both are removed.
 if ! osascript -e 'tell application "Microsoft Word" to get name of every document' 2>/dev/null | grep -qF "$NAME"; then
-  rm -f "$BUILD/~\$$NAME"
+  rm -f "$BUILD/~\$$NAME" "$BUILD/~\$${NAME:2}"
 fi
 
 # Open through LaunchServices (the sandbox silently blocks Word's AppleScript "open" for files without granted access)

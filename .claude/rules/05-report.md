@@ -17,7 +17,8 @@ paths:
   `content/common.py`. The data is regenerated with `docs/report/tools/export_data.py`.
 - SQL code in the report is extracted automatically from `database/*.sql` (`sql_object`, `sql_block`) - never copy code
   by hand into the content. C++ class names quoted in the report must match the code (`StudentService`, `Permissions`,
-  ...).
+  ...). ✔ Database object names (`usp_`, `vw_`, `trg_`, `CK_`...) in the report and the guide must exist in the
+  scripts (`tst_conventions`: `docs_reportAndGuideNames_existInScripts`).
 - Academic style, first person plural ("nhóm"), short sentences; English terms in `code` or with the Vietnamese
   meaning the first time. Inline formatting: `**bold**`, `*italic*`, `` `code` ``. Figures/tables always have a
   caption describing the content.

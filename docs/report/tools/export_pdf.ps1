@@ -39,8 +39,12 @@ New-Item -ItemType Directory -Force -Path $build | Out-Null
 #    with either of them Word asks "update the fields in this document?" when it opens the file, which blocks the
 #    automation. Step 2 updates the fields itself.
 Copy-Item $Docx $work -Force
-$lock = Join-Path $build ("~$" + $name)        # lock file left by a failed export
-if (Test-Path $lock) { Remove-Item $lock -Force -ErrorAction SilentlyContinue }
+# A lock file left by a failed export stops Word from opening the copy. Word names it '~$' + the name without its
+# first two characters (a long name such as IE103_Group1_Report.docx) or '~$' + the whole name (a short one).
+foreach ($lockName in @(('~$' + $name), ('~$' + $name.Substring(2)))) {
+    $lock = Join-Path $build $lockName
+    if (Test-Path -LiteralPath $lock) { Remove-Item -LiteralPath $lock -Force -ErrorAction SilentlyContinue }
+}
 Add-Type -AssemblyName System.IO.Compression
 try { Add-Type -AssemblyName System.IO.Compression.FileSystem } catch { }   # ZipFile on Windows PowerShell 5.1
 $zip = [IO.Compression.ZipFile]::Open($work, [IO.Compression.ZipArchiveMode]::Update)
