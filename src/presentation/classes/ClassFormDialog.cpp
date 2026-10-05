@@ -55,6 +55,8 @@ ClassFormDialog::ClassFormDialog(ClassService& service, const QList<Branch>& bra
     connect(m_course, &QComboBox::currentIndexChanged, this, &ClassFormDialog::courseChanged);
     if (!courses.ok())
         showError(courses.error());
+    else if (!teachers.ok())
+        showError(teachers.error());
 }
 
 // Rooms of the chosen branch (a room of another branch is refused by trg_CLASS_CheckRoom)
@@ -62,6 +64,8 @@ void ClassFormDialog::loadRooms() {
     const QString current = m_room->count() > 0 ? Fields::value(m_room) : m_original.roomId;
     const auto rooms = m_service.roomOptions(Fields::value(m_branch));
     Fields::fillLookup(m_room, rooms.ok() ? rooms.value() : QList<LookupItem>());
+    if (!rooms.ok())
+        showError(rooms.error()); // the branch has rooms: the list could not be read
     if (!current.isEmpty() && m_room->findData(current) >= 0)
         Fields::select(m_room, current);
     else if (!m_original.roomId.isEmpty() && Fields::value(m_branch) == m_original.branchId)

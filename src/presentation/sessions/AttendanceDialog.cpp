@@ -17,7 +17,7 @@ namespace {
 enum Column { StudentId, StudentName, Status, Notes, ColumnCount };
 }
 
-AttendanceDialog::AttendanceDialog(SessionService& service, int sessionId, const QString& title, bool canEdit,
+AttendanceDialog::AttendanceDialog(SessionService& service, int sessionId, const QString& title,
                                    QWidget* parent)
     : QDialog(parent), m_service(service), m_sessionId(sessionId) {
     setWindowTitle(tr("Attendance"));
@@ -55,23 +55,20 @@ AttendanceDialog::AttendanceDialog(SessionService& service, int sessionId, const
     auto* saveButton = UiHelpers::primaryButton(tr("Save attendance"), QStringLiteral("check"), this);
     saveButton->setObjectName(QStringLiteral("saveAttendanceButton"));
     auto* closeButton = UiHelpers::secondaryButton(tr("Close"), QString(), this);
+    // Return in a Notes cell reaches the dialog, which clicks its first auto-default button: "All present"
+    // would reset the marks just chosen. No button reacts to Return here.
+    for (QPushButton* button : {allPresent, saveButton, closeButton})
+        button->setAutoDefault(false);
     buttons->addWidget(allPresent);
     buttons->addStretch(1);
     buttons->addWidget(saveButton);
     buttons->addWidget(closeButton);
     v->addLayout(buttons);
-    allPresent->setVisible(canEdit);
-    saveButton->setVisible(canEdit);
 
     connect(allPresent, &QPushButton::clicked, this, [this] { setAll(AttendanceValues::present()); });
     connect(saveButton, &QPushButton::clicked, this, &AttendanceDialog::save);
     connect(closeButton, &QPushButton::clicked, this, &QDialog::reject);
     load();
-    if (!canEdit)
-        for (int r = 0; r < m_table->rowCount(); ++r) {
-            m_table->cellWidget(r, Status)->setEnabled(false);
-            m_table->cellWidget(r, Notes)->setEnabled(false);
-        }
 }
 
 void AttendanceDialog::load() {
@@ -116,6 +113,5 @@ void AttendanceDialog::save() {
         m_error->show();
         return;
     }
-    m_saved = true;
     accept();
 }

@@ -14,6 +14,7 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QUrl>
 
@@ -67,11 +68,17 @@ bool UiHelpers::confirm(QWidget* parent, const QString& question) {
     return box.exec() == QMessageBox::Yes;
 }
 
+QString UiHelpers::fileName(const QString& title) {
+    static const QRegularExpression notAllowed(QStringLiteral("[\\\\/:*?\"<>|]"));
+    return QString(title).replace(notAllowed, QStringLiteral("-")).trimmed();
+}
+
 void UiHelpers::exportCsv(QWidget* parent, const QAbstractItemModel& model, const QString& suggestedName) {
     const QString folder = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    const QString path = QFileDialog::getSaveFileName(
-        parent, UiText::tr("Export to Excel (CSV)"),
-        QDir(folder).filePath(suggestedName + QStringLiteral(".csv")), QStringLiteral("CSV (*.csv)"));
+    const QString path =
+        QFileDialog::getSaveFileName(parent, UiText::tr("Export to Excel (CSV)"),
+                                     QDir(folder).filePath(fileName(suggestedName) + QStringLiteral(".csv")),
+                                     QStringLiteral("CSV (*.csv)"));
     if (path.isEmpty())
         return;
     QString error;
@@ -84,9 +91,9 @@ void UiHelpers::exportCsv(QWidget* parent, const QAbstractItemModel& model, cons
 void UiHelpers::exportPdf(QWidget* parent, const QAbstractItemModel& model, const QString& title,
                           const QString& preparedBy) {
     const QString folder = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    const QString path = QFileDialog::getSaveFileName(parent, UiText::tr("Export PDF report"),
-                                                      QDir(folder).filePath(title + QStringLiteral(".pdf")),
-                                                      QStringLiteral("PDF (*.pdf)"));
+    const QString path = QFileDialog::getSaveFileName(
+        parent, UiText::tr("Export PDF report"),
+        QDir(folder).filePath(fileName(title) + QStringLiteral(".pdf")), QStringLiteral("PDF (*.pdf)"));
     if (path.isEmpty())
         return;
     QString error;

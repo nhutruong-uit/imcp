@@ -41,14 +41,15 @@ QString ReceiptPrinter::html(const ReceiptPrint& r) {
              .arg(ReceiptText::tr("No. %1 - %2")
                       .arg(r.receiptId, Format::dateTime(r.paidAtUtc))
                       .toHtmlEscaped());
-    if (r.status != QLatin1String("Valid"))
+    if (r.status != ReceiptValues::valid())
         h += QStringLiteral("<p style='text-align:center; color:%1; font-weight:bold;'>%2</p>")
                  .arg(QLatin1String(Theme::kNegativeText), ReceiptText::tr("CANCELLED").toHtmlEscaped());
     h += QStringLiteral("<table style='margin-top:10px;'>");
     h += row(ReceiptText::tr("Student"), QStringLiteral("%1 - %2").arg(r.studentId, r.studentName));
     h += row(ReceiptText::tr("Class"), QStringLiteral("%1 - %2").arg(r.classId, r.className));
     h += row(ReceiptText::tr("Course"), r.courseName);
-    h += row(ReceiptText::tr("Description"), r.description);
+    // The default description is a stored English value: shown in the UI language like the other values
+    h += row(ReceiptText::tr("Description"), DbValues::label(r.description));
     h += row(ReceiptText::tr("Payment method"), DbValues::label(r.paymentMethod));
     h += row(ReceiptText::tr("Amount"), Format::money(r.amount));
     h += row(ReceiptText::tr("Tuition due"), Format::money(r.tuitionDue));

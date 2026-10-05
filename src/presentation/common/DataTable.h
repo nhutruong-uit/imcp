@@ -24,8 +24,8 @@ public:
     void setData(TableData data);
     const TableData& data() const;
     QTableView* view() const { return m_view; }
-    const QAbstractItemModel&
-    visibleModel() const; // what the user sees (filtered, sorted): used by the exports
+    // What the user sees (filtered, sorted, without the hidden columns): used by the exports
+    const QAbstractItemModel& visibleModel() const;
     void setFilterText(const QString& text);
     void setHiddenColumns(const QStringList& keys); // technical keys (IDs) kept for the code, not shown
 
@@ -47,7 +47,8 @@ private:
     void applyHiddenColumns();
 
     TableDataModel* m_model = nullptr;
-    QSortFilterProxyModel* m_proxy = nullptr;
+    QSortFilterProxyModel* m_proxy = nullptr;       // quick filter + sort, the model of the view
+    QSortFilterProxyModel* m_exportProxy = nullptr; // m_proxy without the hidden columns
     QTableView* m_view = nullptr;
     QStringList m_hidden;
 };

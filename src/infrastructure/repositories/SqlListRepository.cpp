@@ -43,5 +43,5 @@ Result<TableData> SqlListRepository::fetch(ListKind kind) {
     QSqlQuery q = makeQuery(m_db.db());
     if (!execPrepared(q, m_db, queryFor(kind), {}))
         return Result<TableData>::failure(errorOf(q));
-    return Result<TableData>::success(readTable(q));
+    return readTable(q);
 }

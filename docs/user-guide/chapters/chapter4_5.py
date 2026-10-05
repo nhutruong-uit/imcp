@@ -121,8 +121,9 @@ def chapter4(g):
         ["Nút **Làm mới**", "Đọc lại dữ liệu mới nhất từ CSDL (khi người khác vừa cập nhật)."],
         ["Nút **Excel**", "Lưu các dòng đang hiển thị ra file `.csv` (mặc định trong thư mục Documents/Tài "
                           "liệu) rồi mở bằng Excel hoặc ứng dụng bảng tính mặc định. File dùng mã UTF-8 nên "
-                          "Excel hiển thị đúng tiếng Việt. Ô bắt đầu bằng `=`, `+` hoặc `@` được thêm dấu `'` ở "
-                          "đầu để Excel không chạy nội dung đó như công thức."],
+                          "Excel hiển thị đúng tiếng Việt. Số tiền và các số khác được ghi dạng số thuần (ví dụ "
+                          "`1500000`, không có dấu chấm và chữ ₫) để Excel cộng, lọc được. Ô bắt đầu bằng `=`, `+` "
+                          "hoặc `@` được thêm dấu `'` ở đầu để Excel không chạy nội dung đó như công thức."],
         ["Nút **PDF**", "Tạo báo cáo PDF khổ A4 (tự xoay ngang khi bảng có hơn 7 cột) gồm tiêu đề trung tâm, "
                         "tên báo cáo, ngày lập, người lập, cột STT, dòng **TỔNG CỘNG** và tổng số dòng; mở ngay "
                         "sau khi lưu."],
@@ -225,6 +226,8 @@ def chapter5(g):
         "**Ghi danh**: mở form ghi danh (mục 5.5) với học viên đang chọn điền sẵn.",
         "**Kiểm tra xếp lớp**: mở form nhập điểm kiểm tra (mục 5.3) với học viên đang chọn điền sẵn.",
     ])
+    g.p("Nút **Ghi danh** chỉ hiện với vai trò được ghi danh (mục 5.5), nút **Kiểm tra xếp lớp** chỉ hiện với vai trò "
+        "được nhập điểm kiểm tra (mục 5.3); hiện nay đó là Quản lý và Giáo vụ.")
     g.h3("5.2.6. Xuất, nhập danh sách bằng XML")
     g.bullets([
         "**Xuất XML**: lưu học viên của chi nhánh đang chọn ở ô lọc chi nhánh (hoặc của mọi chi nhánh) ra một "
@@ -259,12 +262,16 @@ def chapter5(g):
     g.steps([
         "**Mở lớp**: nhập **Tên lớp**, chọn **Khóa học**, **Chi nhánh**, **Giáo viên chính**, **Phòng** (chỉ "
         "phòng của chi nhánh đã chọn), **Khai giảng**, **Sĩ số tối đa**; **Học phí** điền sẵn theo khóa học. "
-        "Bấm **Lưu**: lớp mới có trạng thái **Đang tuyển sinh** và ứng dụng nhắc bước tiếp theo.",
+        "Bấm **Lưu**: lớp mới có trạng thái **Đang tuyển sinh** và ứng dụng nhắc bước tiếp theo. Chi nhánh phải "
+        "đang hoạt động và phòng không được ở trạng thái **Bảo trì**.",
         "**Lịch tuần**: chọn **Thứ**, giờ **Từ** - **Đến** rồi bấm **Lưu khung giờ**; mỗi thứ một khung giờ, "
-        "lưu lại một thứ đã có thì đổi giờ của thứ đó. Chọn một dòng rồi bấm **Xóa khung giờ** để bỏ.",
+        "lưu lại một thứ đã có thì đổi giờ của thứ đó. Chọn một dòng rồi bấm **Xóa khung giờ** để bỏ. Mỗi thay "
+        "đổi xóa các buổi học đã sinh; khi đóng cửa sổ, ứng dụng hỏi **Sinh các buổi học của lớp ... theo lịch "
+        "tuần?** để sinh lại theo lịch mới. Khi lớp đã có buổi **Đã dạy** hoặc **Đã hủy** thì lịch tuần không đổi "
+        "được nữa.",
         "**Sinh buổi học**: tạo đủ số buổi của khóa học theo lịch tuần, bắt đầu từ ngày khai giảng; ứng dụng "
         "báo số buổi đã tạo và ngày của buổi cuối (cũng là ngày kết thúc lớp). Chạy lại thì các buổi cũ được "
-        "thay thế.",
+        "thay thế, nên chỉ chạy lại được khi chưa có buổi nào **Đã dạy** hoặc **Đã hủy**.",
         "Ghi danh học viên (mục 5.5), rồi **Bắt đầu học** khi lớp khai giảng: lớp chuyển sang **Đang học**.",
         "Hết khóa, khi không còn buổi **Chưa dạy**, bấm **Đánh giá kết quả**: mỗi học viên nhận điểm tổng kết và "
         "**Đạt**/**Không đạt**, học viên đạt được cấp chứng chỉ, lớp chuyển sang **Đã kết thúc** và bảng kết "
@@ -272,7 +279,8 @@ def chapter5(g):
     ])
     g.bullets([
         "**Sửa**: đổi tên lớp, giáo viên chính, phòng, ngày khai giảng, sĩ số tối đa, học phí (khóa học và chi "
-        "nhánh giữ nguyên). Các buổi **Chưa dạy** đi theo giáo viên và phòng mới. Đổi ngày khai giảng thì các buổi "
+        "nhánh giữ nguyên). Các buổi **Chưa dạy** từ hôm nay trở đi theo giáo viên và phòng mới; buổi đã qua giữ "
+        "giáo viên đã dạy buổi đó. Đổi ngày khai giảng thì các buổi "
         "đã sinh bị xóa và ứng dụng sinh lại từ ngày mới. Học phí mới chỉ áp dụng cho các lần ghi danh sau.",
         "**Hủy lớp**: chỉ khi lớp chưa có học viên đóng tiền; các ghi danh đang mở chuyển sang **Đã nghỉ**.",
         "**Học viên** và **Kết quả**: xem danh sách học viên của lớp và bảng kết quả (điểm tổng kết, xếp loại, "
@@ -280,11 +288,15 @@ def chapter5(g):
     ])
     g.table(["Thao tác", "Quy tắc CSDL kiểm tra"], [
         ["Mở lớp, sửa lớp",
-         "Khóa học **Đang mở**, giáo viên **Đang dạy**; phòng thuộc chi nhánh của lớp và đủ chỗ cho sĩ số tối "
-         "đa; sĩ số tối đa không nhỏ hơn số học viên đang học; chỉ đổi ngày khai giảng khi lớp **Đang tuyển "
-         "sinh** và chưa có buổi nào đã dạy hoặc đã hủy."],
-        ["Lịch tuần", "Chỉ với lớp **Đang tuyển sinh** hoặc **Đang học**; giờ học trong khoảng 07:00-22:00; "
-                      "không trùng phòng, không trùng giáo viên với lớp khác cùng thứ và cùng giờ."],
+         "Khóa học **Đang mở**, giáo viên **Đang dạy**, chi nhánh đang hoạt động (**Chi nhánh không tồn tại hoặc "
+         "đang tạm ngừng**); phòng thuộc chi nhánh của lớp, không **Bảo trì** (**Phòng đang bảo trì; hãy chọn "
+         "phòng khác**) và đủ chỗ cho sĩ số tối đa; sĩ số tối đa không nhỏ hơn số học viên đang học; chỉ đổi ngày khai giảng khi lớp **Đang tuyển "
+         "sinh** và chưa có buổi nào đã dạy hoặc đã hủy; ngày khai giảng mới không làm học viên của lớp bị trùng "
+         "lịch với lớp khác của họ."],
+        ["Lịch tuần", "Chỉ với lớp **Đang tuyển sinh** hoặc **Đang học** và chưa có buổi đã dạy hoặc đã hủy "
+                      "(**Lịch tuần của lớp đã có buổi đã dạy hoặc đã hủy thì không thể thay đổi nữa**); giờ học "
+                      "trong khoảng 07:00-22:00; không trùng phòng, không trùng giáo viên với lớp khác cùng thứ "
+                      "và cùng giờ; không làm học viên của lớp bị trùng lịch với lớp khác của họ."],
         ["Bắt đầu / hủy lớp",
          "Lớp đi theo thứ tự **Đang tuyển sinh** → **Đang học** → **Đã kết thúc**, hoặc **Đã hủy**. Lớp đã kết "
          "thúc hoặc đã hủy không mở lại được: hãy mở lớp mới."],
@@ -303,8 +315,9 @@ def chapter5(g):
         "Gõ mã, họ tên hoặc SĐT vào ô **Tìm học viên**, bấm **Tìm**, chọn **Học viên**.",
         "Chọn **Lớp** (chỉ các lớp **Đang tuyển sinh** hoặc **Đang học**); dòng bên dưới cho biết học phí và số "
         "chỗ còn trống.",
-        "Kiểm tra **Ngày ghi danh**, chọn **Khuyến mãi** nếu có (chỉ các khuyến mãi còn hiệu lực vào ngày "
-        "ghi danh) rồi bấm **Ghi danh**.",
+        "Kiểm tra **Ngày ghi danh** (hôm nay hoặc một ngày đã qua khi nhập lại phiếu giấy, không chọn được ngày "
+        "trong tương lai), chọn **Khuyến mãi** nếu có (chỉ các khuyến mãi còn hiệu lực vào ngày ghi danh) rồi bấm "
+        "**Ghi danh**.",
     ])
     g.bullets([
         "**Chuyển lớp**: chọn lượt ghi danh, bấm **Chuyển lớp**, chọn lớp ở ô **Lớp mới** (chỉ các lớp cùng khóa "
@@ -349,13 +362,17 @@ def chapter5(g):
     g.figure(SCREENS / "gvu_lan_grade_book.png", "Sổ điểm của một lớp")
     g.steps([
         "Chọn lớp ở ô **Lớp**.",
-        "Nhấp đúp vào ô điểm, nhập điểm từ 0 đến 10 rồi Enter; làm tiếp với các ô khác. Dòng cuối cho biết số "
-        "điểm chưa lưu.",
+        "Nhấp đúp vào ô điểm, nhập điểm từ 0 đến 10 (tối đa 2 chữ số thập phân) rồi Enter; làm tiếp với các ô "
+        "khác. Dòng cuối cho biết số điểm chưa lưu; điểm ngoài khoảng 0-10 không được nhận và dòng cuối báo lý "
+        "do.",
         "Bấm **Lưu điểm**: mọi điểm vừa nhập được lưu cùng lúc (lỗi một điểm thì không điểm nào được lưu). Đổi "
-        "sang lớp khác khi còn điểm chưa lưu thì ứng dụng hỏi có lưu không.",
+        "sang lớp khác khi còn điểm chưa lưu thì ứng dụng hỏi có lưu không; nếu lưu không được, sổ điểm ở lại "
+        "lớp cũ và giữ nguyên các điểm vừa nhập. Bấm **Làm mới** để đọc lại cả danh sách lớp (lớp vừa mở "
+        "hoặc vừa kết thúc ở màn hình khác).",
     ])
     g.bullets([
-        "Lớp **Đã kết thúc** thì điểm đã chốt: bảng chỉ để xem.",
+        "Lớp **Đã kết thúc** thì điểm đã chốt: bảng chỉ để xem. Điểm tổng kết dưới 5 hiện màu đỏ; từ 5 trở "
+        "lên chưa chắc **Đạt** vì còn cần chuyên cần từ 80%."
         "Khi tổng trọng số các cột điểm khác 100%, màn hình hiện cảnh báo: lớp chưa thể đánh giá kết quả cho "
         "đến khi quản lý sửa cột điểm của khóa học (mục 5.13).",
         "Mọi lần sửa điểm được CSDL ghi vào nhật ký (điểm cũ, điểm mới, người sửa, thời điểm).",
@@ -413,11 +430,13 @@ def chapter5(g):
     g.bullets([
         "**Chốt lương tháng**: chọn **Tháng**, **Năm** (mặc định tháng trước) rồi bấm **Chốt lương**. CSDL đếm "
         "các buổi **Đã dạy** của từng giáo viên trong tháng, tính số giờ, thưởng 500.000 đ khi dạy từ 20 buổi. "
-        "Có thể chốt lại một tháng (ví dụ khi vừa cập nhật buổi dạy); các dòng đã chi trả không bị thay đổi. "
-        "Không chốt được tháng chưa tới.",
+        "Có thể chốt lại một tháng (ví dụ khi vừa cập nhật buổi dạy, hoặc chốt tạm tháng đang chạy để xem trước); "
+        "các dòng đã chi trả không bị thay đổi, khoản khấu trừ đã nhập được giữ (lương không được thấp hơn khoản "
+        "khấu trừ). Không chốt được tháng chưa tới.",
         "**Khấu trừ**: nhập số tiền khấu trừ của dòng đang chọn (không lớn hơn lương của tháng); tổng lương do "
         "CSDL tính lại: số giờ × đơn giá + thưởng - khấu trừ.",
-        "**Đã chi trả**: ghi nhận đã trả lương sau khi xác nhận. Dòng đã chi trả không thể thay đổi nữa.",
+        "**Đã chi trả**: ghi nhận đã trả lương sau khi xác nhận, chỉ khi tháng đó đã kết thúc (các buổi dạy cuối "
+        "tháng còn được tính). Dòng đã chi trả không thể thay đổi nữa.",
     ])
 
     g.h2("5.13. Danh mục")
@@ -461,7 +480,9 @@ def chapter5(g):
         "chi nhánh và đủ chỗ cho sĩ số tối đa của lớp.",
         "**Thêm khuyến mãi**, **Sửa**: mã, tên, **Loại giảm giá** (**Phần trăm**, tối đa 50%, hoặc **Số tiền**), "
         "**Mức giảm**, **Hiệu lực từ** - **Hiệu lực đến**. Muốn ngừng sớm thì sửa ngày hết hiệu lực; các lượt "
-        "ghi danh trước đó giữ nguyên số tiền đã giảm.",
+        "ghi danh trước đó giữ nguyên số tiền đã giảm. Khi đã có học viên dùng khuyến mãi thì không đổi được loại "
+        "giảm giá, mức giảm và ngày bắt đầu (chuyển lớp sẽ áp lại khuyến mãi), và ngày hết hiệu lực không được "
+        "trước lần ghi danh cuối cùng đã dùng nó; tên thì vẫn đổi được.",
     ])
     g.figure(SCREENS / "ql_quan_branches.png", "Chi nhánh và phòng học của chi nhánh đang chọn")
 
@@ -513,11 +534,15 @@ def chapter5(g):
 
     g.h2("5.17. Việc vẫn làm trong SSMS")
     g.p("Mọi nghiệp vụ hằng ngày đã có trên ứng dụng. Một số việc quản trị ít dùng vẫn làm trong SSMS hoặc VS "
-        "Code (đăng nhập bằng tài khoản quản lý, chọn CSDL `QLTTTA`):")
+        "Code, chọn CSDL `QLTTTA`:")
     g.bullets([
-        "Khôi phục CSDL từ các bản sao lưu (mục 5.15).",
-        "Xem nhật ký thay đổi điểm và phiếu thu: bảng `AUDIT_LOG` (chỉ đọc, không ai sửa hay xóa được).",
+        "Xem nhật ký thay đổi điểm và phiếu thu: bảng `AUDIT_LOG` (chỉ đọc, không ai sửa hay xóa được). Tài "
+        "khoản quản lý đọc được bảng này.",
+        "Khôi phục CSDL từ các bản sao lưu (mục 5.15): cần quản trị viên SQL Server (tài khoản `sa` hoặc đăng "
+        "nhập Windows như mục 2.3.4), vì lệnh `RESTORE` tạo lại cả CSDL; tài khoản quản lý của ứng dụng không "
+        "có quyền này.",
         "Xóa hẳn chi nhánh, khóa học, giáo viên, nhân viên: ứng dụng chỉ chuyển sang trạng thái ngừng để giữ "
-        "lịch sử.",
+        "lịch sử. Việc xóa hẳn cũng cần quản trị viên SQL Server (tài khoản quản lý không có quyền DELETE trên "
+        "các bảng này), và CSDL vẫn từ chối xóa dòng đã có lịch sử (lớp, ghi danh, phiếu thu...).",
     ])
     g.p("Tham số và ví dụ của từng thủ tục nằm trong `database/04_procedures.sql` và Chương 4 của báo cáo đồ án.")

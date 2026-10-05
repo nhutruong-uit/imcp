@@ -52,7 +52,7 @@ private:
     QPushButton* m_deleteButton = nullptr;
     QPushButton* m_profileButton = nullptr;
     QPushButton* m_enrollButton = nullptr; // only for the roles that may enroll
-    QPushButton* m_testButton = nullptr;
+    QPushButton* m_testButton = nullptr;   // only for the roles that may record a placement test
     QTableView* m_table = nullptr;
     StudentTableModel* m_model = nullptr;
     QSortFilterProxyModel* m_proxy = nullptr;

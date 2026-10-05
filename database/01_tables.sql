@@ -420,11 +420,14 @@ GO
        date and a maximum size. Tuition is the price of this class: usp_Class_Create copies
        COURSE.Tuition when no other price is given. EndDate stays NULL until
        usp_Class_GenerateSessions sets it to the date of the last session; until then the overlap
-       checks assume a class lasts 6 months (ISNULL(EndDate, DATEADD(MONTH, 6, StartDate)) in
-       usp_Enrollment_Create and trg_CLASS_SCHEDULE_CheckConflict).
+       checks assume a class lasts SessionCount weeks (fn_ClassPeriod, never too short).
        Status: Enrolling -> In progress -> Finished, or Cancelled.
        Rules that need the ROOM table are checked by trg_CLASS_CheckRoom (05_triggers.sql): the
        room belongs to the branch of the class and MaxStudents <= ROOM.Capacity.
+       BranchId could be read from the room (RoomId -> ROOM.BranchId), so the table is not in 3NF on
+       purpose: the branch of a class is what revenue, filters and permissions group by, and it must
+       not follow a room that is later moved. trg_CLASS_CheckRoom and trg_ROOM_CheckClasses keep it equal
+       to the branch of the room while the class is active.
    --------------------------------------------------------------------- */
 CREATE TABLE dbo.CLASS (
     ClassId      VARCHAR(10)    NOT NULL CONSTRAINT DF_CLASS_ClassId
@@ -561,7 +564,8 @@ GO
        usp_Enrollment_TransferClass - so fn_AttendanceRate only counts the sessions of the class since then
        (CK_ENROLLMENT_ClassJoinedOn: never before EnrolledOn).
        FinalGrade and Result stay NULL until usp_Class_EvaluateResults writes them at the end of
-       the course. Free seats: trg_ENROLLMENT_CheckCapacity (it needs the CLASS table).
+       the course, together with Status Completed (CK_ENROLLMENT_Completed: a result exactly for a completed
+       enrollment). Free seats: trg_ENROLLMENT_CheckCapacity (it needs the CLASS table).
    --------------------------------------------------------------------- */
 CREATE TABLE dbo.ENROLLMENT (
     EnrollmentId          VARCHAR(10)    NOT NULL CONSTRAINT DF_ENROLLMENT_EnrollmentId
@@ -594,7 +598,10 @@ CREATE TABLE dbo.ENROLLMENT (
     CONSTRAINT CK_ENROLLMENT_AmountPaid CHECK (AmountPaid >= 0 AND AmountPaid <= BaseTuition - DiscountAmount),
     CONSTRAINT CK_ENROLLMENT_Status CHECK (Status IN (N'Studying', N'On hold', N'Left', N'Completed')),
     CONSTRAINT CK_ENROLLMENT_FinalGrade CHECK (FinalGrade BETWEEN 0 AND 10),
-    CONSTRAINT CK_ENROLLMENT_Result CHECK (Result IN (N'Passed', N'Failed'))
+    CONSTRAINT CK_ENROLLMENT_Result CHECK (Result IN (N'Passed', N'Failed')),
+    -- Cross-column constraint: the evaluation writes Status, Result and FinalGrade together
+    CONSTRAINT CK_ENROLLMENT_Completed CHECK ((Status = N'Completed' AND Result IS NOT NULL)
+                                              OR (Status <> N'Completed' AND Result IS NULL AND FinalGrade IS NULL))
 );
 GO
 CREATE INDEX IX_ENROLLMENT_ClassId ON dbo.ENROLLMENT (ClassId) INCLUDE (StudentId, Status);
@@ -752,9 +759,11 @@ GO
    22. PAYROLL - Monthly teacher payroll (finalized with a cursor)
        One row = the pay of one teacher for one month (UQ_PAYROLL_TeacherId_Month_Year).
        Written by usp_Payroll_Finalize: SessionCount and Hours come from the taught sessions of the
-       month; HourlyRate is copied from TEACHER, so a later rate change does not alter a closed month.
+       month; HourlyRate is copied from TEACHER, so a later rate change does not alter a Paid month.
        TotalPay: PERSISTED computed column = Hours x HourlyRate + Bonus - Deduction.
-       Status Finalized can still be recomputed by finalizing the month again; a Paid row is left as is.
+       Status Finalized can still be recomputed by finalizing the month again (with the rate of that day);
+       a Paid row is left as is. CK_PAYROLL_Deduction keeps TotalPay at 0 or more, also when a month finalized
+       again gets a lower rate under a deduction set earlier (usp_Payroll_Adjust checks it first, 50053).
        Teachers see only their own rows, through vw_Teacher_MyPay.
    --------------------------------------------------------------------- */
 CREATE TABLE dbo.PAYROLL (
@@ -776,14 +785,15 @@ CREATE TABLE dbo.PAYROLL (
     CONSTRAINT CK_PAYROLL_Month CHECK (Month BETWEEN 1 AND 12),
     CONSTRAINT CK_PAYROLL_Year CHECK (Year >= 2020),
     CONSTRAINT CK_PAYROLL_Figures CHECK (SessionCount >= 0 AND Hours >= 0 AND Bonus >= 0 AND Deduction >= 0),
+    CONSTRAINT CK_PAYROLL_Deduction CHECK (Deduction <= CAST(Hours * HourlyRate AS DECIMAL(14,0)) + Bonus),
     CONSTRAINT CK_PAYROLL_Status CHECK (Status IN (N'Finalized', N'Paid'))
 );
 GO
 
 /* ---------------------------------------------------------------------
    23. AUDIT_LOG - Audit trail, written by triggers
-       One row = one change of a GRADE or RECEIPT row (trg_GRADE_Audit, trg_RECEIPT_Audit), with the
-       old and new values as untyped XML built with FOR XML PATH. PerformedBy DEFAULT ORIGINAL_LOGIN()
+       One row = one change of a GRADE, RECEIPT or PAYROLL row (trg_GRADE_Audit, trg_RECEIPT_Audit,
+       trg_PAYROLL_Audit), with the old and new values as untyped XML built with FOR XML PATH. PerformedBy DEFAULT ORIGINAL_LOGIN()
        records who really made the change. The log is append-only: trg_AUDIT_LOG_ReadOnly
        (INSTEAD OF UPDATE, DELETE) plus DENY UPDATE, DELETE even for the manager (06_security.sql).
    --------------------------------------------------------------------- */

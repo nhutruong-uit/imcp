@@ -1,6 +1,8 @@
 #pragma once
 
 #include "domain/common/Lookup.h"
+#include "domain/common/Result.h"
+#include "domain/entities/Catalog.h"
 
 #include <QDate>
 #include <QList>
@@ -36,6 +38,9 @@ QComboBox* values(QWidget* parent, const QStringList& stored, const QString& cur
 QComboBox* lookup(QWidget* parent, const QList<LookupItem>& items, const QString& current = QString(),
                   const QString& emptyText = QString());
 void fillLookup(QComboBox* combo, const QList<LookupItem>& items, const QString& emptyText = QString());
+// The branches of a branch combo box; a failed load gives no choice and its message in *error (the form shows
+// it: an empty combo without a reason looks like a center without branches)
+QList<LookupItem> branchItems(const Result<QList<Branch>>& branches, QString* error);
 // Selects the item whose key is `key`; a key that is not in the list (e.g. an inactive branch of an old
 // record) is added with missingText, so saving the form never changes it silently
 void select(QComboBox* combo, const QString& key, const QString& missingText = QString());

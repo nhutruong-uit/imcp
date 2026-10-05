@@ -113,7 +113,9 @@ def chapter2(r):
         "**Tuyển sinh và kiểm tra đầu vào**: giáo vụ ghi nhận hồ sơ học viên (dưới 18 tuổi phải có thông tin phụ "
         "huynh). Học viên làm bài kiểm tra 4 kỹ năng; hệ thống tính điểm tổng và **tự đề xuất khóa học** phù hợp.",
         "**Mở lớp và xếp lịch**: giáo vụ mở lớp cho một khóa học tại chi nhánh, chọn giáo viên, phòng học, ngày khai "
-        "giảng và lịch học trong tuần. Hệ thống kiểm tra trùng phòng/trùng giáo viên và **tự sinh đủ số buổi học**.",
+        "giảng và lịch học trong tuần (chi nhánh phải đang hoạt động, phòng không bảo trì). Hệ thống kiểm tra trùng "
+        "phòng/trùng giáo viên và **tự sinh đủ số buổi học**; lịch tuần chỉ đổi được khi lớp chưa có buổi đã dạy, và "
+        "khi đổi thì các buổi đã sinh được tạo lại theo lịch mới.",
         "**Ghi danh**: học viên ghi danh vào lớp đang tuyển sinh/đang học. Điều kiện: lớp còn chỗ, học viên đã đạt khóa "
         "tiên quyết hoặc đủ điểm đầu vào, không trùng lịch với lớp đang học; áp dụng khuyến mãi còn hiệu lực.",
         "**Thu học phí**: kế toán lập phiếu thu (đóng một hoặc nhiều đợt). Số tiền đã đóng và công nợ được cập nhật "

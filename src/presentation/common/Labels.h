@@ -29,9 +29,6 @@ QString group(FeatureGroup group);
 // Name of the signed-in user for the header and the reports; a database owner gets "(database administrator)"
 QString accountName(const Account& account);
 
-// Discount type codes of PROMOTION (PERCENT, AMOUNT) as words for the promotion form
-QString discountType(const QString& code);
-
 // Language name written in that language ("Tiếng Việt", "English"), never translated, so users always find it
 QString language(Language language);
 } // namespace Labels

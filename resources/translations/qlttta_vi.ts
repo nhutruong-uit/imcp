@@ -324,6 +324,10 @@
         <source>Room type</source>
         <translation>Loại phòng</translation>
     </message>
+    <message>
+        <source>Not recorded</source>
+        <translation>Không ghi nhận</translation>
+    </message>
 </context>
 <context>
     <name>CatalogService</name>
@@ -584,10 +588,6 @@
     <message>
         <source>Filter by student, class or enrollment...</source>
         <translation>Lọc theo học viên, lớp hoặc mã ghi danh...</translation>
-    </message>
-    <message>
-        <source>Tuition payment</source>
-        <translation>Thu học phí</translation>
     </message>
     <message>
         <source>Enrollment</source>
@@ -1136,20 +1136,8 @@
         <translation>Trình độ không hợp lệ.</translation>
     </message>
     <message>
-        <source>A course has 1 to 200 sessions.</source>
-        <translation>Một khóa học có từ 1 đến 200 buổi.</translation>
-    </message>
-    <message>
-        <source>A session lasts 30 to 240 minutes.</source>
-        <translation>Một buổi học dài từ 30 đến 240 phút.</translation>
-    </message>
-    <message>
         <source>The tuition cannot be negative.</source>
         <translation>Học phí không được âm.</translation>
-    </message>
-    <message>
-        <source>The minimum placement score must be between 0 and 10.</source>
-        <translation>Điểm đầu vào tối thiểu phải từ 0 đến 10.</translation>
     </message>
     <message>
         <source>A course cannot be its own prerequisite.</source>
@@ -1158,6 +1146,18 @@
     <message>
         <source>Invalid status.</source>
         <translation>Trạng thái không hợp lệ.</translation>
+    </message>
+    <message>
+        <source>A course has %1 to %2 sessions.</source>
+        <translation>Một khóa học có từ %1 đến %2 buổi.</translation>
+    </message>
+    <message>
+        <source>A session lasts %1 to %2 minutes.</source>
+        <translation>Một buổi học dài từ %1 đến %2 phút.</translation>
+    </message>
+    <message>
+        <source>The minimum placement score must be between 0 and %1.</source>
+        <translation>Điểm đầu vào tối thiểu phải từ 0 đến %1.</translation>
     </message>
 </context>
 <context>
@@ -1441,6 +1441,10 @@
     <message>
         <source>%1 rows</source>
         <translation>%1 dòng</translation>
+    </message>
+    <message>
+        <source>1 row</source>
+        <translation>1 dòng</translation>
     </message>
 </context>
 <context>
@@ -1798,6 +1802,38 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <source>The grade components of a course with evaluated classes cannot be changed; open a new course instead.</source>
         <translation>Không được thay đổi thành phần điểm của khóa học đã có lớp được đánh giá kết quả; hãy mở khóa học mới.</translation>
     </message>
+    <message>
+        <source>An enrollment cannot be dated in the future.</source>
+        <translation>Không thể ghi danh với ngày trong tương lai.</translation>
+    </message>
+    <message>
+        <source>A payment cannot be dated in the future.</source>
+        <translation>Không thể ghi phiếu thu với thời điểm trong tương lai.</translation>
+    </message>
+    <message>
+        <source>A month can only be marked as paid after it has ended.</source>
+        <translation>Chỉ đánh dấu đã trả lương được khi tháng đó đã kết thúc.</translation>
+    </message>
+    <message>
+        <source>A promotion already used by enrollments keeps its discount and start date; only its name and end date can change.</source>
+        <translation>Khuyến mãi đã được dùng cho ghi danh thì giữ nguyên mức giảm và ngày bắt đầu; chỉ đổi được tên và ngày kết thúc.</translation>
+    </message>
+    <message>
+        <source>The end date cannot be before the last enrollment that used the promotion.</source>
+        <translation>Ngày kết thúc không được trước lần ghi danh cuối cùng đã dùng khuyến mãi này.</translation>
+    </message>
+    <message>
+        <source>The room is under maintenance; choose another room.</source>
+        <translation>Phòng đang bảo trì; hãy chọn phòng khác.</translation>
+    </message>
+    <message>
+        <source>The branch does not exist or is suspended.</source>
+        <translation>Chi nhánh không tồn tại hoặc đang tạm ngừng.</translation>
+    </message>
+    <message>
+        <source>The weekly schedule of a class with taught or cancelled sessions can no longer change.</source>
+        <translation>Lịch tuần của lớp đã có buổi đã dạy hoặc đã hủy thì không thể thay đổi nữa.</translation>
+    </message>
 </context>
 <context>
     <name>DbValues</name>
@@ -2024,6 +2060,14 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>Expired</source>
         <translation>Hết hạn</translation>
+    </message>
+    <message>
+        <source>Upcoming</source>
+        <translation>Chưa bắt đầu</translation>
+    </message>
+    <message>
+        <source>Tuition payment</source>
+        <translation>Thu học phí</translation>
     </message>
 </context>
 <context>
@@ -2264,6 +2308,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <source>Please choose a class.</source>
         <translation>Vui lòng chọn lớp.</translation>
     </message>
+    <message>
+        <source>The enrollment date cannot be in the future.</source>
+        <translation>Ngày ghi danh không được ở tương lai.</translation>
+    </message>
 </context>
 <context>
     <name>EnrollmentService</name>
@@ -2289,10 +2337,6 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>Cancel</source>
         <translation>Hủy</translation>
-    </message>
-    <message>
-        <source>Close</source>
-        <translation>Đóng</translation>
     </message>
 </context>
 <context>
@@ -2360,6 +2404,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <source>%1 scores not saved yet</source>
         <translation>%1 điểm chưa lưu</translation>
     </message>
+    <message>
+        <source>Scores are between 0 and 10, with at most 2 decimals.</source>
+        <translation>Điểm từ 0 đến 10, tối đa 2 chữ số thập phân.</translation>
+    </message>
 </context>
 <context>
     <name>GradeComponent</name>
@@ -2372,8 +2420,8 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Vui lòng nhập tên cột điểm.</translation>
     </message>
     <message>
-        <source>The weight must be above 0 and at most 100.</source>
-        <translation>Trọng số phải lớn hơn 0 và tối đa 100.</translation>
+        <source>The weight must be above 0 and at most %1.</source>
+        <translation>Trọng số phải lớn hơn 0 và tối đa %1.</translation>
     </message>
 </context>
 <context>
@@ -2487,14 +2535,6 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>Teaching</source>
         <translation>Giảng dạy</translation>
-    </message>
-    <message>
-        <source>Percentage (%)</source>
-        <translation>Phần trăm (%)</translation>
-    </message>
-    <message>
-        <source>Fixed amount (VND)</source>
-        <translation>Số tiền cố định (VNĐ)</translation>
     </message>
     <message>
         <source>Overview</source>
@@ -2901,16 +2941,16 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Mức giảm phải lớn hơn 0.</translation>
     </message>
     <message>
-        <source>A percentage discount is at most 50%.</source>
-        <translation>Giảm theo phần trăm tối đa 50%.</translation>
-    </message>
-    <message>
         <source>Invalid dates.</source>
         <translation>Ngày không hợp lệ.</translation>
     </message>
     <message>
         <source>The end date cannot be before the start date.</source>
         <translation>Ngày kết thúc không được trước ngày bắt đầu.</translation>
+    </message>
+    <message>
+        <source>A percentage discount is at most %1%.</source>
+        <translation>Giảm theo phần trăm tối đa %1%.</translation>
     </message>
 </context>
 <context>
@@ -3079,16 +3119,16 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Vui lòng nhập tên phòng.</translation>
     </message>
     <message>
-        <source>The capacity must be between 1 and 100.</source>
-        <translation>Sức chứa phải từ 1 đến 100.</translation>
-    </message>
-    <message>
         <source>Invalid room type.</source>
         <translation>Loại phòng không hợp lệ.</translation>
     </message>
     <message>
         <source>Invalid status.</source>
         <translation>Trạng thái không hợp lệ.</translation>
+    </message>
+    <message>
+        <source>The capacity must be between %1 and %2.</source>
+        <translation>Sức chứa phải từ %1 đến %2.</translation>
     </message>
 </context>
 <context>
@@ -3122,16 +3162,16 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Đến</translation>
     </message>
     <message>
-        <source>Existing sessions do not change: generate the sessions again on the Classes page while none has been taught.</source>
-        <translation>Các buổi học đã sinh không đổi theo: hãy sinh lại buổi học ở trang Lớp học khi chưa có buổi nào được dạy.</translation>
-    </message>
-    <message>
         <source>Close</source>
         <translation>Đóng</translation>
     </message>
     <message>
         <source>Remove the %1 slot?</source>
         <translation>Xóa khung giờ %1?</translation>
+    </message>
+    <message>
+        <source>A change removes the generated sessions; they are generated again from the new timetable when you close this window. Once a session was taught the timetable is fixed.</source>
+        <translation>Mỗi thay đổi sẽ xóa các buổi học đã sinh; khi đóng cửa sổ này, ứng dụng sinh lại buổi học theo lịch mới. Khi đã có buổi được dạy thì lịch tuần không đổi được nữa.</translation>
     </message>
 </context>
 <context>
@@ -3377,6 +3417,10 @@ Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ 
     <message>
         <source>The text is not well-formed XML: %1</source>
         <translation>Nội dung không phải XML hợp lệ: %1</translation>
+    </message>
+    <message>
+        <source>The pay of the month would fall below its deduction: lower the deduction first.</source>
+        <translation>Lương của tháng sẽ thấp hơn khoản khấu trừ: hãy giảm khoản khấu trừ trước.</translation>
     </message>
 </context>
 <context>
@@ -3744,6 +3788,10 @@ Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ 
     <message>
         <source>Delete student %1 - %2?</source>
         <translation>Xóa học viên %1 - %2?</translation>
+    </message>
+    <message>
+        <source>1 student</source>
+        <translation>1 học viên</translation>
     </message>
 </context>
 <context>

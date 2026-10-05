@@ -92,6 +92,6 @@ void TimetablePage::updateSession() {
 
 void TimetablePage::takeAttendance() {
     const int sessionId = selected(QStringLiteral("SessionId")).toInt();
-    AttendanceDialog dialog(m_services.sessions, sessionId, sessionTitle(), canEdit(), this);
+    AttendanceDialog dialog(m_services.sessions, sessionId, sessionTitle(), this);
     dialog.exec();
 }

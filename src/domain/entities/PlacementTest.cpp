@@ -3,7 +3,12 @@
 #include <cmath>
 
 double PlacementTest::overall() const {
-    return std::round((listening + speaking + reading + writing) / 4.0 * 100.0) / 100.0;
+    // The computed column OverallScore averages exact decimals and rounds half up to 2 decimals. In
+    // hundredths the sum is an exact integer, so (sum + 2) / 4 rounds the same way; a double average
+    // of 9.30/9/9/9 is 9.0749999... and would round to 9.07 instead of 9.08.
+    const qint64 sum = std::llround(listening * 100) + std::llround(speaking * 100) +
+                       std::llround(reading * 100) + std::llround(writing * 100);
+    return static_cast<double>((sum + 2) / 4) / 100.0;
 }
 
 QStringList PlacementTest::validate(const QDate& today) const {

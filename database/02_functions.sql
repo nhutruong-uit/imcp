@@ -453,7 +453,8 @@ GO
        (Enrolling / In progress) that meets on the same weekday at overlapping hours while the two class periods
        overlap. Two ranges overlap when each one starts before the other ends: 18:00-20:00 and 20:00-21:30 do not.
        Used by: usp_Enrollment_Create, usp_Enrollment_TransferClass (@ExceptEnrollmentId = the enrollment that
-       moves) and usp_Enrollment_UpdateStatus (a student who resumes), all with error 50024; tests T05, T34, T52.
+       moves), usp_Enrollment_UpdateStatus (a student who resumes), usp_Class_Update (a new start date) and
+       usp_ClassSchedule_Add (a new weekly slot), all with error 50024; tests T05, T34, T52, T105, T111.
        Concepts: inline table-valued function, self-join of CLASS_SCHEDULE (cs = the class, cs2 = another class),
        interval overlap, CROSS APPLY of another inline function. */
 IF OBJECT_ID(N'dbo.fn_StudentScheduleClash', N'IF') IS NOT NULL DROP FUNCTION dbo.fn_StudentScheduleClash;

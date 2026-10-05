@@ -44,6 +44,8 @@ PlacementTestDialog::PlacementTestDialog(PlacementService& placement, StudentSer
     const auto graders = m_placement.graderOptions();
     m_grader = Fields::lookup(this, graders.ok() ? graders.value() : QList<LookupItem>(), QString(),
                               tr("Not recorded"));
+    if (!graders.ok())
+        showError(graders.error()); // otherwise every test would be saved as "Not recorded" without a word
     m_testDate = Fields::date(this, QDate::currentDate());
     m_testDate->setMaximumDate(QDate::currentDate());
     m_notes = new QPlainTextEdit(this);
@@ -61,7 +63,7 @@ PlacementTestDialog::PlacementTestDialog(PlacementService& placement, StudentSer
     form()->addRow(tr("Notes"), m_notes);
 
     connect(findButton, &QPushButton::clicked, this, &PlacementTestDialog::searchStudents);
-    connect(m_studentSearch, &QLineEdit::returnPressed, this, &PlacementTestDialog::searchStudents);
+    setSearchField(m_studentSearch, [this] { searchStudents(); });
     if (!studentId.isEmpty())
         searchStudents();
     updateOverall();

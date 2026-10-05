@@ -37,6 +37,11 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages",
                       "The maximum size cannot be lower than the number of students enrolled in the class."),
     QT_TRANSLATE_NOOP("DbMessages", "Schedule slot not found."),
+    QT_TRANSLATE_NOOP("DbMessages", "The room is under maintenance; choose another room."),
+    QT_TRANSLATE_NOOP("DbMessages", "The branch does not exist or is suspended."),
+    QT_TRANSLATE_NOOP(
+        "DbMessages",
+        "The weekly schedule of a class with taught or cancelled sessions can no longer change."),
     // C. Enrollment
     QT_TRANSLATE_NOOP("DbMessages", "The student does not exist or has dropped out."),
     QT_TRANSLATE_NOOP("DbMessages", "The class no longer accepts enrollments."),
@@ -58,12 +63,14 @@ const char* const kTemplates[] = {
                       "before the transfer."),
     QT_TRANSLATE_NOOP("DbMessages",
                       "Only an enrollment that is not completed can be set to Studying, On hold or Left."),
+    QT_TRANSLATE_NOOP("DbMessages", "An enrollment cannot be dated in the future."),
     // D. Tuition
     QT_TRANSLATE_NOOP("DbMessages",
                       "The current account is not linked to an employee who can collect payments."),
     QT_TRANSLATE_NOOP("DbMessages", "Valid enrollment not found."),
     QT_TRANSLATE_NOOP("DbMessages", "A reason is required to cancel a receipt."),
     QT_TRANSLATE_NOOP("DbMessages", "No valid receipt found to cancel."),
+    QT_TRANSLATE_NOOP("DbMessages", "A payment cannot be dated in the future."),
     // E. Attendance, grades, results
     QT_TRANSLATE_NOOP("DbMessages", "You can only take attendance for sessions you teach."),
     QT_TRANSLATE_NOOP("DbMessages", "You can only view the attendance of sessions you teach."),
@@ -83,6 +90,7 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages", "Payroll row not found."),
     QT_TRANSLATE_NOOP("DbMessages", "A paid payroll row can no longer be changed."),
     QT_TRANSLATE_NOOP("DbMessages", "The deduction cannot be larger than the pay of the month."),
+    QT_TRANSLATE_NOOP("DbMessages", "A month can only be marked as paid after it has ended."),
     // I. Accounts, backup
     QT_TRANSLATE_NOOP("DbMessages",
                       "A username may only contain letters without diacritics, digits, dots and "
@@ -111,6 +119,11 @@ const char* const kTemplates[] = {
     QT_TRANSLATE_NOOP("DbMessages",
                       "An employee or teacher with an active account or an active class cannot be set to "
                       "Left: lock the account and hand the classes over first."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "A promotion already used by enrollments keeps its discount and start date; "
+                      "only its name and end date can change."),
+    QT_TRANSLATE_NOOP("DbMessages",
+                      "The end date cannot be before the last enrollment that used the promotion."),
     // Triggers
     QT_TRANSLATE_NOOP("DbMessages", "The room must belong to the same branch as the class."),
     QT_TRANSLATE_NOOP("DbMessages", "The maximum class size exceeds the capacity of the room."),

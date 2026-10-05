@@ -69,20 +69,13 @@ GO
 -- EXECUTE ON SCHEMA::dbo: a schema-level permission that covers every procedure of dbo, also the ones
 -- created later (account administration usp_Account_*, usp_Backup, ...).
 -- The catalog screens of the application write through the procedures of group J (usp_Branch_Add ...), covered
--- by EXECUTE ON SCHEMA. INSERT/UPDATE on the catalog tables stays for maintenance in SSMS; DELETE only on
--- GRADE_COMPONENT. These are the only direct table writes of a business role (T29). The rules such a write could
--- break are triggers: trg_ROOM_CheckClasses (a room keeps fitting its active classes) and
--- trg_GRADE_COMPONENT_Lock (the components of an evaluated course are frozen).
+-- by EXECUTE ON SCHEMA: like every other business role, the manager holds no INSERT/UPDATE/DELETE right on a table
+-- (T29, P26). Several catalog rules live only in those procedures (code format 50092, nothing suspended,
+-- discontinued or left while still needed 50093/50094/50098, no prerequisite loop 50095, a used promotion keeps its
+-- rule 50110/50111), so a direct write would skip them. Maintenance outside the application is the job of the
+-- database owner (sa / Windows administrator), still guarded by the triggers.
 ALTER ROLE db_datareader ADD MEMBER rl_Manager;
 GRANT EXECUTE ON SCHEMA::dbo TO rl_Manager;
-GRANT INSERT, UPDATE ON dbo.BRANCH           TO rl_Manager;
-GRANT INSERT, UPDATE ON dbo.ROOM             TO rl_Manager;
-GRANT INSERT, UPDATE ON dbo.PROGRAM          TO rl_Manager;
-GRANT INSERT, UPDATE ON dbo.COURSE           TO rl_Manager;
-GRANT INSERT, UPDATE, DELETE ON dbo.GRADE_COMPONENT TO rl_Manager;
-GRANT INSERT, UPDATE ON dbo.EMPLOYEE         TO rl_Manager;
-GRANT INSERT, UPDATE ON dbo.TEACHER          TO rl_Manager;
-GRANT INSERT, UPDATE ON dbo.PROMOTION        TO rl_Manager;
 -- Not even the manager may change the audit log or delete financial documents
 -- (second layer next to the INSTEAD OF triggers trg_AUDIT_LOG_ReadOnly and trg_RECEIPT_PreventDelete;
 -- tested by P08 for RECEIPT, P14 and P15 for AUDIT_LOG)

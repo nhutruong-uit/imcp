@@ -77,10 +77,21 @@ QVariant StudentTableModel::data(const QModelIndex& index, int role) const {
     if (role == Qt::TextAlignmentRole && (index.column() == ActiveClasses || index.column() == Balance))
         return QVariant::fromValue(Qt::AlignRight | Qt::AlignVCenter);
     if (role == Qt::ForegroundRole) {
-        if (index.column() == Balance && s->outstandingBalance > 0)
-            return QColor(Theme::kNegativeText);
-        if (index.column() == Status && s->status == StudentValues::activeStatus())
-            return QColor(Theme::kPositiveText);
+        // The same rules as every other list (TableDataModel): money still owed by its column key, a stored
+        // value by its tone in DbValues - so a status has one colour on every screen
+        const QString key = QString::fromLatin1(kColumnKeys[index.column()]);
+        if (Columns::isDebt(key))
+            return s->outstandingBalance > 0 ? QVariant(QColor(Theme::kNegativeText)) : QVariant();
+        if (index.column() == Status) {
+            switch (DbValues::tone(s->status)) {
+            case DbValues::Tone::Positive:
+                return QColor(Theme::kPositiveText);
+            case DbValues::Tone::Negative:
+                return QColor(Theme::kNegativeText);
+            case DbValues::Tone::Neutral:
+                break;
+            }
+        }
     }
     return {};
 }

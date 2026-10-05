@@ -20,7 +20,7 @@ Result<TableData> SqlClassRepository::search(const ClassFilter& filter) {
     const QVariant status = stringOrNull(filter.status);
     if (!execPrepared(q, m_db, sql, {branch, branch, status, status}))
         return Result<TableData>::failure(errorOf(q));
-    return Result<TableData>::success(readTable(q));
+    return readTable(q);
 }
 
 Result<ClassInfo> SqlClassRepository::findById(const QString& id) {
@@ -34,16 +34,16 @@ Result<ClassInfo> SqlClassRepository::findById(const QString& id) {
     if (!q.next())
         return Result<ClassInfo>::failure(tr("Class %1 was not found.").arg(id));
     ClassInfo c;
-    c.id = q.value(0).toString();
-    c.name = q.value(1).toString();
-    c.courseId = q.value(2).toString();
-    c.branchId = q.value(3).toString();
-    c.teacherId = q.value(4).toString();
-    c.roomId = q.value(5).toString();
-    c.startDate = q.value(6).toDate();
-    c.maxStudents = q.value(7).toInt();
-    c.tuition = q.value(8).toLongLong();
-    c.status = q.value(9).toString();
+    c.id = field(q, "ClassId").toString();
+    c.name = field(q, "ClassName").toString();
+    c.courseId = field(q, "CourseId").toString();
+    c.branchId = field(q, "BranchId").toString();
+    c.teacherId = field(q, "TeacherId").toString();
+    c.roomId = field(q, "RoomId").toString();
+    c.startDate = field(q, "StartDate").toDate();
+    c.maxStudents = field(q, "MaxStudents").toInt();
+    c.tuition = field(q, "Tuition").toLongLong();
+    c.status = field(q, "Status").toString();
     return Result<ClassInfo>::success(c);
 }
 
@@ -78,12 +78,12 @@ Result<QList<ScheduleSlot>> SqlClassRepository::schedule(const QString& classId)
     QList<ScheduleSlot> timetable;
     while (q.next()) {
         ScheduleSlot slot;
-        slot.weekday = q.value(0).toInt();
-        slot.start = QTime::fromString(q.value(1).toString(), QStringLiteral("HH:mm"));
-        slot.end = QTime::fromString(q.value(2).toString(), QStringLiteral("HH:mm"));
+        slot.weekday = field(q, "Weekday").toInt();
+        slot.start = QTime::fromString(field(q, "StartTime").toString(), QStringLiteral("HH:mm"));
+        slot.end = QTime::fromString(field(q, "EndTime").toString(), QStringLiteral("HH:mm"));
         timetable.append(slot);
     }
-    return Result<QList<ScheduleSlot>>::success(timetable);
+    return afterRead(q, timetable);
 }
 
 VoidResult SqlClassRepository::saveSlot(const QString& classId, const ScheduleSlot& slot) {
@@ -108,8 +108,8 @@ Result<SessionsGenerated> SqlClassRepository::generateSessions(const QString& cl
         return Result<SessionsGenerated>::failure(errorOf(q));
     SessionsGenerated result;
     if (q.next()) {
-        result.count = q.value(0).toInt();
-        result.endDate = q.value(1).toDate();
+        result.count = field(q, "SessionsCreated").toInt();
+        result.endDate = field(q, "EndDate").toDate();
     }
     return Result<SessionsGenerated>::success(result);
 }
@@ -126,8 +126,8 @@ Result<EvaluationResult> SqlClassRepository::evaluate(const QString& classId) {
         return Result<EvaluationResult>::failure(errorOf(q));
     EvaluationResult result;
     if (q.next()) {
-        result.passed = q.value(0).toInt();
-        result.failed = q.value(1).toInt();
+        result.passed = field(q, "PassedCount").toInt();
+        result.failed = field(q, "FailedCount").toInt();
     }
     return Result<EvaluationResult>::success(result);
 }
@@ -143,14 +143,14 @@ Result<TableData> SqlClassRepository::students(const QString& classId, bool mine
                  : QStringLiteral("EXEC dbo.usp_Enrollment_ByClass @ClassId = ?");
     if (!execPrepared(q, m_db, sql, {classId}))
         return Result<TableData>::failure(errorOf(q));
-    return Result<TableData>::success(readTable(q));
+    return readTable(q);
 }
 
 Result<TableData> SqlClassRepository::results(const QString& classId) {
     QSqlQuery q = makeQuery(m_db.db());
     if (!execPrepared(q, m_db, QStringLiteral("EXEC dbo.usp_Report_ClassResults @ClassId = ?"), {classId}))
         return Result<TableData>::failure(errorOf(q));
-    return Result<TableData>::success(readTable(q));
+    return readTable(q);
 }
 
 Result<QList<LookupItem>> SqlClassRepository::courseOptions() {

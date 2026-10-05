@@ -10,6 +10,8 @@
 namespace ReceiptValues {
 QStringList paymentMethods(); // Cash, Bank transfer, Card
 QStringList statuses();       // Valid, Cancelled
+QString valid();              // a receipt that counts (not cancelled)
+QString defaultDescription(); // RECEIPT.Description written by usp_Receipt_Create when none is given
 } // namespace ReceiptValues
 
 // RECEIPT.Description and CancelReason are NVARCHAR(200)

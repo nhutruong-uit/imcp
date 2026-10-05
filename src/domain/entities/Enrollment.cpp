@@ -18,11 +18,13 @@ QString completed() {
 }
 } // namespace EnrollmentValues
 
-QStringList EnrollmentRequest::validate() const {
+QStringList EnrollmentRequest::validate(const QDate& today) const {
     QStringList errors;
     if (studentId.isEmpty())
         errors << tr("Please choose a student.");
     if (classId.isEmpty())
         errors << tr("Please choose a class.");
+    if (enrolledOn.isValid() && enrolledOn > today)
+        errors << tr("The enrollment date cannot be in the future.");
     return errors;
 }

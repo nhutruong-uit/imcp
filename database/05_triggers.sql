@@ -339,7 +339,7 @@ END;
 GO
 
 /* T10. trg_AUDIT_LOG_ReadOnly (INSTEAD OF UPDATE, DELETE): the audit log is append-only
-        Tested by test T11 (UPDATE as dbo). INSERT stays allowed: the audit triggers T8 and T9 add rows.
+        Tested by test T11 (UPDATE as dbo). INSERT stays allowed: the audit triggers T8, T9 and T16 add rows.
         Why INSTEAD OF: the UPDATE/DELETE is replaced by the error, so no row changes, even for dbo and
         sysadmin, who are not stopped by the DENY UPDATE, DELETE of 06_security.sql. TRUNCATE TABLE fires
         no trigger, but it needs ALTER permission on the table, which no business role has.
@@ -460,9 +460,9 @@ GO
 /* T14. trg_ROOM_CheckClasses (rule across ROOM - CLASS, seen from the room)
         A room used by an active class (Enrolling / In progress) stays in the branch of that class and keeps a
         capacity of at least the class size: rule 2 of docs/DATABASE.md, which T1 checks when a CLASS row changes.
-        Fired by: usp_Room_Update (Branches & rooms screen) and a direct UPDATE of ROOM (managers keep UPDATE on the
-        catalog tables for SSMS, 06_security.sql); tested by tests T61 (a capacity below the size of a class in
-        progress) and T86.
+        Fired by: usp_Room_Update (Branches & rooms screen) and a direct UPDATE of ROOM by the database owner (no
+        business role may write the table, 06_security.sql); tested by tests T61 (a capacity below the size of a class in
+        progress) and T86 (a valid change of a room passes).
         Why a trigger: the rule reads the CLASS rows that use the room.
         How: AFTER UPDATE; it returns at once unless BranchId or Capacity is in the SET list, then joins
         inserted (every changed room) with the active classes of those rooms. A finished class keeps its
@@ -494,8 +494,8 @@ GO
         vw_LearningResults recomputes next to the Result and the certificate already stored. To grade a course
         differently afterwards, the center opens a new course. Renaming a component is still allowed.
         Fired by: usp_GradeComponent_Save / usp_GradeComponent_Delete (Courses screen) and a direct write to
-        GRADE_COMPONENT (managers keep the table rights for SSMS, 06_security.sql); tested by tests T68 (a new weight
-        for an evaluated course) and T90.
+        GRADE_COMPONENT by the database owner (no business role may write the table, 06_security.sql); tested by
+        tests T68 (a new weight for an evaluated course) and T92 (the components of a new course can still change).
         Why a trigger: the rule reads ENROLLMENT through CLASS, and it must hold for every writer.
         How: AFTER INSERT, UPDATE, DELETE; an UPDATE that touches neither CourseId nor Weight returns at once.
         The courses concerned are those of inserted (new rows) UNION deleted (old rows, so moving a component to
@@ -523,5 +523,41 @@ BEGIN
         RAISERROR (N'The grade components of a course with evaluated classes cannot be changed; open a new course instead.', 16, 1);
         ROLLBACK TRANSACTION;
     END;
+END;
+GO
+
+/* T16. trg_PAYROLL_Audit: log every change of the money of a payroll row (old/new data as XML)
+        Fired by: usp_Payroll_Finalize (a new row, a refreshed figure, a row removed because its sessions are no
+        longer Taught), usp_Payroll_Adjust (the deduction) and usp_Payroll_MarkPaid (Status Paid); tested by test
+        T126, which finds the deduction in OldData / NewData.
+        Why: pay is money like receipts - who changed a deduction or paid a month must be traceable.
+        How: AFTER INSERT, UPDATE, DELETE; FULL OUTER JOIN of inserted and deleted on PayrollId (as T8): only
+        inserted = INSERT, only deleted = DELETE, both = UPDATE. A refresh of F1 that changes no figure (only
+        FinalizedAtUtc) is not logged.
+        Concepts: audit trail, FULL OUTER JOIN of inserted/deleted, FOR XML PATH. */
+IF OBJECT_ID(N'dbo.trg_PAYROLL_Audit', N'TR') IS NOT NULL DROP TRIGGER dbo.trg_PAYROLL_Audit;
+GO
+CREATE TRIGGER dbo.trg_PAYROLL_Audit
+ON dbo.PAYROLL
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO dbo.AUDIT_LOG (TableName, Action, RecordKey, OldData, NewData)
+    SELECT N'PAYROLL',
+           CASE WHEN i.PayrollId IS NOT NULL AND d.PayrollId IS NOT NULL THEN 'UPDATE'
+                WHEN i.PayrollId IS NOT NULL THEN 'INSERT' ELSE 'DELETE' END,
+           CAST(COALESCE(i.PayrollId, d.PayrollId) AS NVARCHAR(20)),
+           CASE WHEN d.PayrollId IS NULL THEN NULL
+                ELSE (SELECT d.TeacherId, d.Month, d.Year, d.Hours, d.HourlyRate, d.Bonus, d.Deduction, d.Status
+                      FOR XML PATH('Payroll'), TYPE) END,
+           CASE WHEN i.PayrollId IS NULL THEN NULL
+                ELSE (SELECT i.TeacherId, i.Month, i.Year, i.Hours, i.HourlyRate, i.Bonus, i.Deduction, i.Status
+                      FOR XML PATH('Payroll'), TYPE) END
+    FROM inserted i
+    FULL OUTER JOIN deleted d ON d.PayrollId = i.PayrollId
+    WHERE i.PayrollId IS NULL OR d.PayrollId IS NULL
+       OR i.Hours <> d.Hours OR i.HourlyRate <> d.HourlyRate OR i.Bonus <> d.Bonus OR i.Deduction <> d.Deduction
+       OR i.Status <> d.Status;
 END;
 GO

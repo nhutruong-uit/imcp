@@ -22,9 +22,12 @@ Result<TableData> SqlSessionRepository::sessions(const QDate& from, const QDate&
 }
 
 VoidResult SqlSessionRepository::update(const SessionUpdate& update) {
+    // The text of the field as it is: the procedure keeps the content for NULL and removes it for an empty
+    // text, so stringOrNull (empty => NULL) would make a cleared field keep the old content
+    const QString description = update.description.isNull() ? QStringLiteral("") : update.description;
     return execCall(
         m_db, QStringLiteral("EXEC dbo.usp_Session_Update @SessionId = ?, @Status = ?, @Description = ?"),
-        {update.sessionId, update.status, stringOrNull(update.description)});
+        {update.sessionId, update.status, description});
 }
 
 Result<QList<AttendanceMark>> SqlSessionRepository::attendance(int sessionId) {
@@ -35,9 +38,10 @@ Result<QList<AttendanceMark>> SqlSessionRepository::attendance(int sessionId) {
     // Columns: EnrollmentId, StudentId, StudentName, Status, Notes, IsSaved
     QList<AttendanceMark> marks;
     while (q.next())
-        marks.append({q.value(0).toString(), q.value(1).toString(), q.value(2).toString(),
-                      q.value(3).toString(), q.value(4).toString(), q.value(5).toInt() == 1});
-    return Result<QList<AttendanceMark>>::success(marks);
+        marks.append({field(q, "EnrollmentId").toString(), field(q, "StudentId").toString(),
+                      field(q, "StudentName").toString(), field(q, "Status").toString(),
+                      field(q, "Notes").toString(), field(q, "IsSaved").toInt() == 1});
+    return afterRead(q, marks);
 }
 
 // One usp_Attendance_Save call per student, all in one transaction: either the whole list is saved or none of

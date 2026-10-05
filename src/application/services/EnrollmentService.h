@@ -14,7 +14,7 @@ public:
     explicit EnrollmentService(IEnrollmentRepository& repository);
 
     Result<TableData> search(const EnrollmentFilter& filter);
-    Result<QString> enroll(const EnrollmentRequest& request); // the new EnrollmentId
+    Result<QString> enroll(const EnrollmentRequest& request, const QDate& today); // the new EnrollmentId
     VoidResult transfer(const QString& enrollmentId, const QString& currentClassId,
                         const QString& newClassId);
     VoidResult putOnHold(const QString& enrollmentId);

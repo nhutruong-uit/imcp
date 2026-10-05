@@ -10,9 +10,6 @@ QStringList statuses() {
     return {QStringLiteral("Prospective"), QStringLiteral("Studying"), QStringLiteral("On hold"),
             QStringLiteral("Dropped out"), QStringLiteral("Completed")};
 }
-QString activeStatus() {
-    return QStringLiteral("Studying");
-}
 } // namespace StudentValues
 
 // Years between the two dates, minus one when the birthday has not come yet that year

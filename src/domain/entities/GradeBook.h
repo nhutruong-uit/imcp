@@ -5,6 +5,16 @@
 #include <QString>
 #include <optional>
 
+/// GRADE.Score is 0-10 with 2 decimals (CK_GRADE_Score, DECIMAL(4,2)). Below passMark a student fails
+// whatever the attendance; at passMark or above the result also needs 80% attendance
+// (usp_Class_EvaluateResults).
+namespace GradeLimits {
+inline constexpr double minScore = 0;
+inline constexpr double maxScore = 10;
+inline constexpr int decimals = 2;
+inline constexpr double passMark = 5;
+} // namespace GradeLimits
+
 // One grade component of a course (GRADE_COMPONENT): its weight in percent
 struct GradeComponentInfo {
     int id = 0;
@@ -42,6 +52,9 @@ struct GradeBook {
     // nullopt while a component has no score (or the course has no component)
     std::optional<double> finalGrade(int row) const;
     double totalWeight() const; // must be 100 before the class can be evaluated (vw_CourseInvalidWeights)
+    // The weights add up to 100 (to 0.001: 99.99 is not complete); vw_CourseInvalidWeights lists the courses
+    // where they do not, and usp_Class_EvaluateResults refuses their classes
+    bool weightsComplete() const;
 };
 
 // A score to save with usp_Grade_Save

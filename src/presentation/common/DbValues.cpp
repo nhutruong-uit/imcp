@@ -73,10 +73,14 @@ const Entry kEntries[] = {
     {QT_TRANSLATE_NOOP("DbValues", "Valid"), Tone::Neutral},
     {QT_TRANSLATE_NOOP("DbValues", "Finalized"), Tone::Neutral},
     {QT_TRANSLATE_NOOP("DbValues", "Paid"), Tone::Positive},
+    // The description usp_Receipt_Create stores when the cashier types none
+    // (ReceiptValues::defaultDescription)
+    {QT_TRANSLATE_NOOP("DbValues", "Tuition payment"), Tone::Neutral},
     // Promotions: discount type codes (PROMOTION.DiscountType) and the validity computed by the Promotions
     // list
     {QT_TRANSLATE_NOOP("DbValues", "PERCENT"), Tone::Neutral},
     {QT_TRANSLATE_NOOP("DbValues", "AMOUNT"), Tone::Neutral},
+    {QT_TRANSLATE_NOOP("DbValues", "Upcoming"), Tone::Neutral},
     {QT_TRANSLATE_NOOP("DbValues", "Expired"), Tone::Negative},
 };
 

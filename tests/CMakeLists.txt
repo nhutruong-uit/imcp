@@ -5,6 +5,15 @@
 # OutputDebugString instead of stdout => ctest sees nothing. This variable forces Qt to print to stdout/stderr.
 set(QLTTTA_TEST_ENV "QT_FORCE_STDERR_LOGGING=1")
 
+# Qt Test's macros (QVERIFY2, QTEST_MAIN...) call variadic macros without their optional arguments; recent Clang
+# reports this under -Wpedantic as a C++20 feature. The warning comes from Qt's headers, not from the tests, so
+# it is switched off for the tests only, where the compiler knows it (GCC/MinGW do not have this warning).
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-Wvariadic-macro-arguments-omitted QLTTTA_HAS_VARIADIC_OMITTED_WARNING)
+if(QLTTTA_HAS_VARIADIC_OMITTED_WARNING)
+    add_compile_options(-Wno-variadic-macro-arguments-omitted)
+endif()
+
 # qlttta_add_test(<name> <libraries...>): one test executable from <name>.cpp, linked with Qt Test and the given
 # layer libraries, registered with ctest under the same name (ctest -R <name> runs it alone)
 function(qlttta_add_test name)
@@ -12,7 +21,8 @@ function(qlttta_add_test name)
     target_link_libraries(${name} PRIVATE Qt6::Test ${ARGN})
     set_target_properties(${name} PROPERTIES MACOSX_BUNDLE OFF WIN32_EXECUTABLE OFF)
     add_test(NAME ${name} COMMAND ${name})
-    set_tests_properties(${name} PROPERTIES ENVIRONMENT "${QLTTTA_TEST_ENV}")
+    # A unit test runs in about a second: a hung one (e.g. a modal dialog nobody closes) fails after 2 minutes
+    set_tests_properties(${name} PROPERTIES ENVIRONMENT "${QLTTTA_TEST_ENV}" TIMEOUT 120)
 endfunction()
 
 # Entities and validation rules (domain layer only)
@@ -50,5 +60,6 @@ target_link_libraries(tst_e2e_gui PRIVATE Qt6::Test qlttta_presentation qlttta_i
 set_target_properties(tst_e2e_gui PROPERTIES MACOSX_BUNDLE OFF WIN32_EXECUTABLE OFF)
 add_test(NAME tst_e2e_gui COMMAND tst_e2e_gui)
 # QSKIP (no QLTTTA_E2E_PASSWORD, e.g. on CI) => ctest reports "Skipped" instead of "Passed"
+# TIMEOUT: the suite takes under a minute; a dialog left open would otherwise block CI until its job limit
 set_tests_properties(tst_e2e_gui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${QLTTTA_TEST_ENV}"
-                                            SKIP_REGULAR_EXPRESSION "SKIP   : ")
+                                            SKIP_REGULAR_EXPRESSION "SKIP   : " TIMEOUT 600)

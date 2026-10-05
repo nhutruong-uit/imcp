@@ -15,6 +15,7 @@
 #include <QSaveFile>
 #include <QTextDocument>
 #include <algorithm>
+#include <cmath>
 
 namespace {
 // Provides tr() with translation context "TableExporter" for the free functions of namespace TableExporter
@@ -36,6 +37,31 @@ QString csvField(QString s) {
     }
     return s;
 }
+
+// A number is written as the plain number ("1500000", "7.5"), not its display text ("1.500.000 ₫"), so a
+// spreadsheet can sum it whatever the UI language; codes shown as words (weekday, yes/no) and every other
+// value keep the text the user sees. The raw value is Qt::UserRole of TableDataModel.
+QString csvCell(const QAbstractItemModel& model, int row, int column) {
+    const QModelIndex idx = model.index(row, column);
+    const QVariant raw = idx.data(Qt::UserRole);
+    const QString key = model.headerData(column, Qt::Horizontal, Columns::KeyRole).toString();
+    if (!Columns::isWeekday(key) && !Columns::isYesNo(key)) {
+        switch (raw.metaType().id()) {
+        case QMetaType::Double:
+        case QMetaType::Float:
+            return Columns::isMoney(key) ? QString::number(std::llround(raw.toDouble()))
+                                         : QString::number(raw.toDouble(), 'g', 15);
+        case QMetaType::Int:
+        case QMetaType::LongLong:
+        case QMetaType::UInt:
+        case QMetaType::ULongLong:
+            return raw.toString();
+        default:
+            break;
+        }
+    }
+    return idx.data(Qt::DisplayRole).toString();
+}
 } // namespace
 
 bool TableExporter::exportCsv(const QAbstractItemModel& model, const QString& filePath, QString* error) {
@@ -54,7 +80,7 @@ bool TableExporter::exportCsv(const QAbstractItemModel& model, const QString& fi
     for (int r = 0; r < model.rowCount(); ++r) {
         fields.clear();
         for (int c = 0; c < model.columnCount(); ++c)
-            fields << csvField(model.index(r, c).data(Qt::DisplayRole).toString());
+            fields << csvField(csvCell(model, r, c));
         out += fields.join(QLatin1Char(',')).toUtf8() + "\r\n";
     }
     if (f.write(out) != out.size() || !f.commit()) {

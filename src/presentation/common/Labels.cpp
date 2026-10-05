@@ -106,14 +106,6 @@ QString Labels::accountName(const Account& account) {
                                  : account.fullName;
 }
 
-QString Labels::discountType(const QString& code) {
-    if (code == QLatin1String("PERCENT"))
-        return LabelsText::tr("Percentage (%)");
-    if (code == QLatin1String("AMOUNT"))
-        return LabelsText::tr("Fixed amount (VND)");
-    return code;
-}
-
 QString Labels::language(Language language) {
     switch (language) {
     case Language::Vietnamese:

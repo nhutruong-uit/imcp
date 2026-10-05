@@ -43,9 +43,10 @@ If something is `MISSING`, ask the user (AskUserQuestion, one question per decis
    companies). Never pass the flag without a clear "yes" from this user in this session; the repository owner's
    acceptance for CI does not cover a member's machine. If the answer is no, run without it and point to the manual
    way (`docs/SETUP.md` section 1).
-3. **Microsoft ODBC Driver 18** - optional, default no (also a Microsoft license): the app uses FreeTDS on macOS and
-   the built-in "SQL Server" driver on Windows. Add `--with-msodbc` / `-WithMsOdbc` only when the user asked (`msodbc`)
-   or wants the same driver as CI.
+3. **Microsoft ODBC Driver 18** (also a Microsoft license): not needed on macOS (FreeTDS) nor on a Windows PC with
+   SQL Server installed (it brings the driver). On Windows with `-Docker` or a SQL Server on another PC it is needed:
+   the built-in "SQL Server" driver could not sign in to SQL Server 2025 (`docs/ARCHITECTURE.md` section 6) - ask
+   then. Otherwise add `--with-msodbc` / `-WithMsOdbc` only when the user asked (`msodbc`) or wants the CI driver.
 
 If nothing is missing, skip the questions and go on with the verify run (step 4 without install options); still say
 that it re-initializes the local database.

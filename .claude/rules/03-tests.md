@@ -13,7 +13,7 @@ paths:
   (reference: `FakeStudentRepository` in `tst_application.cpp`).
 - `tst_conventions` reads the repository files (like `tst_i18n`) and checks the conventions of the rules: SQL Server
   2012 syntax and script headers, include directions between layers, SQL text and `execPrepared` only in the
-  infrastructure, `.sh`/`.ps1` format and pairs, the database numbers quoted in `docs/DATABASE.md` / `docs/SETUP.md`,
+  infrastructure, result columns read by name, the test function names, `.sh`/`.ps1` format and pairs, the database numbers quoted in `docs/DATABASE.md` / `docs/SETUP.md`,
   the data map `docs/data-map.html` (schema copy, database object names, roles x screens) and the project site
   `docs/index.html` (numbers, table list, database object names, only published links).
   A new convention that can be read from the files gets a slot there (failure message = `file:line: what to do`).

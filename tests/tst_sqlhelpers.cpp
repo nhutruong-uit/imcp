@@ -107,7 +107,7 @@ private slots:
     }
 
     // The workaround is needed with FreeTDS only, recognized by its library name libtdsodbc
-    void isFreeTds_detectsTheFreeTdsLibraryOnly() {
+    void isFreeTds_driverName_matchesLibraryOnly() {
         QVERIFY(DatabaseManager::isFreeTds(QStringLiteral("/opt/homebrew/opt/freetds/lib/libtdsodbc.so")));
         QVERIFY(DatabaseManager::isFreeTds(QStringLiteral("/usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so")));
         QVERIFY(!DatabaseManager::isFreeTds(QStringLiteral("ODBC Driver 18 for SQL Server")));
