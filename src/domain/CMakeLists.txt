@@ -12,6 +12,7 @@ add_library(qlttta_domain STATIC
     entities/Language.cpp
     entities/Account.h
     entities/ServerConfig.h
+    entities/ServerConfig.cpp
     entities/Student.h
     entities/Student.cpp
     entities/DashboardStats.h

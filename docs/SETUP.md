@@ -92,9 +92,14 @@ Optional check: every installer of a release has a signed build attestation (it 
 workflow built the file). With the GitHub CLI: `gh attestation verify <file> --repo nhutruong-uit/imcp`.
 
 On the login screen open **Server settings** ("Cấu hình máy chủ" in Vietnamese) and enter `localhost,1433` (Docker)
-or `localhost` / `PC-NAME\SQLEXPRESS` (Windows), database `QLTTTA`. The *Trust server certificate* option is on by
-default because the Docker image uses a self-signed certificate; turn it off if your server has a certificate from
-a trusted CA.
+or `localhost` / `PC-NAME\SQLEXPRESS` (Windows), database `QLTTTA`. The *Trust server certificate* option starts
+**ticked for a server on this computer** (`localhost`, `127.0.0.1`, `.`: the Docker image uses a self-signed
+certificate) and **unticked for any other server**; a warning shows when it is ticked for another computer, because
+then someone on the network could pretend to be the server. Once you click the box, your choice is kept.
+Unticked, the certificate is checked by the Microsoft ODBC drivers. FreeTDS (the driver of the macOS `.dmg`) and the
+"SQL Server" driver built into Windows cannot check it, so they are not used and the login says so: install
+*Microsoft ODBC Driver 18 for SQL Server*, or tick the box if you trust the server (on the `.dmg` the connection is
+then encrypted but the server is not verified).
 
 **Language:** the UI is available in Vietnamese (default) and English. Pick it in the language box at the bottom of
 the login screen or in the header of the main window; the screen is rebuilt immediately (you stay logged in) and the

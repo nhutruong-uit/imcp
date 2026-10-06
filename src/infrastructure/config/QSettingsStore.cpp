@@ -2,15 +2,18 @@
 
 #include <QSettings>
 
-// A missing key returns the default of ServerConfig (localhost,1433 / QLTTTA / trust the certificate)
+// A missing key returns the default of ServerConfig (localhost,1433 / QLTTTA). Until the user has chosen, the
+// certificate is trusted only when the host is this computer (Docker's self-signed certificate): a remote
+// server starts with its certificate checked.
 ServerConfig QSettingsStore::serverConfig() const {
     QSettings s;
     const ServerConfig defaults;
     ServerConfig c;
     c.host = s.value(QStringLiteral("server/host"), defaults.host).toString();
     c.database = s.value(QStringLiteral("server/database"), defaults.database).toString();
+    const QString trustKey = QStringLiteral("server/trustCertificate");
     c.trustServerCertificate =
-        s.value(QStringLiteral("server/trustCertificate"), defaults.trustServerCertificate).toBool();
+        s.contains(trustKey) ? s.value(trustKey).toBool() : ServerConfig::isLocalHost(c.host);
     return c;
 }
 

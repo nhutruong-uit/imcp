@@ -25,7 +25,8 @@ public:
     DatabaseManager& operator=(const DatabaseManager&) = delete;
 
     // Connects with the first driver that works; a wrong password, a rejected certificate or a timeout stops
-    // at once (see the .cpp)
+    // at once (see the .cpp). With "Trust server certificate" off only the drivers that can check the
+    // certificate are tried (canVerifyCertificate): the option is never ignored silently.
     VoidResult open(const ServerConfig& config, const QString& username, const QString& password);
     void close();
     QSqlDatabase db() const; // the open connection, passed to SqlHelpers::makeQuery by the repositories
@@ -37,6 +38,14 @@ public:
                                     const QString& username, const QString& password);
     static QStringList candidateDrivers();
     static bool isFreeTds(const QString& driver);
+    // True when the driver checks the server's certificate if "Trust server certificate" is off: the
+    // Microsoft ODBC drivers 17/18 do. FreeTDS (it accepts a self-signed certificate even with a CA file
+    // configured) and the legacy Windows "SQL Server" driver (no TLS keywords at all) do not, so open() never
+    // uses them when the option is off.
+    static bool canVerifyCertificate(const QString& driver);
+    // The drivers open() may use: all the candidates when the certificate is trusted, otherwise only those
+    // that can check it (so the option is never ignored silently)
+    static QStringList driversToTry(const QStringList& candidates, bool trustServerCertificate);
     // Message of a failed connection through driver: SqlErrorMapper's text, plus "install ODBC Driver 18"
     // when the legacy Windows driver could not connect (it cannot sign in to SQL Server 2025 on Windows 11)
     static QString connectionFailure(const QSqlError& error, const QString& driver);

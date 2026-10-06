@@ -216,9 +216,14 @@ test through both ODBC Driver 18 and FreeTDS.
 The search stops at once when another driver could not do better: a login failure (wrong password, or the database
 cannot be opened), a rejected server certificate, or a login timeout (the server does not answer). Other errors
 (missing driver, TLS version, network) make it try the next driver. Connections request encryption (all drivers except
-the legacy Windows "SQL Server" one). The "Trust server certificate" option is on by default because the Docker image
-uses a self-signed certificate; it is stored in the settings and should be turned off in the login dialog when the
-server has a certificate from a trusted CA. With the option off, the Microsoft drivers check the certificate, and a
-rejected certificate stops the search, so the drivers that do not check certificates are never tried as a way around
-it. FreeTDS (the driver of the macOS .dmg) encrypts the connection but does not check the certificate unless a CA file
-is configured for it, so the option has no effect there.
+the legacy Windows "SQL Server" one).
+
+**Server certificate.** The "Trust server certificate" option is stored in the settings. Until the user chooses, it
+is on only when the host is this computer (`ServerConfig::isLocalHost`: the Docker image uses a self-signed
+certificate) and off for any other host; the login dialog follows the host field until the box is clicked and warns
+when it is ticked for another computer. With the option off, `DatabaseManager::open` uses only the drivers that can
+check the certificate (`canVerifyCertificate`, `driversToTry`): the Microsoft drivers 17/18. FreeTDS (the driver of
+the macOS .dmg) encrypts the connection but accepts a self-signed certificate even when a CA file is configured
+(tried against SQL Server 2025 with FreeTDS 1.5.19, in the connection string and in `freetds.conf`), and the legacy
+Windows driver has no TLS keywords at all, so they are left out instead of connecting without the check. When nothing is left, the login
+fails with a message that says to install ODBC Driver 18 or to tick the box. A rejected certificate stops the search.

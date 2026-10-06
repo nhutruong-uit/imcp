@@ -1,13 +1,17 @@
 // Unit tests of SqlErrorMapper and DbMessages (infrastructure): how a raw ODBC error from SQL Server
 // becomes the short message the UI shows - driver prefixes and SQLSTATE suffixes removed, business messages
 // looked up in the DbMessages catalog, login failures and constraint names turned into readable text - plus
-// the escaping of the ODBC connection string. The QSqlError objects are built by hand: no database needed.
+// the escaping of the ODBC connection string and the "Trust server certificate" option (which drivers may
+// connect, the default per host). The QSqlError objects are built by hand: no database needed.
 // Run only this suite:
 //   ctest --preset macos-debug -R tst_sqlerrormapper --output-on-failure
+#include "infrastructure/config/QSettingsStore.h"
 #include "infrastructure/db/DatabaseManager.h"
 #include "infrastructure/db/DbMessages.h"
 #include "infrastructure/db/SqlErrorMapper.h"
 
+#include <QSettings>
+#include <QTemporaryDir>
 #include <QtTest>
 
 // No translator is installed here, so the messages are in the source language (English).
@@ -15,7 +19,22 @@
 class TestSqlErrorMapper : public QObject {
     Q_OBJECT
 
+private:
+    QTemporaryDir m_settingsDir; // the QSettings of QSettingsStore are written here, never to the real ones
+
 private slots:
+    void initTestCase() {
+        QVERIFY(m_settingsDir.isValid());
+        QCoreApplication::setOrganizationName(QStringLiteral("UIT-IE103-UnitTest"));
+        QCoreApplication::setApplicationName(QStringLiteral("tst_sqlerrormapper"));
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
+    }
+
+    void init() {
+        QSettings().clear(); // every test starts with nothing saved
+    }
+
     // The [vendor][driver][server] prefixes in front of the database message are removed
     void cleanMessage_odbcPrefix_isRemoved() {
         const QString raw = QStringLiteral("[Microsoft][ODBC Driver 18 for SQL Server][SQL Server]"
@@ -146,6 +165,70 @@ private slots:
                                               QStringLiteral("gvu_lan"), QStringLiteral("x"));
         QVERIFY(s.contains(QStringLiteral("PORT={1433;Encryption=off};")));
         QVERIFY(s.contains(QStringLiteral("Encryption=require;")));
+    }
+
+    // "Trust server certificate" off: the Microsoft drivers get TrustServerCertificate=no, so they check it
+    void connectionString_microsoftDriverTrustOff_asksForCertificateCheck() {
+        ServerConfig c;
+        c.trustServerCertificate = false;
+        const QString s =
+            DatabaseManager::connectionString(QStringLiteral("ODBC Driver 18 for SQL Server"), c,
+                                              QStringLiteral("gvu_lan"), QStringLiteral("x"));
+        QVERIFY(s.contains(QStringLiteral("Encrypt=yes;TrustServerCertificate=no;")));
+        QVERIFY(!s.contains(QStringLiteral("TrustServerCertificate=yes")));
+    }
+
+    // Only the Microsoft drivers check a certificate: FreeTDS accepts a self-signed one even with a CA file
+    // (checked against SQL Server 2025 with FreeTDS 1.5), the legacy Windows driver has no TLS keywords at
+    // all
+    void canVerifyCertificate_drivers_onlyMicrosoftOdbcDriversCheck() {
+        QVERIFY(DatabaseManager::canVerifyCertificate(QStringLiteral("ODBC Driver 18 for SQL Server")));
+        QVERIFY(DatabaseManager::canVerifyCertificate(QStringLiteral("ODBC Driver 17 for SQL Server")));
+        QVERIFY(!DatabaseManager::canVerifyCertificate(QStringLiteral("/opt/freetds/lib/libtdsodbc.so")));
+        QVERIFY(!DatabaseManager::canVerifyCertificate(QStringLiteral("SQL Server")));
+    }
+
+    // "Trust server certificate" off: the drivers that cannot check the certificate are never tried (they
+    // would connect without the check); on: every candidate stays, in the same order
+    void driversToTry_trustOff_dropsTheDriversThatCannotCheck() {
+        const QStringList candidates = {
+            QStringLiteral("/app/Frameworks/libtdsodbc.so"), QStringLiteral("ODBC Driver 18 for SQL Server"),
+            QStringLiteral("ODBC Driver 17 for SQL Server"), QStringLiteral("SQL Server")};
+        QCOMPARE(DatabaseManager::driversToTry(candidates, true), candidates);
+        QCOMPARE(DatabaseManager::driversToTry(candidates, false),
+                 (QStringList{QStringLiteral("ODBC Driver 18 for SQL Server"),
+                              QStringLiteral("ODBC Driver 17 for SQL Server")}));
+        // The .dmg without the Microsoft driver: nothing is left, so open() reports it instead of connecting
+        QVERIFY(DatabaseManager::driversToTry({QStringLiteral("/app/Frameworks/libtdsodbc.so")}, false)
+                    .isEmpty());
+    }
+
+    // Nothing saved yet: the default host is this computer, so its certificate is trusted (Docker)
+    void serverConfig_nothingSaved_trustsTheLocalDefaultHost() {
+        const ServerConfig c = QSettingsStore().serverConfig();
+        QCOMPARE(c.host, QStringLiteral("localhost,1433"));
+        QVERIFY(c.trustServerCertificate);
+    }
+
+    // A server that is not this computer starts with its certificate checked, until the user chooses
+    void serverConfig_remoteHostWithoutChoice_doesNotTrustCertificate() {
+        QSettings().setValue(QStringLiteral("server/host"), QStringLiteral("db.example.com,1433"));
+        QVERIFY(!QSettingsStore().serverConfig().trustServerCertificate);
+    }
+
+    // What the user chose is kept, for a local and for a remote host alike
+    void serverConfig_savedChoice_isKeptWhateverTheHost() {
+        QSettingsStore store;
+        ServerConfig remote;
+        remote.host = QStringLiteral("db.example.com,1433");
+        remote.trustServerCertificate = true;
+        store.saveServerConfig(remote);
+        QVERIFY(store.serverConfig().trustServerCertificate);
+
+        ServerConfig local;
+        local.trustServerCertificate = false;
+        store.saveServerConfig(local);
+        QVERIFY(!store.serverConfig().trustServerCertificate);
     }
 };
 
