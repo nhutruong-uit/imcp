@@ -437,6 +437,43 @@ private slots:
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 
+    // 04-scripts-ci.md: the SQL Server container of docker-compose.yml is published on the loopback address
+    // only. The demo accounts of the seed data have a public password, so a port open to the network would
+    // let anyone sign in as the manager (MSSQL_BIND in .env opens it on purpose)
+    void dockerCompose_sqlServerPort_boundToLoopback() {
+        QStringList problems;
+        bool inPorts = false;
+        int mappings = 0;
+        const QStringList lines = readText(QStringLiteral("docker-compose.yml")).split(u'\n');
+        for (int i = 0; i < lines.size(); ++i) {
+            QString line = lines.at(i);
+            const qsizetype hash = line.indexOf(u'#');
+            if (hash >= 0)
+                line.truncate(hash);
+            line = line.trimmed();
+            if (line.isEmpty())
+                continue;
+            if (line == QLatin1String("ports:")) {
+                inPorts = true;
+            } else if (inPorts && line.startsWith(u'-')) {
+                ++mappings;
+                const QString mapping = line.mid(1).trimmed().remove(u'"').remove(u'\'');
+                if (!mapping.startsWith(QLatin1String("127.0.0.1:")) &&
+                    !mapping.startsWith(QLatin1String("${MSSQL_BIND:-127.0.0.1}:")))
+                    problems << QStringLiteral("docker-compose.yml:%1: \"%2\" is published on every network "
+                                               "interface - write 127.0.0.1:... (04-scripts-ci.md)")
+                                    .arg(i + 1)
+                                    .arg(mapping);
+            } else {
+                inPorts = false;
+            }
+        }
+        if (mappings == 0)
+            problems << QStringLiteral("docker-compose.yml: no published port found - did the layout change? "
+                                       "update this test");
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
+
     // 06-docs.md: the numbers the docs quote are the real ones (update the docs with the scripts). The
     // project site docs/index.html marks every number it shows: <dd data-stat="procedures">64</dd>.
     void docs_databaseNumbers_matchScripts() {
