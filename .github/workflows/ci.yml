@@ -67,7 +67,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install Qt 6.8 LTS + MinGW + Ninja
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: "6.8.3"
           arch: "win64_mingw"
@@ -127,7 +127,7 @@ jobs:
           echo "$RUNNER_TEMP/clang-format/bin" >> "$GITHUB_PATH"
 
       - name: Install Qt 6.8 LTS
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: "6.8.3"
           arch: "linux_gcc_64"

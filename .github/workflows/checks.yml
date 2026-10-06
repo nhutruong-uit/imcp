@@ -42,7 +42,7 @@ jobs:
         run: ./scripts/check_changes.sh "origin/${{ github.base_ref }}"
 
       - name: Install Qt 6.8 LTS
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: "6.8.3"
           arch: "linux_gcc_64"
