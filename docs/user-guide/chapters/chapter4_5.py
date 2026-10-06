@@ -29,10 +29,13 @@ def chapter4(g):
         "Bấm **Cấu hình máy chủ ▸** dưới nút Đăng nhập; khung **Máy chủ SQL Server** mở ra.",
         "Ô **Máy chủ**: nhập địa chỉ theo Bảng 4.1.",
         "Ô **CSDL**: giữ `QLTTTA` (tên CSDL do script tạo ra).",
-        "Ô **Tin cậy chứng chỉ máy chủ (TrustServerCertificate)**: giữ **bật** khi dùng Docker hoặc SQL Server "
-        "cài trên máy (chứng chỉ tự ký). Chỉ tắt khi máy chủ có chứng chỉ do tổ chức tin cậy cấp. Khi đã tắt, "
-        "ứng dụng không tự chuyển sang driver khác để bỏ qua bước kiểm tra chứng chỉ. Bản macOS dùng driver "
-        "FreeTDS: kết nối vẫn được mã hóa nhưng driver này không kiểm tra chứng chỉ, nên ô này không có tác dụng.",
+        "Ô **Tin cậy chứng chỉ máy chủ (TrustServerCertificate)**: ô tự **bật** khi máy chủ nằm trên chính máy bạn "
+        "(`localhost`, Docker hoặc SQL Server cài trên máy; chứng chỉ tự ký) và tự **tắt** với máy chủ khác; khi bạn "
+        "bấm vào ô, lựa chọn của bạn được giữ lại. Bật cho máy chủ khác thì ứng dụng hiện cảnh báo, vì người khác "
+        "trong mạng có thể giả mạo máy chủ và đọc mật khẩu: chỉ bật với máy chủ bạn tin cậy. Khi tắt, driver "
+        "Microsoft kiểm tra chứng chỉ; driver FreeTDS của bản macOS và driver \"SQL Server\" cũ của Windows không "
+        "kiểm tra được nên không được dùng, và ứng dụng báo lỗi: hãy cài ODBC Driver 18 hoặc bật ô này nếu bạn "
+        "tin cậy máy chủ (trên bản macOS, kết nối khi đó vẫn được mã hóa nhưng máy chủ không được xác minh).",
     ])
     g.figure(SCREENS / "login_server_settings.png", "Khung cấu hình máy chủ SQL Server", width_cm=14.0)
     g.table(["SQL Server đang chạy ở đâu", "Nhập vào ô Máy chủ"], [

@@ -36,6 +36,10 @@ def chapter6(g):
          "Ô CSDL phải là `QLTTTA`; chạy lại bước khởi tạo CSDL (Chương 2)."],
         ["**Lỗi chứng chỉ bảo mật của máy chủ**", "Máy chủ dùng chứng chỉ tự ký",
          "Bật **Tin cậy chứng chỉ máy chủ** trong Cấu hình máy chủ; trên Windows nên cài ODBC Driver 18."],
+        ["**Máy này không có ODBC driver nào kiểm tra được chứng chỉ của máy chủ**",
+         "Ô Tin cậy chứng chỉ đang tắt (máy chủ không nằm trên máy bạn), nhưng máy chỉ có driver FreeTDS "
+         "(bản macOS) hoặc driver \"SQL Server\" cũ của Windows, hai driver này không kiểm tra được chứng chỉ",
+         "Cài Microsoft ODBC Driver 18 (Windows), hoặc bật **Tin cậy chứng chỉ máy chủ** nếu bạn tin cậy máy chủ."],
         ["Không lưu được file Excel/PDF (hiện thông báo lỗi khi xuất)",
          "File cùng tên đang mở trong Excel/trình đọc PDF, hoặc thư mục không cho ghi",
          "Đóng file đang mở hoặc chọn thư mục khác rồi xuất lại."],

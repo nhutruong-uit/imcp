@@ -12,6 +12,7 @@
 #include "domain/entities/PlacementTest.h"
 #include "domain/entities/Receipt.h"
 #include "domain/entities/Role.h"
+#include "domain/entities/ServerConfig.h"
 #include "domain/entities/Session.h"
 #include "domain/entities/Staff.h"
 #include "domain/entities/Student.h"
@@ -36,6 +37,26 @@ private:
 private slots:
     void validate_validStudent_hasNoErrors() {
         QVERIFY(validStudent().validate(QDate(2026, 10, 1)).isEmpty());
+    }
+
+    // Only a server on this computer (Docker, a local instance) may be trusted by default: its certificate is
+    // self-signed. A name that merely looks like a local one is another computer.
+    void isLocalHost_hostNames_matchThisComputerOnly_data() {
+        QTest::addColumn<QString>("host");
+        QTest::addColumn<bool>("local");
+        for (const char* host : {"localhost", "LOCALHOST", "localhost,1433", " localhost\\SQLEXPRESS ",
+                                 "127.0.0.1", "127.0.0.1,14333", "::1", "::1,1433", "[::1],1433", ".",
+                                 ".\\SQLEXPRESS", "(local)", "(local)\\SQLEXPRESS", "tcp:localhost,1433"})
+            QTest::newRow(host) << QString::fromLatin1(host) << true;
+        for (const char* host : {"db.example.com", "db.example.com,1433", "10.0.0.5", "192.168.1.61,1433",
+                                 "localhost.example.com", "localhost2", "evil-localhost",
+                                 "PC-NAME\\SQLEXPRESS", "[2001:db8::1],1433", ""})
+            QTest::newRow(*host ? host : "(empty)") << QString::fromLatin1(host) << false;
+    }
+    void isLocalHost_hostNames_matchThisComputerOnly() {
+        QFETCH(QString, host);
+        QFETCH(bool, local);
+        QCOMPARE(ServerConfig::isLocalHost(host), local);
     }
 
     // age() counts one year less until the birthday of that year has come

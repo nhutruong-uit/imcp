@@ -42,6 +42,7 @@
 
 #include <QAbstractButton>
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDateEdit>
 #include <QDialogButtonBox>
@@ -904,6 +905,48 @@ private slots:
                  qPrintable(totals->text()));
         QVERIFY2(totals->text().contains(QStringLiteral("Tổng còn nợ: ") + Format::money(outstanding)),
                  qPrintable(totals->text()));
+    }
+
+    // "Trust server certificate" follows the server field (ticked for this computer, unticked for any other
+    // server) until the user clicks it; it warns when it is ticked for another computer; and a saved choice
+    // is shown as saved. Needs no sign-in: nothing is sent to the server here.
+    void loginDialog_trustCertificate_followsHostUntilTheUserChooses() {
+        ServerConfig saved = m_app->auth().serverConfig(); // restored at the end: other tests log in with it
+        const auto restore = qScopeGuard([&] { m_app->auth().saveServerConfig(saved); });
+
+        LoginDialog dialog(m_app->auth(), m_app->language());
+        dialog.show();
+        auto* server = dialog.findChild<QLineEdit*>(QStringLiteral("serverEdit"));
+        auto* trust = dialog.findChild<QCheckBox*>(QStringLiteral("trustCertificateCheck"));
+        auto* warning = findByTestId<QLabel>(&dialog, QStringLiteral("certificateWarning"));
+        QVERIFY(server && trust && warning);
+
+        QVERIFY(trust->isChecked()); // the test server runs on this computer
+        QVERIFY(warning->isHidden());
+
+        server->setText(QStringLiteral("db.example.com,1433")); // another computer: checked by default
+        QVERIFY(!trust->isChecked());
+        QVERIFY(warning->isHidden());
+
+        trust->click(); // the user trusts it (the server group is closed, so no mouse): the choice is theirs
+        QVERIFY(trust->isChecked());
+        QVERIFY(!warning->isHidden());
+        server->setText(QStringLiteral("other.example.com"));
+        QVERIFY(trust->isChecked());
+        QVERIFY(!warning->isHidden());
+        server->setText(
+            QStringLiteral("localhost,1433")); // this computer needs no warning, whatever the box says
+        QVERIFY(warning->isHidden());
+
+        // Reopened: a saved choice for another computer comes back as saved
+        ServerConfig remote;
+        remote.host = QStringLiteral("db.example.com,1433");
+        remote.trustServerCertificate = true;
+        m_app->auth().saveServerConfig(remote);
+        LoginDialog reopened(m_app->auth(), m_app->language());
+        reopened.show();
+        QVERIFY(reopened.findChild<QCheckBox*>(QStringLiteral("trustCertificateCheck"))->isChecked());
+        QVERIFY(!findByTestId<QLabel>(&reopened, QStringLiteral("certificateWarning"))->isHidden());
     }
 
     // The user picks English on the login screen: the choice is saved, the screens are rebuilt in English

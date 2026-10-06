@@ -33,7 +33,8 @@ LoginDialog::LoginDialog(AuthService& auth, LanguageService& language, QWidget* 
     const ServerConfig config = m_auth.serverConfig();
     m_server->setText(config.host);
     m_database->setText(config.database);
-    m_trustCertificate->setChecked(config.trustServerCertificate);
+    m_trustCertificate->setChecked(config.trustServerCertificate); // after the host: the saved choice wins
+    updateCertificateWarning();
     m_username->setText(m_auth.lastUsername());
     m_serverGroup->setVisible(false);
     (m_username->text().isEmpty() ? m_username : m_password)->setFocus();
@@ -125,9 +126,19 @@ QWidget* LoginDialog::buildFormPanel() {
     m_database = new QLineEdit(m_serverGroup);
     m_trustCertificate =
         new QCheckBox(tr("Trust server certificate (TrustServerCertificate)"), m_serverGroup);
+    m_trustCertificate->setObjectName(QStringLiteral("trustCertificateCheck"));
+    m_certificateWarning =
+        new QLabel(tr("The server certificate is not checked: someone on the network could pretend to be the "
+                      "server and read your password. Keep this box ticked only for a server you trust."),
+                   m_serverGroup);
+    m_certificateWarning->setObjectName(QStringLiteral("WarningText"));
+    m_certificateWarning->setProperty("testId", QStringLiteral("certificateWarning"));
+    m_certificateWarning->setWordWrap(true);
+    m_certificateWarning->hide();
     form->addRow(tr("Server"), m_server);
     form->addRow(tr("Database"), m_database);
     form->addRow(QString(), m_trustCertificate);
+    form->addRow(QString(), m_certificateWarning);
     v->addWidget(m_serverGroup);
     v->addStretch();
 
@@ -142,8 +153,28 @@ QWidget* LoginDialog::buildFormPanel() {
 
     connect(m_loginButton, &QPushButton::clicked, this, &LoginDialog::login);
     connect(m_serverToggle, &QPushButton::clicked, this, &LoginDialog::toggleServerSettings);
+    connect(m_server, &QLineEdit::textChanged, this, &LoginDialog::serverChanged);
+    connect(m_trustCertificate, &QCheckBox::clicked, this,
+            [this] { // only a click by the user, not setChecked
+                m_trustChosenByUser = true;
+                updateCertificateWarning();
+            });
     connect(m_languageCombo, &QComboBox::currentIndexChanged, this, &LoginDialog::changeLanguage);
     return panel;
+}
+
+// The certificate of a server on this computer (Docker) is self-signed, so the box starts ticked there; for
+// any other server it starts unticked. Once the user has clicked the box, the choice is theirs.
+void LoginDialog::serverChanged() {
+    if (!m_trustChosenByUser)
+        m_trustCertificate->setChecked(ServerConfig::isLocalHost(m_server->text()));
+    updateCertificateWarning();
+}
+
+// Warn when the certificate of another computer would be accepted without being checked
+void LoginDialog::updateCertificateWarning() {
+    m_certificateWarning->setVisible(m_trustCertificate->isChecked() &&
+                                     !ServerConfig::isLocalHost(m_server->text()));
 }
 
 void LoginDialog::toggleServerSettings() {

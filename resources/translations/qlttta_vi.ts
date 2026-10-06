@@ -1454,6 +1454,12 @@
         <translation>Thiếu plugin Qt ODBC (qsqlodbc). Hãy cài lại ứng dụng.</translation>
     </message>
     <message>
+        <source>This computer has no ODBC driver that can check the server certificate (the FreeTDS driver of the macOS app and the &quot;SQL Server&quot; driver of Windows cannot).
+Install &quot;Microsoft ODBC Driver 18 for SQL Server&quot;, or tick &quot;Trust server certificate&quot; in the server settings if you trust this server.</source>
+        <translation>Máy này không có ODBC driver nào kiểm tra được chứng chỉ của máy chủ (driver FreeTDS của bản macOS và driver &quot;SQL Server&quot; của Windows không kiểm tra được).
+Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot;, hoặc bật &quot;Tin cậy chứng chỉ máy chủ&quot; trong cấu hình máy chủ nếu bạn tin cậy máy chủ này.</translation>
+    </message>
+    <message>
         <source>No ODBC driver for SQL Server was found on this computer.
 Please install &quot;Microsoft ODBC Driver 18 for SQL Server&quot; and try again.</source>
         <translation>Không tìm thấy ODBC Driver cho SQL Server trên máy.
@@ -2645,6 +2651,10 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>Trust server certificate (TrustServerCertificate)</source>
         <translation>Tin cậy chứng chỉ máy chủ (TrustServerCertificate)</translation>
+    </message>
+    <message>
+        <source>The server certificate is not checked: someone on the network could pretend to be the server and read your password. Keep this box ticked only for a server you trust.</source>
+        <translation>Chứng chỉ của máy chủ không được kiểm tra: người khác trong mạng có thể giả mạo máy chủ và đọc mật khẩu của bạn. Chỉ để ô này bật với máy chủ mà bạn tin cậy.</translation>
     </message>
     <message>
         <source>Server</source>
