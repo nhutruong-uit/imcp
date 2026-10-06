@@ -418,6 +418,61 @@ private slots:
         QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
     }
 
+    // 04-scripts-ci.md: an action that is not published by GitHub (`actions/*`) is pinned to a full commit
+    // SHA with the version in a comment: a tag or a branch such as @v4 can be moved to other code. Dependabot
+    // updates both.
+    void workflows_thirdPartyActions_pinnedToCommit() {
+        const QRegularExpression uses(QStringLiteral("^\\s*(?:-\\s+)?uses:\\s*([^\\s#]+)"),
+                                      QRegularExpression::MultilineOption);
+        const QRegularExpression pinned(QStringLiteral("^[\\w.-]+/[\\w./-]+@[0-9a-f]{40}$"));
+        QStringList problems;
+        for (const QString& file : filesIn(QStringLiteral(".github/workflows"), {QStringLiteral("*.yml")})) {
+            const QString text = readText(file);
+            QRegularExpressionMatchIterator it = uses.globalMatch(text);
+            while (it.hasNext()) {
+                const QRegularExpressionMatch m = it.next();
+                const QString action = m.captured(1);
+                if (action.startsWith(QLatin1String("actions/")) || action.startsWith(QLatin1String("./")))
+                    continue;
+                if (!pinned.match(action).hasMatch())
+                    problems << QStringLiteral("%1:%2: %3 must be pinned to a full commit SHA "
+                                               "(uses: owner/name@<sha> # vX.Y.Z), see 04-scripts-ci.md")
+                                    .arg(file)
+                                    .arg(lineOf(text, m.capturedStart()))
+                                    .arg(action);
+            }
+        }
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
+
+    // 04-scripts-ci.md: no workflow gives its whole token write access to the repository contents. The jobs
+    // run code from outside the repository (brew, choco, third-party actions); a job that must write (the
+    // release job) has its own `permissions` block.
+    void workflows_token_notWritableForTheWholeWorkflow() {
+        QStringList problems;
+        for (const QString& file : filesIn(QStringLiteral(".github/workflows"), {QStringLiteral("*.yml")})) {
+            const QStringList lines = readText(file).split(u'\n');
+            bool inTopLevelPermissions = false;
+            for (int i = 0; i < lines.size(); ++i) {
+                const QString& line = lines.at(i);
+                if (line.startsWith(QLatin1String("permissions:"))) {
+                    inTopLevelPermissions = true;
+                } else if (inTopLevelPermissions && line.startsWith(u' ')) {
+                    if (line.trimmed().startsWith(QLatin1String("contents: write")))
+                        problems << QStringLiteral(
+                                        "%1:%2: the workflow-level token must be `contents: read`; "
+                                        "give `contents: write` to the one job that needs it "
+                                        "(04-scripts-ci.md)")
+                                        .arg(file)
+                                        .arg(i + 1);
+                } else if (!line.trimmed().isEmpty() && !line.startsWith(u'#')) {
+                    inTopLevelPermissions = false;
+                }
+            }
+        }
+        QVERIFY2(problems.isEmpty(), qPrintable(joined(problems)));
+    }
+
     // 04-scripts-ci.md: every script has a .sh and a .ps1 version (packaging is platform-specific)
     void scripts_everyScript_hasBothVersions() {
         const QSet<QString> platformSpecific = {QStringLiteral("package-macos.sh"),

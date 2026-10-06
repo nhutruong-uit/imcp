@@ -60,6 +60,14 @@ paths:
   `actions/attest-build-provenance` (needs `id-token: write` and `attestations: write`, given to this job only, and
   runs before `gh release create`); the release notes tell users to check a download with `gh attestation verify`.
   Keep the attestation step on the files that are uploaded (`dist/*`).
+- ✔ (`tst_conventions`, `workflows_token_notWritableForTheWholeWorkflow`) The token of a workflow is read-only at the
+  top (`permissions: contents: read` in `checks.yml`, `ci.yml`, `release.yml`): the jobs run code from outside the
+  repository (`brew`, `choco`, third-party actions). A job that must write has its own `permissions` block
+  (`publish` of `release.yml`: write + OIDC; the cancel job of `ci.yml`: `actions: write`).
+- ✔ (`tst_conventions`, `workflows_thirdPartyActions_pinnedToCommit`) An action that is not published by GitHub
+  (anything but `actions/*`; today `jurplel/install-qt-action`) is pinned to a full commit SHA with its version as a
+  comment: `uses: owner/name@<sha> # v4.4.1`. A tag or a branch such as `@v4` can be moved to other code. Dependabot
+  (`github-actions`) updates the SHA and the comment together; read the release notes before merging, as for any bump.
 - `pages.yml` publishes the project site `docs/index.html` (as `index.html`), the data map `docs/data-map.html` and
   the screenshots that the project site names (`docs/report/images/screens/*.png`, demo data, same relative path)
   to GitHub Pages when one of them changes on `develop`. One copy of every document: never publish the report,

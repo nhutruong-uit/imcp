@@ -23,8 +23,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Read-only by default: the build jobs run code from outside the repository (brew, choco, install-qt-action) and
+# only upload artifacts, so they get no write token. The job "publish" has its own permissions block.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release
@@ -65,7 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install Qt 6.8 LTS + MinGW + Ninja
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: "6.8.3"
           arch: "win64_mingw"
@@ -98,8 +100,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
     # Waits for the approval of the reviewer set on the environment "release" (only main may deploy to it)
     environment: release
-    # The workflow-level token only has contents: write; the attestation also needs the OIDC token and the
-    # attestations API, so these two are given to this job only (a job-level block replaces the workflow-level one)
+    # The workflow-level token is read-only. Publishing needs to write, and the attestation also needs the OIDC token
+    # and the attestations API: they are given to this job only (a job-level block replaces the workflow-level one)
     permissions:
       contents: write # create the release
       id-token: write # sign the attestation as this workflow
