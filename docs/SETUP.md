@@ -88,6 +88,9 @@ Download the files from the repo's **Releases** page (public, no GitHub account 
   in its release notes (the Homebrew libraries need the macOS of the `macos-15` runner); an older macOS refuses to
   open the app. The macOS build bundles the FreeTDS driver, so nothing else needs to be installed.
 
+Optional check: every installer of a release has a signed build attestation (it proves that this repository's release
+workflow built the file). With the GitHub CLI: `gh attestation verify <file> --repo nhutruong-uit/imcp`.
+
 On the login screen open **Server settings** ("Cấu hình máy chủ" in Vietnamese) and enter `localhost,1433` (Docker)
 or `localhost` / `PC-NAME\SQLEXPRESS` (Windows), database `QLTTTA`. The *Trust server certificate* option is on by
 default because the Docker image uses a self-signed certificate; turn it off if your server has a certificate from

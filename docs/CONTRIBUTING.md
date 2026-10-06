@@ -21,7 +21,10 @@ chore/<short-name>
   `/imcp-review`; the team lead audits the whole code base from time to time with `/imcp-review-codebase`, which only
   reviews the commits after the marker of [reviews/](reviews/README.md) and logs the findings there.
 - PR `develop → main` = release: `release.yml` packages `.exe` / `.zip` / `.dmg` and creates a Release tagged
-  `vX.Y.Z-build.N`, whose notes list the PRs merged since the previous release (use clear PR titles).
+  `vX.Y.Z-build.N`, whose notes list the PRs merged since the previous release (use clear PR titles). The
+  installers are built first; then the release job waits for the team lead (*Actions* > the run > *Review
+  deployments* > `release` > *Approve*) and signs every installer with a build attestation before it creates the
+  Release.
   Every release carries a new version: `/imcp-create-pr main` first bumps `project(VERSION ...)` in `CMakeLists.txt`
   through a small `chore/release-X.Y.Z` PR into `develop` (a `feat` → minor, otherwise patch), then opens the PR.
 - *Rulesets* (`protect-develop`, `protect-main`, Settings > Rules) protect `develop` and `main`. A pull request is

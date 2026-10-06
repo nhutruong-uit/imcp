@@ -4,6 +4,12 @@
 # The release notes = install table and first-launch steps (below) + the PRs since the previous release
 # (--generate-notes). Each installer checks the operating system: the Windows setup has MinVersion
 # (packaging/windows/installer.iss), the .dmg has the LSMinimumSystemVersion written by package-macos.sh.
+# Two safeguards before and after the Release is created (the job "publish"):
+#   - approval: the job runs in the environment "release" (Settings > Environments), which accepts only main and
+#     waits for the team lead to click "Review deployments > Approve". The builds run first without waiting, so the
+#     approval only decides whether the installers are published.
+#   - provenance: every installer gets a signed build attestation (Sigstore, stored by GitHub) saying "built by this
+#     workflow from this commit". Anyone can check a download: gh attestation verify <file> --repo <owner>/<repo>.
 name: Release installers (Windows + macOS)
 # Manual runs only build the installers, and their title says so; a merge into main keeps GitHub's default title
 # (the commit message)
@@ -90,6 +96,14 @@ jobs:
     needs: [macos, windows]
     # A manual run from another branch only builds the installers (artifacts); a Release comes from main only
     if: github.ref == 'refs/heads/main'
+    # Waits for the approval of the reviewer set on the environment "release" (only main may deploy to it)
+    environment: release
+    # The workflow-level token only has contents: write; the attestation also needs the OIDC token and the
+    # attestations API, so these two are given to this job only (a job-level block replaces the workflow-level one)
+    permissions:
+      contents: write # create the release
+      id-token: write # sign the attestation as this workflow
+      attestations: write # store the attestation in the repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -97,6 +111,10 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+      - name: Attest the installers (build provenance)
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/*
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -117,6 +135,11 @@ jobs:
           The Windows setup stops on an older Windows, and an older macOS refuses to open the app.
           Requires a SQL Server with the QLTTTA database (initialized with \`scripts/db_init\` from the source code
           below). The UI is available in Vietnamese and English. Database setup and demo accounts: [SETUP.md](${SETUP_URL}).
+
+          ### Verify the download
+          Every file has a signed build attestation: it proves the file was built by this repository's release
+          workflow from commit ${GITHUB_SHA::7} and was not changed afterwards. With the GitHub CLI:
+          \`gh attestation verify <file> --repo ${GITHUB_REPOSITORY}\`
 
           ### First launch
           - **macOS**: the app is signed by the team, not notarized by Apple, so macOS blocks the first launch of a
