@@ -42,7 +42,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install Qt, ODBC, FreeTDS, Ninja
         run: brew install qt qt-unixodbc unixodbc freetds ninja
       - name: Build the .dmg
@@ -53,7 +53,7 @@ jobs:
           VERSION=$(plutil -extract LSMinimumSystemVersion raw build/macos-release/src/app/QLTTTA.app/Contents/Info.plist)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "The .dmg runs on macOS $VERSION or later" >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: qlttta-macos
           path: dist/*.dmg
@@ -63,7 +63,7 @@ jobs:
     name: Build the Windows setup.exe + portable .zip
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install Qt 6.8 LTS + MinGW + Ninja
         uses: jurplel/install-qt-action@v4
         with:
@@ -83,7 +83,7 @@ jobs:
       - name: Build setup.exe + zip
         shell: pwsh
         run: ./scripts/package-windows.ps1
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: qlttta-windows
           path: |
@@ -106,8 +106,8 @@ jobs:
       attestations: write # store the attestation in the repository
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v7
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true

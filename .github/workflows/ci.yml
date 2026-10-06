@@ -45,7 +45,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install Qt, ODBC, Ninja (Homebrew)
         run: brew install qt qt-unixodbc unixodbc ninja
@@ -64,7 +64,7 @@ jobs:
     name: Windows (Qt + MinGW)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install Qt 6.8 LTS + MinGW + Ninja
         uses: jurplel/install-qt-action@v4
@@ -95,7 +95,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Start SQL Server 2025 Developer (Docker)
         # ACCEPT_EULA=Y: the repository owner accepted the SQL Server Developer Edition license for this CI job
@@ -166,7 +166,7 @@ jobs:
 
       - name: Upload the test results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: full-test-results
           path: build/test-results/
