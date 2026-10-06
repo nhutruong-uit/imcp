@@ -16,7 +16,9 @@ services:
       # No TZ needed: the database stores instants in UTC and computes the center's dates itself
       # (dbo.fn_Today, 02_functions.sql), so the container's time zone does not matter
     ports:
-      - "1433:1433"
+      # This computer only: the demo accounts have a public password (docs/SETUP.md), so a port open to the network
+      # would let anyone sign in as the manager. MSSQL_BIND=0.0.0.0 in .env opens it on purpose (second computer).
+      - "${MSSQL_BIND:-127.0.0.1}:1433:1433"
     volumes:
       - mssql-data:/var/opt/mssql
     restart: unless-stopped

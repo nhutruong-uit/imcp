@@ -91,6 +91,9 @@ paths:
   do not add a CodeQL workflow file next to the default setup (the two conflict). Issue forms live in
   `.github/ISSUE_TEMPLATE/` (blank issues are off in its `config.yml`); the labels they set (`bug`, `enhancement`)
   must exist.
+- ✔ (`tst_conventions`, `dockerCompose_sqlServerPort_boundToLoopback`) `docker-compose.yml` publishes SQL Server on
+  `127.0.0.1` only (`MSSQL_BIND` in `.env` opens it on purpose): the demo accounts of the seed data have a public
+  password, so a port open to the network lets anyone sign in as the manager.
 - Claude Code never starts a manual CI run (`gh workflow run CI ...`) on its own - only when the user asks (the branch
   may still get commits, and a run blocks the macOS and Windows runners for several minutes).
   `.claude/settings.json` makes Claude ask before `gh workflow run`, `gh pr merge` and force pushes, and removes the

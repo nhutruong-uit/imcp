@@ -42,7 +42,11 @@ SQL Server runs in Docker:
 2. Create a `.env` file in the repo root: `MSSQL_SA_PASSWORD=<strong password>`, then run `docker compose up -d`
    (this means you accept the SQL Server Developer Edition license terms). The container is named `imcp-mssql`; its
    time zone does not matter (the database stores UTC and computes the center's dates, see
-   [DATABASE.md](DATABASE.md#7-time-utc-instants-and-center-dates)).
+   [DATABASE.md](DATABASE.md#7-time-utc-instants-and-center-dates)). Port 1433 is published on this computer only
+   (`127.0.0.1`): the demo accounts have the public password of this document, so a port open to the network would let
+   anyone on it sign in. To reach the container from a second computer, add `MSSQL_BIND=0.0.0.0` to `.env` and run
+   `docker compose up -d` again. A container created earlier keeps its old port mapping until `docker compose up -d`
+   recreates it (the data stays in the volume).
 3. Initialize the database (uses the `sqlcmd` that is already inside the container):
    ```bash
    SQL_PASSWORD='<sa password>' ./scripts/db_init.sh --docker imcp-mssql
