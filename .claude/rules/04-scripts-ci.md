@@ -68,6 +68,21 @@ paths:
   The sa password is random for every run (masked); never commit one.
 - That job runs `test_all.sh` and then `test_all.ps1` (pwsh) against the same server, so both versions must keep
   working on Linux too (`linux-debug` preset).
+- `.github/dependabot.yml` updates only the GitHub Actions of the workflows, one grouped PR per week into `develop`.
+  Keep the commit prefix `chore(ci)`: `check_changes` rejects any other subject, so a Dependabot PR would be red. Those
+  PRs are not made by `/imcp-create-pr` (the PR template does not apply); read the release notes of a major bump
+  before merging. A new ecosystem (for example `docker-compose`) needs the same prefix and a reason: the SQL Server
+  image of `docker-compose.yml` is pinned on purpose.
+- GitHub features that live in **Settings**, not in a file (state on 2026-10-06; a member with admin rights changes
+  them, so say so in the PR when a rule depends on one): secret scanning with push protection, Dependabot alerts and
+  security updates, private vulnerability reporting (the report channel of `.github/SECURITY.md`), CodeQL code
+  scanning in *default setup* (`actions` and `c-cpp`), Discussions and the automatic deletion of merged head
+  branches. Never remove the `deletion` rule from the rulesets `protect-develop` / `protect-main`: it is what stops
+  that automatic deletion from deleting `develop`, the head of every release PR.
+  Code scanning is not a required check of `develop` or `main`;
+  do not add a CodeQL workflow file next to the default setup (the two conflict). Issue forms live in
+  `.github/ISSUE_TEMPLATE/` (blank issues are off in its `config.yml`); the labels they set (`bug`, `enhancement`)
+  must exist.
 - Claude Code never starts a manual CI run (`gh workflow run CI ...`) on its own - only when the user asks (the branch
   may still get commits, and a run blocks the macOS and Windows runners for several minutes).
   `.claude/settings.json` makes Claude ask before `gh workflow run`, `gh pr merge` and force pushes, and removes the

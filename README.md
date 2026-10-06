@@ -16,7 +16,7 @@ IE103 - Information Management · University of Information Technology (UIT), VN
 ![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-555555)
 
 [Features](#features) · [Quick start](#quick-start) · [Testing](#testing) · [Architecture](#architecture) ·
-[Documentation](#documentation) · [Team](#team)
+[Documentation](#documentation) · [Team](#team) · [License](#license)
 
 </div>
 
@@ -222,12 +222,14 @@ tools/               Screenshot generator used for the report and the user guide
 resources/           Icons, the QSS style sheet and translations/qlttta_vi.ts (Vietnamese UI)
 packaging/           Icons, Info.plist, Inno Setup installer, end-user install notes
 scripts/             Dev machine setup, database init, change checks, full test run, macOS/Windows packaging
-.github/             Workflows: Checks (PRs into develop), CI, Release (installers), Pages (project site); the PR template
+.github/             Workflows: Checks (PRs into develop), CI, Release (installers), Pages (project site); the PR
+                     template, issue forms, SECURITY.md, Dependabot config, CODEOWNERS
 .claude/             Claude Code team setup: rules per area, skills, shared settings, C++ format hook
 docs/                Documentation, the project report (docs/report), the user guide (docs/user-guide) and the
                      codebase review logs (docs/reviews)
 AGENTS.md            Instructions for AI coding agents (read by Claude Code)
 docker-compose.yml   SQL Server 2025 Developer for local development
+LICENSE              MIT license of the project
 ```
 
 ## Documentation
@@ -275,3 +277,8 @@ Class IE103.Q21.VB2 · Supervisor: Dr. Võ Phương Bình
 | 5 | Nguyễn Bảo Giang | `******09` | Data security, backup/restore, import/export, advanced databases |
 
 Detailed assignments: [docs/PLAN.md](docs/PLAN.md).
+
+## License
+
+The source code of QLTTTA is released under the [MIT License](LICENSE). The installers also contain third-party
+libraries (Qt, FreeTDS, unixODBC and others) that keep their own licenses.

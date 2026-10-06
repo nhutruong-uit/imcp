@@ -1,0 +1,16 @@
+# Issue chooser: which entries "New issue" offers. Blank issues are off so every issue uses a form (bug_report.yml,
+# feature_request.yml); the links below send other kinds of questions to the right place.
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/nhutruong-uit/imcp/security/advisories/new
+    about: Private report to the team lead - never open a public issue for a vulnerability.
+  - name: Ask a question or share an idea
+    url: https://github.com/nhutruong-uit/imcp/discussions
+    about: Q&A and ideas that are not a bug or a planned feature.
+  - name: Set up the project or run the tests
+    url: https://github.com/nhutruong-uit/imcp/blob/develop/docs/SETUP.md
+    about: Install the tools, create the database, run test_all (or type /imcp-setup in Claude Code).
+  - name: Team workflow and conventions
+    url: https://github.com/nhutruong-uit/imcp/blob/develop/docs/CONTRIBUTING.md
+    about: Branches, commit messages, the pull request checklist.
