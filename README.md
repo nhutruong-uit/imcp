@@ -181,7 +181,7 @@ On Windows run `.\scripts\test_all.ps1`, which does the same steps.
 |---|---|---|
 | [Checks](.github/workflows/checks.yml) | pull requests into `develop` | Change checks, build and unit tests on Linux (no database) |
 | [CI](.github/workflows/ci.yml) | merges into `develop`, pull requests into `main`, manual runs | Build and unit tests on macOS and Windows; the full `test_all` suite on Linux against SQL Server 2025 in Docker |
-| [Release installers (Windows + macOS)](.github/workflows/release.yml) | merges into `main`, manual runs (installers only, no release) | Builds the `.dmg`, `setup.exe` and portable `.zip`, publishes a GitHub Release with the PRs merged since the previous one |
+| [Release installers (Windows + macOS)](.github/workflows/release.yml) | merges into `main`, manual runs (installers only, no release) | Builds the `.dmg`, `setup.exe` and portable `.zip`; after the team lead approves (environment `release`) it signs them with build attestations and publishes a GitHub Release with the PRs merged since the previous one |
 | [Pages](.github/workflows/pages.yml) | merges into `develop` that change `docs/index.html`, `docs/data-map.html` or the screenshots | Publishes the project site and the data map (public) at <https://nhutruong-uit.github.io/imcp/> |
 
 Details, options and the database-only test run in SSMS:

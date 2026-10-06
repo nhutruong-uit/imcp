@@ -52,6 +52,14 @@ paths:
   move the runner, update `docs/SETUP.md` ("macOS 15+"; the report and the user guide read the runner of
   `release.yml` through `macos_min_version()`). The Windows minimum is
   `MinVersion` in `packaging/windows/installer.iss` (Qt 6.8: Windows 10 version 1809).
+- The job `publish` of `release.yml` runs in the environment `release` (Settings > Environments; created on GitHub,
+  not by a file): reviewer = the team lead, deployments only from `main`. The builds run first, then the job waits
+  for *Review deployments > Approve* before it creates the Release. Never rename the environment or the job without
+  changing the other (a missing environment is created empty by GitHub and the approval silently disappears), and
+  Claude Code never approves a deployment - tell the user that one is waiting. The same job signs every installer with
+  `actions/attest-build-provenance` (needs `id-token: write` and `attestations: write`, given to this job only, and
+  runs before `gh release create`); the release notes tell users to check a download with `gh attestation verify`.
+  Keep the attestation step on the files that are uploaded (`dist/*`).
 - `pages.yml` publishes the project site `docs/index.html` (as `index.html`), the data map `docs/data-map.html` and
   the screenshots that the project site names (`docs/report/images/screens/*.png`, demo data, same relative path)
   to GitHub Pages when one of them changes on `develop`. One copy of every document: never publish the report,
