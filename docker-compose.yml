@@ -1,4 +1,4 @@
-# SQL Server 2022 for development (macOS / Linux / Windows with Docker).
+# SQL Server 2025 for development (macOS / Linux / Windows with Docker).
 # 1. Create a .env file next to this one:  MSSQL_SA_PASSWORD=<strong password, >= 8 chars, upper/lower/digit/symbol>
 # 2. docker compose up -d
 # 3. SQL_PASSWORD=<password> ./scripts/db_init.sh --docker imcp-mssql
@@ -6,7 +6,7 @@
 # Apple Silicon: enable "Use Rosetta for x86_64/amd64 emulation" in Docker Desktop.
 services:
   mssql:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/mssql/server:2025-latest
     platform: linux/amd64
     container_name: imcp-mssql
     environment:

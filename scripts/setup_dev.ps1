@@ -264,8 +264,8 @@ if (Test-ClangFormat) {
 
 # 4. SQL Server: -Docker, -Server, an installed instance, a running Docker container, else SQL Server 2025 Developer.
 #    Not 2022: Microsoft retired its 2022 web installer (the winget package still points to it and it stops with
-#    "This version of the installer is no longer supported"). The database scripts use 2012+ syntax, so 2025 runs
-#    them like the SQL Server 2022 container of CI.
+#    "This version of the installer is no longer supported"). The database scripts use 2012+ syntax; the Docker
+#    container (docker-compose.yml) and CI run SQL Server 2025 too.
 Step "4/7 SQL Server"
 $sqlPackage = "Microsoft.SQLServer.2025.Developer"
 $sqlReady = $false

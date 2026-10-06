@@ -54,7 +54,7 @@ def chapter1(g):
     g.table(["Thành phần", "macOS", "Windows"], [
         ["Hệ điều hành", f"macOS {macos_min_version()} trở lên, máy chip Apple Silicon",
          "Windows 10 (bản 1809 trở lên) hoặc 11, 64-bit"],
-        ["SQL Server", "SQL Server 2022 chạy trong Docker Desktop",
+        ["SQL Server", "SQL Server 2025 chạy trong Docker Desktop",
          "SQL Server 2012+ cài trên máy (Express/Developer) hoặc chạy trong Docker Desktop"],
         ["Trình điều khiển (driver) kết nối", "Có sẵn trong ứng dụng (FreeTDS), không cần cài thêm",
          "ODBC Driver 18 (hoặc 17) for SQL Server: có sẵn khi máy đã cài SQL Server 2025, máy khác cần cài "
@@ -135,7 +135,7 @@ def chapter2(g):
                             "cửa sổ Docker Desktop trên Windows ở trạng thái đang chạy (Engine running).")
 
     g.h3("2.2.2. Khởi động SQL Server")
-    g.p("Tại thư mục mã nguồn có sẵn file `docker-compose.yml` mô tả container SQL Server 2022 tên "
+    g.p("Tại thư mục mã nguồn có sẵn file `docker-compose.yml` mô tả container SQL Server 2025 tên "
         "`imcp-mssql` (cổng 1433, dữ liệu lưu trong volume `mssql-data`). Múi giờ của container không ảnh "
         "hưởng: CSDL lưu thời điểm theo giờ UTC và tự tính ngày theo giờ của trung tâm.")
     g.steps([

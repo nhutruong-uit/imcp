@@ -1,5 +1,5 @@
 # CI: build + unit tests (incl. translations) on macOS and Windows, plus the FULL test suite on Linux
-# (scripts/test_all.sh and scripts/test_all.ps1 against SQL Server 2022 in Docker: database tests, server-level
+# (scripts/test_all.sh and scripts/test_all.ps1 against SQL Server 2025 in Docker: database tests, server-level
 # tests, unit tests and end-to-end GUI tests). Runs only:
 #   - when something is merged into develop (GitHub raises a push to develop; the ruleset rejects a direct push);
 #   - when a PR into main is opened/updated: REQUIRED, the ruleset of main needs the three jobs green to merge;
@@ -97,7 +97,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Start SQL Server 2022 Developer (Docker)
+      - name: Start SQL Server 2025 Developer (Docker)
         # ACCEPT_EULA=Y: the repository owner accepted the SQL Server Developer Edition license for this CI job
         # (development/test use only). The sa password is random for every run and masked in the log.
         run: |
@@ -107,7 +107,7 @@ jobs:
           export MSSQL_SA_PASSWORD
           docker run -d --name qlttta-mssql -p 1433:1433 \
             -e ACCEPT_EULA=Y -e MSSQL_PID=Developer -e MSSQL_SA_PASSWORD \
-            mcr.microsoft.com/mssql/server:2022-latest
+            mcr.microsoft.com/mssql/server:2025-latest
 
       - name: Install Microsoft ODBC Driver 18, FreeTDS, Ninja
         # ACCEPT_EULA=Y: the repository owner accepted the Microsoft ODBC Driver 18 license for this CI job too.
