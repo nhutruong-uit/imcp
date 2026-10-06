@@ -1,0 +1,47 @@
+# Issue form: feature request or improvement. It makes the author say who needs the change and why before anyone
+# writes code, so the team can decide the layer (database, application, presentation) and the owner of the area.
+name: Feature request
+description: Suggest a new feature or an improvement
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: role
+    attributes:
+      label: Who needs it?
+      options:
+        - Manager (ql_quan)
+        - Academic staff (gvu_lan)
+        - Accountant (kt_minh)
+        - Teacher (gv_john)
+        - Every role
+        - The team (build, tests, docs)
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does it solve?
+      description: >-
+        Describe the situation, not the solution, for example
+        "the accountant cannot see which receipts are unpaid".
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: A sketch of the screen or the report, or the business rule in your own words.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Does it touch (tick what you know)?
+      options:
+        - label: The database (a table, a rule, a permission) - needs a test case in `12_tests.sql`
+        - label: A new screen or a new UI text - needs a Vietnamese translation
+        - label: The report or the user guide

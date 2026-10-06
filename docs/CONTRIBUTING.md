@@ -127,6 +127,24 @@ GitHub pre-fills every new PR with `.github/pull_request_template.md` (same sect
 - [ ] Tried with the demo account of the relevant role, in Vietnamese and English when the UI changed
 - [ ] Documentation/report updated if the design or a number they quote changed
 
+## Issues, discussions, security and dependency updates
+- **Merged branches** are deleted by GitHub right after the PR is merged (`develop` and `main` are protected by the
+  `deletion` rule of their rulesets and are never deleted, also when `develop` is the head of a release PR). Do not
+  base a PR on another PR's branch; if you must, retarget it to `develop` before the lower PR is merged.
+- **Questions and ideas** go to *Discussions* (Q&A, Ideas), not to Issues.
+- **License**: the project is under the [MIT License](../LICENSE); a contribution is accepted under the same license.
+- **Issues**: *New issue* offers two forms (`.github/ISSUE_TEMPLATE/`): *Bug report* (version, operating system, demo
+  role, steps) and *Feature request* (who needs it and why). Link the issue in the PR (`Closes #12`).
+- **Security problems** are never an issue or a PR: use *Security > Report a vulnerability* (private, see
+  [`.github/SECURITY.md`](../.github/SECURITY.md)).
+- **Secrets**: GitHub secret scanning with push protection blocks a push that contains a token or a key. If it blocks
+  you, remove the secret from the commit - do not bypass the block.
+- **Dependabot** opens one PR per week (`chore(ci): bump the github-actions group ...`) that updates the GitHub
+  Actions of the workflows. The team lead reads the release notes of the new versions and merges it like any other PR
+  (the required `Checks` job runs on it). It does not touch the C++ libraries or the SQL Server image.
+- **Code scanning (CodeQL)** reports possible security bugs of the workflows and the C++ code in the *Security* tab.
+  It does not block a merge, so open the *Security* tab now and then (and before a release) to see new alerts.
+
 ## Using Claude Code (allowed by the instructor)
 - Read `AGENTS.md` in the repo root and `.claude/rules/`: Claude Code applies the conventions above automatically.
   It needs Claude Code v2.1.277 or later, which reads `AGENTS.md` by itself. Do not create a `CLAUDE.md` or

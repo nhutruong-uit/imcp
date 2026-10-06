@@ -1,0 +1,28 @@
+# Dependabot: keeps the GitHub Actions used by the workflows up to date, so a new action version (with its security
+# fixes) arrives as a normal pull request instead of being noticed by chance. Who uses it: GitHub (nothing to run
+# locally); the team lead reviews and merges the PRs it opens.
+#   - Only the actions of .github/workflows (actions/checkout, upload-pages-artifact, install-qt-action, ...). The C++
+#     libraries come from Qt and Homebrew/winget and the database image is pinned on purpose (see docker-compose.yml),
+#     so Dependabot has nothing to update there.
+#   - One PR per week for all actions together (group), so the required checks run once, not once per action.
+#   - The commit subject must pass scripts/check_changes (Conventional Commits): keep the prefix "chore(ci)".
+#   - These PRs are opened by Dependabot, not by /imcp-create-pr: the PR template does not apply. A major version bump
+#     of an action must still be read in its release notes before the PR is merged.
+# Course concept: continuous integration - dependencies are part of the pipeline and are checked by it.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+      timezone: Asia/Ho_Chi_Minh
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
