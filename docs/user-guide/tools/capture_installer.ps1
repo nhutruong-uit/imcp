@@ -15,7 +15,7 @@
 # Usage (PowerShell, in the repo folder, after .\scripts\package.ps1 with Inno Setup 6):
 #   .\docs\user-guide\tools\capture_installer.ps1
 #   .\docs\user-guide\tools\capture_installer.ps1 -SmartScreen
-#   .\docs\user-guide\tools\capture_installer.ps1 -Setup dist\QLTTTA-0.1.0-windows-x64-setup.exe
+#   .\docs\user-guide\tools\capture_installer.ps1 -Setup dist\QLTTTA-1.0.0-windows-x64-setup.exe
 param(
     [string]$Setup = "",
     [switch]$SmartScreen

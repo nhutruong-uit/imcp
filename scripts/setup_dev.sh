@@ -3,7 +3,7 @@
 #   1. Base tools: Xcode Command Line Tools, Homebrew, GitHub CLI
 #   2. Build toolchain (Homebrew): Qt 6 + its ODBC plugin, unixODBC, FreeTDS, CMake, Ninja
 #   3. clang-format of the team version (.clang-format-version, through pipx): check_changes and the Claude Code hook
-#   4. SQL Server 2022 Developer in Docker (docker-compose.yml, .env with a generated sa password), or the SQL Server
+#   4. SQL Server 2025 Developer in Docker (docker-compose.yml, .env with a generated sa password), or the SQL Server
 #      container that already runs on this machine
 #   5. Editor: the recommended VS Code extensions (.vscode/extensions.json), when VS Code is installed
 #   6. Git: identity, origin/develop, GitHub CLI login (checked only - you do these yourself)
@@ -165,7 +165,7 @@ else
   report FAILED "clang-format" "pipx install clang-format==$WANTED failed"
 fi
 
-# 4. SQL Server 2022 in Docker (amd64 image: Apple Silicon runs it through Rosetta)
+# 4. SQL Server 2025 in Docker (amd64 image: Apple Silicon runs it through Rosetta)
 step "4/7 SQL Server (Docker)"
 SQL_READY=0
 SQL_PW=""

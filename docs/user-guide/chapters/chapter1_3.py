@@ -54,7 +54,7 @@ def chapter1(g):
     g.table(["Thành phần", "macOS", "Windows"], [
         ["Hệ điều hành", f"macOS {macos_min_version()} trở lên, máy chip Apple Silicon",
          "Windows 10 (bản 1809 trở lên) hoặc 11, 64-bit"],
-        ["SQL Server", "SQL Server 2022 chạy trong Docker Desktop",
+        ["SQL Server", "SQL Server 2025 chạy trong Docker Desktop",
          "SQL Server 2012+ cài trên máy (Express/Developer) hoặc chạy trong Docker Desktop"],
         ["Trình điều khiển (driver) kết nối", "Có sẵn trong ứng dụng (FreeTDS), không cần cài thêm",
          "ODBC Driver 18 (hoặc 17) for SQL Server: có sẵn khi máy đã cài SQL Server 2025, máy khác cần cài "
@@ -105,7 +105,7 @@ def chapter2(g):
 
     g.h2("2.1. Tải mã nguồn")
     g.p("Các script tạo CSDL nằm trong thư mục `database/` của kho mã nguồn "
-        "`https://github.com/nhutruong-uit/imcp` (kho riêng tư: giảng viên được mời làm cộng tác viên). "
+        "`https://github.com/nhutruong-uit/imcp` (kho công khai, không cần tài khoản GitHub). "
         "Có hai cách tải:")
     g.bullets([
         "Có Git: `git clone https://github.com/nhutruong-uit/imcp.git` rồi `cd imcp`.",
@@ -135,7 +135,7 @@ def chapter2(g):
                             "cửa sổ Docker Desktop trên Windows ở trạng thái đang chạy (Engine running).")
 
     g.h3("2.2.2. Khởi động SQL Server")
-    g.p("Tại thư mục mã nguồn có sẵn file `docker-compose.yml` mô tả container SQL Server 2022 tên "
+    g.p("Tại thư mục mã nguồn có sẵn file `docker-compose.yml` mô tả container SQL Server 2025 tên "
         "`imcp-mssql` (cổng 1433, dữ liệu lưu trong volume `mssql-data`). Múi giờ của container không ảnh "
         "hưởng: CSDL lưu thời điểm theo giờ UTC và tự tính ngày theo giờ của trung tâm.")
     g.steps([
@@ -323,9 +323,9 @@ def chapter3(g):
     ])
     g.p("Thay cho bước 2-3, có thể chạy lệnh sau trong Terminal:")
     g.code("Terminal (macOS)", "xattr -dr com.apple.quarantine /Applications/QLTTTA.app", lang="text")
-    g.p("Nếu máy đã cài GitHub CLI (`gh`) và đăng nhập tài khoản có quyền vào kho mã nguồn, tải file `.dmg` bằng "
-        "lệnh dưới đây thì macOS không chặn lần mở đầu, không cần bước 2-3 (thay `<tag>` bằng tên phiên bản ở trang "
-        "Releases, ví dụ `v0.1.0-build.1`):")
+    g.p("Nếu máy đã cài GitHub CLI (`gh`) và đã đăng nhập (`gh auth login`, tài khoản GitHub nào cũng được), tải "
+        "file `.dmg` bằng lệnh dưới đây thì macOS không chặn lần mở đầu, không cần bước 2-3 (thay `<tag>` bằng tên "
+        f"phiên bản ở trang Releases, có dạng `v{version}-build.<số>`):")
     g.code("Terminal (macOS)", "gh release download <tag> --repo nhutruong-uit/imcp --pattern '*.dmg'", lang="text")
     g.p("Bản macOS đã kèm driver kết nối SQL Server (FreeTDS), không cần cài thêm thành phần nào.")
 

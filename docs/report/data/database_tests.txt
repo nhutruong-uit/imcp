@@ -93,7 +93,7 @@ T65|usp_Enrollment_Create: admitted on the score or on the prerequisite|Succeede
 T66|ID sequences end at the largest number their code can hold|Succeeded|Succeeded|PASSED|8 sequences checked
 T67|usp_Dashboard_Stats: students with a Studying enrollment|Succeeded|Succeeded|PASSED|62 active students (expected 62; STUDENT rows with status Studying: 62)
 T68|New grade weight for a course with evaluated classes|Rejected|Rejected|PASSED|The grade components of a course with evaluated classes cannot be changed; open a new course instead.
-T69|Transfer: attendance of the new class counts from the transfer day|Succeeded|Succeeded|PASSED|EN000034 joined on 2026-10-05 after 4 taught sessions => NULL (nothi
+T69|Transfer: attendance of the new class counts from the transfer day|Succeeded|Succeeded|PASSED|EN000034 joined on 2026-10-06 after 4 taught sessions => NULL (nothi
 T70|Transfer to a class of another branch|Rejected|Rejected|PASSED|A student can only be transferred to an open class of the same course and branch.
 T71|usp_Class_EvaluateResults: students without another class become Completed|Succeeded|Succeeded|PASSED|CL0001: 4 Completed, 8 still Studying, 0 wrong
 T72|Class size below the enrolled students|Rejected|Rejected|PASSED|The maximum size cannot be lower than the number of students enrolled in the class.
@@ -143,7 +143,7 @@ T115|Pay of the running month marked as paid|Rejected|Rejected|PASSED|A month ca
 T116|usp_Class_Update: a past unconfirmed session keeps its teacher|Succeeded|Succeeded|PASSED|past session: TE0005 (old TE0005), 8/8 coming sessions moved
 T117|Used promotion gets another discount|Rejected|Rejected|PASSED|A promotion already used by enrollments keeps its discount and start date; only its name and end date can change.
 T118|Used promotion ends before its last use|Rejected|Rejected|PASSED|The end date cannot be before the last enrollment that used the promotion.
-T119|usp_Promotion_Update: a used promotion renamed and ended early|Succeeded|Succeeded|PASSED|Opening offer (ended), ends 2026-10-04
+T119|usp_Promotion_Update: a used promotion renamed and ended early|Succeeded|Succeeded|PASSED|Opening offer (ended), ends 2026-10-05
 T120|Enrollment dated in the future|Rejected|Rejected|PASSED|An enrollment cannot be dated in the future.
 T121|Payment dated in the future|Rejected|Rejected|PASSED|A payment cannot be dated in the future.
 T122|New class in a suspended branch|Rejected|Rejected|PASSED|The branch does not exist or is suspended.

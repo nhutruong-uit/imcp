@@ -1,7 +1,22 @@
 cmake_minimum_required(VERSION 3.21)
 
+# macOS: build for the major version of this Mac (e.g. 27.0), the version the Homebrew Qt bottles are built for.
+# Left empty, the compiler targets the version of the Xcode SDK, which can be older than macOS and the bottles
+# (ld: "building for macOS-26.5, but linking with dylib ... QtSvg ... built for newer version 27.0").
+# scripts/package-macos.sh uses the same rule; -DCMAKE_OSX_DEPLOYMENT_TARGET=<version> still overrides it.
+# Must be set before project().
+if(CMAKE_HOST_APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET AND NOT DEFINED ENV{MACOSX_DEPLOYMENT_TARGET})
+    execute_process(COMMAND sw_vers -productVersion
+        OUTPUT_VARIABLE _qlttta_macos_version OUTPUT_STRIP_TRAILING_WHITESPACE)
+    string(REGEX MATCH "^[0-9]+" _qlttta_macos_major "${_qlttta_macos_version}")
+    if(_qlttta_macos_major)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "${_qlttta_macos_major}.0" CACHE STRING
+            "Minimum macOS version of the build (default: the major version of this Mac)" FORCE)
+    endif()
+endif()
+
 project(QLTTTA
-    VERSION 1.0.0
+    VERSION 1.0.1
     DESCRIPTION "English center management system - IE103 course project"
     LANGUAGES CXX)
 

@@ -54,19 +54,21 @@ paths:
   `MinVersion` in `packaging/windows/installer.iss` (Qt 6.8: Windows 10 version 1809).
 - `pages.yml` publishes the project site `docs/index.html` (as `index.html`), the data map `docs/data-map.html` and
   the screenshots that the project site names (`docs/report/images/screens/*.png`, demo data, same relative path)
-  to GitHub Pages when one of them changes on `develop`. The Pages site is public although the repository is
-  private: never publish the report, the user guide or other docs there - link them in the repository instead
+  to GitHub Pages when one of them changes on `develop`. One copy of every document: never publish the report,
+  the user guide or other docs there (a copy would go out of date) - link them in the repository instead
   (✔ `tst_conventions`, `docs_projectSite_matchesRepository`: a local link of the project site must be the data
   map or such a screenshot). Only `develop` may deploy (environment `github-pages`).
-- The `Full tests (Linux + SQL Server)` job runs SQL Server 2022 Developer in Docker and installs Microsoft ODBC
+- The `Full tests (Linux + SQL Server)` job runs SQL Server 2025 Developer in Docker and installs Microsoft ODBC
   Driver 18 (`msodbcsql18`), both with `ACCEPT_EULA=Y`: the repository owner accepted these two licenses for CI
-  (development/test use only) on 2026-10-02. Do not add other components that need their own Microsoft EULA (e.g.
-  `mssql-tools18`) without asking - sqlcmd runs inside the SQL Server container (`test_all --docker`). The suite
-  runs with ODBC Driver 18; the end-to-end test then runs again through FreeTDS (`tdsodbc`, the driver of the macOS
-  .dmg), which guards the Unicode workaround of `SqlHelpers::execPrepared`.
+  (development/test use only) on 2026-10-02, and the SQL Server 2025 one on 2026-10-06. Do not add other components
+  that need their own Microsoft EULA (e.g. `mssql-tools18`) without asking - sqlcmd runs inside the SQL Server
+  container (`test_all --docker`). The suite runs with ODBC Driver 18; the end-to-end test then runs again through
+  FreeTDS (`tdsodbc`, the driver of the macOS .dmg), which guards the Unicode workaround of
+  `SqlHelpers::execPrepared`.
   The sa password is random for every run (masked); never commit one.
 - That job runs `test_all.sh` and then `test_all.ps1` (pwsh) against the same server, so both versions must keep
   working on Linux too (`linux-debug` preset).
 - Claude Code never starts a manual CI run (`gh workflow run CI ...`) on its own - only when the user asks (the branch
-  may still get commits, and macOS minutes count 10x). `.claude/settings.json` makes Claude ask before
-  `gh workflow run`, `gh pr merge` and force pushes, and removes the AI attribution lines from commits and PRs.
+  may still get commits, and a run blocks the macOS and Windows runners for several minutes).
+  `.claude/settings.json` makes Claude ask before `gh workflow run`, `gh pr merge` and force pushes, and removes the
+  AI attribution lines from commits and PRs.

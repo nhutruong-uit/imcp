@@ -76,7 +76,7 @@ summarized in [DATABASE.md](DATABASE.md#4-roles-and-permissions).
 
 ## 2. Running the application from the installer (level A)
 
-Download the files from the repo's **Releases** page (the instructor is invited as a collaborator so they can download):
+Download the files from the repo's **Releases** page (public, no GitHub account needed):
 
 - **Windows 10 (version 1809 or later) or 11, 64-bit**: `QLTTTA-x.y.z-windows-x64-setup.exe` (no administrator
   rights needed; it stops on an older Windows) or the `portable.zip`.
@@ -211,7 +211,7 @@ without error `50099` (the `Verdict` column of the summary shows `PASSED`/`FAILE
 > (`gh workflow run CI --ref <branch> -f reason="<what to check>"`, listed as "Manual CI on <branch>: <reason>").
 > The macOS and Windows jobs build and run the unit tests (including the translation check `tst_i18n`; the
 > end-to-end test is recorded as *Skipped* there). The job
-> **Full tests (Linux + SQL Server)** starts SQL Server 2022 Developer in Docker and runs `test_all.sh` and then
+> **Full tests (Linux + SQL Server)** starts SQL Server 2025 Developer in Docker and runs `test_all.sh` and then
 > `test_all.ps1`, i.e. the whole suite above including the end-to-end GUI test (Qt 6.8 + Microsoft ODBC Driver 18 on
 > Ubuntu), then the end-to-end test once more through FreeTDS, the driver bundled in the macOS `.dmg`. As soon as one
 > job fails, the job **Stop the run on the first failure** cancels the whole run (the failed job keeps its red X, the

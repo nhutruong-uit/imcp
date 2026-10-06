@@ -8,9 +8,9 @@
   defense). Open it from the file too: the links and images are relative to docs/.
   Course concepts shown: the database as the core of an information system (constraints, procedures, triggers,
   cursors, views, authorization, backup, XML, distributed database), presenting information by role.
-  Public content only: the site is public while the repository is private. The page shows only the screenshots of
-  report/images/screens/ (demo data) and links to the repository for everything else - never copy the report, the
-  user guide or a document of docs/ here. tst_conventions (docs_projectSite_matchesRepository) checks that every
+  One copy of every document: the page shows only the screenshots of report/images/screens/ (demo data) and links
+  to the public repository for everything else - never copy the report, the user guide or a document of docs/ here
+  (the copy would go out of date). tst_conventions (docs_projectSite_matchesRepository) checks that every
   local link is the data map or one of those screenshots and that the tables listed here are the tables of
   01_tables.sql; docs_databaseNumbers_matchScripts checks the numbers marked data-stat; database object names
   (usp_, vw_, fn_, trg_...) must exist in the database scripts (docs_sitePages_namesExistInScripts).
@@ -110,8 +110,6 @@ button { font: inherit; color: inherit; }
 .btn-line { border-color: var(--line); background: var(--surface); color: var(--ink); }
 .btn-line:hover { border-color: var(--ink-3); }
 .btn .i { width: 17px; height: 17px; }
-.lock { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-3); }
-.lock .i { width: 14px; height: 14px; }
 
 /* ---------- navigation ---------- */
 .nav { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--navy) 92%, transparent); backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px); border-bottom: 1px solid var(--on-navy-line); color: var(--on-navy); }
@@ -536,7 +534,6 @@ dialog.lightbox img { width: 100%; height: auto; max-height: calc(94vh - 48px); 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
   <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
-  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></symbol>
   <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
@@ -835,7 +832,7 @@ dialog.lightbox img { width: 100%; height: auto; max-height: calc(94vh - 48px); 
     <div class="stack">
       <div class="card"><h3><svg class="i"><use href="#i-db"/></svg>Database</h3><ul>
         <li><b>SQL Server 2012+</b><span>T-SQL, contained database users, XML and XQuery</span></li>
-        <li><b>SQL Server 2022 in Docker</b><span>Development on macOS and the Linux CI job</span></li>
+        <li><b>SQL Server 2025 in Docker</b><span>Development on macOS and the Linux CI job</span></li>
         <li><b>SSMS</b><span>The lab tool: demos, permissions, backups</span></li>
       </ul></div>
       <div class="card"><h3><svg class="i"><use href="#i-code"/></svg>Application</h3><ul>
@@ -950,7 +947,7 @@ dialog.lightbox img { width: 100%; height: auto; max-height: calc(94vh - 48px); 
             <li><div>Advanced database models <span>- object-oriented, distributed, NoSQL</span></div></li>
             <li><div>Conclusion <span>- results, difficulties, next steps</span></div></li>
           </ol>
-          <div class="doc-actions"><a class="btn btn-line" href="https://github.com/nhutruong-uit/imcp/tree/develop/docs/report"><svg class="i"><use href="#i-file"/></svg>Open in the repository</a><span class="lock"><svg class="i"><use href="#i-lock"/></svg>Team and instructor</span></div>
+          <div class="doc-actions"><a class="btn btn-line" href="https://github.com/nhutruong-uit/imcp/tree/develop/docs/report"><svg class="i"><use href="#i-file"/></svg>Open in the repository</a></div>
         </div>
       </article>
       <article class="card doc">
@@ -967,21 +964,21 @@ dialog.lightbox img { width: 100%; height: auto; max-height: calc(94vh - 48px); 
             <li><div>Feature by feature <span>- every screen of every role</span></div></li>
             <li><div>Troubleshooting <span>- connection check, common errors</span></div></li>
           </ol>
-          <div class="doc-actions"><a class="btn btn-line" href="https://github.com/nhutruong-uit/imcp/tree/develop/docs/user-guide"><svg class="i"><use href="#i-book"/></svg>Open in the repository</a><span class="lock"><svg class="i"><use href="#i-lock"/></svg>Team and instructor</span></div>
+          <div class="doc-actions"><a class="btn btn-line" href="https://github.com/nhutruong-uit/imcp/tree/develop/docs/user-guide"><svg class="i"><use href="#i-book"/></svg>Open in the repository</a></div>
         </div>
       </article>
     </div>
 
-    <div class="sub-h"><h3>Developer documentation</h3><p>In English, next to the code. The repository is private: links with a lock open for the team and the instructor.</p></div>
+    <div class="sub-h"><h3>Developer documentation</h3><p>In English, next to the code in the repository on GitHub.</p></div>
     <div class="devdocs">
-      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/CODE_TOUR.md"><span class="top">CODE_TOUR.md<svg class="i"><use href="#i-lock"/></svg></span><p>Start here if you do not program: reading the SQL and the C++, one action from the click to the database.</p></a>
-      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/SETUP.md"><span class="top">SETUP.md<svg class="i"><use href="#i-lock"/></svg></span><p>Environment on macOS and Windows, database, demo accounts, tests, installers, troubleshooting.</p></a>
-      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/ARCHITECTURE.md"><span class="top">ARCHITECTURE.md<svg class="i"><use href="#i-lock"/></svg></span><p>Layers, request flow, naming, the recipe for a new module, the multi-language UI.</p></a>
-      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/DATABASE.md"><span class="top">DATABASE.md<svg class="i"><use href="#i-lock"/></svg></span><p>Design, object catalog, roles and permissions, mapping to the course syllabus.</p></a>
-      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/CONTRIBUTING.md"><span class="top">CONTRIBUTING.md<svg class="i"><use href="#i-lock"/></svg></span><p>Branches, conventions, the pull request checklist, working with Claude Code.</p></a>
-      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/PLAN.md"><span class="top">PLAN.md<svg class="i"><use href="#i-lock"/></svg></span><p>Schedule up to the submission, assignments, oral-defense preparation.</p></a>
-      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/README.md"><span class="top">README.md<svg class="i"><use href="#i-lock"/></svg></span><p>Quick start, repository layout, testing and the workflows at a glance.</p></a>
-      <a class="card devdoc pub" href="data-map.html"><span class="top">Data map<svg class="i"><use href="#i-arrow"/></svg></span><p>Public and interactive: tables, business flow and app flow by role.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/CODE_TOUR.md"><span class="top">CODE_TOUR.md<svg class="i"><use href="#i-ext"/></svg></span><p>Start here if you do not program: reading the SQL and the C++, one action from the click to the database.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/SETUP.md"><span class="top">SETUP.md<svg class="i"><use href="#i-ext"/></svg></span><p>Environment on macOS and Windows, database, demo accounts, tests, installers, troubleshooting.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/ARCHITECTURE.md"><span class="top">ARCHITECTURE.md<svg class="i"><use href="#i-ext"/></svg></span><p>Layers, request flow, naming, the recipe for a new module, the multi-language UI.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/DATABASE.md"><span class="top">DATABASE.md<svg class="i"><use href="#i-ext"/></svg></span><p>Design, object catalog, roles and permissions, mapping to the course syllabus.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/CONTRIBUTING.md"><span class="top">CONTRIBUTING.md<svg class="i"><use href="#i-ext"/></svg></span><p>Branches, conventions, the pull request checklist, working with Claude Code.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/docs/PLAN.md"><span class="top">PLAN.md<svg class="i"><use href="#i-ext"/></svg></span><p>Schedule up to the submission, assignments, oral-defense preparation.</p></a>
+      <a class="card devdoc" href="https://github.com/nhutruong-uit/imcp/blob/develop/README.md"><span class="top">README.md<svg class="i"><use href="#i-ext"/></svg></span><p>Quick start, repository layout, testing and the workflows at a glance.</p></a>
+      <a class="card devdoc pub" href="data-map.html"><span class="top">Data map<svg class="i"><use href="#i-arrow"/></svg></span><p>Interactive, on this site: tables, business flow and app flow by role.</p></a>
     </div>
   </div>
 </section>
@@ -1002,7 +999,7 @@ dialog.lightbox img { width: 100%; height: auto; max-height: calc(94vh - 48px); 
           <li><code>QLTTTA-x.y.z-windows-x64-portable.zip</code><span>unzip and run</span></li>
         </ul>
         <p class="hint"><svg class="i"><use href="#i-info"/></svg><span>If SmartScreen warns you, choose <b>More info</b>, then <b>Run anyway</b>: the app is not commercially code-signed.</span></p>
-        <a class="btn btn-solid" href="https://github.com/nhutruong-uit/imcp/releases/latest"><svg class="i"><use href="#i-lock"/></svg>Latest release</a>
+        <a class="btn btn-solid" href="https://github.com/nhutruong-uit/imcp/releases/latest"><svg class="i"><use href="#i-box"/></svg>Latest release</a>
       </article>
       <article class="card platform">
         <div class="platform-top"><svg class="i"><use href="#i-laptop"/></svg><div><h3>macOS</h3><p>macOS 15 or later, Apple Silicon</p></div></div>
@@ -1010,11 +1007,11 @@ dialog.lightbox img { width: 100%; height: auto; max-height: calc(94vh - 48px); 
           <li><code>QLTTTA-x.y.z-macos-arm64.dmg</code><span>drag into Applications</span></li>
         </ul>
         <p class="hint"><svg class="i"><use href="#i-info"/></svg><span>The FreeTDS driver is bundled. The first launch is blocked: open <b>System Settings › Privacy &amp; Security</b> and choose <b>Open Anyway</b>.</span></p>
-        <a class="btn btn-solid" href="https://github.com/nhutruong-uit/imcp/releases/latest"><svg class="i"><use href="#i-lock"/></svg>Latest release</a>
+        <a class="btn btn-solid" href="https://github.com/nhutruong-uit/imcp/releases/latest"><svg class="i"><use href="#i-box"/></svg>Latest release</a>
       </article>
     </div>
 
-    <div class="sub-h"><h3>From zero to signed in</h3><p>The repository is private: the instructor is invited so they can download the release.</p></div>
+    <div class="sub-h"><h3>From zero to signed in</h3><p>No GitHub account needed: download the installer of the latest release, then follow these four steps.</p></div>
     <ol class="install">
       <li class="card"><b>Prepare SQL Server</b><p>SQL Server in Docker on macOS, or SQL Server Express or Developer on Windows. <code>scripts/db_init</code> creates QLTTTA with demo data.</p></li>
       <li class="card"><b>Install the app</b><p>Run the setup, unzip the portable build, or drag <code>QLTTTA.app</code> into Applications.</p></li>
@@ -1091,7 +1088,7 @@ dialog.lightbox img { width: 100%; height: auto; max-height: calc(94vh - 48px); 
         <ul><li><a href="https://github.com/nhutruong-uit/imcp">Source code</a></li><li><a href="https://github.com/nhutruong-uit/imcp/releases">Releases</a></li><li><a href="https://github.com/nhutruong-uit/imcp/tree/develop/docs/report">Report</a></li><li><a href="https://github.com/nhutruong-uit/imcp/tree/develop/docs/user-guide">User guide</a></li></ul>
       </div>
     </div>
-    <div class="fine"><span>The repository is private; repository links open for the team and the instructor.</span><span>This page: <code>docs/index.html</code></span></div>
+    <div class="fine"><span>The source code, the report and the user guide are public on GitHub.</span><span>This page: <code>docs/index.html</code></span></div>
   </div>
 </footer>
 

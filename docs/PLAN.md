@@ -35,7 +35,7 @@ Everyone makes **the slides for their own part** (3-4 slides); the team lead mer
 | 3 | 12-18 Oct | Teacher modules: **Attendance**, **Grade entry**, **Result evaluation**; **Account management** (create/lock/reset password), **Backup** from the app | Finish your report part + SSMS screenshots; Trâm finalizes the ERD/CD; Giang prepares the security demo script | Report with all chapters (version 1) |
 | 4 | 19-25 Oct | Statistical reports (revenue, class size, class results), Excel/XML import, UI polish; **feature freeze on 25 Oct** | Cross-review the report (everyone reads one chapter written by someone else), make your slides | Release `v1.0.0` on `main` |
 | 5 | 26 Oct-1 Nov | Bug fixes, testing on clean Windows and Mac machines, re-take all screenshots, export the report to PDF | **Cross oral-defense practice**: everyone answers questions about another member's part; record a backup demo video | Final report + slides |
-| 6 | 2-4 Nov | Submit the report, send the Release link (the instructor has been invited to the repo) | Rehearse one full presentation within the time limit | **Submission** |
+| 6 | 2-4 Nov | Submit the report, send the Release link (the repository is public) | Rehearse one full presentation within the time limit | **Submission** |
 
 ## 4. Report checklist (to be reflected in the report's "Progress checklist" page)
 
