@@ -135,7 +135,7 @@
     "definition": "([Status]=N'Unexcused absence' OR [Status]=N'Excused absence' OR [Status]=N'Late' OR [Status]=N'Present')"
    }
   ],
-  "row_count": 1310
+  "row_count": 1339
  },
  {
   "table_name": "AUDIT_LOG",
