@@ -68,7 +68,7 @@ def chapter1(r):
         "PostgreSQL đáp ứng phần lớn nhưng khác cú pháp với bài thực hành và không có XQuery. Vì vậy nhóm chọn "
         "**SQL Server**, viết script tương thích từ bản 2012 trở lên để chạy được cả trên máy phòng thực hành.")
     r.table(["Thành phần", "Công nghệ", "Vai trò"], [
-        ["Hệ quản trị CSDL", "Microsoft SQL Server 2022 (tương thích 2012+)", "Lưu trữ, ràng buộc, xử lý nghiệp vụ, phân quyền"],
+        ["Hệ quản trị CSDL", "Microsoft SQL Server 2025 (tương thích 2012+)", "Lưu trữ, ràng buộc, xử lý nghiệp vụ, phân quyền"],
         ["Ngôn ngữ ứng dụng", "C++17 (đã học trên trường)", "Thống nhất ngôn ngữ cho cả nhóm"],
         ["Giao diện", "Qt 6 Widgets, Qt Designer (.ui)", "Menu, form, báo cáo; chạy Windows và macOS"],
         ["Kết nối CSDL", "Qt SQL + ODBC (Driver 18/17, FreeTDS)", "Gọi thủ tục, đọc view"],

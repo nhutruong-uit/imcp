@@ -124,7 +124,7 @@ Minimum versions: Qt 6.7, CMake 3.25 and a C++17 compiler.
 ### macOS
 
 ```bash
-# 1. SQL Server 2022 in Docker (container "imcp-mssql"); the .env file holds the sa password
+# 1. SQL Server 2025 in Docker (container "imcp-mssql"); the .env file holds the sa password
 echo 'MSSQL_SA_PASSWORD=<strong password>' > .env
 docker compose up -d
 
@@ -180,7 +180,7 @@ On Windows run `.\scripts\test_all.ps1`, which does the same steps.
 | Workflow | Runs on | What it does |
 |---|---|---|
 | [Checks](.github/workflows/checks.yml) | pull requests into `develop` | Change checks, build and unit tests on Linux (no database) |
-| [CI](.github/workflows/ci.yml) | merges into `develop`, pull requests into `main`, manual runs | Build and unit tests on macOS and Windows; the full `test_all` suite on Linux against SQL Server 2022 in Docker |
+| [CI](.github/workflows/ci.yml) | merges into `develop`, pull requests into `main`, manual runs | Build and unit tests on macOS and Windows; the full `test_all` suite on Linux against SQL Server 2025 in Docker |
 | [Release installers (Windows + macOS)](.github/workflows/release.yml) | merges into `main`, manual runs (installers only, no release) | Builds the `.dmg`, `setup.exe` and portable `.zip`, publishes a GitHub Release with the PRs merged since the previous one |
 | [Pages](.github/workflows/pages.yml) | merges into `develop` that change `docs/index.html`, `docs/data-map.html` or the screenshots | Publishes the project site and the data map (public) at <https://nhutruong-uit.github.io/imcp/> |
 
@@ -227,7 +227,7 @@ scripts/             Dev machine setup, database init, change checks, full test 
 docs/                Documentation, the project report (docs/report), the user guide (docs/user-guide) and the
                      codebase review logs (docs/reviews)
 AGENTS.md            Instructions for AI coding agents (read by Claude Code)
-docker-compose.yml   SQL Server 2022 Developer for local development
+docker-compose.yml   SQL Server 2025 Developer for local development
 ```
 
 ## Documentation
