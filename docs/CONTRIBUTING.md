@@ -145,8 +145,8 @@ GitHub pre-fills every new PR with `.github/pull_request_template.md` (same sect
 - **Dependabot** opens one PR per week (`chore(ci): bump the github-actions group ...`) that updates the GitHub
   Actions of the workflows. The team lead reads the release notes of the new versions and merges it like any other PR
   (the required `Checks` job runs on it). It does not touch the C++ libraries or the SQL Server image.
-- **Code scanning (CodeQL)** reports possible security bugs of the workflows and the C++ code in the *Security* tab.
-  It does not block a merge, so open the *Security* tab now and then (and before a release) to see new alerts.
+- **Code scanning (CodeQL)** is turned off (team lead's decision, 2026-10-06), so the *Security* tab shows no CodeQL
+  alerts and no CodeQL run follows a push.
 
 ## Using Claude Code (allowed by the instructor)
 - Read `AGENTS.md` in the repo root and `.claude/rules/`: Claude Code applies the conventions above automatically.

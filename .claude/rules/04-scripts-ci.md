@@ -91,12 +91,12 @@ paths:
   image of `docker-compose.yml` is pinned on purpose.
 - GitHub features that live in **Settings**, not in a file (state on 2026-10-06; a member with admin rights changes
   them, so say so in the PR when a rule depends on one): secret scanning with push protection, Dependabot alerts and
-  security updates, private vulnerability reporting (the report channel of `.github/SECURITY.md`), CodeQL code
-  scanning in *default setup* (`actions` and `c-cpp`), Discussions and the automatic deletion of merged head
-  branches. Never remove the `deletion` rule from the rulesets `protect-develop` / `protect-main`: it is what stops
-  that automatic deletion from deleting `develop`, the head of every release PR.
-  Code scanning is not a required check of `develop` or `main`;
-  do not add a CodeQL workflow file next to the default setup (the two conflict). Issue forms live in
+  security updates, private vulnerability reporting (the report channel of `.github/SECURITY.md`), Discussions and
+  the automatic deletion of merged head branches. Never remove the `deletion` rule from the rulesets
+  `protect-develop` / `protect-main`: it is what stops that automatic deletion from deleting `develop`, the head of
+  every release PR. CodeQL code scanning is off (team lead's choice, 2026-10-06): its *default setup* added a run
+  on every push whose stuck jobs could not be re-run. Do not turn it on again or add a CodeQL workflow file without
+  asking the team lead. Issue forms live in
   `.github/ISSUE_TEMPLATE/` (blank issues are off in its `config.yml`); the labels they set (`bug`, `enhancement`)
   must exist.
 - ✔ (`tst_conventions`, `dockerCompose_sqlServerPort_boundToLoopback`) `docker-compose.yml` publishes SQL Server on
