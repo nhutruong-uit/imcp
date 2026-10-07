@@ -90,7 +90,8 @@ itself enforces what each role may do.
   </tr>
 </table>
 
-<sub>Vietnamese UI (the default), generated from the seed data by `tools/qlttta_screenshots`.</sub>
+<sub>Vietnamese UI (the default), generated from the seed data by `tools/qlttta_screenshots`. Prefer moving pictures?
+Watch the [demo video](docs/demo/QLTTTA_Demo_vi.mp4) - a script plays the four roles through the real application.</sub>
 
 ## Tech stack
 
@@ -220,7 +221,7 @@ src/infrastructure/  ODBC connection, repositories that call stored procedures, 
 src/presentation/    Qt Widgets UI (role-based menu, forms, PDF/CSV export of reports, i18n)
 src/app/             Composition root (creates and wires the layers)
 tests/               Unit tests (fake repositories), convention and translation checks, end-to-end GUI test
-tools/               Screenshot generator used for the report and the user guide
+tools/               Developer tools: the screenshot generator (report, user guide) and the demo video recorder
 resources/           Icons, the QSS style sheet and translations/qlttta_vi.ts (Vietnamese UI)
 packaging/           Icons, Info.plist, Inno Setup installer, end-user install notes
 scripts/             Dev machine setup, database init, change checks, full test run, macOS/Windows packaging
@@ -249,6 +250,7 @@ LICENSE              MIT license of the project
 | [docs/reviews/](docs/reviews/) | Logs of the codebase reviews (findings and their status) and the marker of the last reviewed commit |
 | [docs/report/](docs/report/) | The project report (.docx, .pdf; written in Vietnamese for the course) and the script that generates it |
 | [docs/user-guide/](docs/user-guide/) | Installation and user guide for end users on macOS/Windows (.docx, .pdf; Vietnamese) and the script that generates it |
+| [docs/demo/](docs/demo/) | **The demo video** (`QLTTTA_Demo_vi.mp4`, Vietnamese captions): every role using the application, recorded by a script, and how to record it again |
 | [AGENTS.md](AGENTS.md) | Common commands and mandatory rules for AI coding agents, pointers to `.claude/rules/` |
 
 ## Contributing

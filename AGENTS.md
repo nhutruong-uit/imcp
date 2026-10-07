@@ -59,6 +59,10 @@ python3 docs/user-guide/build_user_guide.py
 # Screenshots (visual check with real data; QLTTTA_SHOT_LANG=en for the English UI)
 cmake --preset macos-debug -DQLTTTA_BUILD_TOOLS=ON && cmake --build --preset macos-debug
 QT_QPA_PLATFORM=offscreen QLTTTA_SHOT_PASSWORD='Demo@2026' build/macos-debug/tools/qlttta_screenshots
+
+# Demo video docs/demo/QLTTTA_Demo_vi.mp4 (the application plays itself, ffmpeg encodes it; needs ffmpeg): build + record
+# (--init-db reloads the seed data first; --lang en / --out <file> / --chapters a,b for a try-out that keeps the committed video)
+SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" ./scripts/record_demo.sh --init-db --docker imcp-mssql
 ```
 
 Windows (PowerShell, after `scripts\setup_dev.ps1`): the same steps with the `windows-debug` preset. Qt puts every
@@ -72,6 +76,7 @@ py docs\report\tools\export_data.py --server localhost --windows-auth   # report
 py docs\report\build_report.py; .\docs\report\tools\export_pdf.ps1          # report docx -> PDF (Word for Windows)
 py docs\user-guide\build_user_guide.py; .\docs\report\tools\export_pdf.ps1 docs\user-guide\QLTTTA_User_Guide.docx
 .\scripts\package.ps1                                    # dist\...-portable.zip (+ setup.exe with Inno Setup 6)
+.\scripts\record_demo.ps1 -InitDb                        # demo video (needs ffmpeg), after the seed data is reloaded
 ```
 
 ## Rules, settings and skills (shared by the whole team)
