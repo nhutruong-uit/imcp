@@ -29,6 +29,9 @@ def chapter1(g):
         "**Hai ngôn ngữ giao diện**: tiếng Việt (mặc định) và tiếng Anh, đổi ngay khi đang dùng.",
         "**Chạy trên macOS và Windows**, kết nối tới SQL Server trên cùng máy hoặc trên máy khác trong mạng.",
     ])
+    g.tip("Muốn xem ứng dụng hoạt động trước khi cài, mở **video demo** (khoảng 6 phút, có phụ đề tiếng Việt, lần "
+          "lượt qua bốn vai trò) trên trang giới thiệu của dự án: `https://nhutruong-uit.github.io/imcp/#demo`; "
+          "tệp video nằm trong kho mã nguồn tại `docs/demo/QLTTTA_Demo_vi.mp4`.")
 
     g.h2("1.3. Vai trò người dùng và chức năng")
     g.p("Bảng dưới liệt kê các mục menu mà mỗi vai trò nhìn thấy (đọc trực tiếp từ mã nguồn của ứng dụng). "
