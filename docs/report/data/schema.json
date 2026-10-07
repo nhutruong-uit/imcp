@@ -135,7 +135,7 @@
     "definition": "([Status]=N'Unexcused absence' OR [Status]=N'Excused absence' OR [Status]=N'Late' OR [Status]=N'Present')"
    }
   ],
-  "row_count": 1339
+  "row_count": 1380
  },
  {
   "table_name": "AUDIT_LOG",
@@ -221,7 +221,7 @@
     "definition": "([Action]='DELETE' OR [Action]='UPDATE' OR [Action]='INSERT')"
    }
   ],
-  "row_count": 246
+  "row_count": 247
  },
  {
   "table_name": "BRANCH",
@@ -1784,7 +1784,7 @@
     "definition": "([Status]=N'Cancelled' OR [Status]=N'Valid')"
    }
   ],
-  "row_count": 95
+  "row_count": 96
  },
  {
   "table_name": "ROOM",
