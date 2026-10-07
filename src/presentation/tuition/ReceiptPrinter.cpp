@@ -5,11 +5,8 @@
 #include "presentation/common/Theme.h"
 
 #include <QCoreApplication>
-#include <QFile>
 #include <QPageLayout>
 #include <QPageSize>
-#include <QPdfWriter>
-#include <QTextDocument>
 
 namespace {
 // Provides tr() with translation context "ReceiptPrinter" for the free functions of namespace ReceiptPrinter
@@ -65,27 +62,11 @@ QString ReceiptPrinter::html(const ReceiptPrint& r) {
     return h;
 }
 
-bool ReceiptPrinter::exportPdf(const ReceiptPrint& receipt, const QString& filePath, QString* error) {
-    // Open the file first: QPdfWriter would silently write nothing to a read-only or locked file (as
-    // TableExporter)
-    QFile file(filePath);
-    if (!file.open(QIODevice::WriteOnly)) {
-        if (error)
-            *error = file.errorString();
-        return false;
-    }
-    QPdfWriter writer(&file);
-    writer.setPageLayout(QPageLayout(QPageSize(QPageSize::A5), QPageLayout::Portrait,
-                                     QMarginsF(14, 14, 14, 14), QPageLayout::Millimeter));
-    writer.setTitle(ReceiptText::tr("Receipt %1").arg(receipt.receiptId));
-    writer.setCreator(QStringLiteral("QLTTTA"));
-    QTextDocument document;
-    document.setHtml(html(receipt));
-    document.print(&writer);
-    if (file.error() != QFileDevice::NoError) {
-        if (error)
-            *error = file.errorString();
-        return false;
-    }
-    return true;
+ReportDocument ReceiptPrinter::document(const ReceiptPrint& receipt) {
+    ReportDocument document;
+    document.title = ReceiptText::tr("Receipt %1").arg(receipt.receiptId);
+    document.html = html(receipt);
+    document.pageLayout = QPageLayout(QPageSize(QPageSize::A5), QPageLayout::Portrait,
+                                      QMarginsF(14, 14, 14, 14), QPageLayout::Millimeter);
+    return document;
 }

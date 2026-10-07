@@ -26,15 +26,27 @@
 #include "presentation/teaching/MyClassesPage.h"
 #include "presentation/tuition/TuitionPage.h"
 
+#include <QActionGroup>
 #include <QApplication>
 #include <QComboBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
+#include <QMenuBar>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 #include <optional>
+
+namespace {
+// Ctrl+1 ... Ctrl+9 (Cmd on macOS) open the first nine features of the menu, in menu order
+QKeySequence featureShortcut(int position) {
+    return position >= 1 && position <= 9
+               ? QKeySequence(Qt::CTRL | static_cast<Qt::Key>(Qt::Key_0 + position))
+               : QKeySequence();
+}
+} // namespace
 
 MainWindow::MainWindow(AppServices services, QWidget* parent) : QMainWindow(parent), m_services(services) {
     setWindowTitle(tr("English Center Management"));
@@ -59,6 +71,7 @@ MainWindow::MainWindow(AppServices services, QWidget* parent) : QMainWindow(pare
     v->addWidget(m_content, 1);
     h->addWidget(right, 1);
     setCentralWidget(central);
+    buildMenuBar(); // after the header: the language entries drive its language selector
 
     connect(m_menu, &QListWidget::currentRowChanged, this, &MainWindow::onMenuRowChanged);
     // Row 0 of the menu is a group header ("GENERAL"), so open the first feature instead of selecting row 0
@@ -92,6 +105,7 @@ QWidget* MainWindow::buildSidebar() {
     m_menu->setIconSize(QSize(18, 18));
     m_menu->setFocusPolicy(Qt::NoFocus);
     std::optional<FeatureGroup> previousGroup;
+    int position = 0;
     for (Feature f : m_features) {
         const FeatureInfo info = Labels::feature(f);
         if (info.group != previousGroup) {
@@ -109,6 +123,9 @@ QWidget* MainWindow::buildSidebar() {
                                          info.name, m_menu);
         item->setData(Qt::UserRole, static_cast<int>(f));
         item->setSizeHint(QSize(0, 34)); // 34 px: the 19 entries of the manager fit on a laptop screen
+        if (const QKeySequence key = featureShortcut(++position); !key.isEmpty())
+            item->setToolTip(
+                QStringLiteral("%1 (%2)").arg(info.name, key.toString(QKeySequence::NativeText)));
     }
     v->addWidget(m_menu, 1);
 
@@ -145,11 +162,63 @@ QWidget* MainWindow::buildHeader() {
 
     connect(m_languageCombo, &QComboBox::currentIndexChanged, this, &MainWindow::changeLanguage);
     connect(passwordButton, &QPushButton::clicked, this, &MainWindow::changePassword);
-    connect(logoutButton, &QPushButton::clicked, this, [this] {
-        if (UiHelpers::confirm(this, tr("Do you want to log out?")))
-            emit logoutRequested();
-    });
+    connect(logoutButton, &QPushButton::clicked, this, &MainWindow::logout);
     return header;
+}
+
+// Menu bar (Chapter 4 of the course - Menu): the features of the sidebar in the same groups, built from
+// Permissions as well, so a role never sees a command it may not use (the database still checks every GRANT).
+// "System" comes first with the account commands; Help last. On macOS Qt shows the menu bar at the top of the
+// screen and moves About and Quit into the application menu (menuRole).
+void MainWindow::buildMenuBar() {
+    QMenuBar* bar = menuBar();
+    QMenu* systemMenu = bar->addMenu(Labels::group(FeatureGroup::System));
+    systemMenu->setObjectName(QStringLiteral("systemMenu"));
+    QHash<int, QMenu*> menus{{static_cast<int>(FeatureGroup::System), systemMenu}};
+    auto* pages = new QActionGroup(this); // exclusive: the entry of the page shown is checked
+    int position = 0;
+    for (Feature f : m_features) {
+        const FeatureInfo info = Labels::feature(f);
+        QMenu*& menu = menus[static_cast<int>(info.group)];
+        if (!menu)
+            menu = bar->addMenu(Labels::group(info.group));
+        QAction* action = menu->addAction(Icons::get(info.icon, QLatin1String(Theme::kIcon), 16), info.name);
+        action->setCheckable(true);
+        action->setData(static_cast<int>(f));
+        action->setShortcut(featureShortcut(++position));
+        pages->addAction(action);
+        connect(action, &QAction::triggered, this, [this, f] { openFeature(f); });
+        m_featureActions.insert(static_cast<int>(f), action);
+    }
+
+    if (!systemMenu->isEmpty())
+        systemMenu->addSeparator();
+    systemMenu->addAction(Icons::get(QStringLiteral("key"), QLatin1String(Theme::kIcon), 16),
+                          tr("Change password..."), this, &MainWindow::changePassword);
+    QMenu* languageMenu = systemMenu->addMenu(
+        Icons::get(QStringLiteral("globe"), QLatin1String(Theme::kIcon), 16), tr("Language"));
+    auto* languages = new QActionGroup(this);
+    for (Language language : supportedLanguages()) {
+        QAction* action = languageMenu->addAction(Labels::language(language));
+        action->setCheckable(true);
+        action->setChecked(language == I18n::current());
+        languages->addAction(action);
+        // Same path as the selector of the header: changeLanguage() saves it and rebuilds the window
+        connect(action, &QAction::triggered, this, [this, language] {
+            m_languageCombo->setCurrentIndex(m_languageCombo->findData(languageCode(language)));
+        });
+    }
+    systemMenu->addSeparator();
+    systemMenu->addAction(Icons::get(QStringLiteral("logout"), QLatin1String(Theme::kIcon), 16),
+                          tr("Log out"), this, &MainWindow::logout);
+    QAction* quit = systemMenu->addAction(tr("Quit"), this, &QWidget::close);
+    quit->setShortcut(QKeySequence::Quit);
+    quit->setMenuRole(QAction::QuitRole);
+
+    QMenu* helpMenu = bar->addMenu(tr("Help"));
+    helpMenu->setObjectName(QStringLiteral("helpMenu"));
+    helpMenu->addAction(tr("About QLTTTA"), this, &MainWindow::showAbout)->setMenuRole(QAction::AboutRole);
+    helpMenu->addAction(tr("About Qt"), qApp, &QApplication::aboutQt)->setMenuRole(QAction::AboutQtRole);
 }
 
 // The page of a feature: created on first use, then reused (switching back keeps its filters and data).
@@ -235,6 +304,8 @@ void MainWindow::onMenuRowChanged(int row) {
     const auto feature = static_cast<Feature>(item->data(Qt::UserRole).toInt());
     m_title->setText(Labels::feature(feature).name);
     m_content->setCurrentWidget(pageFor(feature));
+    if (QAction* action = m_featureActions.value(static_cast<int>(feature)))
+        action->setChecked(true);
 }
 
 void MainWindow::openFeature(Feature feature) {
@@ -256,6 +327,29 @@ std::optional<Feature> MainWindow::currentFeature() const {
 void MainWindow::changePassword() {
     ChangePasswordDialog dialog(m_services.auth, this);
     dialog.exec();
+}
+
+void MainWindow::logout() {
+    if (UiHelpers::confirm(this, tr("Do you want to log out?")))
+        emit logoutRequested();
+}
+
+// Help > About: version, the server and database of this session, who is signed in
+void MainWindow::showAbout() {
+    const ServerConfig server = m_services.auth.serverConfig();
+    const QStringList lines = {
+        QStringLiteral("<b>%1</b>")
+            .arg(tr("English Center Management %1").arg(QApplication::applicationVersion()).toHtmlEscaped()),
+        tr("IE103 course project - Information Management, UIT").toHtmlEscaped(),
+        QString(),
+        tr("Server: %1").arg(server.host).toHtmlEscaped(),
+        tr("Database: %1").arg(server.database).toHtmlEscaped(),
+        tr("Signed in as: %1 (%2)")
+            .arg(Labels::accountName(m_services.auth.account()), Labels::role(m_services.auth.role()))
+            .toHtmlEscaped(),
+        tr("Built with Qt %1").arg(QLatin1String(qVersion())).toHtmlEscaped(),
+    };
+    QMessageBox::about(this, tr("About QLTTTA"), lines.join(QStringLiteral("<br>")));
 }
 
 // Saves and loads the new language, then asks main.cpp to rebuild the window (texts are set when widgets are

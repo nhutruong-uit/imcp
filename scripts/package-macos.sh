@@ -6,6 +6,9 @@
 #   3. Bundles the FreeTDS driver (LGPL) + unixODBC + OpenSSL => the Mac needs no extra driver
 #   4. Writes the oldest macOS every bundled binary runs on into Info.plist (LSMinimumSystemVersion)
 #   5. Ad-hoc signing (mandatory on Apple Silicon) and the .dmg file in dist/ with "READ ME FIRST.txt"
+#   6. Checks the .dmg like a user's Mac would use it: no binary of the bundle loads a library from Homebrew, and
+#      the app inside the mounted .dmg passes its self-test (QLTTTA --self-test: Qt plugins, the bundled FreeTDS
+#      driver, translation, icons - no database needed)
 #
 # The Homebrew libraries are built for the macOS of the build machine, so the .dmg runs on that macOS version or
 # later: build on the oldest macOS you want to support (release.yml pins its runner for this reason).
@@ -98,6 +101,23 @@ echo ">> Ad-hoc signing"
 codesign --force --deep --sign - "$APP"
 codesign --verify --deep "$APP"
 
+echo ">> No library loaded from Homebrew"
+# A user's Mac has no Homebrew: every library the bundle loads must come from the bundle itself. Only the load
+# commands count (LC_LOAD_DYLIB...): a framework's own install name (LC_ID_DYLIB) may keep its Homebrew path,
+# it is never used to find a file
+FROM_BREW="$(find "$APP" -type f | while IFS= read -r f; do
+  if [[ "$(file -b "$f")" == Mach-O* ]]; then
+    otool -l "$f" | awk '$1 == "cmd" { load = ($2 ~ /^LC_(LOAD|LOAD_WEAK|REEXPORT|LAZY_LOAD)_DYLIB$/) }
+                         load && $1 == "name" { print $2; load = 0 }' |
+      { grep -E "^($BREW|/usr/local/(opt|Cellar))" || true; } | sed "s|^|   ${f#"$APP/"} -> |"
+  fi
+done)"
+if [[ -n "$FROM_BREW" ]]; then
+  echo "$FROM_BREW" >&2
+  echo "These binaries of the bundle load a library from Homebrew" >&2
+  exit 1
+fi
+
 echo ">> Create the DMG"
 STAGE="build/macos-release/dmg"
 rm -rf "$STAGE" && mkdir -p "$STAGE" dist
@@ -108,4 +128,23 @@ sed "s/@MIN_MACOS@/$MIN_MACOS/" "$ROOT/packaging/macos/INSTALL.txt" > "$STAGE/RE
 DMG="dist/QLTTTA-$VERSION-macos-$ARCH.dmg"
 rm -f "$DMG"
 hdiutil create -volname "QLTTTA $VERSION" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+
+echo ">> Self-test of the app inside the .dmg"
+# Mounted read-only like a download; QLTTTA_ODBC_DRIVER is ignored so the app picks its driver by itself, and it
+# must pick the FreeTDS of the bundle (not a driver installed on this Mac)
+MOUNT="$(mktemp -d)"
+hdiutil attach -nobrowse -readonly -mountpoint "$MOUNT" "$DMG" >/dev/null
+SELF_TEST_STATUS=0
+SELF_TEST="$(env -u QLTTTA_ODBC_DRIVER "$MOUNT/QLTTTA.app/Contents/MacOS/QLTTTA" --self-test)" || SELF_TEST_STATUS=$?
+hdiutil detach "$MOUNT" -quiet || true
+rmdir "$MOUNT" 2>/dev/null || true
+echo "$SELF_TEST" | sed 's/^/   /'
+if [[ "$SELF_TEST_STATUS" -ne 0 ]]; then
+  echo "The self-test of the packaged app failed" >&2
+  exit 1
+fi
+if ! grep -q "ODBC driver for SQL Server: .*/QLTTTA.app/Contents/Frameworks/libtdsodbc.so$" <<< "$SELF_TEST"; then
+  echo "The packaged app did not use the FreeTDS driver of the bundle" >&2
+  exit 1
+fi
 echo "Done: $DMG (macOS $MIN_MACOS or later)"

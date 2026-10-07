@@ -50,6 +50,14 @@ public:
     // when the legacy Windows driver could not connect (it cannot sign in to SQL Server 2025 on Windows 11)
     static QString connectionFailure(const QSqlError& error, const QString& driver);
 
+    // Installer check (QLTTTA --self-test, run by the packaging scripts and release.yml): the Qt ODBC plugin
+    // is deployed, and the first candidate driver the ODBC driver manager can load - the one open() starts
+    // with. A driver is probed by connecting to a closed port of this computer, so no server is needed:
+    // "driver not found" = missing, any other error = the driver loaded and tried to connect. Empty = none
+    // installed.
+    static bool odbcPluginAvailable();
+    static QString firstInstalledDriver();
+
 private:
     QString m_driver;
 };

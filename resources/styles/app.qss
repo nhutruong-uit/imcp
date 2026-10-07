@@ -62,6 +62,9 @@ QScrollBar:horizontal { background: transparent; height: 10px; margin: 2px; }
 QScrollBar::handle:horizontal { background: #CBD5E1; border-radius: 4px; min-width: 30px; }
 QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
 
+/* ---- Menu bar (Windows; macOS shows its own menu bar at the top of the screen) ---- */
+QMenuBar { background: white; border-bottom: 1px solid #E2E8F0; }
+
 /* ---- Sidebar ---- */
 QFrame#Sidebar { background: #1F3864; }
 QLabel#SidebarBrand { color: white; font-size: 16px; font-weight: 700; }
