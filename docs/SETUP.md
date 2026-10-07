@@ -284,6 +284,26 @@ Optional: `QLTTTA_SHOT_USERS` (comma-separated accounts), `QLTTTA_SHOT_DIR` (out
 fixed and do not depend on the UI language: `login.png`, `login_server_settings.png`, `change_password.png`,
 `<account>_<feature>.png` (e.g. `gvu_lan_students.png`), `<account>_student_form.png`.
 
+### Recording the demo video
+The application plays itself through every role and `ffmpeg` encodes the result to `docs/demo/QLTTTA_Demo_vi.mp4`
+(what the video shows, how it works and how to change the story: [docs/demo/README.md](demo/README.md)):
+```bash
+brew install ffmpeg                       # once
+SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" ./scripts/record_demo.sh --init-db --docker imcp-mssql
+```
+```powershell
+winget install Gyan.FFmpeg                # once
+.\scripts\record_demo.ps1 -InitDb         # Windows Authentication, server "localhost"; -Docker / -User as in db_init
+```
+- `--init-db` / `-InitDb` re-creates the QLTTTA database from the seed data first (the demo changes a little data and the
+  seed dates are relative to the day it was loaded); leave it out to record against the database as it is.
+- The recording runs without a window or any screen-recording permission (`QT_QPA_PLATFORM=offscreen`) and lasts as
+  long as the video (about 6 minutes). `--lang en` (`-Lang en`) records the English version, `--out <file>` (`-Out`) writes
+  it elsewhere (use it for a try-out, so the committed video is not replaced), `--chapters manager,teacher`
+  (`-Chapters`) records only some chapters.
+- A SQL Server on another port or another computer: `SQL_SERVER=localhost,14333 ./scripts/record_demo.sh ...`
+  (`-Server` in PowerShell). `EXTRA_CMAKE_ARGS` and `PRESET` work as in `test_all`.
+
 ### Updating the user guide
 The installation and user guide for end users ([docs/user-guide/](user-guide/README.md), Vietnamese) is generated
 the same way as the report:

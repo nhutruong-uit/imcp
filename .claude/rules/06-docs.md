@@ -22,6 +22,7 @@ Everything here is **English**.
 | Team workflow, branches, PR checklist, required checks | `docs/CONTRIBUTING.md` (+ `.github/pull_request_template.md`) |
 | Repository layout | `README.md` |
 | A flow, layer or business rule that a non-programmer must be able to follow (who checks what, which test) | `docs/CODE_TOUR.md` (sections 5-6) |
+| A screen or flow the demo video shows (record it again when it changes noticeably, not for every UI tweak) | `tools/demo/Scenario.cpp` + `docs/demo/captions.tsv`, then `scripts/record_demo` ([docs/demo/README.md](../../docs/demo/README.md)) |
 | A convention | the numbered rule of its area in `.claude/rules/` - never only in `AGENTS.md` |
 | A codebase review (`/imcp-review-codebase`) | `docs/reviews/<date>-codebase.md` (findings, status) and `docs/reviews/LAST_REVIEWED` |
 

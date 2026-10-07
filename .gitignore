@@ -41,6 +41,11 @@ __pycache__/
 # Log written into the current folder by aqtinstall (Qt for Windows, scripts/setup_dev.ps1)
 aqtinstall.log
 
+# ---- Demo video: only the finished docs/demo/QLTTTA_Demo_<lang>.mp4 is committed ----
+# A recording that failed half way (<video>.failed.mp4) and the file ffmpeg is still writing (<video>.part.mp4)
+*.failed.mp4
+*.part.mp4
+
 # ---- Report ----
 # Word lock files (~$name.docx) while a document is open
 ~$*

@@ -1,0 +1,68 @@
+# The words of the demo video (tools/demo/Scenario.cpp names the ids), one line per id:
+#   id <TAB> English text <TAB> Vietnamese text
+# The Vietnamese column is what the committed video shows (docs/demo/QLTTTA_Demo_vi.mp4). Keep every line on one
+# row with exactly two TAB characters; a caption is shown long enough to be read, so short sentences are best.
+card.intro.title	QLTTTA - English Center Management	QLTTTA - Quản lý trung tâm tiếng Anh
+card.intro.subtitle	IE103 project, group 1, UIT - demo of the application on a SQL Server database	Đồ án IE103, nhóm 1, UIT - demo ứng dụng trên cơ sở dữ liệu SQL Server
+card.manager.title	Manager	Quản lý trung tâm
+card.manager.subtitle	Account ql_quan - sees the whole system	Tài khoản ql_quan - xem được toàn bộ hệ thống
+card.staff.title	Academic staff	Giáo vụ
+card.staff.subtitle	Account gvu_lan - classes, enrollments and timetable, but no money	Tài khoản gvu_lan - lớp học, ghi danh và lịch học, không xem được tiền
+card.accountant.title	Accountant	Kế toán
+card.accountant.subtitle	Account kt_minh - tuition, revenue and payroll	Tài khoản kt_minh - học phí, doanh thu và lương
+card.teacher.title	Teacher	Giáo viên
+card.teacher.subtitle	Account gv_john - only his own classes, schedule, grades and pay	Tài khoản gv_john - chỉ lớp, lịch dạy, điểm và lương của chính mình
+card.language.title	Two languages	Hai ngôn ngữ
+card.language.subtitle	Vietnamese and English, switched while the application runs	Tiếng Việt và tiếng Anh, đổi ngay khi đang dùng
+card.outro.title	Thank you for watching	Cảm ơn đã theo dõi
+card.outro.subtitle	QLTTTA - IE103 - group 1 - UIT   github.com/nhutruong-uit/imcp	QLTTTA - IE103 - Nhóm 1 - UIT   github.com/nhutruong-uit/imcp
+login.accounts	Four roles: manager, academic staff, accountant and teacher - each one a database user	Bốn vai trò: quản lý, giáo vụ, kế toán và giáo viên - mỗi người là một user của cơ sở dữ liệu
+login.server	The SQL Server address and the database can be changed on the login screen	Có thể đổi địa chỉ SQL Server và cơ sở dữ liệu ngay trên màn hình đăng nhập
+login.wrong	A wrong password is refused by SQL Server itself	Sai mật khẩu sẽ bị chính SQL Server từ chối
+login.ok	With the right password the application opens the menu of the account's role	Đúng mật khẩu, ứng dụng mở menu theo vai trò của tài khoản
+dashboard.kpi	Dashboard: key figures and revenue by month, computed by the database	Tổng quan: các chỉ số chính và doanh thu theo tháng, do cơ sở dữ liệu tính
+dashboard.branch	The figures follow the branch that is chosen	Số liệu thay đổi theo chi nhánh được chọn
+students.search	Search ignores case and accents	Tìm kiếm không phân biệt hoa thường và dấu
+students.profile	Student profile: enrollments, tuition and placement tests	Hồ sơ học viên: ghi danh, học phí và kết quả kiểm tra xếp lớp
+students.add	Adding a student	Thêm một học viên mới
+students.rule	A student under 18 needs a guardian: the rule is checked before saving	Học viên dưới 18 tuổi phải có phụ huynh: quy tắc được kiểm tra trước khi lưu
+students.saved	With the guardian filled in, the student is saved through a stored procedure	Điền thông tin phụ huynh, học viên được lưu bằng stored procedure
+students.delete	Deleting asks for confirmation first	Xóa học viên luôn hỏi xác nhận trước
+courses.list	Courses and their prices	Khóa học và học phí
+courses.syllabus	The syllabus of a course is XML that the database checks against a schema	Giáo trình của khóa học là XML, được cơ sở dữ liệu kiểm tra theo schema
+catalogs.teachers	Teachers, with their certificates	Giáo viên và chứng chỉ của họ
+catalogs.branches	Branches and their rooms	Chi nhánh và phòng học
+catalogs.promotions	Promotions that can be applied to an enrollment	Khuyến mãi có thể áp dụng khi ghi danh
+system.accounts	Accounts: create, lock, unlock and reset the password - each one is a SQL Server user	Tài khoản: tạo, khóa, mở khóa, đặt lại mật khẩu - mỗi tài khoản là một user SQL Server
+system.backup	Backup: full, differential and transaction log	Sao lưu: toàn phần, chênh lệch và nhật ký giao dịch
+staff.revenue	Academic staff may not see revenue: the database does not return it and the card says so	Giáo vụ không được xem doanh thu: cơ sở dữ liệu không trả số liệu này nên thẻ báo "Không có quyền"
+staff.menu	Their menu has no payroll or revenue	Menu của giáo vụ không có lương và doanh thu
+placement.list	Placement tests: the four skill scores and the course that is suggested	Kiểm tra xếp lớp: điểm bốn kỹ năng và khóa học được đề xuất
+classes.list	Classes, with teacher, room and weekly timetable	Lớp học: giáo viên, phòng học và lịch học hằng tuần
+classes.students	The students of a class	Danh sách học viên của lớp
+classes.schedule	The weekly timetable of a class - the database refuses a clash of room or teacher	Lịch học hằng tuần của lớp - cơ sở dữ liệu từ chối trùng phòng hoặc trùng giáo viên
+enrollments.list	Enrollments: which student studies in which class, what is paid and what is owed	Ghi danh: học viên học lớp nào, đã đóng bao nhiêu, còn nợ bao nhiêu
+enrollments.new	A new enrollment: find the student, choose an open class and a promotion	Ghi danh mới: tìm học viên, chọn lớp đang mở và khuyến mãi
+enrollments.hold	Putting an enrollment on hold asks for confirmation	Bảo lưu một ghi danh phải xác nhận
+enrollments.resume	Resuming it puts the status back at once	Học lại: trạng thái được đưa về ngay
+schedule.week	The weekly timetable of all classes	Lịch học theo tuần của tất cả các lớp
+grades.book	The grade book of a class: one score per grade component	Sổ điểm của lớp: mỗi thành phần một điểm
+grades.results	Learning results of every student	Kết quả học tập của từng học viên
+accountant.readonly	The accountant can look at students but has no Add, Edit or Delete button	Kế toán xem được học viên nhưng không có nút Thêm, Sửa, Xóa
+tuition.history	Tuition: the receipts that were collected	Thu học phí: các biên lai đã thu
+tuition.collect	Collecting a payment: choose the enrollment, the amount is the balance until it is changed	Thu tiền: chọn ghi danh, số tiền mặc định là phần còn nợ và có thể sửa
+tuition.receipt	The receipt is recorded and a trigger recomputes the amount paid; it can be printed	Biên lai được ghi, trigger tính lại số tiền đã đóng; có thể in biên lai ngay
+tuition.cancel	A receipt is never deleted: cancelling keeps it in the history with its reason	Biên lai không bao giờ bị xóa: hủy biên lai vẫn lưu lại lịch sử cùng lý do
+outstanding.list	Outstanding tuition: who still owes money	Công nợ học phí: ai còn nợ bao nhiêu
+outstanding.preview	The print preview groups the rows, here by class, with a subtotal for each	Bản xem trước khi in có thể nhóm theo cột, ở đây là theo lớp, kèm tổng từng nhóm
+revenue.month	Revenue by month	Doanh thu theo từng tháng
+revenue.course	Or by course for a period	Hoặc theo khóa học trong một khoảng thời gian
+payroll.list	Teacher payroll by month: finalize, deduct, mark as paid	Lương giáo viên theo tháng: chốt lương, trừ lương, đánh dấu đã trả
+teacher.menu	A teacher sees only his own classes, schedule, grades and pay	Giáo viên chỉ thấy lớp, lịch dạy, sổ điểm và lương của chính mình
+teacher.classes	My classes	Các lớp tôi dạy
+teacher.schedule	My teaching schedule for the week	Lịch dạy trong tuần của tôi
+teacher.attendance	Taking attendance: a status for every student, then save	Điểm danh: chọn trạng thái cho từng học viên rồi lưu
+teacher.grades	Grades are entered per component, from 0 to 10	Nhập điểm theo từng thành phần, từ 0 đến 10
+teacher.pay	My pay, month by month	Lương của tôi theo từng tháng
+language.switch	Switching to English - the whole screen is rebuilt, also the values and messages from the database	Chuyển sang tiếng Anh - cả giao diện, giá trị và thông báo lấy từ cơ sở dữ liệu đều đổi
+language.back	And back to Vietnamese	Và quay lại tiếng Việt

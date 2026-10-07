@@ -14,5 +14,6 @@
 *.icns binary
 *.docx binary
 *.pdf binary
+*.mp4 binary
 # Sample CSV for BULK INSERT is stored as UTF-16 LE
 database/samples/*.csv binary
