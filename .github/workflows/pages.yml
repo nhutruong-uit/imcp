@@ -5,6 +5,7 @@
 #   - docs/data-map.html  -> data-map.html   the interactive map of the tables and the app flow
 #   - the screenshots that docs/index.html shows (docs/report/images/screens/*.png, demo data), at the same
 #     relative path, so the page works the same opened from the file and online
+#   - the demo video that docs/index.html plays (docs/demo/QLTTTA_Demo_vi.mp4), also at the same relative path
 # One copy of every document: never publish the report, the user guide or other docs here (a copy would go out of
 # date) - the site links to them in the public repository instead. tst_conventions
 # (docs_projectSite_matchesRepository) fails when docs/index.html links to a local file that this workflow does
@@ -20,6 +21,7 @@ on:
       - docs/index.html
       - docs/data-map.html
       - docs/report/images/screens/**
+      - docs/demo/*.mp4
       - .github/workflows/pages.yml
 
 permissions:
@@ -51,6 +53,11 @@ jobs:
           for shot in $(grep -o 'report/images/screens/[A-Za-z0-9_]*\.png' docs/index.html | sort -u); do
             mkdir -p "$SITE/$(dirname "$shot")"
             cp "docs/$shot" "$SITE/$shot"
+          done
+          # The demo video the page plays (a few MB; Pages accepts a site up to 1 GB)
+          for video in $(grep -o 'demo/[A-Za-z0-9_]*\.mp4' docs/index.html | sort -u); do
+            mkdir -p "$SITE/$(dirname "$video")"
+            cp "docs/$video" "$SITE/$video"
           done
           find "$SITE" -type f | sort
 

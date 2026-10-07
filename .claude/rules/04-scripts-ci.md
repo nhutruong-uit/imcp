@@ -70,10 +70,11 @@ paths:
   (`github-actions`) updates the SHA and the comment together; read the release notes before merging, as for any bump.
 - `pages.yml` publishes the project site `docs/index.html` (as `index.html`), the data map `docs/data-map.html` and
   the screenshots that the project site names (`docs/report/images/screens/*.png`, demo data, same relative path)
-  to GitHub Pages when one of them changes on `develop`. One copy of every document: never publish the report,
-  the user guide or other docs there (a copy would go out of date) - link them in the repository instead
-  (✔ `tst_conventions`, `docs_projectSite_matchesRepository`: a local link of the project site must be the data
-  map or such a screenshot). Only `develop` may deploy (environment `github-pages`).
+  and the demo video it plays (`docs/demo/*.mp4`, same relative path) to GitHub Pages when one of them changes on
+  `develop`. One copy of every document: never publish the report, the user guide or other docs there (a copy would
+  go out of date) - link them in the repository instead (✔ `tst_conventions`,
+  `docs_projectSite_matchesRepository`: a local link of the project site must be the data map, such a screenshot or
+  the video). Only `develop` may deploy (environment `github-pages`).
 - The `Full tests (Linux + SQL Server)` job runs SQL Server 2025 Developer in Docker and installs Microsoft ODBC
   Driver 18 (`msodbcsql18`), both with `ACCEPT_EULA=Y`: the repository owner accepted these two licenses for CI
   (development/test use only) on 2026-10-02, and the SQL Server 2025 one on 2026-10-06. Do not add other components

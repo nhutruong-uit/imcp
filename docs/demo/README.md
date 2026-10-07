@@ -22,7 +22,12 @@ VLC and most players show it). English: `./scripts/record_demo.sh --lang en --ou
 
 ## Watching it
 
-Open `docs/demo/QLTTTA_Demo_vi.mp4` from a clone, or on GitHub (the file page plays it in the browser).
+- On the project site: <https://nhutruong-uit.github.io/imcp/#demo> (the player is in the Product section).
+- On GitHub: the file page plays it in the browser.
+- From a clone: open `docs/demo/QLTTTA_Demo_vi.mp4`.
+
+The site plays the file of `develop`: `pages.yml` publishes `docs/demo/*.mp4` when it changes there, so a new
+recording shows online after its pull request is merged.
 
 ## How it is made
 

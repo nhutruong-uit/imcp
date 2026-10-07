@@ -49,9 +49,9 @@ Everything here is **English**.
   renamed in the documents too. A family of objects is written with `*` (`vw_Teacher_My*`).
 - ✔ The project site `docs/index.html` is public (published by `pages.yml`, see `04-scripts-ci.md`). Its database
   object names must exist (`docs_sitePages_namesExistInScripts`); its business groups list every table of
-  `01_tables.sql` (`data-table="..."`) and its only local links are the data map and the screenshots of
-  `docs/report/images/screens/` (`docs_projectSite_matchesRepository`). Link every other doc in the repository on
-  GitHub, never copy it to the site.
+  `01_tables.sql` (`data-table="..."`) and its only local links are the data map, the screenshots of
+  `docs/report/images/screens/` and the demo video `docs/demo/*.mp4` (`docs_projectSite_matchesRepository`). Link
+  every other doc in the repository on GitHub, never copy it to the site.
 
 ## Style
 - Short sentences, imperative for instructions; identifiers, paths and commands in backticks; relative links
