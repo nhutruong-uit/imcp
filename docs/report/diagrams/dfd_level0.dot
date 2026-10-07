@@ -1,17 +1,40 @@
-// DFD mức 0 (sơ đồ ngữ cảnh)
+// DFD mức 0 (sơ đồ ngữ cảnh). Vị trí các nút được ghim (layout=neato, pos="x,y!", đơn vị inch): bốn tác nhân ở bốn
+// góc quanh tiến trình. Mỗi tác nhân có hai luồng, mỗi luồng đi qua điểm GIỮA của một cạnh khác nhau của hình chữ nhật:
+// luồng gửi vào hệ thống rời cạnh ngang (e/w), luồng nhận từ hệ thống đến cạnh dọc (n/s). Phía hệ thống dùng đủ 8
+// điểm của hình tròn (n, ne, e, se, s, sw, w, nw). Nhãn luồng là các nút văn bản ghim ở phía NGOÀI của từng mũi tên
+// (xa mũi tên còn lại của cặp), nên không đè lên đường nào. Sơ đồ rộng khoảng 8,5 inch để khi chèn vào trang chữ vẫn
+// đọc được. Vẽ lại: dot -Tpng dfd_level0.dot -o ../images/diagrams/dfd_level0.png
 digraph DFD0 {
-  graph [rankdir=LR, fontname="Arial", dpi=220, pad=0.2, nodesep=0.6, ranksep=1.4];
-  node  [fontname="Arial", fontsize=12];
-  edge  [fontname="Arial", fontsize=10, color="#334155"];
-  node [shape=box, style=filled, fillcolor="#F1F5F9", color="#334155", width=1.6];
-  HV [label="Học viên /\nPhụ huynh"]; GV [label="Giáo viên"]; NV [label="Giáo vụ /\nKế toán"]; QL [label="Ban quản lý"];
-  P0 [label="0\nHỆ THỐNG QUẢN LÝ\nTRUNG TÂM TIẾNG ANH", shape=circle, style=filled, fillcolor="#DBEAFE", color="#1F3864", penwidth=2, width=2.4, fontsize=12];
-  HV -> P0 [label="thông tin đăng ký,\nkết quả kiểm tra, học phí"];
-  P0 -> HV [label="lịch học, biên lai,\nkết quả, chứng nhận"];
-  GV -> P0 [label="điểm danh,\nđiểm thành phần"];
-  P0 -> GV [label="lịch dạy, danh sách lớp,\nbảng lương"];
-  NV -> P0 [label="hồ sơ, lớp, ghi danh,\nphiếu thu"];
-  P0 -> NV [label="công nợ, danh sách,\nbáo cáo"];
-  QL -> P0 [label="danh mục khóa học,\ntài khoản, chính sách"];
-  P0 -> QL [label="thống kê doanh thu,\nsĩ số, kết quả"];
+  layout=neato; overlap=true; splines=line; dpi=220; pad=0.25;
+  node [fontname="Arial", fontsize=13];
+  edge [color="#334155", penwidth=1.1, arrowsize=0.8];
+
+  node [shape=box, style=filled, fillcolor="#F1F5F9", color="#334155", fixedsize=true, width=1.7, height=0.75];
+  HV [label="Học viên /\nPhụ huynh", pos="-3.6,3.3!"];
+  NV [label="Giáo vụ /\nKế toán",    pos="3.6,3.3!"];
+  GV [label="Giáo viên",            pos="-3.6,-3.3!"];
+  QL [label="Ban quản lý",          pos="3.6,-3.3!"];
+  P0 [label="0\nHỆ THỐNG QUẢN LÝ\nTRUNG TÂM TIẾNG ANH", shape=circle, fillcolor="#DBEAFE", color="#1F3864", penwidth=2,
+      width=2.5, fontsize=12, pos="0,0!"];
+
+  // Tác nhân -> hệ thống rời điểm giữa cạnh ngang (e/w); hệ thống -> tác nhân đến điểm giữa cạnh dọc (n/s)
+  HV:e -> P0:n;
+  P0:nw -> HV:s;
+  NV:w -> P0:ne;
+  P0:e -> NV:s;
+  QL:w -> P0:s;
+  P0:se -> QL:n;
+  GV:e -> P0:sw;
+  P0:w -> GV:n;
+
+  // Nhãn luồng dữ liệu
+  node [shape=plaintext, style="", fixedsize=false, fontsize=11.5, width=0.1, height=0.1];
+  LHVA [label="thông tin đăng ký,\nkết quả kiểm tra, học phí", pos="-0.87,2.95!"];
+  LHVB [label="lịch học, biên lai,\nkết quả, chứng nhận", pos="-2.66,1.35!"];
+  LNVA [label="hồ sơ, lớp,\nghi danh, phiếu thu", pos="1.18,2.59!"];
+  LNVB [label="công nợ,\ndanh sách, báo cáo", pos="3.03,0.98!"];
+  LQLA [label="danh mục khóa học,\ntài khoản, chính sách", pos="0.93,-2.87!"];
+  LQLB [label="thống kê doanh thu,\nsĩ số, kết quả", pos="2.66,-1.35!"];
+  LGVA [label="điểm danh,\nđiểm thành phần", pos="-1.28,-2.51!"];
+  LGVB [label="lịch dạy,\ndanh sách lớp, bảng lương", pos="-3.20,-0.84!"];
 }

@@ -1,20 +1,48 @@
-// Mô hình phân quyền: user -> role -> view/thủ tục -> bảng (ownership chaining)
+// Mô hình phân quyền: user -> role -> quyền được cấp/từ chối -> bảng (ownership chaining)
+// Mỗi vai trò là một làn ngang riêng (không có đường cắt nhau); quyền lấy từ database/06_security.sql
 digraph SEC {
-  graph [rankdir=LR, fontname="Arial", dpi=220, pad=0.2, nodesep=0.25, ranksep=0.9];
-  node  [fontname="Arial", fontsize=11, shape=box, style="rounded,filled"];
-  edge  [color="#334155", fontname="Arial", fontsize=9];
-  subgraph cluster_u { label="Contained users"; color="#94A3B8"; style=rounded;
-    node [fillcolor="#F1F5F9"]; u1 [label="ql_quan"]; u2 [label="gvu_lan, gvu_ha"]; u3 [label="kt_minh, kt_tung"]; u4 [label="gv_john, gv_hoa..."]; }
-  subgraph cluster_r { label="Database roles"; color="#94A3B8"; style=rounded;
-    node [fillcolor="#C7D2FE"]; r1 [label="rl_Manager\n(+db_datareader)"]; r2 [label="rl_AcademicStaff"]; r3 [label="rl_Accountant"]; r4 [label="rl_Teacher"]; }
-  subgraph cluster_o { label="Đối tượng được GRANT (owner = dbo)"; color="#94A3B8"; style=rounded;
-    node [fillcolor="#DBEAFE"]; o1 [label="usp_* (EXECUTE)"]; o2 [label="vw_StudentOverview,\nvw_ClassDetails, vw_OutstandingTuition"]; o3 [label="vw_Teacher_MyClasses,\nvw_Teacher_MyStudents...\n(lọc theo USER_NAME())"]; }
-  subgraph cluster_t { label="Bảng gốc (không GRANT cho role nghiệp vụ)"; color="#94A3B8"; style=rounded;
-    node [fillcolor="#FEF3C7"]; t1 [label="STUDENT, ENROLLMENT, CLASS,\nRECEIPT, GRADE, PAYROLL..."]; }
+  graph [rankdir=LR, fontname="Arial", dpi=220, pad=0.25, nodesep=0.3, ranksep=0.55, newrank=true];
+  node  [fontname="Arial", fontsize=11, shape=box, style="rounded,filled", color="#475569", penwidth=1.1];
+  edge  [color="#334155", fontname="Arial", fontsize=10, penwidth=1.2, arrowsize=0.8];
+
+  subgraph cluster_u { label=<<B>Contained users</B>>; fontsize=12; color="#94A3B8"; style=rounded; margin=10;
+    node [fillcolor="#F1F5F9", width=1.7, height=0.95];
+    u1 [label="ql_quan"]; u2 [label="gvu_lan, gvu_ha"]; u3 [label="kt_minh, kt_tung"]; u4 [label="gv_john, gv_hoa,\ngv_hoanganh, gv_bao"]; }
+
+  subgraph cluster_r { label=<<B>Database roles</B>>; fontsize=12; color="#94A3B8"; style=rounded; margin=10;
+    node [fillcolor="#C7D2FE", width=1.7, height=0.95];
+    r1 [label=<<B>rl_Manager</B>>]; r2 [label=<<B>rl_AcademicStaff</B>>]; r3 [label=<<B>rl_Accountant</B>>]; r4 [label=<<B>rl_Teacher</B>>]; }
+
+  subgraph cluster_g { label=<<B>Quyền được cấp / bị từ chối</B> (đối tượng của dbo)>; fontsize=12; color="#94A3B8"; style=rounded; margin=10;
+    node [fillcolor="#FFFFFF", shape=box, style="rounded,filled", margin="0.14,0.08", width=6.9];
+    g1 [label=<<TABLE BORDER="0" CELLSPACING="1" CELLPADDING="1" WIDTH="470">
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#15803D"><B>SELECT</B></FONT> mọi bảng, view (db_datareader)</TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#1D4ED8"><B>EXECUTE</B></FONT> mọi thủ tục (ON SCHEMA::dbo)</TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#DC2626"><B>DENY</B></FONT> UPDATE, DELETE AUDIT_LOG; DELETE RECEIPT</TD></TR></TABLE>>];
+    g2 [label=<<TABLE BORDER="0" CELLSPACING="1" CELLPADDING="1" WIDTH="470">
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#15803D"><B>SELECT</B></FONT> vw_StudentOverview, vw_ClassDetails, vw_LearningResults...</TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#1D4ED8"><B>EXECUTE</B></FONT> usp_Student_*, usp_Class_*, usp_Enrollment_*, usp_Grade_Save...</TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#DC2626"><B>DENY</B></FONT> SELECT PAYROLL; EXECUTE usp_Receipt_Create</TD></TR></TABLE>>];
+    g3 [label=<<TABLE BORDER="0" CELLSPACING="1" CELLPADDING="1" WIDTH="470">
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#15803D"><B>SELECT</B></FONT> vw_OutstandingTuition, vw_MonthlyRevenue, RECEIPT, PAYROLL...</TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#1D4ED8"><B>EXECUTE</B></FONT> usp_Receipt_*, usp_Payroll_*, usp_Report_Revenue...</TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#DC2626"><B>DENY</B></FONT> EXECUTE usp_Grade_Save, usp_Enrollment_Create</TD></TR></TABLE>>];
+    g4 [label=<<TABLE BORDER="0" CELLSPACING="1" CELLPADDING="1" WIDTH="470">
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#15803D"><B>SELECT</B></FONT> vw_Teacher_MyClasses, vw_Teacher_MyStudents... (lọc theo USER_NAME())</TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#1D4ED8"><B>EXECUTE</B></FONT> usp_Attendance_Save, usp_Grade_Save, usp_Session_Update...</TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#DC2626"><B>DENY</B></FONT> SELECT STUDENT, RECEIPT, PAYROLL</TD></TR></TABLE>>]; }
+
+  subgraph cluster_t { label=<<B>Bảng gốc</B> (owner = dbo)>; fontsize=12; color="#94A3B8"; style=rounded; margin=10;
+    t1 [label="STUDENT, ENROLLMENT,\nCLASS, RECEIPT,\nGRADE, PAYROLL...", fillcolor="#FEF3C7", color="#B45309", width=1.9, height=1.4]; }
+
+  // One lane per role: the rows stay in this order
+  // (with rankdir=LR the last node of an invisible chain is drawn on top)
+  { rank=same; u4 -> u3 -> u2 -> u1 [style=invis]; }
+  { rank=same; r4 -> r3 -> r2 -> r1 [style=invis]; }
+  { rank=same; g4 -> g3 -> g2 -> g1 [style=invis]; }
   u1 -> r1; u2 -> r2; u3 -> r3; u4 -> r4;
-  r1 -> o1; r1 -> o2; r2 -> o1 [label="usp_Student_*, usp_Enrollment_Create..."]; r2 -> o2; r3 -> o1 [label="usp_Receipt_*"]; r3 -> o2;
-  r4 -> o3; r4 -> o1 [label="usp_Attendance_Save, usp_Grade_Save"];
-  o1 -> t1 [label="ownership chaining\n(không kiểm tra quyền bảng)", color="#16A34A", fontcolor="#15803D"];
-  o2 -> t1 [color="#16A34A"]; o3 -> t1 [color="#16A34A"];
-  r4 -> t1 [label="DENY SELECT", color="#DC2626", fontcolor="#DC2626", style=dashed];
+  r1 -> g1; r2 -> g2; r3 -> g3; r4 -> g4;
+  edge [color="#16A34A", fontcolor="#15803D"];
+  g1 -> t1; g2 -> t1 [label="ownership chaining:\nview/thủ tục và bảng cùng chủ dbo\n→ không kiểm tra quyền trên bảng"]; g3 -> t1; g4 -> t1;
+  r4 -> t1 [label="SELECT trực tiếp bị từ chối (DENY)", color="#DC2626", fontcolor="#DC2626", style=dashed, constraint=false];
 }

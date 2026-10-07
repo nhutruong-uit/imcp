@@ -25,9 +25,18 @@ CODE_TITLE_BG = "E7ECF5"
 CODE_BG = "F7F7F7"
 INLINE_CODE = "C7254E"
 PAGE_WIDTH_TWIPS = 9070  # A4, 2.5 cm left/right margins
-# A longer caption wraps to a second line in the list of figures: the longest one that still fit had 70
-# characters, 60 leaves room for wide letters and two-digit figure numbers
-FIGURE_CAPTION_MAX = 60
+# A longer caption wraps to a second line in the list of figures/tables (the longest one that still fit had 70
+# characters) or leaves almost no room for the dots before the page number: 50 keeps every entry short and tidy
+CAPTION_MAX = 50
+# One font size per kind of content, so the report does not mix big and small text: the body text keeps the 13 pt of
+# the template (never set on a run), data tables are 10 pt, code boxes 9 pt (a longer SQL line would wrap), captions
+# are 11 pt (styles FigureCaption/TableCaption). The report content never passes a size: change it here (the user
+# guide overrides the two class attributes of Report)
+TABLE_FONT_SIZE = 10
+CODE_FONT_SIZE = 9
+# Where a table cell may break a long word (object name, formula, XML) without a space: after "_ , + * / >" and after
+# "." before a letter (ENROLLMENT.AmountPaid)
+_AFTER_UNDERSCORE = re.compile(r"(?<=[_,+*/>])(?=[A-Za-z0-9_<(])|(?<=\.)(?=[A-Za-z])")
 
 SQL_KEYWORDS = set("""
 ADD AFTER ALL ALTER AND APPLY AS ASC AUTHORIZATION BACKUP BEGIN BETWEEN BREAK BY CASCADE CASE CATCH CHECK CLOSE
@@ -127,13 +136,6 @@ def _add_field(paragraph, instr: str, placeholder: str = "") -> None:
     run._r.append(fld)
 
 
-def _check_figure_caption(caption: str) -> None:
-    """Stops the build on a caption that would take two lines in the list of figures."""
-    if len(caption) > FIGURE_CAPTION_MAX:
-        raise ValueError(f"Figure caption longer than {FIGURE_CAPTION_MAX} characters ({len(caption)}), it wraps in "
-                         f"the list of figures - shorten it: {caption}")
-
-
 def _para_format(p, after=120, line=276, first_line=284, align="both", before=0, keep_next=False):
     pPr = p._p.get_or_add_pPr()
     sp = OxmlElement("w:spacing")
@@ -211,6 +213,10 @@ def sql_block(sql_dir: Path, filename: str, start_marker: str, end_marker: str |
 
 # ---------------------------------------------------------------------------- report class
 class Report:
+    table_font_size = TABLE_FONT_SIZE
+    code_font_size = CODE_FONT_SIZE
+    caption_max = CAPTION_MAX
+
     def __init__(self, template: Path):
         self.doc = Document(str(template))
         self.chapter = 0
@@ -218,6 +224,12 @@ class Report:
         self.tbl = 0
         self.code_no = 0
         self._ensure_styles()
+
+    def check_caption(self, caption: str, kind: str) -> None:
+        """Stops the build on a caption too long for the list of figures/tables (kind: figures, tables)."""
+        if len(caption) > self.caption_max:
+            raise ValueError(f"Caption longer than {self.caption_max} characters ({len(caption)}), it makes the list "
+                             f"of {kind} untidy or wraps - shorten it: {caption}")
 
     # ----- style
     def _ensure_styles(self):
@@ -279,8 +291,9 @@ class Report:
         return p
 
     # ----- paragraphs
-    def _inline(self, p, text: str, size=None, base_bold=False):
-        # **bold**, *italic*, `code`, __underlined__ (primary keys)
+    def _inline(self, p, text: str, size=None, base_bold=False, soft_breaks=False):
+        # **bold**, *italic*, `code`, __underlined__ (primary keys); soft_breaks: a line may break after "_" (a long
+        # name such as usp_Enrollment_Create in a narrow table cell then wraps at an underscore, not inside a word)
         for i, part in enumerate(re.split(r"(\*\*[^*]+\*\*|__[^_]+__|`[^`]+`|\*[^*]+\*)", text)):
             if not part:
                 continue
@@ -303,6 +316,8 @@ class Report:
                 r = p.add_run(part[1:-1])
                 r.italic = True
                 r.bold = base_bold or None
+            if soft_breaks:
+                r.text = _AFTER_UNDERSCORE.sub("​", r.text)
             if size:
                 r.font.size = Pt(size)
         return p
@@ -323,7 +338,7 @@ class Report:
         _set_cell_width(c, PAGE_WIDTH_TWIPS)
         p = c.paragraphs[0]
         _para_format(p, after=0, first_line=0, align="both")
-        self._inline(p, text, size=12)
+        self._inline(p, text)
         self.doc.add_paragraph().paragraph_format.space_after = Pt(2)
 
     def bullets(self, items, level=0):
@@ -355,9 +370,11 @@ class Report:
         p.paragraph_format.page_break_before = True
 
     # ----- tables
-    def table(self, headers, rows, widths_cm=None, caption: str | None = None, size=10.5, align=None,
+    def table(self, headers, rows, widths_cm=None, caption: str | None = None, size=None, align=None,
               bold_first_col=False):
+        size = size or self.table_font_size
         if caption:
+            self.check_caption(caption, "tables")
             self.tbl += 1
             cp = self.doc.add_paragraph(f"Bảng {self.chapter}.{self.tbl}. {caption}", style="TableCaption")
         ncol = len(headers)
@@ -397,13 +414,14 @@ class Report:
                     p = c.paragraphs[0] if li == 0 else c.add_paragraph()
                     a = (align[i] if align else "left")
                     _para_format(p, after=0, line=252, first_line=0, align=a)
-                    self._inline(p, line, size=size, base_bold=(bold_first_col and i == 0))
+                    self._inline(p, line, size=size, base_bold=(bold_first_col and i == 0), soft_breaks=True)
         sp = self.doc.add_paragraph()
         sp.paragraph_format.space_after = Pt(4)
         return t
 
     # ----- code boxes
-    def code(self, title: str, code: str, lang: str = "sql", size=9.5):
+    def code(self, title: str, code: str, lang: str = "sql", size=None):
+        size = size or self.code_font_size
         t = self.doc.add_table(rows=2, cols=1)
         t.alignment = WD_TABLE_ALIGNMENT.CENTER
         c0, c1 = t.cell(0, 0), t.cell(1, 0)
@@ -441,7 +459,7 @@ class Report:
 
     # ----- figures
     def figure(self, path: Path, caption: str, width_cm: float = 15.5):
-        _check_figure_caption(caption)
+        self.check_caption(caption, "figures")
         p = self.doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.paragraph_format.keep_with_next = True
