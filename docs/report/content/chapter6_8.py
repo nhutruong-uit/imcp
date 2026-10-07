@@ -35,6 +35,13 @@ def chapter6(r):
     r.figure(SCR / "ql_quan_dashboard.png", "Tổng quan của Quản lý: chỉ số chính và doanh thu theo tháng", width_cm=16)
     r.table(["Vai trò", "Menu hiển thị"], [[role, ", ".join(entries)] for role, entries in menu_by_role()],
             widths_cm=[3.0, 13.0], caption="Menu theo vai trò (đọc từ Permissions::allowedFeatures)", size=10)
+    r.p("Cùng ma trận `Permissions` còn sinh **thanh menu** (menu bar) của cửa sổ chính: menu Hệ thống (đổi mật khẩu, "
+        "ngôn ngữ, đăng xuất, thoát; với Quản lý thêm Tài khoản và Sao lưu), một menu cho mỗi nhóm chức năng giống menu "
+        "bên trái và menu Trợ giúp (hộp Giới thiệu: phiên bản, máy chủ, CSDL, người đang đăng nhập). Chín chức năng đầu có "
+        "phím tắt Ctrl+1 … Ctrl+9 (⌘ trên macOS); trên macOS thanh menu nằm ở đỉnh màn hình theo chuẩn của hệ điều hành. "
+        "Mỗi danh sách có thêm **menu ngữ cảnh** (nhấp chuột phải vào một dòng): dòng đó được chọn rồi menu lặp lại các "
+        "nút của màn hình với cùng trạng thái bật/tắt, kèm sao chép ô, làm mới, xuất Excel và xem trước khi in. Phím tắt "
+        "chung của các danh sách: F5 làm mới (⌘R trên macOS), Ctrl+F lọc nhanh, Ctrl+P xem trước khi in.")
     r.p("Trong một màn hình, các nút thay đổi dữ liệu chỉ được tạo khi `Permissions::canEdit` cho phép: kế toán chỉ "
         "xem Học viên, giáo vụ chỉ xem Khóa học và Giáo viên (danh mục do Quản lý cập nhật). Giáo vụ không có menu Thu "
         "học phí vì CSDL cấm role này thu tiền (`DENY EXECUTE` trên `usp_Receipt_Create`, ca kiểm thử P16).")
@@ -83,30 +90,38 @@ def chapter6(r):
     r.figure(SCR / "ql_quan_courses.png", "Danh mục khóa học kèm cột điểm, trọng số của khóa đang chọn", width_cm=16)
 
     r.h2("6.4. Báo cáo")
-    r.p("Bài giảng giới thiệu Crystal Report với các phần Report Header, Page Header, Details, Group, Page/Report Footer. "
-        "Crystal Report chỉ chạy trên .NET/Windows nên không dùng được cho ứng dụng Qt đa nền tảng; nhóm hiện thực bộ "
-        "xuất báo cáo PDF tương đương bằng `QTextDocument` + `QPdfWriter`:")
+    r.p("Bài giảng giới thiệu Crystal Report với các phần Report Header, Page Header, Details, Group, Page/Report Footer "
+        "và trình xem báo cáo (Report Viewer). Crystal Report chỉ chạy trên .NET/Windows nên không dùng được cho ứng dụng "
+        "Qt đa nền tảng; nhóm hiện thực bộ báo cáo tương đương: `TableExporter::report` dựng một `ReportDocument` (HTML "
+        "+ khổ giấy) và cùng tài liệu đó được xem trước, in (`QPrinter`) hoặc lưu PDF (`QPdfWriter`):")
     r.table(["Thành phần Crystal Report", "Trong báo cáo PDF của QLTTTA"], [
         ["Report Header", "Tên trung tâm, tiêu đề báo cáo, ngày lập, người lập"],
         ["Page Header", "Dòng tiêu đề cột lặp lại đầu mỗi trang"],
         ["Details", "Dữ liệu đã lọc/sắp xếp trên màn hình, định dạng tiền tệ và ngày theo kiểu Việt Nam"],
+        ["Group Header / Group Footer", "Nhóm theo một cột bất kỳ (chọn trong hộp xem trước): dòng tiêu đề nhóm ghi giá "
+         "trị và số dòng, dòng Cộng nhóm cho các cột tiền"],
         ["Report Footer", "Dòng TỔNG CỘNG cho các cột tiền (đã đóng, còn nợ, doanh thu, lương), tổng số dòng"],
         ["Page Footer", "Số trang tự động"],
         ["Nguồn dữ liệu / tham số", "View và thủ tục báo cáo (usp_Report_Revenue, usp_Report_ClassResults...)"],
+        ["Report Viewer", "Hộp Xem trước khi in (`ReportPreviewDialog`): đúng các trang sẽ in, phóng to/thu nhỏ, đổi "
+         "cột nhóm, In (hộp thoại in của hệ điều hành), Lưu PDF"],
     ], widths_cm=[5.0, 11.0], caption="Đối chiếu cấu trúc báo cáo", size=10)
     r.p("Bên cạnh các danh sách, ứng dụng có những báo cáo có tham số: **doanh thu theo khoảng thời gian** (chọn từ ngày - "
         "đến ngày và chi nhánh, gom theo chi nhánh, chương trình, khóa học - `usp_Report_Revenue`), **kết quả của một lớp** "
-        "(điểm tổng kết, xếp loại, số hiệu chứng chỉ - `usp_Report_ClassResults`) và **phiếu thu** in ra PDF theo mẫu "
-        "chứng từ (`usp_Receipt_Print`).")
+        "(điểm tổng kết, xếp loại, số hiệu chứng chỉ - `usp_Report_ClassResults`) và **phiếu thu** khổ A5 theo mẫu "
+        "chứng từ (`usp_Receipt_Print`), mở trong hộp xem trước để in ngay hoặc lưu PDF. Mọi danh sách (kể cả sổ điểm, "
+        "danh sách học viên và các cửa sổ danh sách phụ) đều có nút In mở hộp xem trước.")
+    r.figure(SCR / "kt_minh_report_preview.png", "Xem trước khi in: công nợ học phí nhóm theo lớp", width_cm=15)
     r.figure(SCR / "kt_minh_outstanding_tuition.png", "Màn hình Công nợ học phí: dòng tổng và nút xuất báo cáo PDF", width_cm=16)
     r.figure(SCR / "gvu_lan_learning_results.png", "Báo cáo kết quả học tập: điểm tổng kết, xếp loại, chuyên cần", width_cm=16)
 
     r.h2("6.5. Đa nền tảng, CI/CD và đóng gói")
     r.p("Nhóm dùng GitHub với hai nhánh chính `develop` (nhánh mặc định) và `main`. Trước khi tạo Pull Request, "
-        "`scripts/test_all` chạy toàn bộ kiểm thử trên máy (CI không có SQL Server). GitHub Actions tự động build và "
-        "chạy unit test trên **macOS và Windows** khi merge vào `develop` và cho mỗi Pull Request vào `main` - nhánh "
-        "`main` bật branch protection nên chỉ merge được khi hai job này xanh; khi merge vào `main`, quy trình Release "
-        "tự đóng gói:")
+        "`scripts/test_all` chạy toàn bộ kiểm thử trên máy. Mỗi Pull Request vào `develop` phải qua job Checks (quy ước "
+        "của kho mã + unit test trên Linux). Khi merge vào `develop` và cho mỗi Pull Request vào `main`, GitHub Actions "
+        "build và chạy unit test trên **macOS và Windows**, đồng thời job **Full tests** chạy trên Linux với SQL Server "
+        "2025 trong Docker (kiểm thử CSDL, kiểm thử mức máy chủ, unit test, end-to-end) - nhánh `main` bật branch "
+        "protection nên chỉ merge được khi cả ba job xanh; khi merge vào `main`, quy trình Release tự đóng gói:")
     r.figure(IMG / "diagrams" / "cicd.png", "Quy trình CI/CD từ nhánh tính năng tới file cài", width_cm=16)
     r.table(["Hệ điều hành", "File cài", "Cách đóng gói"], [
         ["Windows 10 (1809+)/11 x64", "QLTTTA-x.y.z-windows-x64-setup.exe, ...-portable.zip", "windeployqt (Qt + runtime MinGW + plugin ODBC), Inno Setup, cài không cần quyền admin"],
@@ -120,6 +135,15 @@ def chapter6(r):
         "`LSMinimumSystemVersion`, nên macOS cũ hơn từ chối mở ứng dụng thay vì lỗi khi chạy. Trang Release ghi rõ "
         "phiên bản tối thiểu, các bước mở ứng dụng lần đầu và tự liệt kê các Pull Request đã merge từ lần phát hành "
         "trước.")
+    r.p("**Không phát hành bản cài chưa chạy thử.** Ứng dụng có chế độ `QLTTTA --self-test` (không mở cửa sổ, không cần "
+        "CSDL) kiểm tra những gì bộ đóng gói phải chép kèm: plugin giao diện của Qt, plugin ODBC `qsqlodbc`, một driver "
+        "ODBC cho SQL Server (thử kết nối tới một cổng đóng trên chính máy để phân biệt “thiếu driver” với “driver đã "
+        "nạp”), bản dịch tiếng Việt và biểu tượng SVG. Script đóng gói macOS kiểm tra không file nhị phân nào còn trỏ tới "
+        "thư viện Homebrew, rồi mount file .dmg chỉ đọc và chạy self-test - ứng dụng phải dùng đúng driver FreeTDS đóng kèm. "
+        "Script Windows giải nén file .zip vào thư mục mới rồi chạy self-test; quy trình Release còn cài thử setup.exe ở "
+        "chế độ im lặng, chạy self-test trên bản đã cài và gỡ cài đặt. Sau khi build và kiểm tra xong, job phát hành chờ "
+        "Nhóm trưởng phê duyệt (environment `release`) và gắn cho mỗi file cài một chứng thực nguồn gốc build "
+        "(build attestation) - người tải kiểm tra bằng `gh attestation verify`.")
 
     r.h2("6.6. Kiểm thử ứng dụng")
     r.bullets([
@@ -138,7 +162,9 @@ def chapter6(r):
         "một ghi danh (có hộp xác nhận); nhấn Enter ở ô tìm học viên của form ghi danh chỉ tìm chứ không ghi danh; "
         "giáo viên đổi điểm danh của một học viên ở buổi mình dạy (Enter ở ô ghi chú không đổi điểm danh); sổ điểm "
         "không nhận điểm 11 và báo lý do; lọc nhanh thì dòng "
-        "tổng tính lại đúng; chuyển giao diện sang tiếng Anh rồi về tiếng Việt. Kết quả: "
+        "tổng tính lại đúng; thanh menu của mỗi vai trò khớp ma trận phân quyền và mở đúng trang; nhấp chuột phải vào một "
+        "lớp thì menu ngữ cảnh có các nút của màn hình; xem trước báo cáo công nợ nhóm theo lớp (mỗi lớp một dòng Cộng "
+        "nhóm); chuyển giao diện sang tiếng Anh rồi về tiếng Việt. Kết quả: "
         f"{len(e2e_scenarios())}/{len(e2e_scenarios())} kịch bản đạt, dữ liệu trở về nguyên trạng. "
         "Bài kiểm thử chạy trong `scripts/test_all` và trong job Full tests của CI (Linux, SQL Server trong Docker); "
         "`test_all` dừng nếu có kịch bản bị bỏ qua. Hai job macOS và Windows của CI không có CSDL nên ghi nhận bài này "
@@ -276,8 +302,11 @@ def chapter8(r):
         ["Ứng dụng", "Qt 6 đa nền tảng, Clean Architecture, giao diện song ngữ Việt/Anh, đăng nhập theo vai trò, "
                      f"{len({e for _, entries in menu_by_role() for e in entries})} màn hình; form nhập liệu cho mọi bước "
                      "nghiệp vụ (danh mục, học viên, lớp, ghi danh, học phí, điểm danh, điểm, lương, tài khoản, sao lưu); "
-                     "báo cáo có tham số, phiếu thu, xuất PDF/Excel"],
-        ["Triển khai", "CI build/test macOS + Windows, tự đóng gói setup.exe/zip/dmg, tài liệu cài đặt"],
+                     "thanh menu và menu ngữ cảnh theo vai trò, phím tắt; báo cáo có tham số, nhóm và cộng nhóm, xem "
+                     "trước khi in, in, phiếu thu, xuất PDF/Excel"],
+        ["Triển khai", "CI build/test macOS + Windows và toàn bộ kiểm thử với SQL Server trên Linux; tự đóng gói "
+                       "setup.exe/zip/dmg, tự kiểm tra bản cài (self-test, cài thử), phê duyệt và chứng thực trước khi "
+                       "phát hành; tài liệu cài đặt"],
         ["Mô hình tiên tiến", "Chuyển đổi sang OODB, thiết kế + demo phân mảnh phân tán, thiết kế NoSQL, bảng so sánh"],
     ], widths_cm=[3.6, 12.4], caption="Tổng hợp kết quả", size=10)
 

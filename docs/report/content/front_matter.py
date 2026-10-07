@@ -25,8 +25,8 @@ def checklist(r):
         ["Truy vấn SQL, mô hình XML, XPath/XQuery", "", "", "", X],
         ["An ninh: xác thực, phân quyền, view, nhật ký, backup/restore, import/export", "", "", "", X],
         [f"Kiểm thử CSDL ({len(database_tests())} ca) và unit test ứng dụng", "", "", "", X],
-        ["Ứng dụng Qt đa nền tảng: menu theo vai trò, form, báo cáo", "", X, "", ""],
-        ["CI/CD và đóng gói file cài Windows/macOS", "", "", X, ""],
+        ["Ứng dụng Qt đa nền tảng: menu theo vai trò, form, báo cáo", "", "", "", X],
+        ["CI/CD và đóng gói file cài Windows/macOS", "", "", "", X],
         ["Mô hình CSDL tiên tiến: hướng đối tượng, phân tán, NoSQL", "", "", "", X],
     ]
     r.fill_table(1, rows, header=["Nội dung đồ án", "25%", "50%", "75%", "100%"])
