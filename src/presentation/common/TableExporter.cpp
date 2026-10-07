@@ -122,7 +122,7 @@ QList<QList<int>> groupRows(const QAbstractItemModel& model, int groupColumn) {
         const auto it = groupOfValue.constFind(value);
         if (it == groupOfValue.constEnd()) {
             groupOfValue.insert(value, int(groups.size()));
-            groups.append({r});
+            groups.append(QList<int>{r}); // QList<int>: a bare {r} is ambiguous for GCC
         } else {
             groups[*it].append(r);
         }

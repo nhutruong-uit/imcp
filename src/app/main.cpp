@@ -30,9 +30,9 @@ int selfTest() {
     check(plugin, QStringLiteral("Qt ODBC plugin (qsqlodbc)"),
           plugin ? QStringLiteral("loaded") : QStringLiteral("missing"));
     const QString driver = DatabaseManager::firstInstalledDriver();
+    const QString candidates = DatabaseManager::candidateDrivers().join(QStringLiteral(", "));
     check(!driver.isEmpty(), QStringLiteral("ODBC driver for SQL Server"),
-          driver.isEmpty() ? QStringLiteral("none of %1").arg(DatabaseManager::candidateDrivers().join(", "))
-                           : driver);
+          driver.isEmpty() ? QStringLiteral("none of %1").arg(candidates) : driver);
     const bool translation = QFile::exists(QStringLiteral(":/i18n/qlttta_vi.qm"));
     check(translation, QStringLiteral("Vietnamese translation"),
           translation ? QStringLiteral("embedded") : QStringLiteral("missing"));
