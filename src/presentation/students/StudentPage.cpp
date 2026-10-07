@@ -70,6 +70,7 @@ StudentPage::StudentPage(AppServices services, QWidget* parent) : QWidget(parent
     m_deleteButton->setObjectName(QStringLiteral("deleteButton"));
     auto* csvButton = UiHelpers::secondaryButton(tr("Excel"), QStringLiteral("download"), this);
     auto* pdfButton = UiHelpers::secondaryButton(tr("PDF"), QStringLiteral("file"), this);
+    auto* printButton = UiHelpers::printPreviewButton(this);
     addButton->setVisible(m_canEdit);
     m_editButton->setVisible(m_canEdit);
     m_deleteButton->setVisible(m_canEdit);
@@ -78,6 +79,7 @@ StudentPage::StudentPage(AppServices services, QWidget* parent) : QWidget(parent
     toolbar->addWidget(m_deleteButton);
     toolbar->addWidget(csvButton);
     toolbar->addWidget(pdfButton);
+    toolbar->addWidget(printButton);
     v->addLayout(toolbar);
 
     // --- Second row: what can be done with the selected student, and the XML import/export
@@ -161,6 +163,10 @@ StudentPage::StudentPage(AppServices services, QWidget* parent) : QWidget(parent
     connect(pdfButton, &QPushButton::clicked, this, [this] {
         UiHelpers::exportPdf(this, *m_proxy, tr("Student list"),
                              Labels::accountName(m_services.auth.account()));
+    });
+    connect(printButton, &QPushButton::clicked, this, [this] {
+        UiHelpers::previewReport(this, *m_proxy, tr("Student list"),
+                                 Labels::accountName(m_services.auth.account()));
     });
 
     const auto branches = m_services.students.branches();

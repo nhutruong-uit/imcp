@@ -1,10 +1,10 @@
 // Takes screenshots of every screen automatically (for the report and for visual checks with real data).
 // What it produces: PNG files of the login screen (also with the server settings open), of every feature each
-// account may open, of the student form and of the change password dialog. The Vietnamese set in
-// docs/report/images/screens is used by Chapter 6 of the report (docs/report/content/chapter6_8.py) and by
-// the user guide (docs/user-guide). It signs in to the real database, so the seed data must be loaded.
-// Developer tool, not part of the application: built only with -DQLTTTA_BUILD_TOOLS=ON (see AGENTS.md).
-// Environment variables:
+// account may open, of the student form, of the change password dialog and of the print preview of a report.
+// The Vietnamese set in docs/report/images/screens is used by Chapter 6 of the report
+// (docs/report/content/chapter6_8.py) and by the user guide (docs/user-guide). It signs in to the real
+// database, so the seed data must be loaded. Developer tool, not part of the application: built only with
+// -DQLTTTA_BUILD_TOOLS=ON (see AGENTS.md). Environment variables:
 //   QLTTTA_SERVER        (default localhost,1433)
 //   QLTTTA_SHOT_USERS    comma-separated accounts (default ql_quan,gvu_lan,kt_minh,gv_john)
 //   QLTTTA_SHOT_PASSWORD shared password of the demo accounts (required)
@@ -14,8 +14,8 @@
 //                        of the Vietnamese report)
 // The default folders are relative: run it from the repository root.
 // File names are stable and independent of the UI language: login.png, login_server_settings.png,
-// change_password.png, <account>_<feature>.png, <account>_student_form.png (the report and the user guide
-// refer to them by name).
+// change_password.png, <account>_<feature>.png, <account>_student_form.png, <account>_report_preview.png
+// (accountant only; the report and the user guide refer to them by name).
 // Repeated runs give the same pictures for the same data: the login screen always shows the username
 // ql_quan, never the account remembered from the previous run.
 // Runs without a display: QT_QPA_PLATFORM=offscreen ./qlttta_screenshots
@@ -23,8 +23,11 @@
 // 2 = no password given.
 #include "app/AppContainer.h"
 #include "application/services/Permissions.h"
+#include "presentation/common/Columns.h"
+#include "presentation/common/DataTable.h"
 #include "presentation/common/I18n.h"
 #include "presentation/common/Labels.h"
+#include "presentation/common/ReportPreviewDialog.h"
 #include "presentation/common/Theme.h"
 #include "presentation/login/LoginDialog.h"
 #include "presentation/main/ChangePasswordDialog.h"
@@ -39,6 +42,7 @@
 #include <QPushButton>
 #include <QTextStream>
 #include <QThread>
+#include <QTimer>
 
 namespace {
 // Waits while still processing events, so the page can load its data and paint before the screenshot
@@ -70,6 +74,42 @@ void showClassWithScores(QWidget& window) {
             wait(400);
         }
     }
+}
+
+// Print preview of the outstanding tuition grouped by class (report section 6.4, user guide): opened with the
+// page's own Print button, grouped like a user would choose it, then closed
+bool savePrintPreview(MainWindow& w, const QString& path, QTextStream& out) {
+    w.openFeature(Feature::OutstandingTuition);
+    wait(400);
+    QPushButton* print = nullptr;
+    for (QPushButton* b : w.findChildren<QPushButton*>(QStringLiteral("reportPreviewButton")))
+        if (b->isVisible())
+            print = b;
+    int classColumn = -1;
+    for (DataTable* t : w.findChildren<DataTable*>())
+        if (t->isVisible())
+            for (int c = 0; c < t->visibleModel().columnCount(); ++c)
+                if (t->visibleModel().headerData(c, Qt::Horizontal, Columns::KeyRole).toString() ==
+                    QLatin1String("ClassName"))
+                    classColumn = c;
+    if (!print || classColumn < 0) {
+        out << "   the Print button or the class column of the outstanding tuition is missing\n";
+        return false;
+    }
+    bool saved = false;
+    QTimer::singleShot(300, [&] {
+        auto* dialog = qobject_cast<ReportPreviewDialog*>(QApplication::activeModalWidget());
+        if (!dialog)
+            return;
+        auto* groupBy = dialog->findChild<QComboBox*>(QStringLiteral("groupByCombo"));
+        groupBy->setCurrentIndex(groupBy->findData(classColumn));
+        dialog->resize(1100, 820);
+        wait(500);
+        saved = savePicture(*dialog, path, out);
+        dialog->reject();
+    });
+    print->click();
+    return saved;
 }
 
 // Stable file-name part of a feature. Never derived from the menu label: that text is translated and may
@@ -213,6 +253,12 @@ int main(int argc, char* argv[]) {
                 // e.g. gvu_lan_students.png (names used by the report)
                 const QString name = QStringLiteral("%1_%2.png").arg(account, fileName(f));
                 if (!savePicture(w, QDir(folder).filePath(name), out))
+                    ++failures;
+                out << "   -> " << name << "\n";
+            }
+            if (result.value().role == Role::Accountant) {
+                const QString name = account + QStringLiteral("_report_preview.png");
+                if (!savePrintPreview(w, QDir(folder).filePath(name), out))
                     ++failures;
                 out << "   -> " << name << "\n";
             }

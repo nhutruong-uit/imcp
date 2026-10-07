@@ -4,20 +4,16 @@
 #include "presentation/common/DbValues.h"
 #include "presentation/common/Fields.h"
 #include "presentation/common/FormDialog.h"
+#include "presentation/common/ReportPreviewDialog.h"
 #include "presentation/common/UiHelpers.h"
 #include "presentation/tuition/CollectPaymentDialog.h"
 #include "presentation/tuition/ReceiptPrinter.h"
 
 #include <QComboBox>
 #include <QDateEdit>
-#include <QDesktopServices>
-#include <QDir>
-#include <QFileDialog>
 #include <QFormLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QStandardPaths>
-#include <QUrl>
 
 TuitionPage::TuitionPage(AppServices services, QWidget* parent)
     : DataPage(services, Feature::Tuition, parent) {
@@ -90,15 +86,8 @@ void TuitionPage::printReceipt(const QString& receiptId) {
         UiHelpers::showError(this, receipt.error());
         return;
     }
-    const QString folder = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    const QString path = QFileDialog::getSaveFileName(
-        this, tr("Save the receipt as PDF"), QDir(folder).filePath(receiptId + QStringLiteral(".pdf")),
-        QStringLiteral("PDF (*.pdf)"));
-    if (path.isEmpty())
-        return;
-    QString error;
-    if (!ReceiptPrinter::exportPdf(receipt.value(), path, &error))
-        UiHelpers::showError(this, error);
-    else
-        QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    // Print preview of the A5 receipt: print it, or save it as PDF (a receipt has no groups)
+    const ReportDocument document = ReceiptPrinter::document(receipt.value());
+    ReportPreviewDialog dialog([document](int) { return document; }, {}, this);
+    dialog.exec();
 }

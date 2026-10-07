@@ -4,6 +4,9 @@
 # The release notes = install table and first-launch steps (below) + the PRs since the previous release
 # (--generate-notes). Each installer checks the operating system: the Windows setup has MinVersion
 # (packaging/windows/installer.iss), the .dmg has the LSMinimumSystemVersion written by package-macos.sh.
+# Nothing is published untested: the packaging scripts run the self-test of the packaged app (QLTTTA --self-test:
+# Qt plugins, ODBC driver, translation, icons; no database) inside the mounted .dmg and the unzipped portable .zip,
+# and the Windows job also installs the setup.exe silently, self-tests the installed app and uninstalls it.
 # Two safeguards before and after the Release is created (the job "publish"):
 #   - approval: the job runs in the environment "release" (Settings > Environments), which accepts only main and
 #     waits for the team lead to click "Review deployments > Approve". The builds run first without waiting, so the
@@ -38,6 +41,8 @@ jobs:
     # Pinned, not macos-latest: the Homebrew libraries in the .dmg are built for the runner's macOS, so the runner
     # sets the oldest macOS the app supports (macos-15: Sequoia and later; macos-latest = macOS 26 only)
     runs-on: macos-15
+    # About 5 minutes; a self-test that hangs (e.g. a system dialog) must not hold the runner for hours
+    timeout-minutes: 30
     outputs:
       min-macos: ${{ steps.min-macos.outputs.version }}
     env:
@@ -47,7 +52,7 @@ jobs:
       - uses: actions/checkout@v7
       - name: Install Qt, ODBC, FreeTDS, Ninja
         run: brew install qt qt-unixodbc unixodbc freetds ninja
-      - name: Build the .dmg
+      - name: Build the .dmg (and self-test the app inside it)
         run: ./scripts/package-macos.sh
       - name: Read the minimum macOS version for the release notes
         id: min-macos
@@ -64,6 +69,8 @@ jobs:
   windows:
     name: Build the Windows setup.exe + portable .zip
     runs-on: windows-latest
+    # About 5 minutes; a self-test that hangs (e.g. a "missing DLL" dialog) must not hold the runner for hours
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Install Qt 6.8 LTS + MinGW + Ninja
@@ -82,9 +89,33 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup --no-progress -y }
-      - name: Build setup.exe + zip
+      - name: Build setup.exe + zip (and self-test the unzipped portable app)
         shell: pwsh
         run: ./scripts/package-windows.ps1
+      - name: Install the setup.exe silently, self-test the installed app, uninstall it
+        # What a user gets: a per-user install without administrator rights (PrivilegesRequired=lowest), no
+        # desktop icon. The uninstaller copies itself to TEMP and returns at once, so the removal is awaited.
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem dist\*-setup.exe | Select-Object -First 1).FullName
+          $target = Join-Path $env:RUNNER_TEMP "QLTTTA-installed"
+          $install = Start-Process $setup -Wait -PassThru -ArgumentList @(
+            "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/MERGETASKS=!desktopicon", "/DIR=`"$target`"")
+          if ($install.ExitCode -ne 0) { throw "setup.exe failed with exit code $($install.ExitCode)" }
+          $exe = Join-Path $target "QLTTTA.exe"
+          # Same check as Test-PackagedApp of package-windows.ps1 (PowerShell does not wait for a GUI program)
+          $start = New-Object System.Diagnostics.ProcessStartInfo $exe, "--self-test"
+          $start.UseShellExecute = $false
+          $start.RedirectStandardOutput = $true
+          $process = [System.Diagnostics.Process]::Start($start)
+          Write-Host $process.StandardOutput.ReadToEnd()
+          $process.WaitForExit()
+          if ($process.ExitCode -ne 0) { throw "The self-test of the installed app failed ($($process.ExitCode))" }
+          Start-Process (Join-Path $target "unins000.exe") -Wait -ArgumentList @(
+            "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART")
+          for ($i = 0; ($i -lt 60) -and (Test-Path $exe); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path $exe) { throw "The uninstaller did not remove $exe" }
+          "The setup.exe installs, runs and uninstalls cleanly" >> $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         with:
           name: qlttta-windows

@@ -1,4 +1,5 @@
 #include "app/AppContainer.h"
+#include "infrastructure/db/DatabaseManager.h"
 #include "presentation/common/I18n.h"
 #include "presentation/common/Icons.h"
 #include "presentation/common/Labels.h"
@@ -7,14 +8,47 @@
 #include "presentation/main/MainWindow.h"
 
 #include <QApplication>
+#include <QFile>
 #include <QTextStream>
 #include <optional>
+
+namespace {
+// Installer check: what the packaging must put next to the app is in place, without a database or a window.
+// Prints one line per check and returns 0 when all passed. QApplication itself proves the platform plugin
+// (it cannot start without it).
+int selfTest() {
+    QTextStream out(stdout);
+    bool passed = true;
+    const auto check = [&](bool ok, const QString& what, const QString& detail) {
+        out << (ok ? "OK      " : "FAILED  ") << what << ": " << detail << Qt::endl;
+        passed = passed && ok;
+    };
+    out << "QLTTTA " << QApplication::applicationVersion() << " self-test (Qt " << qVersion() << ")"
+        << Qt::endl;
+    check(true, QStringLiteral("Qt platform plugin"), QApplication::platformName());
+    const bool plugin = DatabaseManager::odbcPluginAvailable();
+    check(plugin, QStringLiteral("Qt ODBC plugin (qsqlodbc)"),
+          plugin ? QStringLiteral("loaded") : QStringLiteral("missing"));
+    const QString driver = DatabaseManager::firstInstalledDriver();
+    check(!driver.isEmpty(), QStringLiteral("ODBC driver for SQL Server"),
+          driver.isEmpty() ? QStringLiteral("none of %1").arg(DatabaseManager::candidateDrivers().join(", "))
+                           : driver);
+    const bool translation = QFile::exists(QStringLiteral(":/i18n/qlttta_vi.qm"));
+    check(translation, QStringLiteral("Vietnamese translation"),
+          translation ? QStringLiteral("embedded") : QStringLiteral("missing"));
+    const bool icons = !Icons::pixmap(QStringLiteral("logo"), QLatin1String(Theme::kPrimary), 32).isNull();
+    check(icons, QStringLiteral("SVG icons"),
+          icons ? QStringLiteral("rendered") : QStringLiteral("not rendered"));
+    out << (passed ? "Self-test passed" : "Self-test FAILED") << Qt::endl;
+    return passed ? 0 : 1;
+}
+} // namespace
 
 // Program entry point. Order of start-up:
 //   1. QApplication (the Qt application object), names used by QSettings, icon, look (Theme)
 //   2. AppContainer: creates every object of every layer and wires them together
 //   3. the UI language chosen last time
-//   4. either the diagnostic mode (--check-connection, no window) or the login -> main window loop below
+//   4. either a diagnostic mode (--self-test, --check-connection: no window) or the login -> main window loop
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     QApplication::setOrganizationName(QStringLiteral("UIT-IE103"));
@@ -25,6 +59,10 @@ int main(int argc, char* argv[]) {
 
     AppContainer container;
     I18n::apply(container.language().current()); // the language chosen last time (Vietnamese by default)
+
+    // Installer check (no GUI, no database): ./QLTTTA --self-test
+    if (QApplication::arguments().contains(QStringLiteral("--self-test")))
+        return selfTest();
 
     // Diagnostic mode (no GUI): QLTTTA_USER, QLTTTA_PASSWORD, optional QLTTTA_SERVER
     //   ./QLTTTA --check-connection

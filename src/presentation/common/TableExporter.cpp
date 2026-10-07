@@ -7,13 +7,11 @@
 #include <QAbstractItemModel>
 #include <QCoreApplication>
 #include <QDateTime>
-#include <QFile>
+#include <QHash>
 #include <QPageLayout>
 #include <QPageSize>
-#include <QPdfWriter>
 #include <QRegularExpression>
 #include <QSaveFile>
-#include <QTextDocument>
 #include <algorithm>
 #include <cmath>
 
@@ -91,10 +89,58 @@ bool TableExporter::exportCsv(const QAbstractItemModel& model, const QString& fi
     return true;
 }
 
-bool TableExporter::exportPdf(const QAbstractItemModel& model, const QString& title,
-                              const QString& preparedBy, const QString& filePath, QString* error) {
-    // Layout like a Crystal Report: Report Header -> Page Header (column titles repeated on every page)
-    // -> Details -> Report Footer (totals); QTextDocument prints the page numbers in the footer.
+namespace {
+// One row of totals (a Group Footer or the Report Footer): the label in the first column unless that column
+// is summed itself, the sums under their money columns
+QString totalsRow(const QString& label, const QVector<double>& sums, const QVector<bool>& summable,
+                  const QString& cssClass) {
+    QString html = QStringLiteral("<tr><td></td>");
+    for (int c = 0; c < sums.size(); ++c) {
+        if (summable[c])
+            html += QStringLiteral("<td class='r %1'>%2</td>").arg(cssClass, Format::money(qint64(sums[c])));
+        else if (c == 0)
+            html += QStringLiteral("<td class='%1'>%2</td>").arg(cssClass, label.toHtmlEscaped());
+        else
+            html += QStringLiteral("<td></td>");
+    }
+    return html + QStringLiteral("</tr>");
+}
+
+// The rows of each group, groups in the order their value first appears in the list (sort the list on screen
+// by that column to order them). The value compared is the raw one (Qt::UserRole of TableDataModel), or the
+// displayed text for a model without raw values. No group column: one group with every row.
+QList<QList<int>> groupRows(const QAbstractItemModel& model, int groupColumn) {
+    QList<QList<int>> groups;
+    QHash<QString, int> groupOfValue;
+    for (int r = 0; r < model.rowCount(); ++r) {
+        QString value;
+        if (groupColumn >= 0) {
+            const QModelIndex idx = model.index(r, groupColumn);
+            const QVariant raw = idx.data(Qt::UserRole);
+            value = raw.isValid() ? raw.toString() : idx.data(Qt::DisplayRole).toString();
+        }
+        const auto it = groupOfValue.constFind(value);
+        if (it == groupOfValue.constEnd()) {
+            groupOfValue.insert(value, int(groups.size()));
+            groups.append({r});
+        } else {
+            groups[*it].append(r);
+        }
+    }
+    return groups;
+}
+
+QString rowCount(int count) {
+    return count == 1 ? ExporterText::tr("1 row") : ExporterText::tr("%1 rows").arg(count);
+}
+} // namespace
+
+ReportDocument TableExporter::report(const QAbstractItemModel& model, const QString& title,
+                                     const QString& preparedBy, int groupColumn) {
+    const int columnCount = model.columnCount();
+    if (groupColumn >= columnCount)
+        groupColumn = -1;
+    // Report Header
     QString html =
         QStringLiteral(
             "<html><head><style>"
@@ -102,6 +148,8 @@ bool TableExporter::exportPdf(const QAbstractItemModel& model, const QString& ti
             "h1{color:%2;font-size:16pt;margin:0;} .sub{color:%3;margin-bottom:8px;}"
             "table{border-collapse:collapse;width:100%;} th{background:%2;color:white;padding:4px;}"
             "td{border-bottom:1px solid %4;padding:3px;} .r{text-align:right;} .total{font-weight:bold;}"
+            ".group{background-color:%4;color:%2;font-weight:bold;padding-top:6px;}"
+            ".subtotal{font-weight:bold;font-style:italic;}"
             "</style></head><body>")
             .arg(QLatin1String(Theme::kText), QLatin1String(Theme::kPrimary), QLatin1String(Theme::kMuted),
                  QLatin1String(Theme::kBorder));
@@ -112,8 +160,13 @@ bool TableExporter::exportPdf(const QAbstractItemModel& model, const QString& ti
     html += QStringLiteral("<div class='sub'>%1 &nbsp;|&nbsp; %2</div>")
                 .arg(ExporterText::tr("Created on: %1").arg(createdOn).toHtmlEscaped(),
                      ExporterText::tr("Prepared by: %1").arg(preparedBy).toHtmlEscaped());
+    const QString groupTitle =
+        groupColumn >= 0 ? model.headerData(groupColumn, Qt::Horizontal).toString() : QString();
+    if (groupColumn >= 0)
+        html += QStringLiteral("<div class='sub'>%1</div>")
+                    .arg(ExporterText::tr("Grouped by: %1").arg(groupTitle).toHtmlEscaped());
 
-    const int columnCount = model.columnCount();
+    // Page Header: <thead> is repeated at the top of every page
     QVector<double> totals(columnCount, 0.0);
     QVector<bool> summable(columnCount, false);
     html += QStringLiteral("<table><thead><tr><th>%1</th>").arg(ExporterText::tr("No.").toHtmlEscaped());
@@ -124,61 +177,56 @@ bool TableExporter::exportPdf(const QAbstractItemModel& model, const QString& ti
             QStringLiteral("<th>%1</th>").arg(model.headerData(c, Qt::Horizontal).toString().toHtmlEscaped());
     }
     html += QStringLiteral("</tr></thead><tbody>");
-    for (int r = 0; r < model.rowCount(); ++r) {
-        html += QStringLiteral("<tr><td class='r'>%1</td>").arg(r + 1);
-        for (int c = 0; c < columnCount; ++c) {
-            const QModelIndex idx = model.index(r, c);
-            const bool alignRight = (idx.data(Qt::TextAlignmentRole).toInt() & Qt::AlignRight) != 0;
-            html += QStringLiteral("<td%1>%2</td>")
-                        .arg(alignRight ? QStringLiteral(" class='r'") : QString(),
-                             idx.data(Qt::DisplayRole).toString().toHtmlEscaped());
-            if (summable[c])
-                totals[c] += idx.data(Qt::UserRole).toDouble();
+    const bool hasTotals = std::find(summable.begin(), summable.end(), true) != summable.end();
+
+    // Details, group by group (one group of every row when the report is not grouped)
+    int number = 0;
+    for (const QList<int>& rows : groupRows(model, groupColumn)) {
+        QVector<double> subtotals(columnCount, 0.0);
+        if (groupColumn >= 0) { // Group Header
+            QString value = model.index(rows.first(), groupColumn).data(Qt::DisplayRole).toString();
+            if (value.isEmpty())
+                value = ExporterText::tr("(empty)");
+            html += QStringLiteral("<tr><td class='group' colspan='%1'>%2</td></tr>")
+                        .arg(columnCount + 1)
+                        .arg(QStringLiteral("%1: %2 (%3)")
+                                 .arg(groupTitle, value, rowCount(rows.size()))
+                                 .toHtmlEscaped());
         }
-        html += QStringLiteral("</tr>");
+        for (int r : rows) {
+            html += QStringLiteral("<tr><td class='r'>%1</td>").arg(++number);
+            for (int c = 0; c < columnCount; ++c) {
+                const QModelIndex idx = model.index(r, c);
+                const bool alignRight = (idx.data(Qt::TextAlignmentRole).toInt() & Qt::AlignRight) != 0;
+                html += QStringLiteral("<td%1>%2</td>")
+                            .arg(alignRight ? QStringLiteral(" class='r'") : QString(),
+                                 idx.data(Qt::DisplayRole).toString().toHtmlEscaped());
+                if (summable[c]) {
+                    subtotals[c] += idx.data(Qt::UserRole).toDouble();
+                    totals[c] += idx.data(Qt::UserRole).toDouble();
+                }
+            }
+            html += QStringLiteral("</tr>");
+        }
+        if (groupColumn >= 0 && hasTotals) // Group Footer: subtotals of the money columns
+            html += totalsRow(ExporterText::tr("Subtotal"), subtotals, summable, QStringLiteral("subtotal"));
     }
     // Report Footer: totals row for the money columns
-    if (std::find(summable.begin(), summable.end(), true) != summable.end()) {
-        html += QStringLiteral("<tr class='total'><td></td>");
-        for (int c = 0; c < columnCount; ++c) {
-            if (summable[c])
-                html += QStringLiteral("<td class='r total'>%1</td>").arg(Format::money(qint64(totals[c])));
-            else if (c == 0)
-                html += QStringLiteral("<td class='total'>%1</td>")
-                            .arg(ExporterText::tr("GRAND TOTAL").toHtmlEscaped());
-            else
-                html += QStringLiteral("<td></td>");
-        }
-        html += QStringLiteral("</tr>");
-    }
+    if (hasTotals)
+        html += totalsRow(ExporterText::tr("GRAND TOTAL"), totals, summable, QStringLiteral("total"));
     html += QStringLiteral("</tbody></table><p class='sub'>%1</p></body></html>")
                 .arg(ExporterText::tr("Total rows: %1").arg(model.rowCount()).toHtmlEscaped());
 
-    // Open the file first: QPdfWriter would silently write nothing to a read-only or locked file
-    QFile file(filePath);
-    if (!file.open(QIODevice::WriteOnly)) {
-        if (error)
-            *error = file.errorString();
-        return false;
-    }
-    QPdfWriter writer(&file);
-    if (!writer.setPageLayout(QPageLayout(QPageSize(QPageSize::A4),
-                                          columnCount > 7 ? QPageLayout::Landscape : QPageLayout::Portrait,
-                                          QMarginsF(12, 12, 12, 12), QPageLayout::Millimeter))) {
-        if (error)
-            *error = ExporterText::tr("Cannot set up the page size.");
-        return false;
-    }
-    writer.setTitle(title);
-    writer.setCreator(QStringLiteral("QLTTTA"));
+    ReportDocument document;
+    document.title = title;
+    document.html = html;
+    document.pageLayout = QPageLayout(QPageSize(QPageSize::A4),
+                                      columnCount > 7 ? QPageLayout::Landscape : QPageLayout::Portrait,
+                                      QMarginsF(12, 12, 12, 12), QPageLayout::Millimeter);
+    return document;
+}
 
-    QTextDocument doc;
-    doc.setHtml(html);
-    doc.print(&writer);
-    if (file.error() != QFileDevice::NoError) {
-        if (error)
-            *error = file.errorString();
-        return false;
-    }
-    return true;
+bool TableExporter::exportPdf(const QAbstractItemModel& model, const QString& title,
+                              const QString& preparedBy, const QString& filePath, QString* error) {
+    return report(model, title, preparedBy).writePdf(filePath, error);
 }

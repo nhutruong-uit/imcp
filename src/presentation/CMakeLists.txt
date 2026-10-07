@@ -17,8 +17,12 @@ add_library(qlttta_presentation STATIC
     common/Format.cpp
     common/TableDataModel.h
     common/TableDataModel.cpp
+    common/ReportDocument.h
+    common/ReportDocument.cpp
     common/TableExporter.h
     common/TableExporter.cpp
+    common/ReportPreviewDialog.h
+    common/ReportPreviewDialog.cpp
     common/UiHelpers.h
     common/UiHelpers.cpp
     common/DataTable.h
@@ -102,7 +106,8 @@ add_library(qlttta_presentation STATIC
     teaching/MyClassesPage.h
     teaching/MyClassesPage.cpp
 )
-target_link_libraries(qlttta_presentation PUBLIC qlttta_application Qt6::Widgets Qt6::Svg)
+# PrintSupport: print preview and printing of the reports (ReportPreviewDialog)
+target_link_libraries(qlttta_presentation PUBLIC qlttta_application Qt6::Widgets Qt6::PrintSupport Qt6::Svg)
 
 # ---- Translations (i18n) ----
 # UI strings in the code are English (source language). resources/translations/qlttta_vi.ts holds the

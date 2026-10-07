@@ -48,7 +48,7 @@ endif()
 option(QLTTTA_BUILD_TESTS "Build unit tests" ON)
 option(QLTTTA_BUILD_TOOLS "Build developer tools (screenshot generator)" OFF)
 
-set(QLTTTA_QT_COMPONENTS Core Gui Widgets Sql Svg LinguistTools)
+set(QLTTTA_QT_COMPONENTS Core Gui Widgets PrintSupport Sql Svg LinguistTools)
 if(QLTTTA_BUILD_TESTS)
     list(APPEND QLTTTA_QT_COMPONENTS Test)
 endif()

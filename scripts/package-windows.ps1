@@ -2,6 +2,9 @@
 #   1. Release build (Qt + MinGW)
 #   2. windeployqt: copies the Qt DLLs, plugins (including qsqlodbc) and the MinGW runtime
 #   3. Portable ZIP (unzip and run) + setup.exe installer (Inno Setup, no admin rights needed)
+#   4. Self-test of the portable ZIP as a user gets it: unzipped into a new folder, QLTTTA.exe --self-test checks
+#      the Qt plugins, an ODBC driver for SQL Server, the translation and the icons (no database needed).
+#      release.yml also installs the setup.exe silently and runs the same self-test on the installed app.
 #
 # Requirements: Qt 6 (MinGW 64-bit), CMake, Ninja on PATH; QT_ROOT_DIR pointing to the Qt folder,
 #               e.g. C:\Qt\6.8.3\mingw_64. Inno Setup 6 (optional, for setup.exe).
@@ -14,6 +17,19 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+
+# Runs a packaged QLTTTA.exe with --self-test and waits for it. A .NET Process reads its output and exit code:
+# PowerShell does not wait for a GUI program started directly
+function Test-PackagedApp([string]$Exe) {
+    $start = New-Object System.Diagnostics.ProcessStartInfo $Exe, "--self-test"
+    $start.UseShellExecute = $false
+    $start.RedirectStandardOutput = $true
+    $process = [System.Diagnostics.Process]::Start($start)
+    $output = $process.StandardOutput.ReadToEnd()
+    $process.WaitForExit()
+    Write-Host $output
+    if ($process.ExitCode -ne 0) { throw "The self-test of $Exe failed (exit code $($process.ExitCode))" }
+}
 # Run from a PowerShell window, the script works in the repository folder with the chosen Qt, then puts the
 # window's folder and QT_ROOT_DIR back, also when a step fails
 $previousLocation = Get-Location
@@ -50,6 +66,12 @@ try {
     if (Test-Path $zip) { Remove-Item $zip }
     Write-Host ">> Create the portable ZIP"
     Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip
+
+    Write-Host ">> Self-test of the portable ZIP"
+    $unzipped = Join-Path $root "build\windows-release\selftest"
+    if (Test-Path $unzipped) { Remove-Item -Recurse -Force $unzipped }
+    Expand-Archive -Path $zip -DestinationPath $unzipped
+    Test-PackagedApp (Join-Path $unzipped "QLTTTA.exe")
 
     # ISCC.exe on PATH, or in an Inno Setup 6 installed for all users (Program Files) or for the current user only
     # (%LOCALAPPDATA%\Programs: what "winget install JRSoftware.InnoSetup" does without administrator rights)

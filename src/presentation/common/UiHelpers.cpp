@@ -2,6 +2,7 @@
 
 #include "presentation/common/Icons.h"
 #include "presentation/common/Labels.h"
+#include "presentation/common/ReportPreviewDialog.h"
 #include "presentation/common/TableExporter.h"
 #include "presentation/common/Theme.h"
 
@@ -42,6 +43,15 @@ QPushButton* UiHelpers::secondaryButton(const QString& text, const QString& icon
     return b;
 }
 
+QPushButton* UiHelpers::printPreviewButton(QWidget* parent) {
+    auto* b = secondaryButton(UiText::tr("Print"), QStringLiteral("printer"), parent);
+    b->setObjectName(QStringLiteral("reportPreviewButton"));
+    b->setShortcut(QKeySequence::Print); // a hidden page's shortcut does not fire, so each page may have one
+    b->setToolTip(
+        withShortcut(UiText::tr("Print preview: group, print or save the report"), QKeySequence::Print));
+    return b;
+}
+
 QLabel* UiHelpers::pageTitle(const QString& text, QWidget* parent) {
     auto* l = new QLabel(text, parent);
     l->setObjectName(QStringLiteral("PageTitle"));
@@ -68,6 +78,10 @@ bool UiHelpers::confirm(QWidget* parent, const QString& question) {
     return box.exec() == QMessageBox::Yes;
 }
 
+QString UiHelpers::withShortcut(const QString& text, QKeySequence::StandardKey key) {
+    return QStringLiteral("%1 (%2)").arg(text, QKeySequence(key).toString(QKeySequence::NativeText));
+}
+
 QString UiHelpers::fileName(const QString& title) {
     static const QRegularExpression notAllowed(QStringLiteral("[\\\\/:*?\"<>|]"));
     return QString(title).replace(notAllowed, QStringLiteral("-")).trimmed();
@@ -90,17 +104,34 @@ void UiHelpers::exportCsv(QWidget* parent, const QAbstractItemModel& model, cons
 
 void UiHelpers::exportPdf(QWidget* parent, const QAbstractItemModel& model, const QString& title,
                           const QString& preparedBy) {
+    savePdf(parent, TableExporter::report(model, title, preparedBy));
+}
+
+void UiHelpers::savePdf(QWidget* parent, const ReportDocument& document) {
     const QString folder = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    const QString path = QFileDialog::getSaveFileName(
-        parent, UiText::tr("Export PDF report"),
-        QDir(folder).filePath(fileName(title) + QStringLiteral(".pdf")), QStringLiteral("PDF (*.pdf)"));
+    const QString path =
+        QFileDialog::getSaveFileName(parent, UiText::tr("Export PDF report"),
+                                     QDir(folder).filePath(fileName(document.title) + QStringLiteral(".pdf")),
+                                     QStringLiteral("PDF (*.pdf)"));
     if (path.isEmpty())
         return;
     QString error;
-    if (!TableExporter::exportPdf(model, title, preparedBy, path, &error))
+    if (!document.writePdf(path, &error))
         showError(parent, error);
     else
         QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+}
+
+void UiHelpers::previewReport(QWidget* parent, const QAbstractItemModel& model, const QString& title,
+                              const QString& preparedBy) {
+    QStringList columns;
+    for (int c = 0; c < model.columnCount(); ++c)
+        columns << model.headerData(c, Qt::Horizontal).toString();
+    // Modal: the model of the page outlives the dialog
+    ReportPreviewDialog dialog(
+        [&](int groupColumn) { return TableExporter::report(model, title, preparedBy, groupColumn); },
+        columns, parent);
+    dialog.exec();
 }
 
 QComboBox* UiHelpers::languageSelector(Language current, QWidget* parent) {

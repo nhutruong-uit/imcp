@@ -89,6 +89,7 @@ GradeBookPage::GradeBookPage(AppServices services, Feature feature, QWidget* par
     auto* refreshButton = UiHelpers::secondaryButton(tr("Refresh"), QStringLiteral("refresh"), this);
     auto* csvButton = UiHelpers::secondaryButton(tr("Excel"), QStringLiteral("download"), this);
     auto* pdfButton = UiHelpers::secondaryButton(tr("PDF"), QStringLiteral("file"), this);
+    auto* printButton = UiHelpers::printPreviewButton(this);
     m_saveButton = UiHelpers::primaryButton(tr("Save grades"), QStringLiteral("check"), this);
     m_saveButton->setObjectName(QStringLiteral("saveGradesButton"));
     bar->addWidget(new QLabel(tr("Class"), this));
@@ -96,6 +97,7 @@ GradeBookPage::GradeBookPage(AppServices services, Feature feature, QWidget* par
     bar->addWidget(refreshButton);
     bar->addWidget(csvButton);
     bar->addWidget(pdfButton);
+    bar->addWidget(printButton);
     bar->addWidget(m_saveButton);
     v->addLayout(bar);
 
@@ -141,6 +143,10 @@ GradeBookPage::GradeBookPage(AppServices services, Feature feature, QWidget* par
             [this] { UiHelpers::exportCsv(this, *m_model, classTitle()); });
     connect(pdfButton, &QPushButton::clicked, this, [this] {
         UiHelpers::exportPdf(this, *m_model, classTitle(), Labels::accountName(m_services.auth.account()));
+    });
+    connect(printButton, &QPushButton::clicked, this, [this] {
+        UiHelpers::previewReport(this, *m_model, classTitle(),
+                                 Labels::accountName(m_services.auth.account()));
     });
     reload();
 }
