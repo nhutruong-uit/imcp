@@ -212,6 +212,35 @@ VoidResult DatabaseManager::open(const ServerConfig& config, const QString& user
            "Please install \"Microsoft ODBC Driver 18 for SQL Server\" and try again."));
 }
 
+bool DatabaseManager::odbcPluginAvailable() {
+    return QSqlDatabase::isDriverAvailable(QStringLiteral("QODBC"));
+}
+
+QString DatabaseManager::firstInstalledDriver() {
+    if (!odbcPluginAvailable())
+        return QString();
+    // Port 1 of the loopback address: nothing listens there, so the attempt fails at once without a network
+    ServerConfig closedPort;
+    closedPort.host = QStringLiteral("127.0.0.1,1");
+    const QLatin1String probeName("qlttta_probe");
+    QString found;
+    for (const QString& driver : candidateDrivers()) {
+        // Inner block: the QSqlDatabase handle must be destroyed before removeDatabase() below (Qt rule)
+        {
+            QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QODBC"), probeName);
+            db.setDatabaseName(connectionString(driver, closedPort, QStringLiteral("probe"), QString()));
+            db.setConnectOptions(QStringLiteral("SQL_ATTR_LOGIN_TIMEOUT=3"));
+            if (db.open() || !isMissingDriverError(db.lastError()))
+                found = driver;
+            db.close();
+        }
+        QSqlDatabase::removeDatabase(probeName);
+        if (!found.isEmpty())
+            break;
+    }
+    return found;
+}
+
 void DatabaseManager::close() {
     if (QSqlDatabase::contains(QLatin1String(kConnectionName))) {
         {

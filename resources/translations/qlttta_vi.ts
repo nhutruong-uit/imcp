@@ -1424,6 +1424,10 @@
         <translation>Lọc nhanh...</translation>
     </message>
     <message>
+        <source>Filter the rows shown</source>
+        <translation>Lọc các dòng đang hiển thị</translation>
+    </message>
+    <message>
         <source>Refresh</source>
         <translation>Làm mới</translation>
     </message>
@@ -1434,6 +1438,22 @@
     <message>
         <source>PDF</source>
         <translation>PDF</translation>
+    </message>
+    <message>
+        <source>Read the list again</source>
+        <translation>Đọc lại danh sách</translation>
+    </message>
+    <message>
+        <source>Copy cell</source>
+        <translation>Sao chép ô</translation>
+    </message>
+    <message>
+        <source>Export to Excel</source>
+        <translation>Xuất Excel</translation>
+    </message>
+    <message>
+        <source>Print preview...</source>
+        <translation>Xem trước khi in...</translation>
     </message>
 </context>
 <context>
@@ -2688,8 +2708,56 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
         <translation>Đăng xuất</translation>
     </message>
     <message>
+        <source>Change password...</source>
+        <translation>Đổi mật khẩu...</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>Ngôn ngữ</translation>
+    </message>
+    <message>
+        <source>Quit</source>
+        <translation>Thoát</translation>
+    </message>
+    <message>
+        <source>Help</source>
+        <translation>Trợ giúp</translation>
+    </message>
+    <message>
+        <source>About QLTTTA</source>
+        <translation>Giới thiệu QLTTTA</translation>
+    </message>
+    <message>
+        <source>About Qt</source>
+        <translation>Giới thiệu Qt</translation>
+    </message>
+    <message>
         <source>Do you want to log out?</source>
         <translation>Bạn muốn đăng xuất?</translation>
+    </message>
+    <message>
+        <source>English Center Management %1</source>
+        <translation>Quản lý Trung tâm Tiếng Anh %1</translation>
+    </message>
+    <message>
+        <source>IE103 course project - Information Management, UIT</source>
+        <translation>Đồ án môn IE103 - Quản lý thông tin, UIT</translation>
+    </message>
+    <message>
+        <source>Server: %1</source>
+        <translation>Máy chủ: %1</translation>
+    </message>
+    <message>
+        <source>Database: %1</source>
+        <translation>CSDL: %1</translation>
+    </message>
+    <message>
+        <source>Signed in as: %1 (%2)</source>
+        <translation>Đăng nhập: %1 (%2)</translation>
+    </message>
+    <message>
+        <source>Built with Qt %1</source>
+        <translation>Xây dựng bằng Qt %1</translation>
     </message>
 </context>
 <context>
@@ -3090,6 +3158,60 @@ Hãy cài &quot;Microsoft ODBC Driver 18 for SQL Server&quot; rồi thử lại.
     <message>
         <source>The description must be at most %1 characters.</source>
         <translation>Nội dung tối đa %1 ký tự.</translation>
+    </message>
+</context>
+<context>
+    <name>ReportDocument</name>
+    <message>
+        <source>Cannot set up the page size.</source>
+        <translation>Không thiết lập được khổ giấy.</translation>
+    </message>
+</context>
+<context>
+    <name>ReportPreviewDialog</name>
+    <message>
+        <source>No groups</source>
+        <translation>Không nhóm</translation>
+    </message>
+    <message>
+        <source>Group by</source>
+        <translation>Nhóm theo</translation>
+    </message>
+    <message>
+        <source>Zoom out</source>
+        <translation>Thu nhỏ</translation>
+    </message>
+    <message>
+        <source>Zoom in</source>
+        <translation>Phóng to</translation>
+    </message>
+    <message>
+        <source>Save as PDF</source>
+        <translation>Lưu PDF</translation>
+    </message>
+    <message>
+        <source>Print...</source>
+        <translation>In...</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Đóng</translation>
+    </message>
+    <message>
+        <source>Print preview - %1</source>
+        <translation>Xem trước khi in - %1</translation>
+    </message>
+    <message>
+        <source>1 page</source>
+        <translation>1 trang</translation>
+    </message>
+    <message>
+        <source>%1 pages</source>
+        <translation>%1 trang</translation>
+    </message>
+    <message>
+        <source>Print %1</source>
+        <translation>In %1</translation>
     </message>
 </context>
 <context>
@@ -3864,6 +3986,14 @@ Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ 
 <context>
     <name>TableExporter</name>
     <message>
+        <source>1 row</source>
+        <translation>1 dòng</translation>
+    </message>
+    <message>
+        <source>%1 rows</source>
+        <translation>%1 dòng</translation>
+    </message>
+    <message>
         <source>ENGLISH CENTER — QLTTTA MANAGEMENT SYSTEM</source>
         <translation>TRUNG TÂM ANH NGỮ — HỆ THỐNG QUẢN LÝ QLTTTA</translation>
     </message>
@@ -3876,8 +4006,20 @@ Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ 
         <translation>Người lập: %1</translation>
     </message>
     <message>
+        <source>Grouped by: %1</source>
+        <translation>Nhóm theo: %1</translation>
+    </message>
+    <message>
         <source>No.</source>
         <translation>STT</translation>
+    </message>
+    <message>
+        <source>(empty)</source>
+        <translation>(trống)</translation>
+    </message>
+    <message>
+        <source>Subtotal</source>
+        <translation>Cộng nhóm</translation>
     </message>
     <message>
         <source>GRAND TOTAL</source>
@@ -3886,10 +4028,6 @@ Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ 
     <message>
         <source>Total rows: %1</source>
         <translation>Tổng số dòng: %1</translation>
-    </message>
-    <message>
-        <source>Cannot set up the page size.</source>
-        <translation>Không thiết lập được khổ giấy.</translation>
     </message>
 </context>
 <context>
@@ -4111,10 +4249,6 @@ Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ 
         <source>Reason</source>
         <translation>Lý do</translation>
     </message>
-    <message>
-        <source>Save the receipt as PDF</source>
-        <translation>Lưu phiếu thu thành PDF</translation>
-    </message>
 </context>
 <context>
     <name>TuitionService</name>
@@ -4137,6 +4271,14 @@ Kiểm tra địa chỉ máy chủ, cổng (mặc định 1433) và dịch vụ 
 </context>
 <context>
     <name>UiHelpers</name>
+    <message>
+        <source>Print</source>
+        <translation>In</translation>
+    </message>
+    <message>
+        <source>Print preview: group, print or save the report</source>
+        <translation>Xem trước khi in: nhóm, in hoặc lưu báo cáo</translation>
+    </message>
     <message>
         <source>Could not complete the action</source>
         <translation>Không thực hiện được</translation>

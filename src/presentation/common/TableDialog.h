@@ -7,9 +7,9 @@
 class DataTable;
 class QLabel;
 
-// Shows a list in a window of its own, with the totals line and Excel / PDF export: the students or results
-// of a class, the syllabus of a course, the result of a search... Read-only; the caller fills it with
-// setData.
+// Shows a list in a window of its own, with the totals line, Excel / PDF export and the print preview: the
+// students or results of a class, the syllabus of a course, the result of a search... Read-only; the caller
+// fills it with setData.
 class TableDialog : public QDialog {
     Q_OBJECT
 public:

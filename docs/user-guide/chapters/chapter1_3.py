@@ -19,13 +19,13 @@ def chapter1(g):
         "vậy chính CSDL quyết định người dùng được xem và sửa dữ liệu nào. Ứng dụng chỉ là phần giao diện.")
     g.bullets([
         "**Menu theo vai trò**: mỗi vai trò (quản lý, giáo vụ, kế toán, giáo viên) chỉ thấy các chức năng "
-        "của mình.",
+        "của mình, ở menu bên trái và trên thanh menu (có phím tắt).",
         "**Form nhập liệu cho mọi bước nghiệp vụ**: danh mục (khóa học, giáo viên, nhân viên, chi nhánh - phòng "
         "học, khuyến mãi), học viên, kiểm tra xếp lớp, mở lớp và lịch học, ghi danh, thu học phí và in phiếu thu, "
         "điểm danh, nhập điểm, xét kết quả, chốt lương, tài khoản, sao lưu; dữ liệu được kiểm tra cả ở ứng dụng "
         "lẫn CSDL.",
-        "**Danh sách tra cứu** có lọc nhanh, sắp xếp theo cột, dòng tổng cộng, xuất **Excel (CSV)** và "
-        "**báo cáo PDF**.",
+        "**Danh sách tra cứu** có lọc nhanh, sắp xếp theo cột, dòng tổng cộng, menu chuột phải, xuất **Excel "
+        "(CSV)**, **báo cáo PDF** và **xem trước khi in** (nhóm theo một cột, in ra máy in).",
         "**Hai ngôn ngữ giao diện**: tiếng Việt (mặc định) và tiếng Anh, đổi ngay khi đang dùng.",
         "**Chạy trên macOS và Windows**, kết nối tới SQL Server trên cùng máy hoặc trên máy khác trong mạng.",
     ])

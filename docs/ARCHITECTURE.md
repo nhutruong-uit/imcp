@@ -93,7 +93,8 @@ names such as `CK_STUDENT_Guardian`.
    A locked account is rejected; a valid SQL Server user with no row in `ACCOUNT` is rejected by `AuthService`
    ("valid SQL Server account, but no role is assigned"). The only exception is a database owner (`db_owner`, e.g.
    `sa`), who is admitted with the Manager role so the database can be administered from the app.
-3. `Permissions::allowedFeatures(role)` decides which menu entries are shown.
+3. `Permissions::allowedFeatures(role)` decides which menu entries are shown: the sidebar and the menu bar of
+   `MainWindow` (one menu per `FeatureGroup`, plus System and Help; Ctrl+1 … Ctrl+9 for the first nine features).
 4. From then on every query runs under that user's own permissions. If the application has a bug, SQL Server still
    blocks access through `GRANT/DENY` on the roles (`database/06_security.sql`; summary in
    [DATABASE.md](DATABASE.md#4-roles-and-permissions)). The application-side matrix only controls what is *displayed*.
@@ -133,8 +134,9 @@ and edits (catalog, courses, staff) have `save(x, isNew)`, which calls the add o
 **Screens with forms: `DataPage` + `FormDialog`.** Most screens are one list with filters and buttons, so they share
 two base classes of `src/presentation/common/`:
 - `DataPage` (base of `ClassPage`, `EnrollmentPage`, `TuitionPage`, the catalog pages...): a filter bar (the page's
-  filters, a quick filter, Refresh, Excel, PDF), an action bar, the list (`DataTable`, column titles and formats from
-  `Columns`) and a footer with the row count and totals. A subclass adds its filters and buttons in its constructor
+  filters, a quick filter, Refresh, Excel, PDF, Print), an action bar, the list (`DataTable`, column titles and
+  formats from `Columns`) and a footer with the row count and totals. Right-clicking a row opens a popup menu that
+  mirrors the action bar (same enabled state) plus the shared tools; F5 / Ctrl+F / Ctrl+P refresh, filter and print. A subclass adds its filters and buttons in its constructor
   (`addFilter`, `addAction(text, icon, objectName, needsSelection, handler)`), implements `fetch()` (one service
   call that returns a `TableData`) and calls `reload()`. Buttons that change data are created only when
   `Permissions::canEdit(role, feature)` allows it; a button that needs a row is enabled only while one is selected.
@@ -147,7 +149,12 @@ two base classes of `src/presentation/common/`:
   field clicks Save, as in any Qt dialog; a search or filter field inside the form is registered with
   `setSearchField`, so Return runs the search instead of saving the first match.
 - `TableDialog` shows a read-only list in a window of its own (the students or results of a class, a syllabus,
-  a search result) with Excel / PDF export.
+  a search result) with Excel / PDF export and Print.
+- Reports: `TableExporter::report(model, title, preparedBy, groupColumn)` builds a `ReportDocument` (HTML + page
+  layout) laid out like a Crystal Report (report/page header, optional groups with subtotals, details, grand total,
+  page numbers); `ReceiptPrinter::document` builds the A5 receipt. The same document goes to a PDF file
+  (`ReportDocument::writePdf`) or to `ReportPreviewDialog` (print preview, "Group by", Print, Save as PDF;
+  `UiHelpers::previewReport` for a list). Qt PrintSupport is linked by the presentation layer only.
 
 **Read-only list screens need no new page.** Outstanding tuition, Learning results and My pay are rendered by the
 generic `ListPage` (Revenue and My classes reuse the same lists inside their own page). To add one: add a `Feature` value and a `ListKind` value

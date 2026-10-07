@@ -7,12 +7,14 @@
 #include <QMainWindow>
 #include <optional>
 
+class QAction;
 class QComboBox;
 class QLabel;
 class QListWidget;
 class QStackedWidget;
 
-// Main window: the menu on the left is built from the user's role (Permissions), pages are shown on the right
+// Main window: the menu on the left and the menu bar are built from the user's role (Permissions), pages are
+// shown on the right
 // Qt vocabulary used by every window/page class:
 //   - Q_OBJECT: a macro that lets the class have signals and slots (Qt generates extra code for it, "moc").
 //   - signal: a notification the object sends ("logout was requested"); it has no code of its own.
@@ -36,10 +38,13 @@ private slots:
     void onMenuRowChanged(int row);
     void changePassword();
     void changeLanguage();
+    void logout(); // asks first, then logoutRequested
+    void showAbout();
 
 private:
     QWidget* buildSidebar();
     QWidget* buildHeader();
+    void buildMenuBar();
     QWidget* pageFor(Feature feature);
 
     AppServices m_services;
@@ -51,4 +56,6 @@ private:
     QStackedWidget* m_content = nullptr;
     QLabel* m_title = nullptr;
     QComboBox* m_languageCombo = nullptr;
+    // key = (int)Feature: its entry in the menu bar, checked while its page is shown
+    QHash<int, QAction*> m_featureActions;
 };

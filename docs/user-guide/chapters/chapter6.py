@@ -20,6 +20,11 @@ def chapter6(g):
            f"$env:QLTTTA_USER = '{user}'; $env:QLTTTA_PASSWORD = '<mật khẩu>'; $env:QLTTTA_SERVER = 'localhost'\n"
            "& \"<thư mục chứa QLTTTA.exe>\\QLTTTA.exe\" --check-connection | Out-Host\n"
            "$LASTEXITCODE", lang="text")
+    g.p("Khi nghi bộ cài thiếu file (ví dụ lỗi **Thiếu plugin Qt ODBC** ở mục 6.2), chạy `--self-test` thay cho "
+        "`--check-connection`: không cần tài khoản hay SQL Server, ứng dụng kiểm tra plugin của Qt, driver ODBC cho SQL "
+        "Server, bản dịch tiếng Việt và biểu tượng, in một dòng `OK`/`FAILED` cho mỗi mục và dòng cuối "
+        "`Self-test passed` khi mọi mục đều đạt (mã thoát 0). Trên Windows cũng thêm `| Out-Host` như trên.")
+    g.code("Terminal (macOS)", "/Applications/QLTTTA.app/Contents/MacOS/QLTTTA --self-test", lang="text")
 
     g.h2("6.2. Lỗi thường gặp")
     g.table(["Hiện tượng / thông báo", "Nguyên nhân thường gặp", "Cách xử lý"], [

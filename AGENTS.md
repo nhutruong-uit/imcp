@@ -39,8 +39,9 @@ QLTTTA_E2E_PASSWORD='Demo@2026' ctest --preset macos-debug -R e2e --output-on-fa
 # Refresh the translation file after adding/changing tr("...") strings, then translate the new entries
 cmake --build --preset macos-debug --target update_translations   # -> resources/translations/qlttta_vi.ts
 
-# Connection/login check without the GUI
+# Connection/login check without the GUI; installation check without a database (plugins, ODBC driver, translation)
 QLTTTA_USER=ql_quan QLTTTA_PASSWORD='Demo@2026' build/macos-debug/src/app/QLTTTA.app/Contents/MacOS/QLTTTA --check-connection
+build/macos-debug/src/app/QLTTTA.app/Contents/MacOS/QLTTTA --self-test
 
 # Update the report (or type /imcp-update-report): real data -> docx -> PDF (macOS + Word) -> check
 SQL_PASSWORD="$(docker exec imcp-mssql printenv MSSQL_SA_PASSWORD)" python3 docs/report/tools/export_data.py --docker imcp-mssql

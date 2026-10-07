@@ -122,6 +122,17 @@ $env:QLTTTA_USER = 'ql_quan'; $env:QLTTTA_PASSWORD = 'Demo@2026'
 It prints `OK: <full name> (<role>)` and exits with code 0, or `ERROR: <message>` and exits with code 1 (in the
 language chosen last in the app).
 
+Installation check without the GUI and without a database: `--self-test` checks what the installer must bring along
+(Qt platform and ODBC plugins, an ODBC driver for SQL Server - on the `.dmg` the bundled FreeTDS, the Vietnamese
+translation, the icons), prints one `OK`/`FAILED` line per check and exits with code 0 when all pass. The packaging
+scripts and `release.yml` run it on every installer before it is published.
+```bash
+/Applications/QLTTTA.app/Contents/MacOS/QLTTTA --self-test
+```
+```powershell
+& "C:\Program Files\QLTTTA\QLTTTA.exe" --self-test | Out-Host
+```
+
 ---
 
 ## 3. Development environment (level C)

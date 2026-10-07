@@ -72,8 +72,13 @@ def chapter4(g):
 
     g.h2("4.4. Màn hình chính")
     g.p("Sau khi đăng nhập, cửa sổ chính mở ở chức năng đầu tiên của vai trò (Tổng quan, hoặc Lớp của tôi với "
-        "giáo viên). Màn hình gồm ba vùng:")
+        "giáo viên). Màn hình gồm bốn vùng:")
     g.bullets([
+        "**Thanh menu trên cùng** (Windows: ngay dưới tiêu đề cửa sổ; macOS: ở đỉnh màn hình như mọi ứng dụng Mac): "
+        "menu **Hệ thống** (đổi mật khẩu, ngôn ngữ, đăng xuất, thoát; quản lý có thêm **Tài khoản** và **Sao lưu**), "
+        "một menu cho mỗi nhóm chức năng giống thanh menu bên trái, và menu **Trợ giúp** > **Giới thiệu QLTTTA** "
+        "(phiên bản, máy chủ, CSDL, người đang đăng nhập). Chín chức năng đầu có phím tắt **Ctrl+1** … **Ctrl+9** "
+        "(trên macOS là **⌘1** … **⌘9**); di chuột lên một mục ở menu bên trái để xem phím tắt của mục đó.",
         "**Thanh menu bên trái**: các chức năng xếp theo nhóm (**CHUNG**, **ĐÀO TẠO**, **TÀI CHÍNH**, **DANH "
         "MỤC**, **HỆ THỐNG**; giáo viên có nhóm **GIẢNG DẠY**). Bấm một mục để mở; chức năng đang mở được tô "
         "sáng. Menu dài thì cuộn bằng con lăn chuột. Cuối thanh menu là họ tên và vai trò của người đang đăng nhập.",
@@ -87,7 +92,8 @@ def chapter4(g):
     g.p("Chọn **Tiếng Việt** hoặc **English** ở ô có biểu tượng quả địa cầu: ở góc dưới màn hình đăng nhập "
         "hoặc trên thanh tiêu đề của màn hình chính. Màn hình được dựng lại ngay bằng ngôn ngữ mới, người dùng "
         "vẫn đăng nhập và vẫn ở chức năng đang mở; lựa chọn được ghi nhớ cho lần sau. Dữ liệu lưu trong CSDL "
-        "(họ tên, tên lớp, tên chi nhánh...) giữ nguyên, không dịch.")
+        "(họ tên, tên lớp, tên chi nhánh...) giữ nguyên, không dịch. Trên màn hình chính cũng có thể chọn ở thanh "
+        "menu: **Hệ thống** > **Ngôn ngữ**.")
 
     g.h2("4.6. Đổi mật khẩu")
     g.steps([
@@ -102,7 +108,8 @@ def chapter4(g):
 
     g.h2("4.7. Đăng xuất và thoát")
     g.p("Bấm **Đăng xuất**, chọn **Đồng ý** ở câu hỏi **Bạn muốn đăng xuất?** để quay về màn hình đăng nhập "
-        "(ví dụ để đổi sang tài khoản khác). Đóng cửa sổ chính để thoát hẳn ứng dụng.")
+        "(ví dụ để đổi sang tài khoản khác); thanh menu có cùng lệnh ở **Hệ thống** > **Đăng xuất**. Đóng cửa sổ chính "
+        "hoặc chọn **Hệ thống** > **Thoát** để thoát hẳn ứng dụng.")
 
     g.h2("4.8. Thao tác chung trên các màn hình danh sách")
     g.p("Hầu hết chức năng (Lớp học, Ghi danh, Thu học phí, Lương giáo viên, các danh mục...) dùng chung một "
@@ -130,9 +137,21 @@ def chapter4(g):
         ["Nút **PDF**", "Tạo báo cáo PDF khổ A4 (tự xoay ngang khi bảng có hơn 7 cột) gồm tiêu đề trung tâm, "
                         "tên báo cáo, ngày lập, người lập, cột STT, dòng **TỔNG CỘNG** và tổng số dòng; mở ngay "
                         "sau khi lưu."],
+        ["Nút **In** (Ctrl+P)", "Mở hộp **Xem trước khi in** của cùng báo cáo: xem đúng các trang sẽ in, bấm "
+                                "**−**/**+** để thu nhỏ/phóng to, chọn **Nhóm theo** một cột (ví dụ **Tên lớp**) để "
+                                "gom các dòng cùng giá trị dưới một dòng tiêu đề nhóm kèm dòng **Cộng nhóm** cho các "
+                                "cột tiền, rồi bấm **In...** (hộp thoại in của hệ điều hành) hoặc **Lưu PDF**."],
+        ["Menu chuột phải", "Nhấp chuột phải vào một dòng: dòng đó được chọn và menu hiện các nút của màn hình "
+                            "(chỉ bấm được khi nút tương ứng bấm được), **Sao chép ô**, **Làm mới**, **Xuất Excel**, "
+                            "**Xem trước khi in...**."],
+        ["Phím tắt", "**F5** làm mới (macOS: **⌘R**), **Ctrl+F** đưa con trỏ vào ô lọc nhanh, **Ctrl+P** xem trước "
+                     "khi in (macOS: **⌘F**, **⌘P**)."],
     ], widths_cm=[4.6, 11.4], caption="Các thành phần của màn hình danh sách")
+    g.figure(SCREENS / "kt_minh_report_preview.png", "Hộp Xem trước khi in: công nợ học phí nhóm theo lớp",
+             width_cm=14)
     g.tip("Muốn in hoặc gửi một phần danh sách (ví dụ công nợ của một lớp), gõ mã lớp vào ô lọc nhanh rồi "
-          "mới bấm **PDF**: báo cáo chỉ chứa các dòng đang hiển thị.")
+          "mới bấm **PDF** hoặc **In**: báo cáo chỉ chứa các dòng đang hiển thị, theo thứ tự đang sắp xếp (sắp xếp "
+          "theo cột dùng để nhóm thì các nhóm cũng theo thứ tự đó).")
 
     g.h2("4.9. Form nhập liệu và hộp xác nhận")
     g.bullets([
@@ -398,11 +417,13 @@ def chapter5(g):
         "lớp hoặc mã ghi danh...** để tìm nhanh rồi chọn một dòng.",
         "Ô **Số tiền** điền sẵn số còn nợ (không nhập được số lớn hơn); sửa lại nếu học viên đóng một phần.",
         "Chọn **Hình thức** (**Tiền mặt**, **Chuyển khoản**, **Thẻ**), ghi **Nội dung** rồi bấm **Thu tiền**.",
-        "Ứng dụng hỏi **Đã lập phiếu thu <số>. In phiếu ngay?** - chọn **Có** để lưu phiếu thu thành file PDF "
-        "(mặc định trong thư mục Documents/Tài liệu) và mở ra để in.",
+        "Ứng dụng hỏi **Đã lập phiếu thu <số>. In phiếu ngay?** - chọn **Có** để mở phiếu thu (khổ A5) trong hộp "
+        "**Xem trước khi in**: bấm **In...** để in ra máy in, hoặc **Lưu PDF** để lưu file (mặc định trong thư mục "
+        "Documents/Tài liệu) và mở ra.",
     ])
     g.bullets([
-        "**In phiếu thu**: in lại phiếu đang chọn (phiếu đã hủy có chữ **ĐÃ HỦY**).",
+        "**In phiếu thu**: mở lại phiếu đang chọn trong hộp xem trước để in hoặc lưu PDF (phiếu đã hủy có chữ "
+        "**ĐÃ HỦY**).",
         "**Hủy phiếu thu**: nhập **Lý do** (bắt buộc) rồi bấm **Hủy phiếu thu**. Phiếu không bị xóa mà chuyển "
         "sang **Đã hủy**; số tiền không còn được tính là đã đóng.",
     ])

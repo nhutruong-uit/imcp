@@ -33,9 +33,11 @@ TableDialog::TableDialog(const QString& title, const QString& preparedBy, QWidge
     auto* buttons = new QHBoxLayout;
     auto* csvButton = UiHelpers::secondaryButton(tr("Excel"), QStringLiteral("download"), this);
     auto* pdfButton = UiHelpers::secondaryButton(tr("PDF"), QStringLiteral("file"), this);
+    auto* printButton = UiHelpers::printPreviewButton(this);
     auto* closeButton = UiHelpers::primaryButton(tr("Close"), QString(), this);
     buttons->addWidget(csvButton);
     buttons->addWidget(pdfButton);
+    buttons->addWidget(printButton);
     buttons->addStretch(1);
     buttons->addWidget(closeButton);
     v->addLayout(buttons);
@@ -44,6 +46,8 @@ TableDialog::TableDialog(const QString& title, const QString& preparedBy, QWidge
             [this] { UiHelpers::exportCsv(this, m_table->visibleModel(), m_title); });
     connect(pdfButton, &QPushButton::clicked, this,
             [this] { UiHelpers::exportPdf(this, m_table->visibleModel(), m_title, m_preparedBy); });
+    connect(printButton, &QPushButton::clicked, this,
+            [this] { UiHelpers::previewReport(this, m_table->visibleModel(), m_title, m_preparedBy); });
     connect(closeButton, &QPushButton::clicked, this, &QDialog::accept);
 }
 
