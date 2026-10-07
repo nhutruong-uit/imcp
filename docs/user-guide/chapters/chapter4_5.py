@@ -43,7 +43,7 @@ def chapter4(g):
         ["SQL Server Express cài trên cùng máy Windows", "`localhost\\SQLEXPRESS` hoặc `TEN-MAY\\SQLEXPRESS`"],
         ["SQL Server Developer (instance mặc định) trên cùng máy Windows", "`localhost`"],
         ["Máy khác trong mạng", "`<địa chỉ IP>,<cổng>`, ví dụ `192.168.1.10,1433`"],
-    ], widths_cm=[8.5, 7.5], caption="Giá trị ô Máy chủ theo cách cài SQL Server", size=10.5)
+    ], widths_cm=[8.5, 7.5], caption="Giá trị ô Máy chủ theo cách cài SQL Server")
     g.p("Cấu hình được lưu khi bấm **Đăng nhập**, nên chỉ cần khai báo một lần. Dấu phẩy (`,`) ngăn cách "
         "địa chỉ và **cổng**; dấu gạch chéo ngược (`\\`) ngăn cách tên máy và **tên instance**.")
 
@@ -55,7 +55,7 @@ def chapter4(g):
     accounts = demo_accounts()
     g.table(["Tên đăng nhập", "Mật khẩu", "Vai trò", "Phạm vi dữ liệu"],
             [[f"`{user}`", f"`{password}`", ROLES[role], ROLE_SCOPE[role]] for user, password, role in accounts],
-            widths_cm=[3.2, 2.6, 2.4, 7.8], caption="Tài khoản demo trong dữ liệu mẫu", size=10)
+            widths_cm=[3.2, 2.6, 2.4, 7.8], caption="Tài khoản demo trong dữ liệu mẫu")
     g.warning("Đây là mật khẩu demo dùng chung, chỉ để chấm đồ án và trình diễn. Khi triển khai thật, mỗi "
               "người phải đổi mật khẩu ngay sau lần đăng nhập đầu (mục 4.6).")
     g.p("Nếu đăng nhập không được, dòng chữ đỏ dưới ô mật khẩu cho biết nguyên nhân:")
@@ -68,7 +68,7 @@ def chapter4(g):
         ["Lỗi chứng chỉ bảo mật của máy chủ...", "Bật **Tin cậy chứng chỉ máy chủ** trong Cấu hình máy chủ."],
         ["Tài khoản SQL Server hợp lệ nhưng chưa được gán vai trò...",
          "Tài khoản chưa thuộc vai trò nào của hệ thống: nhờ quản trị CSDL gán vai trò."],
-    ], widths_cm=[6.5, 9.5], caption="Thông báo lỗi khi đăng nhập", size=10)
+    ], widths_cm=[6.5, 9.5], caption="Thông báo lỗi khi đăng nhập")
 
     g.h2("4.4. Màn hình chính")
     g.p("Sau khi đăng nhập, cửa sổ chính mở ở chức năng đầu tiên của vai trò (Tổng quan, hoặc Lớp của tôi với "
@@ -130,7 +130,7 @@ def chapter4(g):
         ["Nút **PDF**", "Tạo báo cáo PDF khổ A4 (tự xoay ngang khi bảng có hơn 7 cột) gồm tiêu đề trung tâm, "
                         "tên báo cáo, ngày lập, người lập, cột STT, dòng **TỔNG CỘNG** và tổng số dòng; mở ngay "
                         "sau khi lưu."],
-    ], widths_cm=[4.6, 11.4], caption="Các thành phần của màn hình danh sách", size=10.5)
+    ], widths_cm=[4.6, 11.4], caption="Các thành phần của màn hình danh sách")
     g.tip("Muốn in hoặc gửi một phần danh sách (ví dụ công nợ của một lớp), gõ mã lớp vào ô lọc nhanh rồi "
           "mới bấm **PDF**: báo cáo chỉ chứa các dòng đang hiển thị.")
 
@@ -165,7 +165,7 @@ def chapter5(g):
                                 "doanh thu"],
         ["Tổng công nợ học phí", "Tổng số tiền học phí học viên còn nợ"],
         ["Buổi học hôm nay", "Số buổi học có lịch trong ngày"],
-    ], widths_cm=[4.6, 11.4], caption="Các thẻ số liệu trên trang Tổng quan", size=10.5)
+    ], widths_cm=[4.6, 11.4], caption="Các thẻ số liệu trên trang Tổng quan")
     g.figure(SCREENS / "gvu_lan_dashboard.png",
              "Trang Tổng quan của Giáo vụ: không có quyền xem doanh thu")
 
@@ -216,7 +216,7 @@ def chapter5(g):
         ["Số điện thoại, email không trùng với học viên khác",
          "Số điện thoại đã được dùng cho học viên khác. / Email đã được dùng cho học viên khác."],
         ["Phải chọn chi nhánh", "Chưa chọn chi nhánh."],
-    ], widths_cm=[7.0, 9.0], caption="Quy tắc kiểm tra thông tin học viên", size=10)
+    ], widths_cm=[7.0, 9.0], caption="Quy tắc kiểm tra thông tin học viên")
     g.h3("5.2.4. Xóa học viên")
     g.p("Chọn học viên, bấm **Xóa** và xác nhận câu hỏi **Xóa học viên <mã> - <họ tên>?**. Chỉ xóa được học "
         "viên **chưa từng ghi danh**; học viên đã có dữ liệu ghi danh thì CSDL từ chối (thông báo **Học viên "
@@ -306,7 +306,7 @@ def chapter5(g):
         ["Đánh giá kết quả",
          "Không còn buổi **Chưa dạy**; tổng trọng số các cột điểm của khóa học bằng 100%. Đạt khi điểm tổng kết "
          "từ 5 và chuyên cần từ 80%."],
-    ], widths_cm=[3.6, 12.4], caption="Quy tắc CSDL kiểm tra khi quản lý lớp học", size=10)
+    ], widths_cm=[3.6, 12.4], caption="Quy tắc CSDL kiểm tra khi quản lý lớp học")
 
     g.h2("5.5. Ghi danh")
     g.p("*Vai trò: Quản lý, Giáo vụ.* Mọi lượt ghi danh: mã ghi danh, học viên, lớp, khóa học, chi nhánh, ngày "
@@ -342,7 +342,7 @@ def chapter5(g):
          "thì phải hủy bớt phiếu thu trước. Điểm danh ở lớp cũ bị xóa."],
         ["Bảo lưu, học lại, nghỉ học",
          "Không đổi được lượt ghi danh đã **Hoàn thành**; học lại chỉ khi không trùng giờ với lớp khác của học viên."],
-    ], widths_cm=[3.6, 12.4], caption="Quy tắc CSDL kiểm tra khi ghi danh và chuyển lớp", size=10)
+    ], widths_cm=[3.6, 12.4], caption="Quy tắc CSDL kiểm tra khi ghi danh và chuyển lớp")
 
     g.h2("5.6. Lịch học - điểm danh")
     g.p("*Vai trò: Quản lý, Giáo vụ.* Các buổi học của một tuần (thứ Hai đến Chủ nhật): ngày học, giờ bắt đầu, "

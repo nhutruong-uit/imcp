@@ -36,7 +36,7 @@ def document_info(g):
                       "thành viên nhóm khi cài đặt và demo"],
         ["Ngày cập nhật", date.today().strftime("%d/%m/%Y")],
         ["Tình trạng", ""],
-    ], widths_cm=[4.0, 12.0], size=11, bold_first_col=True)
+    ], widths_cm=[4.0, 12.0], bold_first_col=True)
     g.status_cell = t.rows[-1].cells[1]
     g.p("Tài liệu được sinh tự động từ mã nguồn (`docs/user-guide/build_user_guide.py`): tên chức năng, "
         "phân quyền theo vai trò, tài khoản demo và ảnh màn hình luôn khớp với phiên bản phần mềm ghi ở trên.")
@@ -48,7 +48,7 @@ def fill_status(g):
             f"Bản nháp - còn {n} mục **[CẦN BỔ SUNG]** (khung màu vàng), chủ yếu phần dành cho Windows; "
             "danh sách ở Phụ lục B")
     g._set_cell_text(g.status_cell, "")
-    g._inline(g.status_cell.paragraphs[0], text, size=11)
+    g._inline(g.status_cell.paragraphs[0], text, size=g.table_font_size)
 
 
 def table_of_contents(g):
@@ -57,4 +57,4 @@ def table_of_contents(g):
     g.toc("DANH MỤC HÌNH ẢNH", 'TOC \\h \\z \\t "FigureCaption,1"',
           "Nhấn chuột phải > Update Field để cập nhật danh mục hình ảnh.")
     g.toc("DANH MỤC BẢNG", 'TOC \\h \\z \\t "TableCaption,1"',
-          "Nhấn chuột phải > Update Field để cập nhật danh mục bảng.", page_break=False)
+          "Nhấn chuột phải > Update Field để cập nhật danh mục bảng.")

@@ -87,7 +87,7 @@ def chapter6(g):
          "`powershell -ExecutionPolicy Bypass -File .\\scripts\\<tên script>.ps1 ...`"],
         ["PowerShell báo `sqlcmd` *is not recognized*", "Cửa sổ PowerShell mở từ trước khi cài SQL Server",
          "Mở cửa sổ PowerShell mới; vẫn lỗi thì `winget install Microsoft.Sqlcmd`."],
-    ], widths_cm=[4.6, 4.2, 7.2], caption="Lỗi thường gặp và cách xử lý", size=9.5)
+    ], widths_cm=[4.6, 4.2, 7.2], caption="Lỗi thường gặp và cách xử lý")
 
     g.h2("6.3. Khi cần hỗ trợ thêm")
     g.p("Tài liệu kỹ thuật chi tiết nằm trong mã nguồn: `docs/SETUP.md` (cài đặt môi trường, kiểm thử), "
@@ -108,7 +108,7 @@ def appendix_commands(g):
         ["Tắt / bật SQL Server (Docker)", "`docker compose stop` / `docker compose start`", "Như macOS"],
         ["Mở ứng dụng lần đầu", "`xattr -dr com.apple.quarantine /Applications/QLTTTA.app`",
          "SmartScreen: **More info > Run anyway**"],
-    ], widths_cm=[3.6, 6.4, 6.0], size=9.5, bold_first_col=True)
+    ], widths_cm=[3.6, 6.4, 6.0], bold_first_col=True)
 
 
 def appendix_placeholders(g):
@@ -122,4 +122,4 @@ def appendix_placeholders(g):
         "`python3 docs/user-guide/build_user_guide.py`. Phụ lục này tự biến mất khi không còn mục nào.")
     g.table(["STT", "Mục", "Nền tảng", "Nội dung cần bổ sung"],
             [[str(i), section, platform, text] for i, (section, platform, text) in enumerate(g.placeholders, 1)],
-            widths_cm=[1.2, 1.8, 2.2, 10.8], size=9.5, align=["center", "center", "center", "left"])
+            widths_cm=[1.2, 1.8, 2.2, 10.8], align=["center", "center", "center", "left"])
