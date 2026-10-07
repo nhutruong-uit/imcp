@@ -1,7 +1,7 @@
 ﻿; Windows installer for QLTTTA (Inno Setup 6). Called by scripts\package-windows.ps1:
-;   ISCC /DAppVersion=1.1.0 /DSourceDir=<folder prepared by windeployqt> /DOutputDir=<dist> installer.iss
+;   ISCC /DAppVersion=1.2.0 /DSourceDir=<folder prepared by windeployqt> /DOutputDir=<dist> installer.iss
 #ifndef AppVersion
-  #define AppVersion "1.1.0"
+  #define AppVersion "1.2.0"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\..\build\windows-release\stage\QLTTTA"
