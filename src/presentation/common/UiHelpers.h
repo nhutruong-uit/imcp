@@ -2,6 +2,7 @@
 
 #include "domain/entities/Language.h"
 
+#include <QKeySequence>
 #include <QString>
 
 class QAbstractItemModel;
@@ -10,15 +11,21 @@ class QFrame;
 class QLabel;
 class QPushButton;
 class QWidget;
+struct ReportDocument;
 
 // Small building blocks shared by the pages, so every screen looks and behaves the same
 namespace UiHelpers {
 QPushButton* primaryButton(const QString& text, const QString& icon, QWidget* parent); // filled accent button
 QPushButton* secondaryButton(const QString& text, const QString& icon, QWidget* parent); // outlined button
+// "Print" (object name "reportPreviewButton", Ctrl+P): opens the print preview of a report
+QPushButton* printPreviewButton(QWidget* parent);
 QLabel* pageTitle(const QString& text, QWidget* parent);
 QFrame* card(QWidget* parent);
 void showError(QWidget* parent, const QString& message); // warning box with the (translated) error
 bool confirm(QWidget* parent, const QString& question);  // Yes/No box, "No" by default; true = Yes
+// Tooltip with its keyboard shortcut written the way the operating system shows it ("... (Ctrl+P)", "⌘P" on
+// macOS)
+QString withShortcut(const QString& text, QKeySequence::StandardKey key);
 // A title as a file name: characters that Windows or macOS do not allow in a name become "-"
 // ("Payroll of 9/2026" would otherwise point into a folder "Payroll of 9")
 QString fileName(const QString& title);
@@ -26,6 +33,11 @@ QString fileName(const QString& title);
 void exportCsv(QWidget* parent, const QAbstractItemModel& model, const QString& suggestedName);
 void exportPdf(QWidget* parent, const QAbstractItemModel& model, const QString& title,
                const QString& preparedBy);
+// File dialog, then write the report document to PDF and open it
+void savePdf(QWidget* parent, const ReportDocument& document);
+// Print preview of the model's report (ReportPreviewDialog): group by a column, print, save as PDF
+void previewReport(QWidget* parent, const QAbstractItemModel& model, const QString& title,
+                   const QString& preparedBy);
 // Language picker (object name "languageCombo"); item data = language code ("vi", "en")
 QComboBox* languageSelector(Language current, QWidget* parent);
 } // namespace UiHelpers

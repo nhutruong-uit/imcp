@@ -22,11 +22,11 @@ MEMBERS = [
      "area": "Kiến trúc & lập trình ứng dụng (Clean Architecture, Qt, ODBC), đăng nhập theo vai trò, "
              "CI/CD, đóng gói; điều phối, tích hợp",
      "files": "src/, tests/, .github/, scripts/, packaging/",
-     "report_sections": "Ch.6, Ch.8, phụ lục", "deadline": "25/10/2026"},
+     "report_sections": "Chương 6, Chương 8, phụ lục", "deadline": "25/10/2026"},
     {"name": "Đỗ Phạm Minh Trâm", "student_id": "******42",
      "area": "Khảo sát nghiệp vụ, phân tích yêu cầu, use case, DFD, mô hình ERD và CD",
      "files": "diagrams/*.dot (ERD, CD, use case, DFD)",
-     "report_sections": "Ch.1, Ch.2, mục 3.1-3.2", "deadline": "18/10/2026"},
+     "report_sections": "Chương 1, Chương 2, mục 3.1-3.2", "deadline": "18/10/2026"},
     {"name": "Nguyễn Việt Phú", "student_id": "******25",
      "area": "Mô hình quan hệ, chuẩn hóa, từ điển dữ liệu, ràng buộc toàn vẹn và trigger",
      "files": "01_tables.sql, 05_triggers.sql",
@@ -34,12 +34,12 @@ MEMBERS = [
     {"name": "Đỗ Bình Dương", "student_id": "******08",
      "area": "Stored procedure, function, cursor, giao dịch, truy vấn SQL, XPath/XQuery",
      "files": "02_functions.sql, 04_procedures.sql, 08_demo_queries.sql",
-     "report_sections": "Ch.4 (trừ 4.6)", "deadline": "18/10/2026"},
+     "report_sections": "Chương 4 (trừ 4.6)", "deadline": "18/10/2026"},
     {"name": "Nguyễn Bảo Giang", "student_id": "******09",
      "area": "Xác thực, phân quyền, view bảo mật, nhật ký, backup/restore, import/export; CSDL phân tán, "
              "hướng đối tượng, NoSQL",
      "files": "03_views.sql, 06_security.sql, 09-12_*.sql",
-     "report_sections": "Ch.5, Ch.7", "deadline": "18/10/2026"},
+     "report_sections": "Chương 5, Chương 7", "deadline": "18/10/2026"},
 ]
 
 

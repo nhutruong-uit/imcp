@@ -29,7 +29,7 @@ def chapter1(r):
          "Danh sách lớp mình dạy, buổi học, điểm", "Nhận danh sách qua tin nhắn, không chuẩn hóa"],
         ["Ban quản lý", "Mở khóa học, chính sách học phí, theo dõi doanh thu, sĩ số, chất lượng",
          "Thống kê tổng hợp toàn hệ thống", "Phải chờ các bộ phận tổng hợp Excel"],
-    ], widths_cm=[2.6, 5.0, 4.2, 4.2], caption="Các bộ phận và nhu cầu thông tin của trung tâm", size=10)
+    ], widths_cm=[2.6, 5.0, 4.2, 4.2], caption="Các bộ phận và nhu cầu thông tin của trung tâm")
 
     r.h2("1.3. Mục tiêu đề tài")
     r.bullets([
@@ -63,7 +63,7 @@ def chapter1(r):
         ["XML, XPath/XQuery", "Không", "Chỉ XPath 1.0", "Kiểu XML, XSD, XQuery đầy đủ"],
         ["Công cụ trên lớp", "-", "-", "SSMS, VS Code (mssql)"],
         ["Phân phối ứng dụng", "Rất dễ (1 file)", "Cần máy chủ", "Cần SQL Server (Express miễn phí/Docker)"],
-    ], widths_cm=[4.2, 3.4, 3.6, 4.8], caption="So sánh lựa chọn hệ quản trị CSDL", size=10)
+    ], widths_cm=[4.2, 3.4, 3.6, 4.8], caption="So sánh lựa chọn hệ quản trị CSDL")
     r.p("SQLite thuận tiện để phát hành nhưng **không đáp ứng** phần lập trình CSDL và an ninh CSDL của đề cương; "
         "PostgreSQL đáp ứng phần lớn nhưng khác cú pháp với bài thực hành và không có XQuery. Vì vậy nhóm chọn "
         "**SQL Server**, viết script tương thích từ bản 2012 trở lên để chạy được cả trên máy phòng thực hành.")
@@ -76,14 +76,14 @@ def chapter1(r):
         ["Build, kiểm thử", "CMake, Ninja, Qt Test", "Biên dịch đa nền tảng, unit test"],
         ["Quản lý mã nguồn, CI/CD", "Git, GitHub, GitHub Actions", "Làm việc nhóm, tự động build và tạo file cài"],
         ["Mô hình hóa", "Graphviz, Mermaid", "Vẽ ERD, CD, DFD, use case, kiến trúc"],
-    ], widths_cm=[3.4, 6.0, 6.6], caption="Công nghệ sử dụng trong đồ án", size=10)
+    ], widths_cm=[3.4, 6.0, 6.6], caption="Công nghệ sử dụng trong đồ án")
 
     r.h2("1.6. Tổ chức nhóm và phân công")
     r.p("Nhóm gồm 5 thành viên thuộc nhiều ngành khác nhau. Để mọi thành viên đều làm chủ được một phần kiến thức "
         "của môn học và trả lời được câu hỏi khi báo cáo, nhóm phân công theo **mảng nội dung** thay vì theo màn hình:")
-    r.table(["Thành viên", "MSSV", "Phụ trách chính"],
-            [[m["name"] + (" (NT)" if i == 0 else ""), m["student_id"], m["area"]] for i, m in enumerate(MEMBERS)],
-            widths_cm=[3.8, 2.2, 10.0], caption="Phân công thành viên", size=10)
+    r.table(["Thành viên", "Phụ trách chính"],
+            [[m["name"] + (" (NT)" if i == 0 else ""), m["area"]] for i, m in enumerate(MEMBERS)],
+            widths_cm=[4.4, 11.6], caption="Phân công thành viên")
     r.p("Nhóm trưởng cùng công cụ AI Claude Code (được giảng viên cho phép) đảm nhận phần lập trình ứng dụng; các "
         "thành viên rà soát script CSDL, kiểm thử trên SSMS, góp ý qua Issue/Pull Request trên GitHub và hoàn thiện "
         "phần báo cáo của mình. Quy trình và lịch làm việc chi tiết nằm trong `docs/PLAN.md` của kho mã nguồn.")
@@ -106,7 +106,7 @@ def chapter2(r):
          "View, ứng dụng Qt (menu, form, report)"],
         ["Bảo mật", "Xác thực, phân quyền theo vai trò, nhật ký, sao lưu/phục hồi",
          "Contained user, role, GRANT/DENY, audit trigger, BACKUP/RESTORE"],
-    ], widths_cm=[2.8, 7.0, 6.2], caption="Quy trình quản lý thông tin áp dụng cho đề tài", size=10)
+    ], widths_cm=[2.8, 7.0, 6.2], caption="Quy trình quản lý thông tin áp dụng cho đề tài")
 
     r.h2("2.2. Quy trình nghiệp vụ chính")
     r.numbered([
@@ -136,14 +136,15 @@ def chapter2(r):
         ["Giáo vụ", "Tư vấn và học vụ", "Học viên, kiểm tra đầu vào, lớp, lịch, ghi danh, xét kết quả; không xem lương, không thu tiền"],
         ["Kế toán", "Tài chính", "Thu học phí, hủy phiếu thu, công nợ, doanh thu, chốt lương; không sửa điểm, không ghi danh"],
         ["Giáo viên", "Giáo viên Việt Nam và bản ngữ", "Chỉ lớp mình dạy: lịch dạy, điểm danh, nhập điểm, xem lương của mình"],
-    ], widths_cm=[2.6, 4.4, 9.0], caption="Tác nhân của hệ thống", size=10)
+    ], widths_cm=[2.6, 4.4, 9.0], caption="Tác nhân của hệ thống")
 
     r.h2("2.4. Sơ đồ use case")
-    r.figure(IMG / "diagrams" / "usecase.png", "Sơ đồ use case tổng quát của hệ thống QLTTTA", width_cm=14.5)
+    r.figure(IMG / "diagrams" / "usecase.png", "Sơ đồ use case tổng quát của hệ thống QLTTTA", width_cm=15.5)
 
     r.h2("2.5. Sơ đồ luồng dữ liệu (DFD)")
     r.p("DFD mức 0 (sơ đồ ngữ cảnh) thể hiện hệ thống như một xử lý duy nhất trao đổi thông tin với các tác nhân "
-        "bên ngoài; DFD mức 1 phân rã thành 6 xử lý chính và các kho dữ liệu tương ứng với nhóm bảng trong CSDL.")
+        "bên ngoài; DFD mức 1 phân rã thành 6 xử lý chính và các kho dữ liệu tương ứng với nhóm bảng trong CSDL "
+        "(tác nhân Học viên được vẽ hai lần để các đường nối không bị chồng chéo).")
     r.figure(IMG / "diagrams" / "dfd_level0.png", "DFD mức 0 - sơ đồ ngữ cảnh", width_cm=15.5)
     r.figure_landscape(IMG / "diagrams" / "dfd_level1.png", "DFD mức 1 - các xử lý chính và kho dữ liệu")
 
@@ -162,7 +163,7 @@ def chapter2(r):
          "`usp_Branch_*`, `usp_Room_*`, `usp_Program_*`, `usp_Course_*`, `usp_GradeComponent_*`, `usp_Employee_*`, `usp_Teacher_*`, `usp_Promotion_*`"],
         ["Báo cáo", "Tổng quan, doanh thu, kết quả lớp, lịch dạy", "usp_Dashboard_Stats, `usp_Report_*`, fn_MonthlyRevenue, `vw_*`"],
         ["Hệ thống", "Đăng nhập, đổi mật khẩu, tạo/khóa tài khoản, sao lưu", "Contained user, usp_Account_*, usp_Backup"],
-    ], widths_cm=[2.6, 6.4, 7.0], caption="Yêu cầu chức năng và đối tượng CSDL tương ứng", size=10)
+    ], widths_cm=[2.6, 6.4, 7.0], caption="Yêu cầu chức năng và đối tượng CSDL tương ứng")
 
     r.h2("2.7. Yêu cầu phi chức năng")
     r.bullets([

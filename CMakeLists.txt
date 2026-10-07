@@ -16,7 +16,7 @@ if(CMAKE_HOST_APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET AND NOT DEFINED ENV{MACO
 endif()
 
 project(QLTTTA
-    VERSION 1.0.1
+    VERSION 1.1.0
     DESCRIPTION "English center management system - IE103 course project"
     LANGUAGES CXX)
 
@@ -48,7 +48,7 @@ endif()
 option(QLTTTA_BUILD_TESTS "Build unit tests" ON)
 option(QLTTTA_BUILD_TOOLS "Build developer tools (screenshot generator)" OFF)
 
-set(QLTTTA_QT_COMPONENTS Core Gui Widgets Sql Svg LinguistTools)
+set(QLTTTA_QT_COMPONENTS Core Gui Widgets PrintSupport Sql Svg LinguistTools)
 if(QLTTTA_BUILD_TESTS)
     list(APPEND QLTTTA_QT_COMPONENTS Test)
 endif()

@@ -21,7 +21,10 @@ chore/<short-name>
   `/imcp-review`; the team lead audits the whole code base from time to time with `/imcp-review-codebase`, which only
   reviews the commits after the marker of [reviews/](reviews/README.md) and logs the findings there.
 - PR `develop → main` = release: `release.yml` packages `.exe` / `.zip` / `.dmg` and creates a Release tagged
-  `vX.Y.Z-build.N`, whose notes list the PRs merged since the previous release (use clear PR titles).
+  `vX.Y.Z-build.N`, whose notes list the PRs merged since the previous release (use clear PR titles). The
+  installers are built first; then the release job waits for the team lead (*Actions* > the run > *Review
+  deployments* > `release` > *Approve*) and signs every installer with a build attestation before it creates the
+  Release.
   Every release carries a new version: `/imcp-create-pr main` first bumps `project(VERSION ...)` in `CMakeLists.txt`
   through a small `chore/release-X.Y.Z` PR into `develop` (a `feat` → minor, otherwise patch), then opens the PR.
 - *Rulesets* (`protect-develop`, `protect-main`, Settings > Rules) protect `develop` and `main`. A pull request is
@@ -126,6 +129,24 @@ GitHub pre-fills every new PR with `.github/pull_request_template.md` (same sect
 - [ ] Commit messages in English (`type(scope): summary`), no AI attribution lines (checked by `check_changes`)
 - [ ] Tried with the demo account of the relevant role, in Vietnamese and English when the UI changed
 - [ ] Documentation/report updated if the design or a number they quote changed
+
+## Issues, discussions, security and dependency updates
+- **Merged branches** are deleted by GitHub right after the PR is merged (`develop` and `main` are protected by the
+  `deletion` rule of their rulesets and are never deleted, also when `develop` is the head of a release PR). Do not
+  base a PR on another PR's branch; if you must, retarget it to `develop` before the lower PR is merged.
+- **Questions and ideas** go to *Discussions* (Q&A, Ideas), not to Issues.
+- **License**: the project is under the [MIT License](../LICENSE); a contribution is accepted under the same license.
+- **Issues**: *New issue* offers two forms (`.github/ISSUE_TEMPLATE/`): *Bug report* (version, operating system, demo
+  role, steps) and *Feature request* (who needs it and why). Link the issue in the PR (`Closes #12`).
+- **Security problems** are never an issue or a PR: use *Security > Report a vulnerability* (private, see
+  [`.github/SECURITY.md`](../.github/SECURITY.md)).
+- **Secrets**: GitHub secret scanning with push protection blocks a push that contains a token or a key. If it blocks
+  you, remove the secret from the commit - do not bypass the block.
+- **Dependabot** opens one PR per week (`chore(ci): bump the github-actions group ...`) that updates the GitHub
+  Actions of the workflows. The team lead reads the release notes of the new versions and merges it like any other PR
+  (the required `Checks` job runs on it). It does not touch the C++ libraries or the SQL Server image.
+- **Code scanning (CodeQL)** is turned off (team lead's decision, 2026-10-06), so the *Security* tab shows no CodeQL
+  alerts and no CodeQL run follows a push.
 
 ## Using Claude Code (allowed by the instructor)
 - Read `AGENTS.md` in the repo root and `.claude/rules/`: Claude Code applies the conventions above automatically.

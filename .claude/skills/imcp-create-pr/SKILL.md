@@ -33,7 +33,9 @@ Talk to the user in Vietnamese.
 
 A PR into `main` is a release. Its head is always `develop` (never a work branch). Merging it runs `release.yml`,
 which builds the installers and creates the GitHub Release `v<version>-build.<run>` with the version of
-`project(VERSION ...)` in `CMakeLists.txt`. Every release carries a new version, so before the release PR:
+`project(VERSION ...)` in `CMakeLists.txt`. The job that creates the Release waits for the team lead's approval
+(environment `release`, *Review deployments*): tell the user when the run reaches it, and never approve it yourself.
+Every release carries a new version, so before the release PR:
 
 1. Compare the version on `develop` with the released one on `main`:
    ```bash

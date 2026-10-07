@@ -17,11 +17,13 @@ class QPushButton;
 class QVBoxLayout;
 
 // Base of every page built around one list (classes, enrollments, receipts, catalogs...): a filter bar (the
-// page's own filters + quick filter + Refresh / Excel / PDF), an action bar (the page's buttons), the list
-// ("listTable") and a footer with the row count and totals ("totalsLine"). A page subclass: adds its filters
-// and actions in its constructor, implements fetch() (one service call), and calls reload() at the end of its
-// constructor. Buttons that need a selected row are enabled only when a row is selected; buttons that change
-// data are only created when Permissions::canEdit allows it (the database still checks the GRANT).
+// page's own filters + quick filter + Refresh / Excel / PDF / Print), an action bar (the page's buttons), the
+// list ("listTable") and a footer with the row count and totals ("totalsLine"). A page subclass: adds its
+// filters and actions in its constructor, implements fetch() (one service call), and calls reload() at the
+// end of its constructor. Buttons that need a selected row are enabled only when a row is selected; buttons
+// that change data are only created when Permissions::canEdit allows it (the database still checks the
+// GRANT). Right-clicking a row opens a popup menu with the page's actions and the shared tools; keyboard
+// shortcuts: Refresh (F5, Cmd+R on macOS), Find (Ctrl+F: quick filter), Print (Ctrl+P: print preview).
 class DataPage : public QWidget {
     Q_OBJECT
 public:
@@ -50,6 +52,8 @@ protected:
 
 private:
     void updateActions();
+    void showContextMenu(const QPoint& pos);
+    void previewReport();
 
     QVBoxLayout* m_layout = nullptr;
     QHBoxLayout* m_filterBar = nullptr;
@@ -59,4 +63,5 @@ private:
     DataTable* m_table = nullptr;
     QLabel* m_footer = nullptr;
     QList<QPushButton*> m_selectionActions;
+    QList<QPushButton*> m_actions; // every button of the action bar, mirrored by the popup menu
 };

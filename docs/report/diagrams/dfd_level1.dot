@@ -1,19 +1,57 @@
-// DFD mức 1
+// DFD mức 1. Vị trí các nút được ghim (layout=neato, pos="x,y!", đơn vị inch) để sơ đồ gọn (khoảng 12 x 7 inch, vừa
+// một trang ngang nên chữ khi in vẫn đọc được) và các đường nối ngắn, không cắt nhau. Đường nối của hình chữ nhật (tác
+// nhân, kho dữ liệu) đi ra/vào ĐIỂM GIỮA của một cạnh (n/s/e/w). Tác nhân Học viên vẽ hai lần (HV2 chỉ nhận chứng
+// nhận) để không có đường nối nào dài băng qua sơ đồ. Vẽ lại: dot -Tpng dfd_level1.dot -o ../images/diagrams/dfd_level1.png
 digraph DFD1 {
-  graph [rankdir=LR, fontname="Arial", dpi=220, pad=0.2, nodesep=0.35, ranksep=0.9];
-  node  [fontname="Arial", fontsize=11];
-  edge  [fontname="Arial", fontsize=9, color="#334155"];
-  node [shape=box, style=filled, fillcolor="#F1F5F9", color="#334155"];
-  HV [label="Học viên"]; GV [label="Giáo viên"]; NV [label="Giáo vụ"]; KTO [label="Kế toán"];
-  node [shape=circle, style=filled, fillcolor="#DBEAFE", color="#1F3864", width=1.3, fixedsize=true, fontsize=10];
-  P1 [label="1.0\nTuyển sinh &\nkiểm tra\nđầu vào"]; P2 [label="2.0\nQuản lý lớp\n& lịch học"]; P3 [label="3.0\nGhi danh"];
-  P4 [label="4.0\nThu học phí"]; P5 [label="5.0\nĐiểm danh\n& điểm"]; P6 [label="6.0\nXét kết quả\n& lương"];
-  node [shape=record, style=filled, fillcolor="#FEF3C7", color="#B45309", fixedsize=false, width=1.8, fontsize=10];
-  D1 [label="D1 | STUDENT, PLACEMENT_TEST"]; D2 [label="D2 | COURSE, CLASS, CLASS_SCHEDULE, CLASS_SESSION"]; D3 [label="D3 | ENROLLMENT, PROMOTION"];
-  D4 [label="D4 | RECEIPT"]; D5 [label="D5 | ATTENDANCE, GRADE"]; D6 [label="D6 | CERTIFICATE, PAYROLL"];
-  HV -> P1 [label="hồ sơ, bài KT"]; P1 -> D1; NV -> P2 [label="kế hoạch mở lớp"]; P2 -> D2;
-  HV -> P3 [label="yêu cầu ghi danh"]; D1 -> P3 [label="điều kiện đầu vào"]; D2 -> P3 [label="sĩ số, lịch"]; P3 -> D3;
-  HV -> P4 [label="tiền học phí"]; D3 -> P4 [label="còn nợ"]; P4 -> D4; P4 -> HV [label="biên lai"]; KTO -> P4;
-  GV -> P5 [label="điểm danh, điểm"]; D2 -> P5; P5 -> D5;
-  D5 -> P6; D3 -> P6; P6 -> D6; P6 -> HV [label="chứng nhận"]; P6 -> GV [label="bảng lương"];
+  layout=neato; overlap=true; splines=line; dpi=220; pad=0.2; forcelabels=true;
+  node [fontname="Arial", fontsize=11];
+  edge [fontname="Arial", fontsize=11, color="#334155", penwidth=1.1, arrowsize=0.8];
+
+  // Tác nhân (hình chữ nhật xám)
+  node [shape=box, style=filled, fillcolor="#F1F5F9", color="#334155", fixedsize=true, width=1.4, height=0.55, fontsize=13];
+  NV  [label="Giáo vụ",   pos="0.55,6.2!"];
+  GV  [label="Giáo viên", pos="9.4,6.2!"];
+  HV  [label="Học viên",  pos="2.5,1.55!"];
+  KTO [label="Kế toán",   pos="4.95,0.35!"];
+  HV2 [label="Học viên",  pos="11.6,3.1!"];
+
+  // Xử lý (hình tròn xanh)
+  node [shape=circle, style=filled, fillcolor="#DBEAFE", color="#1F3864", width=1.3, fixedsize=true, fontsize=11.5];
+  P1 [label="1.0\nTuyển sinh &\nkiểm tra\nđầu vào", pos="2.5,3.1!"];
+  P2 [label="2.0\nQuản lý lớp\n& lịch học",       pos="2.9,6.2!"];
+  P3 [label="3.0\nGhi danh",                      pos="4.95,4.65!"];
+  P4 [label="4.0\nThu học phí",                   pos="7.0,1.55!"];
+  P5 [label="5.0\nĐiểm danh\n& điểm",             pos="7.0,6.2!"];
+  P6 [label="6.0\nXét kết quả\n& lương",          pos="9.4,4.65!"];
+
+  // Kho dữ liệu (hình chữ nhật vàng: mã kho + các bảng)
+  node [shape=box, style=filled, fillcolor="#FEF3C7", color="#B45309", fixedsize=true, width=1.8, height=0.6, fontsize=10.5];
+  D1 [label="D1\nSTUDENT,\nPLACEMENT_TEST",                  pos="2.5,4.65!", width=1.55, height=0.75];
+  D2 [label="D2\nCOURSE, CLASS,\nCLASS_SCHEDULE,\nCLASS_SESSION", pos="4.95,6.2!", width=1.9, height=0.9];
+  D3 [label="D3\nENROLLMENT, PROMOTION",                    pos="7.0,3.1!", width=2.2];
+  D4 [label="D4\nRECEIPT",                                  pos="9.0,1.55!", width=1.6];
+  D5 [label="D5\nATTENDANCE, GRADE",                        pos="7.0,4.65!", width=2.1];
+  D6 [label="D6\nCERTIFICATE,\nPAYROLL",                    pos="11.6,4.65!", width=1.7, height=0.75];
+
+  // Luồng dữ liệu: nhãn trên nền trắng ngay trên đường nối (xlabel khi đoạn nối quá ngắn)
+  HV:n  -> P1:s  [label=<<TABLE BORDER="0" CELLPADDING="1" BGCOLOR="white"><TR><TD>hồ sơ, bài KT</TD></TR></TABLE>>];
+  P1:n  -> D1:s;
+  NV:e  -> P2:w  [xlabel="kế hoạch\nmở lớp"];
+  P2:e  -> D2:w;
+  HV:e  -> P3:s  [label=<<TABLE BORDER="0" CELLPADDING="1" BGCOLOR="white"><TR><TD>yêu cầu<BR/>ghi danh</TD></TR></TABLE>>];
+  D1:e  -> P3:w  [xlabel="điều kiện\nđầu vào"];
+  D2:s  -> P3:n  [label=<<TABLE BORDER="0" CELLPADDING="1" BGCOLOR="white"><TR><TD>sĩ số, lịch</TD></TR></TABLE>>];
+  P3:e  -> D3:w;
+  D3:s  -> P4:n  [label=<<TABLE BORDER="0" CELLPADDING="1" BGCOLOR="white"><TR><TD>còn nợ</TD></TR></TABLE>>];
+  P4:e  -> D4:w;
+  KTO:e -> P4:sw;
+  HV:e  -> P4:w  [dir=both, label=<<TABLE BORDER="0" CELLPADDING="1" BGCOLOR="white"><TR><TD>tiền học phí →<BR/>← biên lai</TD></TR></TABLE>>];
+  GV:w  -> P5:e  [xlabel="điểm danh,\nđiểm"];
+  D2:e  -> P5:w;
+  P5:s  -> D5:n;
+  D5:e  -> P6:w;
+  D3:e  -> P6:s;
+  P6:e  -> D6:w;
+  P6:n  -> GV:s  [label=<<TABLE BORDER="0" CELLPADDING="1" BGCOLOR="white"><TR><TD>bảng lương</TD></TR></TABLE>>];
+  P6:e  -> HV2:n [label=<<TABLE BORDER="0" CELLPADDING="1" BGCOLOR="white"><TR><TD>chứng nhận</TD></TR></TABLE>>];
 }

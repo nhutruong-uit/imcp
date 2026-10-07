@@ -4,6 +4,15 @@
 # The release notes = install table and first-launch steps (below) + the PRs since the previous release
 # (--generate-notes). Each installer checks the operating system: the Windows setup has MinVersion
 # (packaging/windows/installer.iss), the .dmg has the LSMinimumSystemVersion written by package-macos.sh.
+# Nothing is published untested: the packaging scripts run the self-test of the packaged app (QLTTTA --self-test:
+# Qt plugins, ODBC driver, translation, icons; no database) inside the mounted .dmg and the unzipped portable .zip,
+# and the Windows job also installs the setup.exe silently, self-tests the installed app and uninstalls it.
+# Two safeguards before and after the Release is created (the job "publish"):
+#   - approval: the job runs in the environment "release" (Settings > Environments), which accepts only main and
+#     waits for the team lead to click "Review deployments > Approve". The builds run first without waiting, so the
+#     approval only decides whether the installers are published.
+#   - provenance: every installer gets a signed build attestation (Sigstore, stored by GitHub) saying "built by this
+#     workflow from this commit". Anyone can check a download: gh attestation verify <file> --repo <owner>/<repo>.
 name: Release installers (Windows + macOS)
 # Manual runs only build the installers, and their title says so; a merge into main keeps GitHub's default title
 # (the commit message)
@@ -17,8 +26,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Read-only by default: the build jobs run code from outside the repository (brew, choco, install-qt-action) and
+# only upload artifacts, so they get no write token. The job "publish" has its own permissions block.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release
@@ -30,16 +41,18 @@ jobs:
     # Pinned, not macos-latest: the Homebrew libraries in the .dmg are built for the runner's macOS, so the runner
     # sets the oldest macOS the app supports (macos-15: Sequoia and later; macos-latest = macOS 26 only)
     runs-on: macos-15
+    # About 5 minutes; a self-test that hangs (e.g. a system dialog) must not hold the runner for hours
+    timeout-minutes: 30
     outputs:
       min-macos: ${{ steps.min-macos.outputs.version }}
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install Qt, ODBC, FreeTDS, Ninja
         run: brew install qt qt-unixodbc unixodbc freetds ninja
-      - name: Build the .dmg
+      - name: Build the .dmg (and self-test the app inside it)
         run: ./scripts/package-macos.sh
       - name: Read the minimum macOS version for the release notes
         id: min-macos
@@ -47,7 +60,7 @@ jobs:
           VERSION=$(plutil -extract LSMinimumSystemVersion raw build/macos-release/src/app/QLTTTA.app/Contents/Info.plist)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "The .dmg runs on macOS $VERSION or later" >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: qlttta-macos
           path: dist/*.dmg
@@ -56,10 +69,12 @@ jobs:
   windows:
     name: Build the Windows setup.exe + portable .zip
     runs-on: windows-latest
+    # About 5 minutes; a self-test that hangs (e.g. a "missing DLL" dialog) must not hold the runner for hours
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install Qt 6.8 LTS + MinGW + Ninja
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: "6.8.3"
           arch: "win64_mingw"
@@ -74,10 +89,34 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup --no-progress -y }
-      - name: Build setup.exe + zip
+      - name: Build setup.exe + zip (and self-test the unzipped portable app)
         shell: pwsh
         run: ./scripts/package-windows.ps1
-      - uses: actions/upload-artifact@v6
+      - name: Install the setup.exe silently, self-test the installed app, uninstall it
+        # What a user gets: a per-user install without administrator rights (PrivilegesRequired=lowest), no
+        # desktop icon. The uninstaller copies itself to TEMP and returns at once, so the removal is awaited.
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem dist\*-setup.exe | Select-Object -First 1).FullName
+          $target = Join-Path $env:RUNNER_TEMP "QLTTTA-installed"
+          $install = Start-Process $setup -Wait -PassThru -ArgumentList @(
+            "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/MERGETASKS=!desktopicon", "/DIR=`"$target`"")
+          if ($install.ExitCode -ne 0) { throw "setup.exe failed with exit code $($install.ExitCode)" }
+          $exe = Join-Path $target "QLTTTA.exe"
+          # Same check as Test-PackagedApp of package-windows.ps1 (PowerShell does not wait for a GUI program)
+          $start = New-Object System.Diagnostics.ProcessStartInfo $exe, "--self-test"
+          $start.UseShellExecute = $false
+          $start.RedirectStandardOutput = $true
+          $process = [System.Diagnostics.Process]::Start($start)
+          Write-Host $process.StandardOutput.ReadToEnd()
+          $process.WaitForExit()
+          if ($process.ExitCode -ne 0) { throw "The self-test of the installed app failed ($($process.ExitCode))" }
+          Start-Process (Join-Path $target "unins000.exe") -Wait -ArgumentList @(
+            "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART")
+          for ($i = 0; ($i -lt 60) -and (Test-Path $exe); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path $exe) { throw "The uninstaller did not remove $exe" }
+          "The setup.exe installs, runs and uninstalls cleanly" >> $env:GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v7
         with:
           name: qlttta-windows
           path: |
@@ -90,13 +129,25 @@ jobs:
     needs: [macos, windows]
     # A manual run from another branch only builds the installers (artifacts); a Release comes from main only
     if: github.ref == 'refs/heads/main'
+    # Waits for the approval of the reviewer set on the environment "release" (only main may deploy to it)
+    environment: release
+    # The workflow-level token is read-only. Publishing needs to write, and the attestation also needs the OIDC token
+    # and the attestations API: they are given to this job only (a job-level block replaces the workflow-level one)
+    permissions:
+      contents: write # create the release
+      id-token: write # sign the attestation as this workflow
+      attestations: write # store the attestation in the repository
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v7
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
+      - name: Attest the installers (build provenance)
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/*
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -117,6 +168,11 @@ jobs:
           The Windows setup stops on an older Windows, and an older macOS refuses to open the app.
           Requires a SQL Server with the QLTTTA database (initialized with \`scripts/db_init\` from the source code
           below). The UI is available in Vietnamese and English. Database setup and demo accounts: [SETUP.md](${SETUP_URL}).
+
+          ### Verify the download
+          Every file has a signed build attestation: it proves the file was built by this repository's release
+          workflow from commit ${GITHUB_SHA::7} and was not changed afterwards. With the GitHub CLI:
+          \`gh attestation verify <file> --repo ${GITHUB_REPOSITORY}\`
 
           ### First launch
           - **macOS**: the app is signed by the team, not notarized by Apple, so macOS blocks the first launch of a

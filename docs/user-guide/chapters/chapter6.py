@@ -20,6 +20,11 @@ def chapter6(g):
            f"$env:QLTTTA_USER = '{user}'; $env:QLTTTA_PASSWORD = '<mật khẩu>'; $env:QLTTTA_SERVER = 'localhost'\n"
            "& \"<thư mục chứa QLTTTA.exe>\\QLTTTA.exe\" --check-connection | Out-Host\n"
            "$LASTEXITCODE", lang="text")
+    g.p("Khi nghi bộ cài thiếu file (ví dụ lỗi **Thiếu plugin Qt ODBC** ở mục 6.2), chạy `--self-test` thay cho "
+        "`--check-connection`: không cần tài khoản hay SQL Server, ứng dụng kiểm tra plugin của Qt, driver ODBC cho SQL "
+        "Server, bản dịch tiếng Việt và biểu tượng, in một dòng `OK`/`FAILED` cho mỗi mục và dòng cuối "
+        "`Self-test passed` khi mọi mục đều đạt (mã thoát 0). Trên Windows cũng thêm `| Out-Host` như trên.")
+    g.code("Terminal (macOS)", "/Applications/QLTTTA.app/Contents/MacOS/QLTTTA --self-test", lang="text")
 
     g.h2("6.2. Lỗi thường gặp")
     g.table(["Hiện tượng / thông báo", "Nguyên nhân thường gặp", "Cách xử lý"], [
@@ -36,6 +41,10 @@ def chapter6(g):
          "Ô CSDL phải là `QLTTTA`; chạy lại bước khởi tạo CSDL (Chương 2)."],
         ["**Lỗi chứng chỉ bảo mật của máy chủ**", "Máy chủ dùng chứng chỉ tự ký",
          "Bật **Tin cậy chứng chỉ máy chủ** trong Cấu hình máy chủ; trên Windows nên cài ODBC Driver 18."],
+        ["**Máy này không có ODBC driver nào kiểm tra được chứng chỉ của máy chủ**",
+         "Ô Tin cậy chứng chỉ đang tắt (máy chủ không nằm trên máy bạn), nhưng máy chỉ có driver FreeTDS "
+         "(bản macOS) hoặc driver \"SQL Server\" cũ của Windows, hai driver này không kiểm tra được chứng chỉ",
+         "Cài Microsoft ODBC Driver 18 (Windows), hoặc bật **Tin cậy chứng chỉ máy chủ** nếu bạn tin cậy máy chủ."],
         ["Không lưu được file Excel/PDF (hiện thông báo lỗi khi xuất)",
          "File cùng tên đang mở trong Excel/trình đọc PDF, hoặc thư mục không cho ghi",
          "Đóng file đang mở hoặc chọn thư mục khác rồi xuất lại."],
@@ -83,7 +92,7 @@ def chapter6(g):
          "`powershell -ExecutionPolicy Bypass -File .\\scripts\\<tên script>.ps1 ...`"],
         ["PowerShell báo `sqlcmd` *is not recognized*", "Cửa sổ PowerShell mở từ trước khi cài SQL Server",
          "Mở cửa sổ PowerShell mới; vẫn lỗi thì `winget install Microsoft.Sqlcmd`."],
-    ], widths_cm=[4.6, 4.2, 7.2], caption="Lỗi thường gặp và cách xử lý", size=9.5)
+    ], widths_cm=[4.6, 4.2, 7.2], caption="Lỗi thường gặp và cách xử lý")
 
     g.h2("6.3. Khi cần hỗ trợ thêm")
     g.p("Tài liệu kỹ thuật chi tiết nằm trong mã nguồn: `docs/SETUP.md` (cài đặt môi trường, kiểm thử), "
@@ -104,7 +113,7 @@ def appendix_commands(g):
         ["Tắt / bật SQL Server (Docker)", "`docker compose stop` / `docker compose start`", "Như macOS"],
         ["Mở ứng dụng lần đầu", "`xattr -dr com.apple.quarantine /Applications/QLTTTA.app`",
          "SmartScreen: **More info > Run anyway**"],
-    ], widths_cm=[3.6, 6.4, 6.0], size=9.5, bold_first_col=True)
+    ], widths_cm=[3.6, 6.4, 6.0], bold_first_col=True)
 
 
 def appendix_placeholders(g):
@@ -118,4 +127,4 @@ def appendix_placeholders(g):
         "`python3 docs/user-guide/build_user_guide.py`. Phụ lục này tự biến mất khi không còn mục nào.")
     g.table(["STT", "Mục", "Nền tảng", "Nội dung cần bổ sung"],
             [[str(i), section, platform, text] for i, (section, platform, text) in enumerate(g.placeholders, 1)],
-            widths_cm=[1.2, 1.8, 2.2, 10.8], size=9.5, align=["center", "center", "center", "left"])
+            widths_cm=[1.2, 1.8, 2.2, 10.8], align=["center", "center", "center", "left"])

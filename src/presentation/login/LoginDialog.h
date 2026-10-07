@@ -26,10 +26,12 @@ private slots:
     void login();
     void toggleServerSettings();
     void changeLanguage();
+    void serverChanged();
 
 private:
     QWidget* buildBrandPanel();
     QWidget* buildFormPanel();
+    void updateCertificateWarning();
 
     AuthService& m_auth;
     LanguageService& m_language;
@@ -38,6 +40,10 @@ private:
     QLineEdit* m_server = nullptr;
     QLineEdit* m_database = nullptr;
     QCheckBox* m_trustCertificate = nullptr;
+    QLabel* m_certificateWarning = nullptr;
+    // false until the user clicks the "Trust server certificate" box: until then it follows the server field
+    // (ticked for this computer, unticked for any other server)
+    bool m_trustChosenByUser = false;
     QGroupBox* m_serverGroup = nullptr;
     QPushButton* m_serverToggle = nullptr;
     QPushButton* m_loginButton = nullptr;

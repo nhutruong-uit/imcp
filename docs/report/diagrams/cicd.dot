@@ -5,20 +5,22 @@ digraph CICD {
   edge  [color="#334155", fontname="Arial", fontsize=9];
   dev [label="Nhánh feature/*\n(Claude Code + leader)"];
   local [label="scripts/test_all\nCSDL + unit + e2e\n(trên máy)", fillcolor="#FEF3C7"];
-  pr [label="Pull Request\n→ develop"];
+  pr [label="Pull Request → develop\nChecks: quy ước + unit test\n(Linux, bắt buộc xanh)"];
   develop [label="merge vào develop"];
-  ci [label="CI (ci.yml)\nbuild + unit test\nmacOS & Windows", fillcolor="#DBEAFE"];
+  ci [label="CI (ci.yml)\nbuild + unit test macOS & Windows\nFull tests: Linux + SQL Server\n(CSDL + unit + e2e)", fillcolor="#DBEAFE"];
   prm [label="PR develop → main"];
   cim [label="CI bắt buộc xanh\n(branch protection)", fillcolor="#DBEAFE"];
   rel [label="Release (release.yml)\nkhi merge vào main", fillcolor="#C7D2FE"];
-  mac [label="macOS: macdeployqt\n+ FreeTDS, ký ad-hoc\n→ .dmg", fillcolor="#DBEAFE"];
-  win [label="Windows: windeployqt\n+ Inno Setup\n→ setup.exe, .zip", fillcolor="#DBEAFE"];
+  mac [label="macOS: macdeployqt\n+ FreeTDS, ký ad-hoc → .dmg\nself-test trong .dmg", fillcolor="#DBEAFE"];
+  win [label="Windows: windeployqt\n+ Inno Setup → setup.exe, .zip\nself-test .zip + cài thử setup", fillcolor="#DBEAFE"];
+  approve [label="Nhóm trưởng phê duyệt\n(environment release)\n+ chứng thực build", fillcolor="#FEF3C7"];
   gh [label="GitHub Release\nvX.Y.Z-build.N\n(giảng viên tải về)", fillcolor="#DCFCE7"];
   {rank=same; dev; local; pr;}
   {rank=same; develop; ci;}
   {rank=same; prm; cim; rel;}
   {rank=same; mac; win;}
+  {rank=same; approve; gh;}
   dev -> local -> pr; pr -> develop; develop -> ci [label=" tự chạy"];
   develop -> prm -> cim -> rel;
-  rel -> mac; rel -> win; mac -> gh; win -> gh;
+  rel -> mac; rel -> win; mac -> approve; win -> approve; approve -> gh;
 }

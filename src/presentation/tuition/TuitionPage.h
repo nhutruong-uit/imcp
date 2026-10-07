@@ -6,8 +6,9 @@ class QComboBox;
 class QDateEdit;
 
 // Tuition page: the receipts of a period (usp_Receipt_Search), collect a payment (usp_Receipt_Create), cancel
-// a receipt with a reason (usp_Receipt_Cancel - receipts are never deleted) and print a receipt as PDF
-// (usp_Receipt_Print). For the manager and the accountant; academic staff do not handle money.
+// a receipt with a reason (usp_Receipt_Cancel - receipts are never deleted) and print a receipt or save it as
+// PDF from its print preview (usp_Receipt_Print). For the manager and the accountant; academic staff do not
+// handle money.
 class TuitionPage : public DataPage {
     Q_OBJECT
 public:

@@ -40,8 +40,9 @@ bool isAuthenticationError(const QSqlError& error) {
            t.contains(QLatin1String("Cannot open database"), Qt::CaseInsensitive);
 }
 
-// The driver rejected the server's certificate ("Trust server certificate" is off) => stop: the next drivers
-// (FreeTDS, the legacy Windows driver) do not check certificates, so trying them would get around the check
+// The driver rejected the server's certificate ("Trust server certificate" is off) => stop: another Microsoft
+// driver would reject it too, and open() skips the drivers that cannot check certificates (they would get
+// around the check)
 bool isCertificateError(const QSqlError& error) {
     const QString t = error.databaseText() + QLatin1Char(' ') + error.driverText();
     return t.contains(QLatin1String("certificate"), Qt::CaseInsensitive);
@@ -88,6 +89,21 @@ QStringList DatabaseManager::candidateDrivers() {
 
 bool DatabaseManager::isFreeTds(const QString& driver) {
     return driver.contains(QLatin1String("tdsodbc")); // libtdsodbc.so, the name Qt checks too
+}
+
+bool DatabaseManager::canVerifyCertificate(const QString& driver) {
+    return !isFreeTds(driver) && driver != QLatin1String(kLegacyWindowsDriver);
+}
+
+QStringList DatabaseManager::driversToTry(const QStringList& candidates, bool trustServerCertificate) {
+    if (trustServerCertificate)
+        return candidates;
+    QStringList drivers;
+    for (const QString& driver : candidates) {
+        if (canVerifyCertificate(driver))
+            drivers << driver;
+    }
+    return drivers;
 }
 
 // The ODBC connection string = "KEY=value;" pairs the driver understands. Values that come from the user
@@ -148,7 +164,12 @@ VoidResult DatabaseManager::open(const ServerConfig& config, const QString& user
     QSqlError lastError;       // error of the last driver tried
     QSqlError meaningfulError; // first error that is not "driver missing" (the driver/server was reached)
     QString meaningfulDriver;  // the driver that gave meaningfulError
-    for (const QString& driver : candidateDrivers()) {
+    // "Trust server certificate" off = the user wants the certificate checked. A driver that cannot check it
+    // would connect anyway, so it is left out instead of making the option a silent no-op
+    const QStringList candidates = candidateDrivers();
+    const QStringList drivers = driversToTry(candidates, config.trustServerCertificate);
+    const bool skippedUncheckedDriver = drivers.size() < candidates.size();
+    for (const QString& driver : drivers) {
         // Inner block: the QSqlDatabase handle must be destroyed before removeDatabase() below (Qt rule)
         {
             QSqlDatabase db =
@@ -179,9 +200,45 @@ VoidResult DatabaseManager::open(const ServerConfig& config, const QString& user
 
     if (meaningfulError.isValid())
         return VoidResult::failure(connectionFailure(meaningfulError, meaningfulDriver));
+    if (skippedUncheckedDriver)
+        return VoidResult::failure(tr("This computer has no ODBC driver that can check the server "
+                                      "certificate (the FreeTDS driver of the "
+                                      "macOS app and the \"SQL Server\" driver of Windows cannot).\n"
+                                      "Install \"Microsoft ODBC Driver 18 for SQL Server\", or tick \"Trust "
+                                      "server certificate\" in the "
+                                      "server settings if you trust this server."));
     return VoidResult::failure(
         tr("No ODBC driver for SQL Server was found on this computer.\n"
            "Please install \"Microsoft ODBC Driver 18 for SQL Server\" and try again."));
+}
+
+bool DatabaseManager::odbcPluginAvailable() {
+    return QSqlDatabase::isDriverAvailable(QStringLiteral("QODBC"));
+}
+
+QString DatabaseManager::firstInstalledDriver() {
+    if (!odbcPluginAvailable())
+        return QString();
+    // Port 1 of the loopback address: nothing listens there, so the attempt fails at once without a network
+    ServerConfig closedPort;
+    closedPort.host = QStringLiteral("127.0.0.1,1");
+    const QLatin1String probeName("qlttta_probe");
+    QString found;
+    for (const QString& driver : candidateDrivers()) {
+        // Inner block: the QSqlDatabase handle must be destroyed before removeDatabase() below (Qt rule)
+        {
+            QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QODBC"), probeName);
+            db.setDatabaseName(connectionString(driver, closedPort, QStringLiteral("probe"), QString()));
+            db.setConnectOptions(QStringLiteral("SQL_ATTR_LOGIN_TIMEOUT=3"));
+            if (db.open() || !isMissingDriverError(db.lastError()))
+                found = driver;
+            db.close();
+        }
+        QSqlDatabase::removeDatabase(probeName);
+        if (!found.isEmpty())
+            break;
+    }
+    return found;
 }
 
 void DatabaseManager::close() {

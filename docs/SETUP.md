@@ -42,7 +42,11 @@ SQL Server runs in Docker:
 2. Create a `.env` file in the repo root: `MSSQL_SA_PASSWORD=<strong password>`, then run `docker compose up -d`
    (this means you accept the SQL Server Developer Edition license terms). The container is named `imcp-mssql`; its
    time zone does not matter (the database stores UTC and computes the center's dates, see
-   [DATABASE.md](DATABASE.md#7-time-utc-instants-and-center-dates)).
+   [DATABASE.md](DATABASE.md#7-time-utc-instants-and-center-dates)). Port 1433 is published on this computer only
+   (`127.0.0.1`): the demo accounts have the public password of this document, so a port open to the network would let
+   anyone on it sign in. To reach the container from a second computer, add `MSSQL_BIND=0.0.0.0` to `.env` and run
+   `docker compose up -d` again. A container created earlier keeps its old port mapping until `docker compose up -d`
+   recreates it (the data stays in the volume).
 3. Initialize the database (uses the `sqlcmd` that is already inside the container):
    ```bash
    SQL_PASSWORD='<sa password>' ./scripts/db_init.sh --docker imcp-mssql
@@ -88,10 +92,18 @@ Download the files from the repo's **Releases** page (public, no GitHub account 
   in its release notes (the Homebrew libraries need the macOS of the `macos-15` runner); an older macOS refuses to
   open the app. The macOS build bundles the FreeTDS driver, so nothing else needs to be installed.
 
+Optional check: every installer of a release has a signed build attestation (it proves that this repository's release
+workflow built the file). With the GitHub CLI: `gh attestation verify <file> --repo nhutruong-uit/imcp`.
+
 On the login screen open **Server settings** ("Cấu hình máy chủ" in Vietnamese) and enter `localhost,1433` (Docker)
-or `localhost` / `PC-NAME\SQLEXPRESS` (Windows), database `QLTTTA`. The *Trust server certificate* option is on by
-default because the Docker image uses a self-signed certificate; turn it off if your server has a certificate from
-a trusted CA.
+or `localhost` / `PC-NAME\SQLEXPRESS` (Windows), database `QLTTTA`. The *Trust server certificate* option starts
+**ticked for a server on this computer** (`localhost`, `127.0.0.1`, `.`: the Docker image uses a self-signed
+certificate) and **unticked for any other server**; a warning shows when it is ticked for another computer, because
+then someone on the network could pretend to be the server. Once you click the box, your choice is kept.
+Unticked, the certificate is checked by the Microsoft ODBC drivers. FreeTDS (the driver of the macOS `.dmg`) and the
+"SQL Server" driver built into Windows cannot check it, so they are not used and the login says so: install
+*Microsoft ODBC Driver 18 for SQL Server*, or tick the box if you trust the server (on the `.dmg` the connection is
+then encrypted but the server is not verified).
 
 **Language:** the UI is available in Vietnamese (default) and English. Pick it in the language box at the bottom of
 the login screen or in the header of the main window; the screen is rebuilt immediately (you stay logged in) and the
@@ -109,6 +121,17 @@ $env:QLTTTA_USER = 'ql_quan'; $env:QLTTTA_PASSWORD = 'Demo@2026'
 ```
 It prints `OK: <full name> (<role>)` and exits with code 0, or `ERROR: <message>` and exits with code 1 (in the
 language chosen last in the app).
+
+Installation check without the GUI and without a database: `--self-test` checks what the installer must bring along
+(Qt platform and ODBC plugins, an ODBC driver for SQL Server - on the `.dmg` the bundled FreeTDS, the Vietnamese
+translation, the icons), prints one `OK`/`FAILED` line per check and exits with code 0 when all pass. The packaging
+scripts and `release.yml` run it on every installer before it is published.
+```bash
+/Applications/QLTTTA.app/Contents/MacOS/QLTTTA --self-test
+```
+```powershell
+& "C:\Program Files\QLTTTA\QLTTTA.exe" --self-test | Out-Host
+```
 
 ---
 

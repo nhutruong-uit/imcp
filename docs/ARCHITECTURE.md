@@ -93,7 +93,8 @@ names such as `CK_STUDENT_Guardian`.
    A locked account is rejected; a valid SQL Server user with no row in `ACCOUNT` is rejected by `AuthService`
    ("valid SQL Server account, but no role is assigned"). The only exception is a database owner (`db_owner`, e.g.
    `sa`), who is admitted with the Manager role so the database can be administered from the app.
-3. `Permissions::allowedFeatures(role)` decides which menu entries are shown.
+3. `Permissions::allowedFeatures(role)` decides which menu entries are shown: the sidebar and the menu bar of
+   `MainWindow` (one menu per `FeatureGroup`, plus System and Help; Ctrl+1 … Ctrl+9 for the first nine features).
 4. From then on every query runs under that user's own permissions. If the application has a bug, SQL Server still
    blocks access through `GRANT/DENY` on the roles (`database/06_security.sql`; summary in
    [DATABASE.md](DATABASE.md#4-roles-and-permissions)). The application-side matrix only controls what is *displayed*.
@@ -133,8 +134,9 @@ and edits (catalog, courses, staff) have `save(x, isNew)`, which calls the add o
 **Screens with forms: `DataPage` + `FormDialog`.** Most screens are one list with filters and buttons, so they share
 two base classes of `src/presentation/common/`:
 - `DataPage` (base of `ClassPage`, `EnrollmentPage`, `TuitionPage`, the catalog pages...): a filter bar (the page's
-  filters, a quick filter, Refresh, Excel, PDF), an action bar, the list (`DataTable`, column titles and formats from
-  `Columns`) and a footer with the row count and totals. A subclass adds its filters and buttons in its constructor
+  filters, a quick filter, Refresh, Excel, PDF, Print), an action bar, the list (`DataTable`, column titles and
+  formats from `Columns`) and a footer with the row count and totals. Right-clicking a row opens a popup menu that
+  mirrors the action bar (same enabled state) plus the shared tools; F5 / Ctrl+F / Ctrl+P refresh, filter and print. A subclass adds its filters and buttons in its constructor
   (`addFilter`, `addAction(text, icon, objectName, needsSelection, handler)`), implements `fetch()` (one service
   call that returns a `TableData`) and calls `reload()`. Buttons that change data are created only when
   `Permissions::canEdit(role, feature)` allows it; a button that needs a row is enabled only while one is selected.
@@ -147,7 +149,12 @@ two base classes of `src/presentation/common/`:
   field clicks Save, as in any Qt dialog; a search or filter field inside the form is registered with
   `setSearchField`, so Return runs the search instead of saving the first match.
 - `TableDialog` shows a read-only list in a window of its own (the students or results of a class, a syllabus,
-  a search result) with Excel / PDF export.
+  a search result) with Excel / PDF export and Print.
+- Reports: `TableExporter::report(model, title, preparedBy, groupColumn)` builds a `ReportDocument` (HTML + page
+  layout) laid out like a Crystal Report (report/page header, optional groups with subtotals, details, grand total,
+  page numbers); `ReceiptPrinter::document` builds the A5 receipt. The same document goes to a PDF file
+  (`ReportDocument::writePdf`) or to `ReportPreviewDialog` (print preview, "Group by", Print, Save as PDF;
+  `UiHelpers::previewReport` for a list). Qt PrintSupport is linked by the presentation layer only.
 
 **Read-only list screens need no new page.** Outstanding tuition, Learning results and My pay are rendered by the
 generic `ListPage` (Revenue and My classes reuse the same lists inside their own page). To add one: add a `Feature` value and a `ListKind` value
@@ -216,9 +223,14 @@ test through both ODBC Driver 18 and FreeTDS.
 The search stops at once when another driver could not do better: a login failure (wrong password, or the database
 cannot be opened), a rejected server certificate, or a login timeout (the server does not answer). Other errors
 (missing driver, TLS version, network) make it try the next driver. Connections request encryption (all drivers except
-the legacy Windows "SQL Server" one). The "Trust server certificate" option is on by default because the Docker image
-uses a self-signed certificate; it is stored in the settings and should be turned off in the login dialog when the
-server has a certificate from a trusted CA. With the option off, the Microsoft drivers check the certificate, and a
-rejected certificate stops the search, so the drivers that do not check certificates are never tried as a way around
-it. FreeTDS (the driver of the macOS .dmg) encrypts the connection but does not check the certificate unless a CA file
-is configured for it, so the option has no effect there.
+the legacy Windows "SQL Server" one).
+
+**Server certificate.** The "Trust server certificate" option is stored in the settings. Until the user chooses, it
+is on only when the host is this computer (`ServerConfig::isLocalHost`: the Docker image uses a self-signed
+certificate) and off for any other host; the login dialog follows the host field until the box is clicked and warns
+when it is ticked for another computer. With the option off, `DatabaseManager::open` uses only the drivers that can
+check the certificate (`canVerifyCertificate`, `driversToTry`): the Microsoft drivers 17/18. FreeTDS (the driver of
+the macOS .dmg) encrypts the connection but accepts a self-signed certificate even when a CA file is configured
+(tried against SQL Server 2025 with FreeTDS 1.5.19, in the connection string and in `freetds.conf`), and the legacy
+Windows driver has no TLS keywords at all, so they are left out instead of connecting without the check. When nothing is left, the login
+fails with a message that says to install ODBC Driver 18 or to tick the box. A rejected certificate stops the search.

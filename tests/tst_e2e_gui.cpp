@@ -8,10 +8,10 @@
 // language_switchToEnglish_rebuildsUi covers English.
 // What it covers: login, the menu of every role and every feature it may open (with data), add/edit/delete
 // of a student, the business forms (edit a class, put an enrollment on hold and resume it, take the
-// attendance of a session), the totals line and the quick filter, PDF/CSV export, the password dialog,
-// switching the language. Data changed by a test is restored at its end, because the other tests rely on the
-// seed data.
-// Qt Test tools used below:
+// attendance of a session), the totals line and the quick filter, PDF/CSV export, the menu bar of every role,
+// the popup menu of a list, the print preview with groups, the password dialog, switching the language. Data
+// changed by a test is restored at its end, because the other tests rely on the seed data. Qt Test tools used
+// below:
 // - QTRY_VERIFY / QTRY_COMPARE[_WITH_TIMEOUT]: repeat the check while processing events until it is true
 //   or the timeout (default 5 s) runs out. Pages load their data through the event loop, so a single check
 //   would come too early; no fixed QTest::qWait is needed.
@@ -34,6 +34,7 @@
 #include "presentation/common/Format.h"
 #include "presentation/common/I18n.h"
 #include "presentation/common/Labels.h"
+#include "presentation/common/ReportPreviewDialog.h"
 #include "presentation/common/TableExporter.h"
 #include "presentation/common/Theme.h"
 #include "presentation/login/LoginDialog.h"
@@ -42,6 +43,7 @@
 
 #include <QAbstractButton>
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDateEdit>
 #include <QDialogButtonBox>
@@ -49,6 +51,8 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMenu>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QScopeGuard>
@@ -97,6 +101,24 @@ QStringList expectedMenu(Role role) {
     for (Feature f : Permissions::allowedFeatures(role))
         names << Labels::feature(f).name;
     return names;
+}
+
+// The entries of the menu bar that open a page (checkable, with the Feature as data), menu by menu
+QList<QAction*> menuBarPages(MainWindow& w) {
+    QList<QAction*> pages;
+    for (QAction* top : w.menuBar()->actions())
+        if (QMenu* menu = top->menu())
+            for (QAction* a : menu->actions())
+                if (a->isCheckable() && a->data().isValid())
+                    pages << a;
+    return pages;
+}
+
+QAction* menuBarPage(MainWindow& w, Feature feature) {
+    for (QAction* a : menuBarPages(w))
+        if (a->data().toInt() == static_cast<int>(feature))
+            return a;
+    return nullptr;
 }
 
 // Right after opening, the main window shows the first feature (not a group header) and its page title
@@ -418,6 +440,115 @@ private slots:
         QVERIFY(QFileInfo(pdf).size() > 2000);
         QVERIFY(TableExporter::exportCsv(*table->model(), folder.filePath(QStringLiteral("outstanding.csv")),
                                          &error));
+    }
+
+    // The menu bar offers exactly the features of the role (same Permissions as the sidebar), a chosen entry
+    // opens its page and stays checked, and the sidebar choice checks its entry too
+    void everyRole_menuBar_matchesPermissions_data() { everyRole_opensEveryFeature_withData_data(); }
+
+    void everyRole_menuBar_matchesPermissions() {
+        QFETCH(QString, username);
+        QFETCH(int, role);
+        const auto r = static_cast<Role>(role);
+        QVERIFY(login(username, m_password));
+        MessageBoxCatcher boxes;
+        MainWindow w(m_app->services());
+        w.show();
+        QStringList inMenuBar, expected = expectedMenu(r);
+        for (QAction* a : menuBarPages(w))
+            inMenuBar << a->text();
+        inMenuBar.sort();
+        expected.sort();
+        QCOMPARE(inMenuBar, expected);
+        QVERIFY(w.findChild<QMenu*>(QStringLiteral("systemMenu")));
+        QVERIFY(w.findChild<QMenu*>(QStringLiteral("helpMenu")));
+
+        const QList<Feature> features = Permissions::allowedFeatures(r);
+        QAction* last = menuBarPage(w, features.last());
+        QVERIFY(last);
+        last->trigger();
+        QCOMPARE(w.currentFeature(), std::optional<Feature>(features.last()));
+        QVERIFY(last->isChecked());
+        w.openFeature(features.first());
+        QVERIFY(menuBarPage(w, features.first())->isChecked());
+        QVERIFY(!last->isChecked());
+        // Ctrl+1 is the shortcut of the first entry of the menu
+        QCOMPARE(menuBarPage(w, features.first())->shortcut(), QKeySequence(Qt::CTRL | Qt::Key_1));
+        QVERIFY2(boxes.texts().isEmpty(), qPrintable(boxes.texts().join(QStringLiteral(" | "))));
+    }
+
+    // Right-click on a class: the row under the cursor is selected and the popup menu offers the buttons of
+    // the page (with their enabled state) and the shared tools
+    void academicStaff_listContextMenu_offersPageActions() {
+        QVERIFY(login(QStringLiteral("gvu_lan"), m_password));
+        MainWindow w(m_app->services());
+        w.show();
+        w.openFeature(Feature::Classes);
+        DataTable* list = nullptr;
+        QTRY_VERIFY((list = visibleList(w)) != nullptr && list->rowCount() > 0);
+        list->view()->clearSelection();
+        QVERIFY(!list->hasSelection());
+
+        QStringList entries;
+        bool editEnabled = false;
+        QTimer::singleShot(300, [&] {
+            auto* menu = qobject_cast<QMenu*>(QApplication::activePopupWidget());
+            if (!menu)
+                return;
+            for (QAction* a : menu->actions()) {
+                if (a->isSeparator())
+                    continue;
+                entries << a->text();
+                if (a->text() == visibleButton(w, QStringLiteral("editButton"))->text())
+                    editEnabled = a->isEnabled();
+            }
+            menu->close();
+        });
+        QTableView* view = list->view();
+        emit view->customContextMenuRequested(view->visualRect(view->model()->index(0, 0)).center());
+        QVERIFY(list->hasSelection());
+        for (const QString& name :
+             {QStringLiteral("addButton"), QStringLiteral("editButton"), QStringLiteral("studentsButton")})
+            QVERIFY2(entries.contains(visibleButton(w, name)->text()),
+                     qPrintable(entries.join(QStringLiteral(", "))));
+        QVERIFY(editEnabled); // a row is selected, so Edit is enabled in the menu as on the button
+        QVERIFY(entries.contains(QStringLiteral("Xem trước khi in...")));
+    }
+
+    // Accountant: the print preview of the outstanding tuition, grouped by class: one Group Header per class
+    // with a subtotal, the grand total, at least one page
+    void accountant_outstandingTuition_previewsGroupedReport() {
+        QVERIFY(login(QStringLiteral("kt_minh"), m_password));
+        MessageBoxCatcher boxes;
+        MainWindow w(m_app->services());
+        w.show();
+        w.openFeature(Feature::OutstandingTuition);
+        DataTable* list = nullptr;
+        QTRY_VERIFY((list = visibleList(w)) != nullptr && list->rowCount() > 0);
+        const int classColumn = columnByKey(&list->visibleModel(), QStringLiteral("ClassName"));
+        QVERIFY(classColumn >= 0);
+        QSet<QString> classes;
+        for (int r = 0; r < list->rowCount(); ++r)
+            classes << list->valueAt(r, QStringLiteral("ClassName")).toString();
+
+        QString html;
+        int pages = 0;
+        QTimer::singleShot(300, [&] {
+            auto* dialog = qobject_cast<ReportPreviewDialog*>(QApplication::activeModalWidget());
+            if (!dialog)
+                return;
+            auto* groupBy = dialog->findChild<QComboBox*>(QStringLiteral("groupByCombo"));
+            groupBy->setCurrentIndex(groupBy->findData(classColumn));
+            html = dialog->document().html;
+            pages = dialog->pageCount();
+            dialog->reject();
+        });
+        QTest::mouseClick(visibleButton(w, QStringLiteral("reportPreviewButton")), Qt::LeftButton);
+        QVERIFY2(!html.isEmpty(), "the print preview did not open");
+        QVERIFY(pages >= 1);
+        QCOMPARE(html.count(QStringLiteral("Cộng nhóm")), classes.size());
+        QCOMPARE(html.count(QStringLiteral("TỔNG CỘNG")), 1);
+        QVERIFY2(boxes.texts().isEmpty(), qPrintable(boxes.texts().join(QStringLiteral(" | "))));
     }
 
     // Different new password and confirmation: the dialog shows the error and stays open
@@ -904,6 +1035,48 @@ private slots:
                  qPrintable(totals->text()));
         QVERIFY2(totals->text().contains(QStringLiteral("Tổng còn nợ: ") + Format::money(outstanding)),
                  qPrintable(totals->text()));
+    }
+
+    // "Trust server certificate" follows the server field (ticked for this computer, unticked for any other
+    // server) until the user clicks it; it warns when it is ticked for another computer; and a saved choice
+    // is shown as saved. Needs no sign-in: nothing is sent to the server here.
+    void loginDialog_trustCertificate_followsHostUntilTheUserChooses() {
+        ServerConfig saved = m_app->auth().serverConfig(); // restored at the end: other tests log in with it
+        const auto restore = qScopeGuard([&] { m_app->auth().saveServerConfig(saved); });
+
+        LoginDialog dialog(m_app->auth(), m_app->language());
+        dialog.show();
+        auto* server = dialog.findChild<QLineEdit*>(QStringLiteral("serverEdit"));
+        auto* trust = dialog.findChild<QCheckBox*>(QStringLiteral("trustCertificateCheck"));
+        auto* warning = findByTestId<QLabel>(&dialog, QStringLiteral("certificateWarning"));
+        QVERIFY(server && trust && warning);
+
+        QVERIFY(trust->isChecked()); // the test server runs on this computer
+        QVERIFY(warning->isHidden());
+
+        server->setText(QStringLiteral("db.example.com,1433")); // another computer: checked by default
+        QVERIFY(!trust->isChecked());
+        QVERIFY(warning->isHidden());
+
+        trust->click(); // the user trusts it (the server group is closed, so no mouse): the choice is theirs
+        QVERIFY(trust->isChecked());
+        QVERIFY(!warning->isHidden());
+        server->setText(QStringLiteral("other.example.com"));
+        QVERIFY(trust->isChecked());
+        QVERIFY(!warning->isHidden());
+        server->setText(
+            QStringLiteral("localhost,1433")); // this computer needs no warning, whatever the box says
+        QVERIFY(warning->isHidden());
+
+        // Reopened: a saved choice for another computer comes back as saved
+        ServerConfig remote;
+        remote.host = QStringLiteral("db.example.com,1433");
+        remote.trustServerCertificate = true;
+        m_app->auth().saveServerConfig(remote);
+        LoginDialog reopened(m_app->auth(), m_app->language());
+        reopened.show();
+        QVERIFY(reopened.findChild<QCheckBox*>(QStringLiteral("trustCertificateCheck"))->isChecked());
+        QVERIFY(!findByTestId<QLabel>(&reopened, QStringLiteral("certificateWarning"))->isHidden());
     }
 
     // The user picks English on the login screen: the choice is saved, the screens are rebuilt in English

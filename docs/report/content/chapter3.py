@@ -141,7 +141,7 @@ def data_dictionary(r):
             rows.append([c["name"], c["data_type"].upper(), "" if c["is_nullable"] else "Không",
                          "\n".join(constraints), COLUMN_DESCRIPTIONS.get(c["name"], "")])
         r.table(["Tên cột", "Kiểu dữ liệu", "NULL", "Ràng buộc", "Ý nghĩa"], rows,
-                widths_cm=[3.0, 2.9, 1.3, 4.8, 4.0], caption=f"Từ điển dữ liệu bảng {table_name}", size=9)
+                widths_cm=[3.9, 3.15, 1.45, 3.9, 3.6], caption=f"Từ điển dữ liệu bảng {table_name}")
         if table_checks:
             r.p("Ràng buộc liên thuộc tính của bảng " + table_name + ": " +
                 "; ".join(f"`{n}`: {d}" for n, d in table_checks) + ".", indent=False)
@@ -158,7 +158,7 @@ def chapter3(r):
         "thứ hai). Tên thực thể, thuộc tính trong sơ đồ dùng đúng tên bảng, cột tiếng Anh của CSDL.")
     r.figures_landscape([
         (IMG / "diagrams" / "erd_1_organization_training.png", "ERD phân hệ tổ chức - nhân sự - đào tạo - lớp học"),
-        (IMG / "diagrams" / "erd_2_students_finance.png", "ERD phân hệ học viên - ghi danh - tài chính - kết quả"),
+        (IMG / "diagrams" / "erd_2_students_finance.png", "ERD phân hệ học viên, ghi danh, học phí, kết quả"),
     ])
     r.p("Một số điểm thiết kế đáng chú ý:")
     r.bullets([
@@ -187,7 +187,7 @@ def chapter3(r):
         ["GRADE", "ENROLLMENT (0,n) - GRADE_COMPONENT (0,n)", "n-n có thuộc tính Score"],
         ["được cấp", "ENROLLMENT (0,1) - CERTIFICATE (1,1)", "1-1: mỗi lượt ghi danh đạt có tối đa một chứng nhận"],
         ["đăng nhập", "ACCOUNT (0,1) - EMPLOYEE/TEACHER (0,1)", "Mỗi người có tối đa một tài khoản"],
-    ], widths_cm=[3.0, 6.4, 6.6], caption="Các mối kết hợp chính và bản số", size=9.5)
+    ], widths_cm=[3.0, 6.4, 6.6], caption="Các mối kết hợp chính và bản số")
 
     # ------------------------------------------------------------------ 3.2
     r.h2("3.2. Mô hình quan niệm hướng đối tượng - sơ đồ lớp (CD)")
@@ -221,7 +221,7 @@ def chapter3(r):
          "CLASS_SCHEDULE(__ClassId, Weekday__, ...) ON DELETE CASCADE"],
         ["Thuộc tính đa trị/phức hợp", "Tách bảng riêng hoặc lưu XML (mô hình bán cấu trúc)",
          "GRADE_COMPONENT (bảng riêng), ProfileXml, SyllabusXml (XML)"],
-    ], widths_cm=[3.2, 6.2, 6.6], caption="Quy tắc chuyển đổi ERD sang mô hình quan hệ", size=9.5)
+    ], widths_cm=[3.2, 6.2, 6.6], caption="Quy tắc chuyển đổi ERD sang mô hình quan hệ")
 
     # ------------------------------------------------------------------ 3.4
     r.h2("3.4. Lược đồ quan hệ")
@@ -267,7 +267,7 @@ def chapter3(r):
         ["TuitionDue, OverallScore, TotalPay", "Công thức cố định trong cùng dòng", "Cột tính toán PERSISTED - DBMS tự tính"],
         ["CLASS.BranchId", "Lớp phải gắn chi nhánh để phân mảnh dữ liệu theo chi nhánh (Chương 7)", "Trigger trg_CLASS_CheckRoom: phòng phải cùng chi nhánh"],
         ["ENROLLMENT.FinalGrade, Result", "Chốt kết quả cuối khóa, không đổi khi sửa trọng số về sau", "Chỉ ghi bởi usp_Class_EvaluateResults; khóa sửa điểm sau khi lớp kết thúc"],
-    ], widths_cm=[3.4, 6.4, 6.2], caption="Thuộc tính dư thừa có kiểm soát", size=9.5)
+    ], widths_cm=[3.4, 6.4, 6.2], caption="Thuộc tính dư thừa có kiểm soát")
 
     # ------------------------------------------------------------------ 3.7
     r.h2("3.7. Ràng buộc toàn vẹn")
@@ -291,7 +291,7 @@ def chapter3(r):
          "từ ngày học và không được sửa sau đó; lớp đi theo vòng đời Đang tuyển sinh → Đang học → Đã kết thúc hoặc Đã hủy, "
          "không mở lại; không sửa điểm, điểm danh, buổi học khi lớp đã kết thúc; cột điểm của khóa đã có lớp được đánh giá "
          "không được đổi", "Thủ tục, trigger"],
-    ], widths_cm=[3.4, 8.8, 3.8], caption="Phân loại ràng buộc toàn vẹn", size=9.5)
+    ], widths_cm=[3.4, 8.8, 3.8], caption="Phân loại ràng buộc toàn vẹn")
 
     r.h3("3.7.1. RBTV liên bộ nhiều quan hệ: số tiền đã đóng")
     r.p("**Nội dung**: ∀ g ∈ ENROLLMENT: g.AmountPaid = Σ{p.Amount | p ∈ RECEIPT, p.EnrollmentId = g.EnrollmentId, p.Status = 'Valid'} "
@@ -300,7 +300,7 @@ def chapter3(r):
     r.table(["Quan hệ", "Thêm", "Xóa", "Sửa"], [
         ["ENROLLMENT", "- (AmountPaid mặc định 0)", "- (có FK từ RECEIPT)", "+ (AmountPaid, BaseTuition, DiscountAmount)"],
         ["RECEIPT", "+", "+ (chặn bằng INSTEAD OF DELETE)", "+ (Amount, Status, EnrollmentId)"],
-    ], widths_cm=[3.0, 3.6, 4.6, 4.8], caption="Bảng tầm ảnh hưởng của RBTV số tiền đã đóng", size=10,
+    ], widths_cm=[3.0, 3.6, 4.6, 4.8], caption="Bảng tầm ảnh hưởng của RBTV số tiền đã đóng",
         align=["left", "center", "center", "center"])
     r.p("**Cài đặt**: trigger `trg_RECEIPT_UpdateAmountPaid` (AFTER INSERT, UPDATE) tính lại AmountPaid cho mọi EnrollmentId có "
         "trong `inserted` ∪ `deleted` và ROLLBACK nếu vượt học phí; `trg_RECEIPT_PreventDelete` (INSTEAD OF DELETE) chặn xóa; "
@@ -312,7 +312,7 @@ def chapter3(r):
     r.table(["Quan hệ", "Thêm", "Xóa", "Sửa"], [
         ["CLASS_SCHEDULE", "+", "-", "+ (Weekday, StartTime, EndTime)"],
         ["CLASS", "- (lớp mới chưa có lịch)", "-", "+ (RoomId, TeacherId, ngày, Status)"],
-    ], widths_cm=[3.0, 4.2, 2.6, 6.2], caption="Bảng tầm ảnh hưởng của RBTV trùng lịch", size=10,
+    ], widths_cm=[3.0, 4.2, 2.6, 6.2], caption="Bảng tầm ảnh hưởng của RBTV trùng lịch",
         align=["left", "center", "center", "center"])
     r.p("**Cài đặt**: trigger `trg_CLASS_SCHEDULE_CheckConflict`; với học viên, thủ tục `usp_Enrollment_Create` kiểm tra học viên "
         "không học hai lớp trùng giờ. Trường hợp sửa CLASS được kiểm soát qua thủ tục nghiệp vụ (ứng dụng không cập "
@@ -351,4 +351,4 @@ def chapter3(r):
         ["Truy vấn", "SQL, phép kết, chỉ mục B-tree", "XPath/XQuery (.value, .query, .nodes, .exist), XML index"],
         ["Phù hợp", "Dữ liệu giao dịch: ghi danh, phiếu thu, điểm", "Hồ sơ, tài liệu mô tả, nhật ký, trao đổi dữ liệu"],
         ["Trong đồ án", f"{object_counts()['TableCount']} bảng quan hệ", "Đề cương, hồ sơ giáo viên, nhật ký, xuất/nhập học viên"],
-    ], widths_cm=[2.8, 6.2, 7.0], caption="So sánh mô hình quan hệ và mô hình XML", size=10)
+    ], widths_cm=[2.8, 6.2, 7.0], caption="So sánh mô hình quan hệ và mô hình XML")

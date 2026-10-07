@@ -10,6 +10,7 @@ QLabel#PageTitle { font-size: 20px; font-weight: 600; color: #0F172A; }
 QLabel#CardTitle { font-size: 15px; font-weight: 600; color: #0F172A; }
 QLabel#Muted { color: #64748B; }
 QLabel#ErrorText { color: #DC2626; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 6px; padding: 8px 10px; }
+QLabel#WarningText { color: #92400E; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 8px 10px; }
 QLabel#KpiValue { font-size: 22px; font-weight: 700; color: #0F172A; }
 QLabel#KpiIcon { background: #EFF6FF; border-radius: 22px; }
 
@@ -60,6 +61,9 @@ QScrollBar::handle:vertical { background: #CBD5E1; border-radius: 4px; min-heigh
 QScrollBar:horizontal { background: transparent; height: 10px; margin: 2px; }
 QScrollBar::handle:horizontal { background: #CBD5E1; border-radius: 4px; min-width: 30px; }
 QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
+
+/* ---- Menu bar (Windows; macOS shows its own menu bar at the top of the screen) ---- */
+QMenuBar { background: white; border-bottom: 1px solid #E2E8F0; }
 
 /* ---- Sidebar ---- */
 QFrame#Sidebar { background: #1F3864; }

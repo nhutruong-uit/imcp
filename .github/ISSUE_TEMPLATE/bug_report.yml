@@ -1,0 +1,87 @@
+# Issue form: bug report. GitHub shows it as a web form when someone clicks "New issue" (see config.yml for the
+# other entries). It asks for the facts the team always needs to reproduce a problem: version, operating system, which
+# demo role, which language, the steps. A security problem does NOT go here - see .github/SECURITY.md.
+name: Bug report
+description: Something in the application, the database scripts, the installer or the docs does not work
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Security problems** must not be reported here - use
+        [Report a vulnerability](https://github.com/nhutruong-uit/imcp/security/advisories/new).
+        Never paste real passwords, `.env` files or real student data. The demo accounts of `docs/SETUP.md` are fine.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where does it happen?
+      options:
+        - Application (a screen or a report)
+        - Database (script, procedure, trigger, permission)
+        - Installer (.dmg, setup.exe, portable .zip)
+        - Build, tests or GitHub workflows
+        - Documentation, report or user guide
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: >-
+        Shown on the login screen and in the name of the installer, for example 1.0.1.
+        Write `develop` if you built it yourself.
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows 10
+        - Windows 11
+        - Linux
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Demo account (role)
+      options:
+        - ql_quan (manager)
+        - gvu_lan (academic staff)
+        - kt_minh (accountant)
+        - gv_john (teacher)
+        - Not logged in yet / not applicable
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language of the application
+      options:
+        - Vietnamese
+        - English
+        - Not applicable
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Log in as gvu_lan
+        2. Open Enrollments
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect, and what happened instead?
+      description: Copy the exact error message if there is one. A screenshot helps.
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Logs, the output of `--check-connection`, the SQL Server version.

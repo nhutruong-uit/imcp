@@ -16,7 +16,7 @@ IE103 - Information Management · University of Information Technology (UIT), VN
 ![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-555555)
 
 [Features](#features) · [Quick start](#quick-start) · [Testing](#testing) · [Architecture](#architecture) ·
-[Documentation](#documentation) · [Team](#team)
+[Documentation](#documentation) · [Team](#team) · [License](#license)
 
 </div>
 
@@ -54,7 +54,8 @@ itself enforces what each role may do.
   and account lockout
 
 ### Application (Qt 6)
-- **Role-based menu** for the manager, academic staff, accountant and teacher, matching the database permissions
+- **Role-based menu** (sidebar and menu bar with shortcuts) for the manager, academic staff, accountant and
+  teacher, matching the database permissions; a right-click menu on every list
 - **Training**: dashboard, students (with XML import/export), placement tests, classes (open, weekly schedule,
   generate sessions, start, cancel, evaluate results), enrollments (enroll, transfer, put on hold), timetable and
   attendance, grade book, learning results
@@ -62,7 +63,8 @@ itself enforces what each role may do.
   payroll (finalize, deduction, paid). **Catalogs**: courses and grade components, teachers, employees, branches and
   rooms, promotions. **System**: accounts, backup
 - **Teachers** see only their own classes, take attendance, enter grades and see their schedule and pay
-- **Lists** with a quick filter, a totals row, PDF reports and CSV export (opens in Excel)
+- **Lists** with a quick filter, a totals row, PDF reports, a print preview (group by a column with subtotals, print)
+  and CSV export (opens in Excel)
 - **Vietnamese and English UI**, switchable at runtime; values and business messages from the database are translated
   too
 - **Installers** for Windows (setup or portable ZIP) and macOS (`.dmg` with the FreeTDS driver bundled)
@@ -181,7 +183,7 @@ On Windows run `.\scripts\test_all.ps1`, which does the same steps.
 |---|---|---|
 | [Checks](.github/workflows/checks.yml) | pull requests into `develop` | Change checks, build and unit tests on Linux (no database) |
 | [CI](.github/workflows/ci.yml) | merges into `develop`, pull requests into `main`, manual runs | Build and unit tests on macOS and Windows; the full `test_all` suite on Linux against SQL Server 2025 in Docker |
-| [Release installers (Windows + macOS)](.github/workflows/release.yml) | merges into `main`, manual runs (installers only, no release) | Builds the `.dmg`, `setup.exe` and portable `.zip`, publishes a GitHub Release with the PRs merged since the previous one |
+| [Release installers (Windows + macOS)](.github/workflows/release.yml) | merges into `main`, manual runs (installers only, no release) | Builds the `.dmg`, `setup.exe` and portable `.zip` and self-tests each one (`QLTTTA --self-test` in the mounted `.dmg`, the unzipped `.zip` and a silent install of `setup.exe`); after the team lead approves (environment `release`) it signs them with build attestations and publishes a GitHub Release with the PRs merged since the previous one |
 | [Pages](.github/workflows/pages.yml) | merges into `develop` that change `docs/index.html`, `docs/data-map.html` or the screenshots | Publishes the project site and the data map (public) at <https://nhutruong-uit.github.io/imcp/> |
 
 Details, options and the database-only test run in SSMS:
@@ -222,12 +224,14 @@ tools/               Screenshot generator used for the report and the user guide
 resources/           Icons, the QSS style sheet and translations/qlttta_vi.ts (Vietnamese UI)
 packaging/           Icons, Info.plist, Inno Setup installer, end-user install notes
 scripts/             Dev machine setup, database init, change checks, full test run, macOS/Windows packaging
-.github/             Workflows: Checks (PRs into develop), CI, Release (installers), Pages (project site); the PR template
+.github/             Workflows: Checks (PRs into develop), CI, Release (installers), Pages (project site); the PR
+                     template, issue forms, SECURITY.md, Dependabot config, CODEOWNERS
 .claude/             Claude Code team setup: rules per area, skills, shared settings, C++ format hook
 docs/                Documentation, the project report (docs/report), the user guide (docs/user-guide) and the
                      codebase review logs (docs/reviews)
 AGENTS.md            Instructions for AI coding agents (read by Claude Code)
 docker-compose.yml   SQL Server 2025 Developer for local development
+LICENSE              MIT license of the project
 ```
 
 ## Documentation
@@ -275,3 +279,8 @@ Class IE103.Q21.VB2 · Supervisor: Dr. Võ Phương Bình
 | 5 | Nguyễn Bảo Giang | `******09` | Data security, backup/restore, import/export, advanced databases |
 
 Detailed assignments: [docs/PLAN.md](docs/PLAN.md).
+
+## License
+
+The source code of QLTTTA is released under the [MIT License](LICENSE). The installers also contain third-party
+libraries (Qt, FreeTDS, unixODBC and others) that keep their own licenses.
