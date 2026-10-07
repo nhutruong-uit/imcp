@@ -39,7 +39,7 @@ def chapter1(g):
     rows = [[FEATURES[f][1], FEATURES[f][0]] + ["✓" if f in allowed[r] else "" for r in roles]
             for f in FEATURES]
     g.table(["Nhóm menu", "Chức năng"] + [ROLES[r] for r in roles], rows,
-            widths_cm=[2.8, 4.4] + [2.2] * len(roles), caption="Chức năng hiển thị theo vai trò", size=10.5,
+            widths_cm=[2.8, 4.4] + [2.2] * len(roles), caption="Chức năng hiển thị theo vai trò",
             align=["left", "left"] + ["center"] * len(roles))
     g.bullets([
         "**Quản lý** và **Giáo vụ** được thêm, sửa, xóa học viên; **Kế toán** chỉ xem danh sách học viên.",
@@ -62,7 +62,7 @@ def chapter1(g):
         ["Màn hình", "Tối thiểu 1024 × 640", "Tối thiểu 1024 × 640"],
         ["Quyền quản trị máy", "Cần khi cài Docker Desktop", "Cần khi cài SQL Server; bản cài ứng dụng "
                                                              "không cần quyền Administrator"],
-    ], widths_cm=[3.4, 6.0, 6.6], caption="Yêu cầu phần cứng và phần mềm", size=10.5, bold_first_col=True)
+    ], widths_cm=[3.4, 6.0, 6.6], caption="Yêu cầu phần cứng và phần mềm", bold_first_col=True)
 
     g.h2("1.5. Các bước cài đặt tổng quát")
     g.p("Dù dùng hệ điều hành nào, quy trình đều gồm bốn bước. Phương án SQL Server cho từng loại máy ở "
@@ -81,7 +81,7 @@ def chapter1(g):
         ["Windows, đã có Docker Desktop", "A - Docker (mục 2.2)", "`localhost,1433`"],
         ["Máy chạy ứng dụng khác máy chạy SQL Server", "A hoặc B trên máy chủ",
          "`<địa chỉ IP>,1433`, ví dụ `192.168.1.10,1433`"],
-    ], widths_cm=[5.2, 4.8, 6.0], caption="Chọn phương án SQL Server theo máy", size=10.5)
+    ], widths_cm=[5.2, 4.8, 6.0], caption="Chọn phương án SQL Server theo máy")
 
     g.h2("1.6. Quy ước trình bày")
     g.bullets([
@@ -173,7 +173,7 @@ def chapter2(g):
         ["Tắt SQL Server (giữ nguyên dữ liệu)", "`docker compose stop`"],
         ["Bật lại SQL Server", "`docker compose start` (hoặc bấm ▶ ở container trong Docker Desktop)"],
         ["Xem trạng thái", "`docker ps`"],
-    ], widths_cm=[6.0, 10.0], caption="Các lệnh Docker thường dùng", size=10.5)
+    ], widths_cm=[6.0, 10.0], caption="Các lệnh Docker thường dùng")
     g.p("Container được đặt `restart: unless-stopped`: sau khi khởi động lại máy, SQL Server tự chạy khi "
         "Docker Desktop mở (trừ khi đã tắt bằng `docker compose stop`).")
     g.warning("Lệnh `docker compose down -v` xóa luôn volume `mssql-data`, tức là **mất toàn bộ CSDL**. Chỉ "
@@ -305,7 +305,7 @@ def chapter3(g):
         ["macOS (Apple Silicon)", f"`QLTTTA-{version}-macos-arm64.dmg`", "Kèm sẵn driver FreeTDS"],
         ["Windows 64-bit", f"`QLTTTA-{version}-windows-x64-setup.exe`", "Bộ cài, không cần quyền Administrator"],
         ["Windows 64-bit", f"`QLTTTA-{version}-windows-x64-portable.zip`", "Bản chạy ngay, không cần cài"],
-    ], widths_cm=[3.6, 7.4, 5.0], caption="Các file cài đặt", size=10.5)
+    ], widths_cm=[3.6, 7.4, 5.0], caption="Các file cài đặt")
     g.p("Nhóm phát triển có thể tự đóng gói từ mã nguồn: `./scripts/package-macos.sh` (macOS) và "
         "`.\\scripts\\package-windows.ps1` (Windows), kết quả nằm trong thư mục `dist/`.")
 
@@ -381,7 +381,7 @@ def chapter3(g):
          "Kéo **QLTTTA.app** từ Applications vào Thùng rác"],
         ["Windows", "Registry `HKEY_CURRENT_USER\\Software\\UIT-IE103\\QLTTTA`",
          "**Settings > Apps > Installed apps > QLTTTA > Uninstall** (bản portable: xóa thư mục)"],
-    ], widths_cm=[2.8, 7.4, 5.8], caption="Cấu hình đã lưu và cách gỡ ứng dụng", size=10.5)
+    ], widths_cm=[2.8, 7.4, 5.8], caption="Cấu hình đã lưu và cách gỡ ứng dụng")
     g.p("Gỡ cài đặt xóa thư mục ứng dụng và các mục trong menu Start nhưng **giữ lại cấu hình** đã lưu trong "
         "registry, nên cài lại vẫn nhớ máy chủ cũ. Muốn xóa hẳn cấu hình (Windows), chạy trong PowerShell:")
     g.code("PowerShell (Windows)", "Remove-Item -Path 'HKCU:\\Software\\UIT-IE103\\QLTTTA' -Recurse", lang="text")

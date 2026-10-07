@@ -38,10 +38,9 @@ def assignments(r):
         "Pull Request nên lịch sử commit thể hiện đóng góp của từng thành viên. Mỗi thành viên **sở hữu** "
         "một mảng nội dung: hiểu sâu phần CSDL tương ứng, kiểm thử, viết phần báo cáo, trình bày và trả lời "
         "vấn đáp phần đó.", indent=True)
-    rows = [[m["name"] + "\n" + m["student_id"], m["area"], m["files"], m["report_sections"], m["deadline"]]
-            for m in MEMBERS]
+    rows = [[m["name"], m["area"], m["files"], m["report_sections"], m["deadline"]] for m in MEMBERS]
     r.table(["Thành viên", "Mảng phụ trách", "Sản phẩm / file", "Phần báo cáo", "Hạn hoàn thành"],
-            rows, widths_cm=[3.2, 4.6, 3.6, 2.6, 2.0], size=10, bold_first_col=True,
+            rows, widths_cm=[3.2, 4.6, 3.6, 2.6, 2.0], bold_first_col=True,
             align=["left", "left", "left", "left", "center"])
 
 
@@ -51,4 +50,4 @@ def table_of_contents(r):
     r.toc("DANH MỤC HÌNH ẢNH", 'TOC \\h \\z \\t "FigureCaption,1"',
           "Nhấn chuột phải > Update Field để cập nhật danh mục hình ảnh.")
     r.toc("DANH MỤC BẢNG", 'TOC \\h \\z \\t "TableCaption,1"',
-          "Nhấn chuột phải > Update Field để cập nhật danh mục bảng.", page_break=False)
+          "Nhấn chuột phải > Update Field để cập nhật danh mục bảng.")

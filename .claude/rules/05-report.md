@@ -22,6 +22,11 @@ paths:
 - Academic style, first person plural ("nhóm"), short sentences; English terms in `code` or with the Vietnamese
   meaning the first time. Inline formatting: `**bold**`, `*italic*`, `` `code` ``. Figures/tables always have a
   caption describing the content.
+- **One font size per kind of content** (`report_lib.py`): body text 13 pt (never set on a run), data tables 10 pt
+  (`TABLE_FONT_SIZE`), code boxes 9 pt (`CODE_FONT_SIZE`), captions 11 pt. Never pass `size=` from `content/*.py`;
+  change the constant when the look must change. Figure and table captions are at most 50 characters
+  (`CAPTION_MAX`, checked while building) so every entry of the lists of figures/tables stays on one line; the list of
+  tables starts on its own page. In Vietnamese text write "Chương", "mục", never "Ch." in the member table.
 - Diagrams: edit the `diagrams/*.dot` source, then `dot -Tpng` into `images/diagrams/`; screenshots are produced only by
   `tools/qlttta_screenshots` in Vietnamese (the default `QLTTTA_SHOT_LANG=vi`; never by hand, so every machine yields
   the same size/data).
@@ -34,6 +39,10 @@ paths:
   `docs/user-guide/chapters/*.py` (never edit the `.docx`), app screenshots from `tools/qlttta_screenshots`, PDF with
   `docs/report/tools/export_pdf.sh docs/user-guide/QLTTTA_User_Guide.docx` (Windows: `export_pdf.ps1`); the whole pipeline is the
   `/imcp-update-guide` skill. Practical tone (second person, steps), not the academic style of the report.
+- Font sizes follow the same rule as the report, with the guide's own values (class `Guide` in `guide_lib.py`): body
+  text and the tip/warning/placeholder boxes 13 pt (never set on a run), tables 10.5 pt, code boxes 9.5 pt, captions
+  11 pt, captions at most 60 characters. Never pass `size=` from `chapters/*.py`; the list of tables starts on its own
+  page.
 - Facts that the code knows are read from the code (`chapters/common.py`: menu per role from `Permissions.cpp`,
   demo accounts from `07_seed_data.sql`, version from `CMakeLists.txt`) - never typed by hand.
 - A part not written yet is a `g.placeholder("...", platform)` call (yellow box, listed in appendix B, counted on the

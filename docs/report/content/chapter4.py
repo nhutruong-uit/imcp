@@ -3,7 +3,7 @@ from content.common import RESULT_LABELS_VI, SQL, object_counts, query_results, 
 from report_lib import sql_block, sql_object
 
 
-def _query_table(r, key, caption, widths=None, size=9.5, max_rows=12, money_cols=()):
+def _query_table(r, key, caption, widths=None, max_rows=12, money_cols=()):
     data = query_results()[key]
     rows = []
     for row in data["rows"][:max_rows]:
@@ -17,7 +17,7 @@ def _query_table(r, key, caption, widths=None, size=9.5, max_rows=12, money_cols
                     pass
             cells.append("" if v == "NULL" else v)
         rows.append(cells)
-    r.table(data["columns"], rows, widths_cm=widths, caption=caption, size=size)
+    r.table(data["columns"], rows, widths_cm=widths, caption=caption)
 
 
 def chapter4(r):
@@ -39,7 +39,7 @@ def chapter4(r):
         ["06_security.sql", "Role, GRANT/DENY (mức đối tượng, mức cột)", f"{counts['RoleCount']} role"],
         ["07_seed_data.sql", "Dữ liệu mẫu nạp qua thủ tục, ngày tháng tương đối theo ngày chạy", "≈ 2.400 dòng"],
         ["08 - 12_*.sql", "Truy vấn minh họa, backup/restore, import/export, CSDL phân tán, kiểm thử", "-"],
-    ], widths_cm=[3.8, 9.0, 3.2], caption="Cấu trúc các script cài đặt CSDL", size=9.5)
+    ], widths_cm=[3.8, 9.0, 3.2], caption="Cấu trúc các script cài đặt CSDL")
     r.code("Tạo CSDL độc lập (contained database) với collation tiếng Việt - 00_create_database.sql",
            sql_block(SQL, "00_create_database.sql", "EXEC sys.sp_configure", "-- 5."))
     r.p("Mã nghiệp vụ dễ đọc (ST00001, CL0001, EN000001) được sinh bằng **SEQUENCE** đặt trong ràng buộc DEFAULT - "
@@ -47,7 +47,7 @@ def chapter4(r):
     r.code("Sinh mã học viên bằng SEQUENCE trong DEFAULT - 01_tables.sql",
            "CREATE SEQUENCE dbo.seq_STUDENT AS INT START WITH 1 INCREMENT BY 1;\n...\nStudentId VARCHAR(10) NOT NULL CONSTRAINT DF_STUDENT_StudentId\n"
            "    DEFAULT ('ST' + RIGHT('00000' + CAST(NEXT VALUE FOR dbo.seq_STUDENT AS VARCHAR(10)), 5)),")
-    _query_table(r, "row_counts", "Số dòng dữ liệu mẫu trong từng bảng (sau khi chạy 07_seed_data.sql)", widths=[6, 4], size=9.5,
+    _query_table(r, "row_counts", "Số dòng dữ liệu mẫu trong từng bảng", widths=[6, 4],
         max_rows=21)
 
     # ------------------------------------------------------------------ 4.2
@@ -102,7 +102,7 @@ def chapter4(r):
         ["Báo cáo", "usp_Dashboard_Stats, usp_Report_Revenue, usp_Report_ClassResults", "Truy vấn con vô hướng, gom nhóm"],
         ["XML", "usp_Course_FindBySkill, usp_Course_Syllabus, usp_Teacher_FindByCertificate, usp_Student_ExportXml/_ImportXml", "XQuery, FOR XML PATH, .nodes()"],
         ["Bảo mật", "usp_Account_Create, _Lock, _ResetPassword, _ChangePassword, _RecordLogin, _List, usp_Backup", "Dynamic SQL an toàn, EXECUTE AS OWNER, BACKUP"],
-    ], widths_cm=[2.4, 7.4, 6.2], caption="Danh mục thủ tục theo nhóm chức năng", size=9.5)
+    ], widths_cm=[2.4, 7.4, 6.2], caption="Danh mục thủ tục theo nhóm chức năng")
     r.h3("4.4.1. usp_Enrollment_Create - giao dịch ghi danh nhiều bước")
     r.p("Thủ tục kiểm tra lần lượt: học viên còn học, lớp tồn tại và đang nhận ghi danh, chưa ghi danh trùng, **đạt "
         "điều kiện đầu vào** (đã Đạt khóa tiên quyết HOẶC điểm kiểm tra gần nhất ≥ yêu cầu), **không trùng lịch** với "
@@ -110,9 +110,9 @@ def chapter4(r):
         "viên. Ngay đầu giao dịch, thủ tục **khóa dòng lớp** (`UPDLOCK, HOLDLOCK`) rồi mới đếm sĩ số, nên hai người ghi danh "
         "vào chỗ cuối cùng cùng lúc thì người sau phải chờ và nhận thông báo lớp đã đầy (không gây deadlock); trigger "
         "`trg_ENROLLMENT_CheckCapacity` vẫn kiểm tra lại sĩ số như lớp bảo vệ cuối cùng.")
-    r.code("usp_Enrollment_Create (04_procedures.sql)", sql_object(SQL, "04_procedures.sql", "usp_Enrollment_Create"), size=8.5)
+    r.code("usp_Enrollment_Create (04_procedures.sql)", sql_object(SQL, "04_procedures.sql", "usp_Enrollment_Create"))
     r.h3("4.4.2. usp_Class_GenerateSessions - sinh lịch buổi học tự động")
-    r.code("usp_Class_GenerateSessions (04_procedures.sql)", sql_object(SQL, "04_procedures.sql", "usp_Class_GenerateSessions"), size=8.5)
+    r.code("usp_Class_GenerateSessions (04_procedures.sql)", sql_object(SQL, "04_procedures.sql", "usp_Class_GenerateSessions"))
     r.p("Hàm `fn_Weekday` tính thứ theo chuẩn ISO 8601 (1 = thứ Hai ... 7 = Chủ nhật) dựa trên mốc 01/01/1900 là thứ Hai, "
         "nên kết quả **không phụ thuộc** thiết lập `SET DATEFIRST` của máy chủ - điểm thường gây lỗi khi chuyển CSDL "
         "giữa máy cài tiếng Anh và tiếng Việt.")
@@ -122,7 +122,7 @@ def chapter4(r):
         "tục đi ngược chuỗi tiên quyết bắt đầu từ khóa mới bằng **CTE đệ quy** (thành viên neo `UNION ALL` thành viên đệ "
         "quy); gặp lại chính khóa đang sửa nghĩa là có vòng lặp và thủ tục báo lỗi 50095 (ca kiểm thử T90). Điều kiện "
         "`Depth < 100` bảo đảm vòng duyệt luôn dừng.")
-    r.code("usp_Course_Update (04_procedures.sql)", sql_object(SQL, "04_procedures.sql", "usp_Course_Update"), size=8.5)
+    r.code("usp_Course_Update (04_procedures.sql)", sql_object(SQL, "04_procedures.sql", "usp_Course_Update"))
 
     # ------------------------------------------------------------------ 4.5
     r.h2("4.5. Function")
@@ -143,7 +143,7 @@ def chapter4(r):
         ["fn_ClassPeriod", "Inline table-valued", "Khoảng thời gian của lớp; chưa sinh buổi thì ước lượng StartDate + SessionCount tuần"],
         ["fn_StudentScheduleClash", "Inline table-valued", "Các lớp đang học của học viên bị trùng lịch với một lớp (dùng chung cho ghi danh, chuyển lớp, học lại)"],
         ["fn_MonthlyRevenue", "Multi-statement table-valued", "Doanh thu đủ 12 tháng (tháng không phát sinh = 0)"],
-    ], widths_cm=[5.4, 4.0, 6.6], caption="Danh mục hàm", size=9.5)
+    ], widths_cm=[5.4, 4.0, 6.6], caption="Danh mục hàm")
     r.code("fn_FinalGrade - hàm vô hướng", sql_object(SQL, "02_functions.sql", "fn_FinalGrade"))
     r.code("fn_MonthlyRevenue - hàm trả về bảng nhiều câu lệnh", sql_object(SQL, "02_functions.sql", "fn_MonthlyRevenue"))
     _query_table(r, "monthly_revenue", "Kết quả fn_MonthlyRevenue (8 tháng gần nhất)", widths=[4, 4, 8], money_cols=(2,))
@@ -178,7 +178,7 @@ def chapter4(r):
         ["trg_PLACEMENT_TEST_Recommend", "PLACEMENT_TEST / AFTER INS, UPD", "Tự đề xuất khóa học"],
         ["trg_CERTIFICATE_CheckResult", "CERTIFICATE / AFTER INS, UPD", "Chỉ cấp cho học viên Đạt"],
         ["trg_CLASS_SESSION_LockTaught", "CLASS_SESSION / AFTER UPD", "Chỉ đánh dấu đã dạy từ ngày học; buổi đã dạy giữ trạng thái, thời gian, phòng, GV"],
-    ], widths_cm=[5.0, 5.0, 6.0], caption="Danh mục trigger", size=9.5)
+    ], widths_cm=[5.0, 5.0, 6.0], caption="Danh mục trigger")
     r.p("Mọi trigger được viết theo **tập hợp**: bảng ảo `inserted`/`deleted` có thể chứa nhiều dòng (ví dụ nạp dữ "
         "liệu mẫu chèn hàng trăm phiếu thu trong một câu lệnh), nên không dùng biến vô hướng kiểu "
         "`SELECT @x = EnrollmentId FROM inserted` vốn chỉ xử lý được một dòng.")
@@ -194,12 +194,12 @@ def chapter4(r):
     r.p("Cursor duyệt từng dòng của một tập kết quả theo trình tự DECLARE → OPEN → FETCH NEXT → "
         "`WHILE @@FETCH_STATUS = 0` → CLOSE → DEALLOCATE. Nhóm dùng cursor `LOCAL FAST_FORWARD` (chỉ đọc, tiến một "
         "chiều - loại nhẹ nhất) ở hai nghiệp vụ có xử lý khác nhau cho từng dòng:")
-    r.code("usp_Class_EvaluateResults - xét kết quả cuối khóa bằng cursor", sql_object(SQL, "04_procedures.sql", "usp_Class_EvaluateResults"), size=8.5)
-    _query_table(r, "class1_results", "Kết quả xét lớp CL0001 (IELTS Foundation #1) sau khi chạy thủ tục", widths=[2.2, 4.2, 2.2, 2.6, 3.0, 1.8])
+    r.code("usp_Class_EvaluateResults - xét kết quả cuối khóa bằng cursor", sql_object(SQL, "04_procedures.sql", "usp_Class_EvaluateResults"))
+    _query_table(r, "class1_results", "Kết quả xét lớp CL0001 sau khi chạy thủ tục", widths=[2.2, 4.2, 2.2, 2.6, 3.0, 1.8])
     r.p("Hai học viên Không đạt minh họa đúng hai điều kiện: một học viên điểm tổng kết dưới 5, một học viên đủ điểm "
         "nhưng chuyên cần dưới 80%. Học viên Đạt được cấp chứng nhận số hiệu `EC<năm>-<EnrollmentId>` ngay trong vòng lặp.")
-    r.code("usp_Payroll_Finalize - chốt lương tháng bằng cursor", sql_object(SQL, "04_procedures.sql", "usp_Payroll_Finalize"), size=8.5)
-    _query_table(r, "payroll", "Bảng lương giáo viên (6 dòng đầu)", widths=[1.2, 1.4, 3.4, 2.4, 1.4, 2.2, 1.6, 2.4], size=9, money_cols=(5, 6, 7))
+    r.code("usp_Payroll_Finalize - chốt lương tháng bằng cursor", sql_object(SQL, "04_procedures.sql", "usp_Payroll_Finalize"))
+    _query_table(r, "payroll", "Bảng lương giáo viên (6 dòng đầu)", widths=[1.2, 1.4, 3.4, 2.4, 1.4, 2.2, 1.6, 2.4], money_cols=(5, 6, 7))
     r.note("**Nhận xét**: hai nghiệp vụ trên có thể viết bằng câu lệnh tập hợp (UPDATE ... FROM, INSERT ... SELECT) "
            "và sẽ nhanh hơn với dữ liệu lớn. Nhóm chọn cursor vì logic mỗi học viên gồm nhiều bước có điều kiện "
            "(cập nhật kết quả, quyết định cấp chứng nhận) và số dòng nhỏ (một lớp ≤ 50 học viên, một tháng ≤ vài chục "
@@ -268,4 +268,4 @@ def chapter4(r):
         "Thông báo trong cột cuối là **kết quả thực tế** do SQL Server trả về:")
     rows = [[k[0], k[1], RESULT_LABELS_VI.get(k[2], k[2]), RESULT_LABELS_VI.get(k[3], k[3]), k[5]] for k in cases]
     r.table(["Mã", "Ca kiểm thử", "Kỳ vọng", "Thực tế", "Thông báo / kết quả"], rows,
-            widths_cm=[1.1, 4.4, 1.8, 1.8, 6.9], caption=f"Kết quả kiểm thử ràng buộc, nghiệp vụ và xử lý ({passed}/{len(cases)} đạt)", size=8.5)
+            widths_cm=[1.1, 4.4, 1.8, 1.8, 6.9], caption=f"Kết quả kiểm thử CSDL ({passed}/{len(cases)} đạt)")

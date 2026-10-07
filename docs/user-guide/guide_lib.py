@@ -17,7 +17,7 @@ GUIDE_DIR = Path(__file__).resolve().parent
 REPORT_DIR = GUIDE_DIR.parent / "report"
 sys.path.insert(0, str(REPORT_DIR))
 
-from report_lib import (PAGE_WIDTH_TWIPS, Report, _check_figure_caption, _para_format,  # noqa: E402
+from report_lib import (PAGE_WIDTH_TWIPS, Report, _para_format,  # noqa: E402
                         _set_cell_borders, _set_cell_margins, _set_cell_shading, _set_cell_width)
 
 # Text searched for in Word (Ctrl+F) and in the content (grep) to find what is still missing
@@ -25,6 +25,11 @@ PLACEHOLDER_TAG = "CẦN BỔ SUNG"
 
 
 class Guide(Report):
+    # The guide keeps its own sizes and caption limit (the report uses the values of report_lib.py)
+    table_font_size = 10.5
+    code_font_size = 9.5
+    caption_max = 60
+
     def __init__(self, template: Path):
         super().__init__(template)
         self.placeholders: list[str] = []
@@ -40,7 +45,7 @@ class Guide(Report):
         for i, line in enumerate(text.split("\n")):
             p = c.paragraphs[0] if i == 0 else c.add_paragraph()
             _para_format(p, after=40, first_line=0, align="left")
-            self._inline(p, line, size=11.5)
+            self._inline(p, line)
         self.doc.add_paragraph().paragraph_format.space_after = Pt(2)
 
     def placeholder(self, text: str, platform: str = "Windows", listed: bool = True):
@@ -78,7 +83,7 @@ class Guide(Report):
     def figure_or_placeholder(self, path: Path, caption: str, todo: str, platform: str = "Windows",
                               width_cm: float = 15.5):
         """The figure when the image exists; otherwise a placeholder naming the file to add."""
-        _check_figure_caption(caption)  # already while the image is missing, not only once it is added
+        self.check_caption(caption, "figures")  # already while the image is missing, not only once it is added
         if path.exists():
             self.figure(path, caption, width_cm=width_cm)
             return

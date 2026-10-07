@@ -1,32 +1,50 @@
-// Sơ đồ use case tổng quát
-digraph UC {
-  graph [rankdir=LR, fontname="Arial", dpi=220, pad=0.2, nodesep=0.25, ranksep=1.2];
-  node  [fontname="Arial", fontsize=12];
-  edge  [color="#475569", arrowhead=none];
+// Sơ đồ use case tổng quát. Vị trí các nút được ghim (layout=neato, pos="x,y!", đơn vị inch) để các đường nối
+// thẳng và không cắt nhau: một cột use case, Giáo vụ + Kế toán bên trái, Quản lý + Giáo viên bên phải.
+// Vẽ lại bằng lệnh quen thuộc: dot -Tpng usecase.dot -o ../images/diagrams/usecase.png (dot đọc layout=neato).
+// Thứ tự use case (hàng 0-12 từ trên xuống) giữ các use case của cùng một vai trò đứng liền nhau:
+//   Giáo vụ: hàng 1-6 | Kế toán: hàng 6-9 | Quản lý: hàng 6-8 và 10 | Giáo viên: hàng 11-12
+graph UC {
+  layout=neato; overlap=true; splines=line; dpi=220; pad=0.25;
+  node [fontname="Arial", fontsize=12];
+  edge [color="#475569", penwidth=1.1];
 
-  node [shape=box, style="rounded,filled", fillcolor="#1F3864", fontcolor="white", width=1.4];
-  QL [label="👤 Quản lý"]; GVU [label="👤 Giáo vụ"]; KT [label="👤 Kế toán"]; GV [label="👤 Giáo viên"];
+  // Khung ranh giới hệ thống (vẽ trước để nằm dưới các use case)
+  SYS [shape=box, style="rounded", color="#2E75B6", penwidth=1.5, label=<<B>Hệ thống QLTTTA</B>>, fontsize=14,
+       labelloc=t, fixedsize=true, width=4.2, height=11.1, pos="3.55,4.75!"];
 
-  subgraph cluster_sys {
-    label="Hệ thống QLTTTA"; fontsize=14; fontname="Arial Bold"; style="rounded"; color="#2E75B6"; penwidth=1.5;
-    node [shape=ellipse, style=filled, fillcolor="#DBEAFE", color="#2E75B6", fontcolor="#0F172A", width=2.6];
-    uc0 [label="Đăng nhập / đổi mật khẩu"];
-    uc1 [label="Quản lý học viên"];
-    uc2 [label="Kiểm tra đầu vào"];
-    uc3 [label="Mở lớp, xếp lịch, sinh buổi học"];
-    uc4 [label="Ghi danh / chuyển lớp / bảo lưu"];
-    uc5 [label="Thu học phí, in biên lai"];
-    uc6 [label="Theo dõi công nợ, doanh thu"];
-    uc7 [label="Điểm danh, ghi nội dung buổi"];
-    uc8 [label="Nhập điểm thành phần"];
-    uc9 [label="Xét kết quả, cấp chứng nhận"];
-    uc10 [label="Chốt lương giáo viên"];
-    uc11 [label="Báo cáo thống kê (PDF/Excel)"];
-    uc12 [label="Quản trị tài khoản, sao lưu"];
-  }
-  QL -> {uc0 uc6 uc11 uc12 uc10};
-  GVU -> {uc0 uc1 uc2 uc3 uc4 uc9 uc11};
-  KT -> {uc0 uc5 uc6 uc10 uc11};
-  GV -> {uc0 uc7 uc8};
-  uc4 -> uc2 [constraint=false, style=dashed, arrowhead=vee, label="«include»", fontsize=9, fontname="Arial"];
+  // Tác nhân
+  node [shape=box, style="rounded,filled", fillcolor="#1F3864", fontcolor="white", fixedsize=true, width=1.7, height=0.55];
+  ALL [label="👤 Người dùng\n(cả 4 vai trò)", fillcolor="#64748B", height=0.7, pos="0.1,9.36!"];
+  GVU [label="👤 Giáo vụ",  pos="0.1,6.48!"];
+  KT  [label="👤 Kế toán",  pos="0.1,3.29!"];
+  QL  [label="👤 Quản lý",  pos="7.0,3.10!"];
+  GV  [label="👤 Giáo viên", pos="7.0,0.17!"];
+
+  // Use case (hàng 0 ở trên cùng, mỗi hàng cách nhau 0.78 inch)
+  node [shape=ellipse, style=filled, fillcolor="#DBEAFE", color="#2E75B6", fontcolor="#0F172A", fixedsize=true,
+        width=3.4, height=0.56];
+  uc0  [label="Đăng nhập / đổi mật khẩu",         pos="3.55,9.36!"];
+  uc1  [label="Quản lý học viên",                pos="3.55,8.58!"];
+  uc2  [label="Kiểm tra đầu vào",                pos="3.55,7.80!"];
+  uc4  [label="Ghi danh / chuyển lớp / bảo lưu", pos="3.55,6.80!"];
+  uc3  [label="Mở lớp, xếp lịch, sinh buổi học", pos="3.55,6.02!"];
+  uc9  [label="Xét kết quả, cấp chứng nhận",     pos="3.55,5.24!"];
+  uc11 [label="Báo cáo thống kê (PDF/Excel)",    pos="3.55,4.46!"];
+  uc6  [label="Theo dõi công nợ, doanh thu",     pos="3.55,3.68!"];
+  uc10 [label="Chốt lương giáo viên",            pos="3.55,2.90!"];
+  uc5  [label="Thu học phí, in biên lai",        pos="3.55,2.12!"];
+  uc12 [label="Quản trị tài khoản, sao lưu",     pos="3.55,1.34!"];
+  uc7  [label="Điểm danh, ghi nội dung buổi",    pos="3.55,0.56!"];
+  uc8  [label="Nhập điểm thành phần",            pos="3.55,-0.22!"];
+
+  // Đường nối chạm điểm tây (w) / đông (e) của use case: không thể cắt ngang use case bên cạnh
+  ALL:e -- uc0:w;
+  GVU:e -- uc1:w; GVU:e -- uc2:w; GVU:e -- uc4:w; GVU:e -- uc3:w; GVU:e -- uc9:w; GVU:e -- uc11:w;
+  KT:e  -- uc11:w; KT:e -- uc6:w; KT:e -- uc10:w; KT:e -- uc5:w;
+  QL:w  -- uc11:e; QL:w -- uc6:e; QL:w -- uc10:e; QL:w -- uc12:e;
+  GV:w  -- uc7:e; GV:w -- uc8:e;
+
+  // «include»: ghi danh dùng kết quả kiểm tra đầu vào (hai use case đứng liền nhau)
+  uc4 -- uc2 [style=dashed, dir=forward, arrowhead=vee, color="#1F3864", xlabel="    «include»", fontsize=10,
+              fontname="Arial"];
 }

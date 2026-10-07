@@ -22,9 +22,9 @@ def chapter5(r):
         ["Quyền cần để tạo tài khoản", "ALTER ANY LOGIN (cấp máy chủ)", "ALTER ANY USER (cấp CSDL)"],
         ["Azure SQL Database", "CREATE LOGIN chỉ chạy trong master", "Hỗ trợ đầy đủ"],
         ["Chuỗi kết nối", "Có thể không chỉ định CSDL", "Bắt buộc chỉ định Database=QLTTTA"],
-    ], widths_cm=[4.0, 6.0, 6.0], caption="So sánh login + user và contained user", size=9.5)
+    ], widths_cm=[4.0, 6.0, 6.0], caption="So sánh login + user và contained user")
     r.code("Tạo contained user và gán role an toàn bằng dynamic SQL - usp_Account_Create",
-           sql_object(SQL, "04_procedures.sql", "usp_Account_Create"), size=8.5)
+           sql_object(SQL, "04_procedures.sql", "usp_Account_Create"))
     r.p("Thủ tục kiểm tra tên đăng nhập chỉ gồm `[a-zA-Z0-9_.]`, dùng `QUOTENAME` cho định danh và nhân đôi dấu nháy "
         "trong mật khẩu để **chống SQL injection** trong dynamic SQL. `WITH EXECUTE AS OWNER` cho phép người quản lý chỉ "
         "cần quyền EXECUTE trên thủ tục mà không cần quyền ALTER ANY USER. Khóa tài khoản dùng `DENY CONNECT`, người "
@@ -37,7 +37,7 @@ def chapter5(r):
         "khóa học, phòng...) và những bảng đúng việc của mình, còn lại chỉ được `EXECUTE` thủ tục và `SELECT` view cần thiết. Cơ chế **ownership chaining** của SQL Server làm cho điều này khả thi: khi view/thủ tục "
         "và bảng cùng chủ sở hữu (dbo), SQL Server chỉ kiểm tra quyền trên view/thủ tục mà bỏ qua kiểm tra quyền trên bảng "
         "bên dưới - kể cả khi bảng bị `DENY`.")
-    r.figure_landscape(IMG / "diagrams" / "permissions.png", "Mô hình phân quyền: user → role → view/thủ tục → bảng")
+    r.figure_landscape(IMG / "diagrams" / "permissions.png", "Phân quyền: user → role → view/thủ tục → bảng")
     r.table(["Đối tượng", "Quản lý", "Giáo vụ", "Kế toán", "Giáo viên"], [
         ["Bảng gốc (SELECT)", "✔ (db_datareader)",
          "BRANCH, PROGRAM, COURSE, ROOM, PROMOTION, GRADE_COMPONENT, PLACEMENT_TEST; DENY PAYROLL",
@@ -52,7 +52,7 @@ def chapter5(r):
         ["usp_Account_Create/_Lock, usp_Backup", "✔", "—", "—", "—"],
         ["INSERT/UPDATE/DELETE trực tiếp trên bảng", "—", "—", "—", "—"],
         ["DELETE RECEIPT; UPDATE/DELETE AUDIT_LOG", "DENY", "—", "—", "—"],
-    ], widths_cm=[4.6, 2.4, 2.8, 3.0, 3.2], caption="Ma trận phân quyền theo role", size=9)
+    ], widths_cm=[3.4, 2.4, 3.9, 3.6, 2.7], caption="Ma trận phân quyền theo role")
     r.code("Trích 06_security.sql - GRANT/DENY cho role giáo viên và phân quyền mức cột",
            sql_block(SQL, "06_security.sql", "/* 6. TEACHER", "/* 7.") + "\n\n-- Column-level permission: academic staff cannot see the hourly rate\n"
            "GRANT SELECT ON dbo.TEACHER (TeacherId, FullName, TeacherType, Nationality, Degree, BranchId, Status)\n"
@@ -89,8 +89,8 @@ def chapter5(r):
         "liệu cũ/mới dạng XML**. Nhật ký được bảo vệ hai lớp: trigger INSTEAD OF UPDATE, DELETE và `DENY UPDATE, DELETE` "
         "cho cả role Quản lý.")
     log = query_results()["audit_log"]
-    r.table(log["columns"], log["rows"], widths_cm=[2.6, 2.4, 2.2, 1.6, 2.0, 5.2],
-            caption="Một số dòng nhật ký lập phiếu thu", size=8.5)
+    r.table(log["columns"], log["rows"], widths_cm=[2.6, 2.4, 2.2, 1.6, 2.2, 5.0],
+            caption="Một số dòng nhật ký lập phiếu thu")
 
     # ------------------------------------------------------------------ 5.5
     r.h2("5.5. Sao lưu và phục hồi")
@@ -99,13 +99,13 @@ def chapter5(r):
         ["Full", "Chủ nhật 23:00", "Toàn bộ CSDL", "BACKUP DATABASE ... WITH CHECKSUM"],
         ["Differential", "Mỗi đêm 23:00", "Các extent thay đổi kể từ bản Full gần nhất", "BACKUP DATABASE ... WITH DIFFERENTIAL"],
         ["Log", "30 phút/lần (giờ làm việc)", "Nhật ký giao dịch kể từ bản Log trước", "BACKUP LOG ..."],
-    ], widths_cm=[2.4, 3.4, 5.2, 5.0], caption="Chiến lược sao lưu", size=9.5)
+    ], widths_cm=[2.4, 3.4, 5.2, 5.0], caption="Chiến lược sao lưu")
     r.p("Với chiến lược này, lượng dữ liệu mất tối đa (RPO) là 30 phút; phục hồi theo chuỗi **Full gần nhất → "
         "Differential gần nhất → các bản Log sau đó**, các bước trung gian dùng `NORECOVERY`, bước cuối dùng `RECOVERY`.")
     r.code("Phục hồi chuỗi Full → Differential → Log sang CSDL mới (09_backup_restore.sql)",
            sql_block(SQL, "09_backup_restore.sql", "RESTORE DATABASE QLTTTA_Restored FROM DISK = @Full", "GO"))
     r.table(["DatabaseName", "PromotionId", "DiscountValue"], [["QLTTTA", "PR-DEMO", "300000.00"], ["QLTTTA_Restored", "PR-DEMO", "300000.00"]],
-            widths_cm=[6, 4, 4], caption="Kết quả đối chiếu: bản phục hồi chứa cả dữ liệu phát sinh sau bản Full", size=10)
+            widths_cm=[6, 4, 4], caption="Đối chiếu dữ liệu giữa CSDL gốc và bản phục hồi")
     r.p("Dòng PR-DEMO được thêm sau bản Full và sửa giá trị trước bản Log; bản phục hồi có giá trị cuối cùng 300.000 "
         "chứng tỏ cả bản Differential và Log đã được áp dụng. Các contained user đi theo CSDL nên đăng nhập được ngay vào "
         "bản phục hồi. Trong ứng dụng, người quản lý sao lưu nhanh bằng thủ tục `usp_Backup` (FULL/DIFF/LOG).")
@@ -119,7 +119,7 @@ def chapter5(r):
         ["bcp / sqlcmd", "Nhập, xuất", "Dòng lệnh: bcp out/in định dạng Unicode, sqlcmd -s\",\" xuất CSV"],
         ["SSMS Import/Export Wizard", "Nhập, xuất", "Excel, CSV, Access ↔ SQL Server (theo bài thực hành)"],
         ["Ứng dụng Qt", "Xuất", "Mọi danh sách xuất được Excel (CSV UTF-8 có BOM) và báo cáo PDF"],
-    ], widths_cm=[3.6, 2.0, 10.4], caption="Các phương thức nhập/xuất dữ liệu", size=9.5)
+    ], widths_cm=[3.6, 2.0, 10.4], caption="Các phương thức nhập/xuất dữ liệu")
     r.note("**Khó khăn**: SQL Server trên Linux/Docker không hỗ trợ tùy chọn `CODEPAGE = '65001'` của BULK INSERT nên "
            "file CSV UTF-8 bị lỗi font tiếng Việt. Nhóm chuyển sang file **UTF-16 LE** với `DATAFILETYPE = 'widechar'` - "
            "chạy đúng trên cả Windows và Linux, mọi phiên bản SQL Server.")
@@ -132,4 +132,4 @@ def chapter5(r):
     passed = len([k for k in cases if k[4] == "PASSED"])
     rows = [[k[0], k[1], RESULT_LABELS_VI.get(k[2], k[2]), RESULT_LABELS_VI.get(k[3], k[3]), k[5]] for k in cases]
     r.table(["Mã", "Ca kiểm thử", "Kỳ vọng", "Thực tế", "Thông báo / kết quả"], rows,
-            widths_cm=[1.1, 4.4, 1.8, 1.8, 6.9], caption=f"Kết quả kiểm thử phân quyền ({passed}/{len(cases)} đạt)", size=8.5)
+            widths_cm=[1.1, 4.4, 1.8, 1.8, 6.9], caption=f"Kết quả kiểm thử phân quyền ({passed}/{len(cases)} đạt)")
