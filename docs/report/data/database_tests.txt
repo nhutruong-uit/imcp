@@ -21,10 +21,10 @@ P20|Teacher updates a session of another teacher|Rejected|Rejected|PASSED|You ca
 P21|Teacher takes attendance for a session of another teacher|Rejected|Rejected|PASSED|You can only take attendance for sessions you teach.
 P22|Academic staff open a branch|Rejected|Rejected|PASSED|The EXECUTE permission was denied on the object 'usp_Branch_Add', database 'QLTTTA', schema 'dbo'.
 P23|Accountant changes a class|Rejected|Rejected|PASSED|The EXECUTE permission was denied on the object 'usp_Class_Update', database 'QLTTTA', schema 'dbo'.
-P24|Accountant searches receipts and enrollments|Succeeded|Succeeded|PASSED|95 receipts, 84 enrollments
+P24|Accountant searches receipts and enrollments|Succeeded|Succeeded|PASSED|96 receipts, 84 enrollments
 P25|Teacher reads the grade book of another class|Rejected|Rejected|PASSED|The EXECUTE permission was denied on the object 'usp_Grade_ByClass', database 'QLTTTA', schema 'dbo'.
 P26|Manager writes a catalog table directly|Rejected|Rejected|PASSED|The UPDATE permission was denied on the object 'COURSE', database 'QLTTTA', schema 'dbo'.
-P27|Accountant sees the monthly revenue on the Dashboard|Succeeded|Succeeded|PASSED|RevenueThisMonth = 5000000
+P27|Accountant sees the monthly revenue on the Dashboard|Succeeded|Succeeded|PASSED|RevenueThisMonth = 7150000
 T01|Student under 18 without guardian details|Rejected|Rejected|PASSED|The INSERT statement conflicted with the CHECK constraint "CK_STUDENT_Guardian". The conflict occurred in database "QLTTTA", table "dbo.STUDENT".
 T02|Invalid phone number format (domain CHECK)|Rejected|Rejected|PASSED|The INSERT statement conflicted with the CHECK constraint "CK_STUDENT_Phone". The conflict occurred in database "QLTTTA", table "dbo.STUDENT", column 'Phone'.
 T03|Enrolling twice in the same class|Rejected|Rejected|PASSED|The student is already enrolled in this class.
@@ -72,7 +72,7 @@ T44|Changing the attendance of a finished class|Rejected|Rejected|PASSED|The cla
 T45|Locking an account without saying lock or unlock|Rejected|Rejected|PASSED|Choose whether to lock or unlock the account.
 T46|Transfer: the tuition of the new class applies|Succeeded|Succeeded|PASSED|BaseTuition 4,200,000, discount 500,000, due 3,700,000 (expected 4,200,000 / 500,000)
 T47|Transfer when more was paid than the new tuition|Rejected|Rejected|PASSED|The student has paid more than the tuition of the new class; cancel a receipt before the transfer.
-T48|fn_AttendanceRate: only sessions since the student joined the class count|Succeeded|Succeeded|PASSED|EN000023 joined on 2026-09-03, present at 9 sessions => 100.00%
+T48|fn_AttendanceRate: only sessions since the student joined the class count|Succeeded|Succeeded|PASSED|EN000023 joined on 2026-09-03, present at 10 sessions => 100.00%
 T49|fn_RecommendCourse: no course that needs its prerequisite|Succeeded|Succeeded|PASSED|score 0.5 => CM-A1 (expected CM-A1)
 T50|Marking a future session as taught|Rejected|Rejected|PASSED|A session can only be marked as taught on or after its date.
 T51|Setting a taught session back to Scheduled|Rejected|Rejected|PASSED|A taught session cannot change its status.
@@ -93,15 +93,15 @@ T65|usp_Enrollment_Create: admitted on the score or on the prerequisite|Succeede
 T66|ID sequences end at the largest number their code can hold|Succeeded|Succeeded|PASSED|8 sequences checked
 T67|usp_Dashboard_Stats: students with a Studying enrollment|Succeeded|Succeeded|PASSED|62 active students (expected 62; STUDENT rows with status Studying: 62)
 T68|New grade weight for a course with evaluated classes|Rejected|Rejected|PASSED|The grade components of a course with evaluated classes cannot be changed; open a new course instead.
-T69|Transfer: attendance of the new class counts from the transfer day|Succeeded|Succeeded|PASSED|EN000034 joined on 2026-10-06 after 4 taught sessions => NULL (nothi
+T69|Transfer: attendance of the new class counts from the transfer day|Succeeded|Succeeded|PASSED|EN000034 joined on 2026-10-08 after 4 taught sessions => NULL (nothi
 T70|Transfer to a class of another branch|Rejected|Rejected|PASSED|A student can only be transferred to an open class of the same course and branch.
 T71|usp_Class_EvaluateResults: students without another class become Completed|Succeeded|Succeeded|PASSED|CL0001: 4 Completed, 8 still Studying, 0 wrong
 T72|Class size below the enrolled students|Rejected|Rejected|PASSED|The maximum size cannot be lower than the number of students enrolled in the class.
 T73|Class gets a teacher who is busy at that time|Rejected|Rejected|PASSED|Schedule conflict with class CL0005 (same teacher TE0006).
-T74|usp_Class_Update: coming sessions follow the new teacher and room|Succeeded|Succeeded|PASSED|8/8 scheduled sessions moved, 12/12 past sessions kept
+T74|usp_Class_Update: coming sessions follow the new teacher and room|Succeeded|Succeeded|PASSED|7/7 scheduled sessions moved, 13/13 past sessions kept
 T75|Weekly slot for a finished class|Rejected|Rejected|PASSED|Only an enrolling or in-progress class can be changed.
 T76|usp_Enrollment_Search by student and by keyword|Succeeded|Succeeded|PASSED|ST00001: 2/2 rows; CL0003 Studying: 12/12
-T77|usp_Receipt_Search = usp_Report_Revenue for a period|Succeeded|Succeeded|PASSED|44/44 receipts, 149,314,000 VND (report 149,314,000)
+T77|usp_Receipt_Search = usp_Report_Revenue for a period|Succeeded|Succeeded|PASSED|42/42 receipts, 143,914,000 VND (report 143,914,000)
 T78|usp_PlacementTest_Search keeps every test|Succeeded|Succeeded|PASSED|44/44 tests, 44/44 recommendations
 T79|usp_Grade_ByClass: one cell per student and component|Succeeded|Succeeded|PASSED|36/36 cells, 24/24 scores
 T80|usp_Payroll_Adjust: TotalPay follows the deduction|Succeeded|Succeeded|PASSED|Total pay 11,400,000 (expected 11,400,000)
@@ -140,10 +140,10 @@ T112|Remove a weekly slot the class does not have|Rejected|Rejected|PASSED|Sched
 T113|Deduction on a payroll row that does not exist|Rejected|Rejected|PASSED|Payroll row not found.
 T114|Class gets a teacher who is not teaching|Rejected|Rejected|PASSED|The teacher does not exist or is no longer teaching.
 T115|Pay of the running month marked as paid|Rejected|Rejected|PASSED|A month can only be marked as paid after it has ended.
-T116|usp_Class_Update: a past unconfirmed session keeps its teacher|Succeeded|Succeeded|PASSED|past session: TE0005 (old TE0005), 8/8 coming sessions moved
+T116|usp_Class_Update: a past unconfirmed session keeps its teacher|Succeeded|Succeeded|PASSED|past session: TE0005 (old TE0005), 7/7 coming sessions moved
 T117|Used promotion gets another discount|Rejected|Rejected|PASSED|A promotion already used by enrollments keeps its discount and start date; only its name and end date can change.
 T118|Used promotion ends before its last use|Rejected|Rejected|PASSED|The end date cannot be before the last enrollment that used the promotion.
-T119|usp_Promotion_Update: a used promotion renamed and ended early|Succeeded|Succeeded|PASSED|Opening offer (ended), ends 2026-10-05
+T119|usp_Promotion_Update: a used promotion renamed and ended early|Succeeded|Succeeded|PASSED|Opening offer (ended), ends 2026-10-07
 T120|Enrollment dated in the future|Rejected|Rejected|PASSED|An enrollment cannot be dated in the future.
 T121|Payment dated in the future|Rejected|Rejected|PASSED|A payment cannot be dated in the future.
 T122|New class in a suspended branch|Rejected|Rejected|PASSED|The branch does not exist or is suspended.
