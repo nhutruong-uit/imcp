@@ -720,9 +720,10 @@ private slots:
 
     // 06-docs.md / 04-scripts-ci.md: docs/index.html, the public project site, lists the tables of
     // 01_tables.sql in their business groups (data-table="...") and links only to what pages.yml publishes
-    // next to it: the data map and the screenshots of docs/report/images/screens/ (demo data), which must
-    // exist. Every other document is an absolute link to the repository: a relative link would be broken
-    // online, and publishing a copy of another doc would leave two versions to keep in step.
+    // next to it: the data map, the screenshots of docs/report/images/screens/ (demo data) and the demo video
+    // docs/demo/*.mp4, which must exist. Every other document is an absolute link to the repository: a
+    // relative link would be broken online, and publishing a copy of another doc would leave two versions to
+    // keep in step.
     void docs_projectSite_matchesRepository() {
         const QString file = QStringLiteral("docs/index.html");
         const QString page = readText(file);
@@ -747,8 +748,8 @@ private slots:
                             .arg(file, name);
 
         const QRegularExpression link(QStringLiteral("\\b(?:src|href)=\"([^\"#][^\"]*)\""));
-        const QRegularExpression published(
-            QStringLiteral("^(?:data-map\\.html(?:#\\w+)?|report/images/screens/\\w+\\.png)$"));
+        const QRegularExpression published(QStringLiteral(
+            "^(?:data-map\\.html(?:#\\w+)?|report/images/screens/\\w+\\.png|demo/\\w+\\.mp4)$"));
         for (auto it = link.globalMatch(page); it.hasNext();) {
             const auto m = it.next();
             const QString url = m.captured(1);
@@ -762,7 +763,8 @@ private slots:
                                 .arg(lineOf(page, m.capturedStart()))
                                 .arg(url);
         }
-        const QRegularExpression screenshot(QStringLiteral("report/images/screens/\\w+\\.png"));
+        const QRegularExpression screenshot(
+            QStringLiteral("(?:report/images/screens/\\w+\\.png|(?<![\\w/])demo/\\w+\\.mp4)"));
         for (auto it = screenshot.globalMatch(page); it.hasNext();) {
             const auto m = it.next();
             if (!QFile::exists(kRoot + QStringLiteral("/docs/") + m.captured()))

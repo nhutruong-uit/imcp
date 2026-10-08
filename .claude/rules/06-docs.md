@@ -22,6 +22,7 @@ Everything here is **English**.
 | Team workflow, branches, PR checklist, required checks | `docs/CONTRIBUTING.md` (+ `.github/pull_request_template.md`) |
 | Repository layout | `README.md` |
 | A flow, layer or business rule that a non-programmer must be able to follow (who checks what, which test) | `docs/CODE_TOUR.md` (sections 5-6) |
+| A screen or flow the demo video shows (record it again when it changes noticeably, not for every UI tweak) | `tools/demo/Scenario.cpp` + `docs/demo/captions.tsv`, then `scripts/record_demo` ([docs/demo/README.md](../../docs/demo/README.md)) |
 | A convention | the numbered rule of its area in `.claude/rules/` - never only in `AGENTS.md` |
 | A codebase review (`/imcp-review-codebase`) | `docs/reviews/<date>-codebase.md` (findings, status) and `docs/reviews/LAST_REVIEWED` |
 
@@ -48,9 +49,9 @@ Everything here is **English**.
   renamed in the documents too. A family of objects is written with `*` (`vw_Teacher_My*`).
 - ✔ The project site `docs/index.html` is public (published by `pages.yml`, see `04-scripts-ci.md`). Its database
   object names must exist (`docs_sitePages_namesExistInScripts`); its business groups list every table of
-  `01_tables.sql` (`data-table="..."`) and its only local links are the data map and the screenshots of
-  `docs/report/images/screens/` (`docs_projectSite_matchesRepository`). Link every other doc in the repository on
-  GitHub, never copy it to the site.
+  `01_tables.sql` (`data-table="..."`) and its only local links are the data map, the screenshots of
+  `docs/report/images/screens/` and the demo video `docs/demo/*.mp4` (`docs_projectSite_matchesRepository`). Link
+  every other doc in the repository on GitHub, never copy it to the site.
 
 ## Style
 - Short sentences, imperative for instructions; identifiers, paths and commands in backticks; relative links
