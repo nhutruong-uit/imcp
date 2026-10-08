@@ -16,7 +16,7 @@ if(CMAKE_HOST_APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET AND NOT DEFINED ENV{MACO
 endif()
 
 project(QLTTTA
-    VERSION 1.1.0
+    VERSION 1.2.0
     DESCRIPTION "English center management system - IE103 course project"
     LANGUAGES CXX)
 

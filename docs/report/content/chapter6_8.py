@@ -171,6 +171,11 @@ def chapter6(r):
         "là bỏ qua (Skipped).",
         "**Kiểm thử hiển thị**: công cụ `tools/qlttta_screenshots` tự đăng nhập bằng 4 tài khoản demo, mở "
         "từng chức năng và chụp màn hình (hình trong chương này được tạo bằng công cụ đó).",
+        "**Video demo**: công cụ `tools/qlttta_demo_video` (chạy bằng `scripts/record_demo`) cho chính ứng dụng tự đóng "
+        "vai bốn tài khoản demo: gõ phím, bấm nút, điền form trên CSDL thật, kèm phụ đề tiếng Việt, rồi `ffmpeg` mã hóa "
+        "thành `docs/demo/QLTTTA_Demo_vi.mp4` (khoảng 6 phút, có mục lục chương). Video được quay từ chính các cửa sổ "
+        "Qt nên không cần quyền ghi màn hình và lần quay nào cũng cho kết quả giống nhau; video cũng được phát trên trang "
+        "giới thiệu của dự án.",
         f"**Kiểm thử CSDL**: {len(database_tests())} ca trong `12_tests.sql` (Chương 4 và 5), tất cả đạt.",
         "**Chạy toàn bộ bằng một lệnh** `scripts/test_all.sh`: khởi tạo lại CSDL → kiểm thử CSDL → build → unit test → "
         "end-to-end; bước nào hỏng thì dừng và trả mã lỗi. Đây là điều kiện bắt buộc trước khi tạo Pull Request.",
@@ -394,7 +399,7 @@ def appendix(r):
         ["src/presentation/", "Giao diện Qt Widgets (menu, form, báo cáo)"],
         ["src/app/", "Composition root: main.cpp, AppContainer"],
         ["tests/", "Unit test và kiểm thử end-to-end qua giao diện (Qt Test)"],
-        ["tools/", "Công cụ chụp màn hình tự động"],
+        ["tools/", "Công cụ chụp màn hình và quay video demo tự động"],
         ["scripts/, packaging/", "Khởi tạo CSDL, đóng gói; icon, Inno Setup, Info.plist"],
         [".github/workflows/", "CI (build + test) và Release (tạo file cài)"],
         ["docs/", "Tài liệu dự án và báo cáo (docs/report)"],
